@@ -3,153 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>背書助手 極速離線版</title>
+    <title>背書助手 極速修復版</title>
     <script src="https://unpkg.com/pinyin-pro"></script>
     <style>
-        :root { --bg: #FAF9F6; --navy: #34495E; --gold: #D4AF37; --green: #679267; --red: #A93226; }
+        :root { --bg: #FAF9F6; --navy: #34495E; --gold: #D4AF37; --green: #679267; }
         body { margin: 0; background: var(--bg); font-family: sans-serif; overflow: hidden; color: var(--navy); }
+        .top-bar { display: flex; padding: 10px; gap: 10px; background: white; }
+        select { flex: 1; font-size: 1.1rem; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+        .display { height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .line { font-size: 2rem; font-weight: bold; margin: 10px 0; opacity: 0.2; text-align: center; width: 90%; transition: 0.3s; }
+        .active { opacity: 1; color: var(--gold); background: #EBF5FB; border-radius: 12px; padding: 15px 5px; }
         
-        /* 1:1 等寬頂部 */
-        .top-bar { display: flex; padding: 10px; gap: 10px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        select { flex: 1; font-size: 1.1rem; padding: 10px; border-radius: 8px; font-weight: bold; border: 1px solid #ccc; }
+        /* 下載控制 */
+        .loading-box { width: 85%; text-align: center; }
+        .progress-container { background: #eee; height: 12px; border-radius: 6px; overflow: hidden; margin: 10px 0; }
+        #prog-bar { width: 0%; height: 100%; background: var(--gold); transition: width 0.3s; }
+        #status-log { font-size: 0.8rem; color: #7f8c8d; height: 40px; }
 
-        /* 經文區：大字體優化 */
-        .display { height: 65vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; }
-        .line { font-size: 2.2rem; font-weight: bold; margin: 15px 0; opacity: 0.2; text-align: center; transition: 0.2s; width: 90%; }
-        .active { opacity: 1; color: var(--gold); background: #EBF5FB; border-radius: 12px; padding: 15px 5px; transform: scale(1.1); }
-        .error-flash { color: var(--red); background: #FDEDEC; border: 2px solid var(--red); }
-
-        /* 控制區 */
-        .bottom { position: fixed; bottom: 0; width: 100%; background: white; padding: 20px; box-sizing: border-box; border-top: 1px solid #eee; }
-        .btn { width: 100%; height: 75px; font-size: 1.8rem; font-weight: bold; border: none; border-radius: 15px; background: #5D6D7E; color: #F7DC6F; }
+        .bottom { position: fixed; bottom: 0; width: 100%; background: white; padding: 20px; box-sizing: border-box; }
+        .btn { width: 100%; height: 75px; font-size: 1.8rem; font-weight: bold; border: none; border-radius: 15px; background: #BDC3C7; color: white; }
         .btn.ready { background: var(--green); color: white; }
-        .status { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1rem; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <select id="scriptSel"><option>載入中...</option></select>
-    <select id="deviceSel"><option>預設麥克風</option></select>
+    <select id="scriptSel"><option>心經</option></select>
+    <select id="micSel"><option>預設麥克風</option></select>
 </div>
 
 <div class="display">
     <div class="line" id="l-prev"></div>
-    <div class="line active" id="l-curr">正在初始化引擎...</div>
+    <div class="line active" id="l-curr">請檢查連線...</div>
     <div class="line" id="l-next"></div>
+    
+    <div class="loading-box">
+        <div class="progress-container"><div id="prog-bar"></div></div>
+        <div id="status-log">正在確認 HTTPS 安全環境...</div>
+    </div>
 </div>
 
 <div class="bottom">
-    <div class="status">
-        <span>匹配: <span id="acc">--</span></span>
-        <span>進度: <span id="prog">0/0</span></span>
-    </div>
-    <button class="btn" id="mainBtn" disabled>請稍候...</button>
+    <button class="btn" id="mainBtn" disabled>初始化中</button>
 </div>
 
 <script type="module">
     import { createModel } from "https://unpkg.com/vosk-browser@0.0.9/dist/vosk.js";
 
-    let model, recognizer, stream;
-    let scriptures = ["觀自在菩薩", "行深般若波羅蜜多時", "照見五蘊皆空", "度一切苦厄", "舍利子", "色不異空"];
-    let currentIndex = 0;
-    let isRunning = false;
+    const log = (msg) => { document.getElementById('status-log').innerText = msg; console.log(msg); };
+    const bar = document.getElementById('prog-bar');
+    const btn = document.getElementById('mainBtn');
 
-    // 1. 拼音模糊化邏輯 (同步您 Python 的算法)
-    function getFuzzy(text) {
-        const py = pinyinPro.pinyin(text, { toneType: 'none', nonZh: 'removed' }).replace(/\s+/g, '');
-        return py.replace(/zh/g, 'z').replace(/ch/g, 'c').replace(/sh/g, 's')
-                 .replace(/eng/g, 'en').replace(/ing/g, 'in').replace(/ong/g, 'on');
-    }
-
-    // 2. 更新介面
-    function updateUI() {
-        document.getElementById('l-prev').innerText = scriptures[currentIndex-1] || "";
-        document.getElementById('l-curr').innerText = scriptures[currentIndex] || "背誦完成！";
-        document.getElementById('l-next').innerText = scriptures[currentIndex+1] || "";
-        document.getElementById('prog').innerText = `${currentIndex}/${scriptures.length}`;
-        
-        // 【關鍵】動態更新文法：只聽當前句與下一句，大幅提升速度
-        if (recognizer && scriptures[currentIndex]) {
-            const grammar = [scriptures[currentIndex], scriptures[currentIndex+1] || "", "[unk]"];
-            recognizer.setGrammar(grammar);
+    async function init() {
+        // 檢查環境
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            log("❌ 錯誤：網頁必須在 HTTPS 環境下執行，否則無法啟動。");
+            return;
         }
-    }
 
-    // 3. 初始化 Vosk
-    async function initVosk() {
         try {
-            // 下載模型 (small-cn 版約 40MB)
-            model = await createModel("https://alphacephei.com/vosk/models/vosk-model-small-cn-0.22.tar.gz");
-            document.getElementById('l-curr').innerText = "模型載入成功";
-            const btn = document.getElementById('mainBtn');
+            log("📡 正在嘗試連線至 Vosk 模型伺服器...");
+            
+            // 模擬進度（因為原生 createModel 不支援進度回傳，我們用偽進度讓使用者知道沒當掉）
+            let p = 0;
+            const timer = setInterval(() => {
+                if (p < 95) { p += 1; bar.style.width = p + "%"; log(`載入模型中... ${p}%`); }
+            }, 300);
+
+            // 執行下載與初始化
+            const model = await createModel("https://alphacephei.com/vosk/models/vosk-model-small-cn-0.22.tar.gz");
+            
+            clearInterval(timer);
+            bar.style.width = "100%";
+            log("✅ 模型加載完畢！可以開始背誦。");
+            
+            document.getElementById('l-curr').innerText = "點擊下方按鈕開始";
             btn.disabled = false;
             btn.innerText = "開始背誦";
             btn.classList.add('ready');
-            updateUI();
+
         } catch (e) {
-            alert("模型載入失敗，請檢查網路。");
+            log("❌ 當掉或出錯：" + e.message);
+            document.getElementById('l-curr').innerText = "載入失敗";
         }
     }
 
-    // 4. 開始錄音與辨識
-    async function startRecite() {
-        if (!stream) stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        recognizer = new model.KaldiRecognizer(16000);
-        // 設定初始文法
-        recognizer.setGrammar([scriptures[currentIndex], "[unk]"]);
-
-        const audioContext = new AudioContext();
-        const source = audioContext.createMediaStreamSource(stream);
-        const processor = audioContext.createScriptProcessor(4096, 1, 1);
-
-        processor.onaudioprocess = (e) => {
-            if (!isRunning) return;
-            const buffer = e.inputBuffer.getChannelData(0);
-            // 轉換為 16-bit PCM
-            const int16Buffer = new Int16Array(buffer.length);
-            for (let i = 0; i < buffer.length; i++) int16Buffer[i] = buffer[i] * 0x7FFF;
-            
-            if (recognizer.acceptWaveform(int16Buffer)) {
-                checkResult(recognizer.result().text);
-            } else {
-                // 【加速重點】使用 PartialResult，話說一半對了就跳
-                checkResult(recognizer.partialResult().partial);
-            }
-        };
-
-        source.connect(processor);
-        processor.connect(audioContext.destination);
-    }
-
-    function checkResult(text) {
-        if (!text || currentIndex >= scriptures.length) return;
-        const target = scriptures[currentIndex];
-        const inputFuzzy = getFuzzy(text);
-        const targetFuzzy = getFuzzy(target);
-
-        // 簡單的比對邏輯 (如果輸入包含目標拼音，或相似度高)
-        if (inputFuzzy.includes(targetFuzzy) || targetFuzzy.includes(inputFuzzy)) {
-            currentIndex++;
-            document.getElementById('acc').innerText = "100%";
-            updateUI();
-            // 震動回饋 (手機專用)
-            if (navigator.vibrate) navigator.vibrate(50);
-        }
-    }
-
-    document.getElementById('mainBtn').onclick = () => {
-        if (!isRunning) {
-            isRunning = true;
-            document.getElementById('mainBtn').innerText = "停止結算";
-            startRecite();
-        } else {
-            location.reload(); // 簡單重置
-        }
-    };
-
-    initVosk();
+    init();
 </script>
 </body>
 </html>
