@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>霓虹樹木接果實大作戰 - Mobile Optimized Arcade</title>
+    <!-- Tailwind CSS for modern responsive UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', 'Inter', sans-serif;
+            touch-action: none; /* Prevent scroll/zoom gestures on canvas */
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #030712;
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="text-white h-[100dvh] w-screen flex flex-col items-center justify-center overflow-hidden m-0 p-0">
+
+    <!-- Main Game Container (Fully responsive, fits mobile & desktop) -->
+    <div class="relative w-full h-full max-w-lg md:h-[85vh] md:rounded-3xl shadow-2xl flex flex-col bg-slate-900 border border-slate-800 overflow-hidden">
+        
+        <!-- Top Status Bar -->
+        <div class="flex justify-between items-center px-5 py-3 bg-slate-900/90 backdrop-blur z-20 border-b border-slate-800">
+            <div>
+                <span class="text-[10px] text-slate-400 uppercase tracking-wider block">得分 / Score</span>
+                <span id="scoreDisplay" class="text-xl font-extrabold text-cyan-400">0</span>
+            </div>
+            <div class="text-center">
+                <span class="text-[10px] text-slate-400 uppercase tracking-wider block">最高分 / High Score</span>
+                <span id="highScoreDisplay" class="text-lg font-bold text-amber-400">0</span>
+            </div>
+            <div class="text-right">
+                <span class="text-[10px] text-slate-400 uppercase tracking-wider block">生命 / Lives</span>
+                <div id="livesDisplay" class="flex gap-0.5 text-rose-500 text-sm">❤️❤️❤️</div>
+            </div>
+        </div>
+
+        <!-- Canvas Game Area -->
+        <div class="relative flex-1 w-full overflow-hidden bg-gradient-to-b from-slate-950 via-indigo-950/40 to-slate-950">
+            <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+            <!-- Start Screen Overlay -->
+            <div id="startScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 z-30 text-center">
+                <div class="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4 border border-emerald-500/40 animate-bounce">
+                    <span class="text-4xl">🌳</span>
+                </div>
+                <h1 class="text-3xl font-extrabold mb-2 bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">霓虹樹果實守衛</h1>
+                <p class="text-sm text-slate-300 mb-6 max-w-xs leading-relaxed">滑動手指或使用下方觸控按鈕移動籃子，接住掉落的能量果實，避開有毒荊棘！</p>
+                <button id="startButton" class="w-full max-w-xs bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-emerald-500/30 transform active:scale-95 transition-all text-lg">
+                    開始遊戲 (Play Now)
+                </button>
+            </div>
+
+            <!-- Game Over Screen Overlay -->
+            <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 z-30 text-center hidden">
+                <div class="w-20 h-20 bg-rose-500/20 rounded-full flex items-center justify-center mb-4 border border-rose-500/40">
+                    <span class="text-4xl">💥</span>
+                </div>
+                <h2 class="text-3xl font-extrabold mb-1 text-rose-400">遊戲結束</h2>
+                <p class="text-slate-400 text-sm mb-2">你的最終得分</p>
+                <div id="finalScore" class="text-5xl font-black text-white mb-6">0</div>
+                <button id="restartButton" class="w-full max-w-xs bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-cyan-500/30 transform active:scale-95 transition-all text-lg">
+                    再玩一次 (Try Again)
+                </button>
+            </div>
+        </div>
+
+        <!-- Touch Controls Bar (Optimized for Mobile Smartphones & Tablets) -->
+        <div class="flex justify-between items-center px-4 py-3 bg-slate-900/95 border-t border-slate-800 z-20 gap-3">
+            <button id="leftBtn" class="flex-1 bg-slate-800/80 hover:bg-slate-700 active:bg-emerald-600 text-emerald-400 font-bold py-3.5 rounded-2xl shadow-inner text-lg transition-colors flex items-center justify-center gap-2 border border-slate-700/50">
+                <span>◀️</span> 左移
+            </button>
+            <button id="rightBtn" class="flex-1 bg-slate-800/80 hover:bg-slate-700 active:bg-emerald-600 text-emerald-400 font-bold py-3.5 rounded-2xl shadow-inner text-lg transition-colors flex items-center justify-center gap-2 border border-slate-700/50">
+                右移 <span>▶️</span>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Game Engine & Touch Handler Script -->
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const highScoreDisplay = document.getElementById('highScoreDisplay');
+        const livesDisplay = document.getElementById('livesDisplay');
+        const finalScore = document.getElementById('finalScore');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+
+        // Game Variables
+        let gameState = 'START'; // START, PLAYING, GAMEOVER
+        let score = 0;
+        let highScore = localStorage.getItem('neon_tree_highscore') || 0;
+        let lives = 3;
+        let gameSpeed = 2.5;
+        let spawnTimer = 0;
+
+        highScoreDisplay.textContent = highScore;
+
+        // Basket / Player Object
+        let basket = {
+            x: 0,
+            y: 0,
+            width: 90,
+            height: 26,
+            speed: 9,
+        };
+
+        // Falling items (fruits & thorns)
+        let items = [];
+
+        // Dynamic Canvas Scaling for Fullscreen Mobile/Desktop
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            if (gameState === 'START' || gameState === 'GAMEOVER') {
+                basket.x = canvas.width / 2 - basket.width / 2;
+                basket.y = canvas.height - 70;
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') keys['LEFT'] = true;
+            if (e.key === 'ArrowRight' || e.key === 'd') keys['RIGHT'] = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') keys['LEFT'] = false;
+            if (e.key === 'ArrowRight' || e.key === 'd') keys['RIGHT'] = false;
+        });
+
+        // Touch button interaction
+        let touchLeft = false;
+        let touchRight = false;
+
+        leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); touchLeft = true; });
+        leftBtn.addEventListener('touchend', (e) => { e.preventDefault(); touchLeft = false; });
+        leftBtn.addEventListener('mousedown', () => { touchLeft = true; });
+        leftBtn.addEventListener('mouseup', () => { touchLeft = false; });
+
+        rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); touchRight = true; });
+        rightBtn.addEventListener('touchend', (e) => { e.preventDefault(); touchRight = false; });
+        rightBtn.addEventListener('mousedown', () => { touchRight = true; });
+        rightBtn.addEventListener('mouseup', () => { touchRight = false; });
+
+        // Direct touch / drag anywhere on canvas
+        canvas.addEventListener('touchmove', (e) => {
+            if (gameState !== 'PLAYING') return;
+            const rect = canvas.getBoundingClientRect();
+            const touchX = e.touches[0].clientX - rect.left;
+            basket.x = touchX - basket.width / 2;
+        }, { passive: true });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (gameState !== 'PLAYING') return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            basket.x = mouseX - basket.width / 2;
+        });
+
+        function startGame() {
+            score = 0;
+            lives = 3;
+            gameSpeed = 3;
+            items = [];
+            scoreDisplay.textContent = score;
+            livesDisplay.textContent = '❤️❤️❤️';
+            basket.x = canvas.width / 2 - basket.width / 2;
+            basket.y = canvas.height - 70;
+            
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            gameState = 'PLAYING';
+        }
+
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+
+        function spawnItem() {
+            const isThorn = Math.random() < 0.28; // 28% chance of dropping a hazard/thorn
+            const radius = isThorn ? 18 : 16;
+            const x = Math.random() * (canvas.width - radius * 2) + radius;
+            items.push({
+                x: x,
+                y: -30,
+                radius: radius,
+                speed: (Math.random() * 2 + 2) * (gameSpeed * 0.45),
+                isThorn: isThorn,
+                color: isThorn ? '#f43f5e' : '#10b981',
+                pulse: Math.random() * Math.PI
+            });
+        }
+
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            // Player movement updates
+            if (keys['LEFT'] || touchLeft) {
+                basket.x -= basket.speed;
+            }
+            if (keys['RIGHT'] || touchRight) {
+                basket.x += basket.speed;
+            }
+
+            // Screen boundary checks
+            if (basket.x < 0) basket.x = 0;
+            if (basket.x + basket.width > canvas.width) basket.x = canvas.width - basket.width;
+
+            // Spawn rate based on score
+            spawnTimer++;
+            if (spawnTimer > Math.max(25, 65 - Math.floor(score / 30))) {
+                spawnItem();
+                spawnTimer = 0;
+            }
+
+            // Update items position and check collision with basket
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                item.y += item.speed;
+                item.pulse += 0.1;
+
+                // Collision detection with basket rectangle
+                if (
+                    item.y + item.radius >= basket.y &&
+                    item.y - item.radius <= basket.y + basket.height &&
+                    item.x >= basket.x - 5 &&
+                    item.x <= basket.x + basket.width + 5
+                ) {
+                    if (item.isThorn) {
+                        lives--;
+                        updateLivesUI();
+                        if (lives <= 0) {
+                            endGame();
+                        }
+                    } else {
+                        score += 10;
+                        scoreDisplay.textContent = score;
+                        if (score % 60 === 0) gameSpeed += 0.6;
+                    }
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                // Remove item if it falls out of screen
+                if (item.y > canvas.height + 30) {
+                    items.splice(i, 1);
+                }
+            }
+        }
+
+        function updateLivesUI() {
+            let hearts = '';
+            for (let i = 0; i < lives; i++) hearts += '❤️';
+            livesDisplay.textContent = hearts;
+        }
+
+        function endGame() {
+            gameState = 'GAMEOVER';
+            finalScore.textContent = score;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('neon_tree_highscore', highScore);
+                highScoreDisplay.textContent = highScore;
+            }
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Background glowing tree trunk silhouette & ambient particles
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.08)';
+            ctx.lineWidth = 40;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.stroke();
+
+            // Draw Basket (Neon Catcher)
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#10b981';
+            ctx.fillStyle = '#34d399';
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(basket.x, basket.y, basket.width, basket.height, 12);
+            } else {
+                ctx.rect(basket.x, basket.y, basket.width, basket.height);
+            }
+            ctx.fill();
+
+            // Basket rim detail
+            ctx.fillStyle = '#065f46';
+            ctx.fillRect(basket.x + 6, basket.y + 4, basket.width - 12, 4);
+
+            // Reset shadow for items
+            ctx.shadowBlur = 12;
+
+            // Draw falling fruits and thorns
+            items.forEach(item => {
+                ctx.shadowColor = item.color;
+                ctx.fillStyle = item.color;
+                ctx.beginPath();
+                ctx.arc(item.x, item.y, item.radius + Math.sin(item.pulse) * 1, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Highlight gloss
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(item.x - 3, item.y - 3, item.radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.shadowBlur = 0;
+        }
+
+        // Main Animation Loop
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
