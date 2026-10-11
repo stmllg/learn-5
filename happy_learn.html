@@ -35,10 +35,7 @@
       flex-direction: column;
     }
 
-    /* 
-      3. LINE 阻擋提示浮動卡片：
-      不佔滿全螢幕，半透明背景，四周留白，絕不遮住右上/右下角的三點選單！
-    */
+    /* LINE 阻擋提示浮動卡片：不佔滿全螢幕，邊緣留白不擋邊角三點 */
     #line-blocker-modal {
       display: none;
       position: fixed;
@@ -50,7 +47,7 @@
       z-index: 999999;
       padding: 40px 20px;
       overflow-y: auto;
-      pointer-events: none; /* 允許手指點擊邊角的系統選單 */
+      pointer-events: none;
     }
 
     .guide-card {
@@ -63,7 +60,7 @@
       color: #FFFFFF;
       box-shadow: 0 12px 35px rgba(0,0,0,0.85);
       text-align: center;
-      pointer-events: auto; /* 卡片內部可操作 */
+      pointer-events: auto;
     }
 
     .guide-card h2 {
@@ -94,9 +91,7 @@
       50% { transform: scale(1.08); opacity: 0.85; }
     }
 
-    /* 
-      1. 上半部經文閱讀區：佔螢幕 60% (3/5)
-    */
+    /* 1. 上半部經文閱讀區：佔螢幕 60% (3/5) */
     #pdf-section {
       flex: 1 1 60%;
       height: 60dvh;
@@ -201,9 +196,7 @@
       color: #94A3B8;
     }
 
-    /* 
-      2. 下半部固定控制區：高度鎖死為 40% (2/5，40dvh)
-    */
+    /* 2. 下半部固定控制區：高度鎖死為 40% (2/5，40dvh) */
     #bottom-fixed-dock {
       flex: 0 0 40dvh;
       height: 40dvh;
@@ -245,7 +238,7 @@
       gap: 4px;
     }
 
-    /* 第一排：總時間 / 大錄音鈕 / 播放速度 */
+    /* 第一排：總時間 / 錄音鈕(金幣動畫) / 播放速度 */
     .control-row-1 {
       display: flex;
       align-items: center;
@@ -292,7 +285,7 @@
       width: 100%;
     }
 
-    /* 錄音按鈕容器（提供金幣動畫噴發的原點） */
+    /* 錄音按鈕容器（金幣原點） */
     .record-btn-wrapper {
       position: relative;
       display: flex;
@@ -332,7 +325,7 @@
       border-color: #DCFCE7 !important;
     }
 
-    /* 噴射金色金幣元素樣式 */
+    /* 金幣噴灑動畫 */
     .gold-coin {
       position: absolute;
       font-size: 24px;
@@ -479,7 +472,7 @@
 </head>
 <body>
 
-  <!-- LINE 內建視窗浮動提示卡片（不佔滿全螢幕，邊緣留白不擋三點選單） -->
+  <!-- LINE 內建視窗浮動提示卡片 -->
   <div id="line-blocker-modal">
     <div class="guide-card">
       <h2>⚠️ 請跳出 LINE 視窗</h2>
@@ -641,9 +634,7 @@
       return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    /* ----------------------------------------------------
-       噴灑金幣視覺動畫（🪙 隨喜功德，金光四射）
-    ---------------------------------------------------- */
+    /* 噴灑金幣視覺動畫 */
     function spawnGoldCoins() {
       const coinCount = 12;
       for (let i = 0; i < coinCount; i++) {
@@ -651,7 +642,6 @@
         coin.className = 'gold-coin';
         coin.textContent = '🪙';
 
-        // 隨機向四周發散的位移與旋轉角度
         const angle = (i / coinCount) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
         const distance = 80 + Math.random() * 60;
         const dx = Math.cos(angle) * distance;
@@ -671,7 +661,7 @@
     }
 
     /* ----------------------------------------------------
-       IndexedDB 本地資料庫儲存庫（永久離線快取）
+       IndexedDB 本地資料庫儲存庫（附帶更新日期標籤）
     ---------------------------------------------------- */
     const DB_NAME = 'HappyReciteDB';
     const STORE_NAME = 'pdf_store';
@@ -680,7 +670,7 @@
     function openDatabase() {
       return new Promise((resolve, reject) => {
         try {
-          const req = indexedDB.open(DB_NAME, 1);
+          const req = indexedDB.open(DB_NAME, 2);
           req.onupgradeneeded = (e) => {
             const db = e.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -695,7 +685,7 @@
       });
     }
 
-    async function getCachedPdf() {
+    async function getCachedRecord() {
       try {
         const db = await Promise.race([
           openDatabase(),
@@ -713,12 +703,12 @@
       }
     }
 
-    async function savePdfToCache(arrayBuffer) {
+    async function saveRecordToCache(arrayBuffer, fileDateTag) {
       try {
         const db = await openDatabase();
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
-        store.put(arrayBuffer, PDF_KEY);
+        store.put({ buffer: arrayBuffer, dateTag: fileDateTag }, PDF_KEY);
       } catch (e) {}
     }
 
@@ -746,12 +736,12 @@
     }
 
     /* ----------------------------------------------------
-       1. 啟動：帶真實下載百分比（%）的載入核心
+       1. 啟動：自動偵測伺服器建立日期，有更新自動下載
     ---------------------------------------------------- */
     window.addEventListener('DOMContentLoaded', () => {
       const isLine = checkAndLockLineBrowser();
       if (!isLine) {
-        loadScriptureWithRealProgress();
+        loadScriptureSmartAutoUpdate();
       }
     });
 
@@ -772,11 +762,32 @@
       return false;
     }
 
-    // 帶進度監聽的 XMLHttpRequest 下載函式
+    // 輕量 HEAD 請求獲取伺服器上的建立日期與特徵標籤
+    function checkServerFileDate(url) {
+      return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('HEAD', url + '?t=' + Date.now(), true);
+        xhr.timeout = 3000;
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const lastModified = xhr.getResponseHeader('Last-Modified');
+            const etag = xhr.getResponseHeader('ETag');
+            resolve(lastModified || etag || 'unknown');
+          } else {
+            resolve(null);
+          }
+        };
+        xhr.onerror = () => resolve(null);
+        xhr.ontimeout = () => resolve(null);
+        xhr.send();
+      });
+    }
+
+    // 帶進度監聽的下載
     function downloadWithProgress(url) {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
+        xhr.open('GET', url + '?t=' + Date.now(), true);
         xhr.responseType = 'arraybuffer';
 
         xhr.onprogress = (e) => {
@@ -785,7 +796,6 @@
             progressPercentText.textContent = `${percent}%`;
             downloadBarFill.style.width = `${percent}%`;
           } else {
-            // 無法得知總大小時計步增加
             progressPercentText.textContent = '下載中...';
           }
         };
@@ -800,56 +810,78 @@
 
         xhr.onerror = () => reject(new Error('網路連線失敗'));
         xhr.ontimeout = () => reject(new Error('下載超時'));
-        xhr.timeout = 15000;
+        xhr.timeout = 20000;
 
         xhr.send();
       });
     }
 
-    async function loadScriptureWithRealProgress() {
-      statusTitle.textContent = '📖 正在開啟背誦經文...';
-      statusDesc.textContent = '檢查手機儲存中...';
+    async function loadScriptureSmartAutoUpdate() {
+      statusTitle.textContent = '📖 正在檢查經文版本...';
+      statusDesc.textContent = '比對最新內容中...';
       btnManualPick.style.display = 'none';
       progressBox.style.display = 'none';
 
-      // 1. 優先檢查手機本地快取 (0.2 秒秒開)
-      try {
-        const cachedData = await getCachedPdf();
-        if (cachedData) {
-          statusDesc.textContent = '已從手機本地儲存秒開！';
-          await parseAndRenderPdfData(new Uint8Array(cachedData));
-          return;
-        }
-      } catch (e) {}
+      const cachedRecord = await getCachedRecord();
+      const localBuffer = cachedRecord ? (cachedRecord.buffer || cachedRecord) : null;
+      const localDateTag = cachedRecord ? cachedRecord.dateTag : null;
 
-      // 2. 本地沒有時，自網路下載並顯示真實 % 進度
-      statusDesc.textContent = '首次載入，正自雲端下載經文...';
+      // 1. 在背景檢查伺服器檔案日期
+      const targetUrl = './scripture.pdf';
+      const serverDateTag = await checkServerFileDate(targetUrl);
+
+      // 2. 如果伺服器檔案日期與本地一致，且本地已有檔案 -> 直接秒開本地檔！
+      if (localBuffer && serverDateTag && localDateTag && serverDateTag === localDateTag) {
+        statusDesc.textContent = '經文為最新版本，直接秒開！';
+        await parseAndRenderPdfData(new Uint8Array(localBuffer));
+        return;
+      }
+
+      // 3. 如果離線或網路不通，但本地已有存檔 -> 優先開啟現有經文
+      if (localBuffer && !serverDateTag) {
+        statusDesc.textContent = '離線模式，開啟現存經文...';
+        await parseAndRenderPdfData(new Uint8Array(localBuffer));
+        return;
+      }
+
+      // 4. 偵測到伺服器日期較新（換了新經典）或首次使用 -> 下載新經文
+      statusTitle.textContent = localBuffer ? '📖 偵測到新經文，更新中...' : '📖 首次載入經文...';
+      statusDesc.textContent = '正自雲端同步最新經文內容...';
       progressBox.style.display = 'block';
       progressPercentText.textContent = '0%';
       downloadBarFill.style.width = '0%';
 
-      const fileCandidates = ['./scripture.pdf', './scripture.PDF'];
       let downloadedBuffer = null;
-
-      for (const fileName of fileCandidates) {
+      try {
+        downloadedBuffer = await downloadWithProgress(targetUrl);
+      } catch (e) {
+        // 嘗試備用大寫
         try {
-          downloadedBuffer = await downloadWithProgress(fileName);
-          if (downloadedBuffer) break;
-        } catch (e) {}
+          downloadedBuffer = await downloadWithProgress('./scripture.PDF');
+        } catch (e2) {}
       }
 
       if (downloadedBuffer) {
         progressPercentText.textContent = '100%';
         downloadBarFill.style.width = '100%';
-        statusDesc.textContent = '下載完成，正永久存入手機並解析...';
+        statusDesc.textContent = '新經典同步完成，存入本機並開啟...';
 
-        savePdfToCache(downloadedBuffer);
+        // 存入新檔案與最新伺服器日期標籤
+        await saveRecordToCache(downloadedBuffer, serverDateTag || new Date().toISOString());
+        // 重置捲動位置到第一頁
+        localStorage.removeItem('recite_scroll_pos');
         await parseAndRenderPdfData(new Uint8Array(downloadedBuffer));
       } else {
-        progressBox.style.display = 'none';
-        statusTitle.textContent = '📖 經文預備區';
-        statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，<br>請直接點擊下方橘色大按鈕挑選經文：';
-        btnManualPick.style.display = 'inline-block';
+        // 若下載失敗但本地有舊版，仍開舊版保底
+        if (localBuffer) {
+          progressBox.style.display = 'none';
+          await parseAndRenderPdfData(new Uint8Array(localBuffer));
+        } else {
+          progressBox.style.display = 'none';
+          statusTitle.textContent = '📖 經文預備區';
+          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，<br>請點擊下方橘色大按鈕手動挑選經文：';
+          btnManualPick.style.display = 'inline-block';
+        }
       }
     }
 
@@ -869,7 +901,8 @@
 
       try {
         const arrayBuffer = await file.arrayBuffer();
-        savePdfToCache(arrayBuffer);
+        await saveRecordToCache(arrayBuffer, 'manual_' + Date.now());
+        localStorage.removeItem('recite_scroll_pos');
         await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
       } catch (err) {
         alert('經文解析失敗：' + err.message);
@@ -983,7 +1016,6 @@
     ---------------------------------------------------- */
     btnRecord.addEventListener('click', async () => {
       if (!isRecording) {
-        // 按下錄音鍵，瞬間噴灑金幣動畫！
         spawnGoldCoins();
         await startRecording();
       } else {
