@@ -35,7 +35,7 @@
       flex-direction: column;
     }
 
-    /* LINE 阻擋提示浮動卡片：不佔滿全螢幕，邊緣留白不擋邊角三點 */
+    /* LINE 阻擋提示浮動卡片 */
     #line-blocker-modal {
       display: none;
       position: fixed;
@@ -107,6 +107,48 @@
       transition: filter 0.15s ease-out;
     }
 
+    /* 綠色導引線與小紅點容器層（覆蓋在經文上方，不擋滑動） */
+    #pointer-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+      display: none;
+    }
+
+    /* 綠色半透明引導底線 */
+    #guide-line {
+      position: absolute;
+      height: 4px;
+      background-color: rgba(34, 197, 94, 0.7);
+      border-radius: 2px;
+      pointer-events: none;
+      transition: top 0.25s ease-out;
+    }
+
+    /* 小紅點游標 */
+    #red-dot {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: radial-gradient(circle, #FF4D4D 30%, #CC0000 100%);
+      border: 2.5px solid #FFFFFF;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.9), 0 2px 5px rgba(0,0,0,0.4);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 12;
+      animation: pulseRedDot 1.4s infinite alternate;
+    }
+
+    @keyframes pulseRedDot {
+      from { transform: translate(-50%, -50%) scale(0.95); }
+      to { transform: translate(-50%, -50%) scale(1.15); }
+    }
+
     /* 載入與下載百分比卡片 */
     #status-card {
       margin: auto;
@@ -131,7 +173,6 @@
       color: #4A5568;
     }
 
-    /* 下載進度大字與進度條 */
     #progress-percent-text {
       font-size: 32px;
       font-weight: 900;
@@ -156,7 +197,6 @@
       transition: width 0.15s ease-out;
     }
 
-    /* 手動挑選備用按鈕 (長輩特大字) */
     #btn-manual-pick {
       display: none;
       margin-top: 18px;
@@ -171,7 +211,6 @@
       cursor: pointer;
     }
 
-    /* PDF 頁面佔位容器 */
     .pdf-page-container {
       position: relative;
       margin: 6px auto;
@@ -211,7 +250,6 @@
       padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
 
-    /* 中央隨喜提詞列：鎖定單行 */
     #motto-bar {
       flex: 0 0 auto;
       background: linear-gradient(180deg, #1E293B 0%, #151F32 100%);
@@ -228,7 +266,6 @@
       text-shadow: 0 1px 3px rgba(0,0,0,0.8);
     }
 
-    /* 下方操作面板 */
     #controls-panel {
       flex: 1 1 auto;
       padding: 6px 12px 6px 12px;
@@ -238,7 +275,6 @@
       gap: 4px;
     }
 
-    /* 第一排：總時間 / 錄音鈕(金幣動畫) / 播放速度 */
     .control-row-1 {
       display: flex;
       align-items: center;
@@ -285,7 +321,6 @@
       width: 100%;
     }
 
-    /* 錄音按鈕容器（金幣原點） */
     .record-btn-wrapper {
       position: relative;
       display: flex;
@@ -294,7 +329,6 @@
       flex-shrink: 0;
     }
 
-    /* 中央錄音大圓鈕 */
     #btn-record {
       width: 66px;
       height: 66px;
@@ -318,14 +352,12 @@
       transform: scale(0.95);
     }
 
-    /* 錄音中說話偵測光暈 */
     #btn-record.recording-active {
       background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
       box-shadow: 0 0 22px rgba(34, 197, 94, 0.9) !important;
       border-color: #DCFCE7 !important;
     }
 
-    /* 金幣噴灑動畫 */
     .gold-coin {
       position: absolute;
       font-size: 24px;
@@ -348,7 +380,6 @@
       }
     }
 
-    /* 第二排：進度條 */
     .progress-row {
       display: flex;
       align-items: center;
@@ -376,7 +407,6 @@
       cursor: pointer;
     }
 
-    /* 第三排：三大操作按鈕 */
     .button-row-3 {
       display: grid;
       grid-template-columns: 1fr 1.3fr 1fr;
@@ -403,13 +433,11 @@
       opacity: 0.9;
     }
 
-    /* LINE 按鈕：專屬 LINE 綠色 */
     .btn-line {
       background: linear-gradient(135deg, #06C755 0%, #048C3C 100%);
       letter-spacing: 1px;
     }
 
-    /* 播放/暫停 按鈕 */
     .btn-green {
       background: linear-gradient(135deg, #10B981 0%, #047857 100%);
     }
@@ -418,17 +446,14 @@
       background: linear-gradient(135deg, #EAB308 0%, #A16207 100%);
     }
 
-    /* 亮度按鈕 */
     .btn-blue {
       background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%);
     }
 
-    /* 隱藏原生檔案選擇 */
     #file-pdf-input {
       display: none;
     }
 
-    /* 亮度面板 */
     #brightness-modal {
       display: none;
       position: absolute;
@@ -476,14 +501,10 @@
   <div id="line-blocker-modal">
     <div class="guide-card">
       <h2>⚠️ 請跳出 LINE 視窗</h2>
-      
-      <!-- 蘋果 iPhone 指引 -->
       <div id="guide-ios" style="display:none;">
         <p>因 LINE 限制麥克風功能：<br><br>請看螢幕<b>右下角</b>，點擊<b>「指南針／Safari」</b>圖示，跳出後即可順暢背書！</p>
         <div class="guide-arrow">↘ 請看右下角指南針圖示</div>
       </div>
-
-      <!-- 安卓 Android 指引 -->
       <div id="guide-android" style="display:none;">
         <p>因 LINE 限制麥克風功能：<br><br>請看螢幕<b>右上角或右下角</b>，點擊<b>「三個點 ⋮」</b>選擇<b>「以其他瀏覽器開啟」</b>！</p>
         <div class="guide-arrow">👉 找邊角三個點「⋮」按鈕</div>
@@ -493,11 +514,16 @@
 
   <!-- 1. 上半部經文閱讀區 -->
   <section id="pdf-section">
+    <!-- 導引層：綠線與小紅點 -->
+    <div id="pointer-overlay">
+      <div id="guide-line"></div>
+      <div id="red-dot"></div>
+    </div>
+
     <div id="status-card">
       <h2 id="status-title">📖 正在載入背誦經文...</h2>
       <p id="status-desc">讀取中，請稍候...</p>
       
-      <!-- 即時下載百分比顯示 -->
       <div id="progress-box" style="display: none;">
         <div id="progress-percent-text">0%</div>
         <div class="download-bar-box">
@@ -517,7 +543,7 @@
     </header>
 
     <footer id="controls-panel">
-      <!-- 第一排：總時間 / 錄音鈕(金幣動畫) / 播放速度 -->
+      <!-- 第一排：總時間 / 錄音鈕(金幣+導引) / 播放速度 -->
       <div class="control-row-1">
         <div class="info-card">
           <span class="info-card-label">總時間</span>
@@ -531,16 +557,16 @@
         </div>
 
         <div class="info-card speed-card">
-          <label class="info-card-label" for="select-playback-speed">播放速度</label>
+          <label class="info-card-label" for="select-playback-speed">速度/節奏</label>
           <select id="select-playback-speed">
+            <option value="0.8">0.8x</option>
             <option value="0.9">0.9x</option>
             <option value="1.0" selected>1.0x</option>
             <option value="1.1">1.1x</option>
             <option value="1.2">1.2x</option>
             <option value="1.3">1.3x</option>
-            <option value="1.4">1.4x</option>
             <option value="1.5">1.5x</option>
-            <option value="1.7">1.7x</option>
+            <option value="1.8">1.8x</option>
             <option value="2.0">2.0x</option>
           </select>
         </div>
@@ -562,7 +588,6 @@
     </footer>
   </div>
 
-  <!-- 備用檔案選取器 -->
   <input type="file" id="file-pdf-input" accept=".pdf,.PDF,application/pdf">
 
   <div id="brightness-backdrop"></div>
@@ -581,6 +606,10 @@
     const guideAndroid = document.getElementById('guide-android');
 
     const pdfSection = document.getElementById('pdf-section');
+    const pointerOverlay = document.getElementById('pointer-overlay');
+    const guideLine = document.getElementById('guide-line');
+    const redDot = document.getElementById('red-dot');
+
     const statusCard = document.getElementById('status-card');
     const statusTitle = document.getElementById('status-title');
     const statusDesc = document.getElementById('status-desc');
@@ -627,6 +656,81 @@
     let analyserNode = null;
     let vadCheckInterval = null;
 
+    /* ----------------------------------------------------
+       小紅點與綠色導引線：平穩巡航引擎
+    ---------------------------------------------------- */
+    let guideAnimFrame = null;
+    let guideLastTimestamp = 0;
+    let guideCurrentX = 0;
+    let guideCurrentLine = 0;
+    const LINE_HEIGHT = 44; // 標準經文橫排行距估計 (px)
+    const MARGIN_LEFT = 24;
+
+    function startGuideRunner() {
+      pointerOverlay.style.display = 'block';
+      pointerOverlay.style.height = `${pdfSection.scrollHeight}px`;
+      
+      const containerWidth = pdfSection.clientWidth || window.innerWidth;
+      const lineWidth = Math.max(containerWidth - 48, 200);
+
+      // 自當前畫面可見頂端起跑
+      guideCurrentLine = Math.floor(pdfSection.scrollTop / LINE_HEIGHT);
+      guideCurrentX = MARGIN_LEFT;
+
+      const currentY = guideCurrentLine * LINE_HEIGHT + 36;
+      guideLine.style.top = `${currentY + 8}px`;
+      guideLine.style.left = `${MARGIN_LEFT}px`;
+      guideLine.style.width = `${lineWidth}px`;
+
+      redDot.style.top = `${currentY}px`;
+      redDot.style.left = `${guideCurrentX}px`;
+
+      guideLastTimestamp = performance.now();
+      runGuideAnimation();
+    }
+
+    function runGuideAnimation(timestamp = performance.now()) {
+      if (!isRecording) return;
+
+      const delta = (timestamp - guideLastTimestamp) / 1000;
+      guideLastTimestamp = timestamp;
+
+      const containerWidth = pdfSection.clientWidth || window.innerWidth;
+      const lineWidth = Math.max(containerWidth - 48, 200);
+      const rightEdge = MARGIN_LEFT + lineWidth;
+
+      // 基準速度：每秒滑動 65px，受「速度選單」連動乘數放大或縮小
+      const speedMultiplier = parseFloat(selectSpeed.value) || 1.0;
+      const basePixelsPerSec = 65 * speedMultiplier;
+
+      guideCurrentX += basePixelsPerSec * delta;
+
+      // 滑到行尾自動折至下一行
+      if (guideCurrentX >= rightEdge) {
+        guideCurrentX = MARGIN_LEFT;
+        guideCurrentLine += 1;
+
+        const nextY = guideCurrentLine * LINE_HEIGHT + 36;
+        guideLine.style.top = `${nextY + 8}px`;
+
+        // 自動平順推進經文視野
+        if (nextY > pdfSection.scrollTop + pdfSection.clientHeight * 0.7) {
+          pdfSection.scrollBy({ top: LINE_HEIGHT, behavior: 'smooth' });
+        }
+      }
+
+      const activeY = guideCurrentLine * LINE_HEIGHT + 36;
+      redDot.style.top = `${activeY}px`;
+      redDot.style.left = `${guideCurrentX}px`;
+
+      guideAnimFrame = requestAnimationFrame(runGuideAnimation);
+    }
+
+    function stopGuideRunner() {
+      if (guideAnimFrame) cancelAnimationFrame(guideAnimFrame);
+      pointerOverlay.style.display = 'none';
+    }
+
     function formatTime(seconds) {
       if (!seconds || isNaN(seconds) || seconds < 0) return '00:00';
       const m = Math.floor(seconds / 60);
@@ -634,7 +738,6 @@
       return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    /* 噴灑金幣視覺動畫 */
     function spawnGoldCoins() {
       const coinCount = 12;
       for (let i = 0; i < coinCount; i++) {
@@ -712,7 +815,6 @@
       } catch (e) {}
     }
 
-    /* 捲動位置記憶與可視區域動態渲染 */
     let saveScrollDebounce = null;
     pdfSection.addEventListener('scroll', () => {
       clearTimeout(saveScrollDebounce);
@@ -736,7 +838,7 @@
     }
 
     /* ----------------------------------------------------
-       1. 啟動：自動偵測伺服器建立日期，有更新自動下載
+       1. 啟動與版本自動比對
     ---------------------------------------------------- */
     window.addEventListener('DOMContentLoaded', () => {
       const isLine = checkAndLockLineBrowser();
@@ -762,7 +864,6 @@
       return false;
     }
 
-    // 輕量 HEAD 請求獲取伺服器上的建立日期與特徵標籤
     function checkServerFileDate(url) {
       return new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
@@ -783,7 +884,6 @@
       });
     }
 
-    // 帶進度監聽的下載
     function downloadWithProgress(url) {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -826,25 +926,21 @@
       const localBuffer = cachedRecord ? (cachedRecord.buffer || cachedRecord) : null;
       const localDateTag = cachedRecord ? cachedRecord.dateTag : null;
 
-      // 1. 在背景檢查伺服器檔案日期
       const targetUrl = './scripture.pdf';
       const serverDateTag = await checkServerFileDate(targetUrl);
 
-      // 2. 如果伺服器檔案日期與本地一致，且本地已有檔案 -> 直接秒開本地檔！
       if (localBuffer && serverDateTag && localDateTag && serverDateTag === localDateTag) {
         statusDesc.textContent = '經文為最新版本，直接秒開！';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         return;
       }
 
-      // 3. 如果離線或網路不通，但本地已有存檔 -> 優先開啟現有經文
       if (localBuffer && !serverDateTag) {
         statusDesc.textContent = '離線模式，開啟現存經文...';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         return;
       }
 
-      // 4. 偵測到伺服器日期較新（換了新經典）或首次使用 -> 下載新經文
       statusTitle.textContent = localBuffer ? '📖 偵測到新經文，更新中...' : '📖 首次載入經文...';
       statusDesc.textContent = '正自雲端同步最新經文內容...';
       progressBox.style.display = 'block';
@@ -855,7 +951,6 @@
       try {
         downloadedBuffer = await downloadWithProgress(targetUrl);
       } catch (e) {
-        // 嘗試備用大寫
         try {
           downloadedBuffer = await downloadWithProgress('./scripture.PDF');
         } catch (e2) {}
@@ -866,13 +961,10 @@
         downloadBarFill.style.width = '100%';
         statusDesc.textContent = '新經典同步完成，存入本機並開啟...';
 
-        // 存入新檔案與最新伺服器日期標籤
         await saveRecordToCache(downloadedBuffer, serverDateTag || new Date().toISOString());
-        // 重置捲動位置到第一頁
         localStorage.removeItem('recite_scroll_pos');
         await parseAndRenderPdfData(new Uint8Array(downloadedBuffer));
       } else {
-        // 若下載失敗但本地有舊版，仍開舊版保底
         if (localBuffer) {
           progressBox.style.display = 'none';
           await parseAndRenderPdfData(new Uint8Array(localBuffer));
@@ -1004,7 +1096,7 @@
     }
 
     /* ----------------------------------------------------
-       3. LINE 按鈕：官方通用連結，直接跳轉
+       3. LINE 按鈕：官方通用連結
     ---------------------------------------------------- */
     btnShareLine.addEventListener('click', () => {
       const shareText = encodeURIComponent('隨喜自他 歡喜背書供養');
@@ -1012,13 +1104,15 @@
     });
 
     /* ----------------------------------------------------
-       4. 錄音核心 (按下觸發金幣噴灑動畫)
+       4. 錄音核心：按下啟動小紅點與綠線導引
     ---------------------------------------------------- */
     btnRecord.addEventListener('click', async () => {
       if (!isRecording) {
         spawnGoldCoins();
+        startGuideRunner(); // 啟動小紅點與綠線領航
         await startRecording();
       } else {
+        stopGuideRunner();  // 停止小紅點
         stopRecording();
       }
     });
@@ -1081,6 +1175,7 @@
         }, 100);
 
       } catch (err) {
+        stopGuideRunner();
         alert('請點選「允許」使用麥克風，即可開始背書錄音。');
       }
     }
