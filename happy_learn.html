@@ -10,11 +10,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0F172A">
 
-  <!-- 引入 PDF.js 核心與樣式庫 (穩定免 Worker 版本，保留螢光筆劃線) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/web/pdf_viewer.min.css">
+  <!-- 引入 PDF.js 核心庫 (純畫面渲染，不載入註解層) -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 
-  <!-- 引入 html2canvas (畫面截圖供 LINE 回報) -->
+  <!-- 引入 html2canvas (畫面截圖) -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
@@ -39,10 +38,10 @@
     }
 
     /* 
-      1. 上半部經文閱讀區：佔螢幕 3/5 (約 60%)
+      1. 上半部經文閱讀區：佔 60% (3/5)
     */
     #pdf-section {
-      flex: 1 1 auto;
+      flex: 1 1 60%;
       height: 60dvh;
       background-color: #FFFFFF;
       position: relative;
@@ -56,7 +55,7 @@
       transition: filter 0.15s ease-out;
     }
 
-    /* 載入中與提示卡片 */
+    /* 提示訊息卡片 */
     #status-card {
       margin: auto;
       padding: 24px;
@@ -78,39 +77,24 @@
       color: #4A5568;
     }
 
-    /* PDF 頁面容器 */
+    /* PDF 單頁容器 (純畫布，無任何編輯與彈出便條) */
     .pdf-page-container {
       position: relative;
-      margin: 8px auto;
+      margin: 6px auto;
       box-shadow: 0 4px 12px rgba(0,0,0,0.18);
       background-color: #FFFFFF;
-      transform-origin: top center;
+      pointer-events: none;
     }
 
     .pdf-page-container canvas {
       display: block;
       width: 100%;
       height: auto;
-    }
-
-    /* 螢光筆劃線標註層 (Annotation Layer) */
-    .annotationLayer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
       pointer-events: none;
     }
 
-    .annotationLayer section {
-      position: absolute;
-      text-align: initial;
-      pointer-events: auto;
-    }
-
     /* 
-      2. 下半部固定控制區：高度嚴格鎖死為 2/5 (40dvh)
+      2. 下半部固定控制區：高度嚴格固定為 40% (2/5，40dvh)
     */
     #bottom-fixed-dock {
       flex: 0 0 40dvh;
@@ -122,6 +106,7 @@
       justify-content: space-between;
       border-top: 2px solid #334155;
       z-index: 20;
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
 
     /* 中央隨喜提詞列：鎖定單行不換行 */
@@ -130,9 +115,9 @@
       background: linear-gradient(180deg, #1E293B 0%, #151F32 100%);
       color: #FDE047;
       text-align: center;
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 800;
-      padding: 7px 6px;
+      padding: 6px 4px;
       letter-spacing: 1.5px;
       border-bottom: 2px solid #334155;
       white-space: nowrap;
@@ -141,14 +126,14 @@
       text-shadow: 0 1px 3px rgba(0,0,0,0.8);
     }
 
-    /* 下方操作面板主體 */
+    /* 控制面板本體 */
     #controls-panel {
       flex: 1 1 auto;
-      padding: 8px 14px 12px 14px;
+      padding: 6px 12px 6px 12px;
       display: flex;
       flex-direction: column;
       justify-content: space-around;
-      gap: 6px;
+      gap: 4px;
     }
 
     /* 第一排：總時間 / 大錄音鈕 / 播放速度 */
@@ -164,7 +149,7 @@
       background-color: #1E293B;
       border: 2px solid #475569;
       border-radius: 12px;
-      height: 60px;
+      height: 58px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -180,7 +165,7 @@
     }
 
     .info-card-value {
-      font-size: 22px;
+      font-size: 21px;
       font-weight: 800;
       color: #38BDF8;
       font-variant-numeric: tabular-nums;
@@ -190,7 +175,7 @@
       background: transparent;
       border: none;
       color: #38BDF8;
-      font-size: 22px;
+      font-size: 21px;
       font-weight: 800;
       text-align-last: center;
       outline: none;
@@ -199,8 +184,8 @@
 
     /* 中央錄音大圓鈕 */
     #btn-record {
-      width: 68px;
-      height: 68px;
+      width: 66px;
+      height: 66px;
       border-radius: 50%;
       border: 3.5px solid #FFFFFF;
       background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%);
@@ -221,7 +206,6 @@
       transform: scale(0.95);
     }
 
-    /* 錄音中說話偵測光暈 */
     #btn-record.recording-active {
       background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
       box-shadow: 0 0 22px rgba(34, 197, 94, 0.9) !important;
@@ -256,7 +240,7 @@
       cursor: pointer;
     }
 
-    /* 第三排：LINE 截圖回報 / 播放 / 亮度 */
+    /* 第三排：三大操作按鈕 */
     .button-row-3 {
       display: grid;
       grid-template-columns: 1fr 1.3fr 1fr;
@@ -266,8 +250,8 @@
     .action-btn {
       border: none;
       border-radius: 12px;
-      padding: 11px 4px;
-      font-size: 21px;
+      padding: 9px 4px;
+      font-size: 20px;
       font-weight: 800;
       color: #FFFFFF;
       display: flex;
@@ -307,7 +291,7 @@
     #brightness-modal {
       display: none;
       position: absolute;
-      bottom: 85px;
+      bottom: 80px;
       right: 14px;
       background: rgba(30, 41, 59, 0.96);
       backdrop-filter: blur(10px);
@@ -334,7 +318,6 @@
       accent-color: #38BDF8;
     }
 
-    /* 遮罩 */
     #brightness-backdrop {
       display: none;
       position: fixed;
@@ -348,18 +331,17 @@
 </head>
 <body>
 
-  <!-- 1. 上半部 PDF 經文閱讀區 (3/5, 60% 空間) -->
+  <!-- 1. 上半部經文閱讀區 (純圖像畫布，徹底封閉任何編輯與註解便條) -->
   <section id="pdf-section">
     <div id="status-card">
       <h2 id="status-title">📖 正在載入背誦經文...</h2>
-      <p id="status-desc">系統正為您準備經文與劃線標註。</p>
+      <p id="status-desc">系統正為您準備經文內容。</p>
     </div>
     <div id="pdf-pages-container" style="display: none; width: 100%;"></div>
   </section>
 
-  <!-- 2. 下半部固定控制區 (精準鎖死 2/5, 40dvh) -->
+  <!-- 2. 下半部固定控制區 -->
   <div id="bottom-fixed-dock">
-    <!-- 中央隨喜提詞 (單行排版) -->
     <header id="motto-bar">
       隨喜自他 歡喜背書供養
     </header>
@@ -399,16 +381,15 @@
         <span class="time-text right" id="time-duration">00:00</span>
       </div>
 
-      <!-- 第三排：LINE 截圖回報 / 播放 / 亮度 -->
+      <!-- 第三排：LINE 截圖並啟動 / 播放 / 亮度 -->
       <div class="button-row-3">
-        <button class="action-btn btn-line" id="btn-share-line" aria-label="截圖回報至 LINE">LINE</button>
+        <button class="action-btn btn-line" id="btn-share-line" aria-label="截圖並開啟 LINE">LINE</button>
         <button class="action-btn btn-green" id="btn-play-pause">播放</button>
         <button class="action-btn btn-blue" id="btn-toggle-brightness">亮度</button>
       </div>
     </footer>
   </div>
 
-  <!-- 亮度彈出面板與遮罩 -->
   <div id="brightness-backdrop"></div>
   <div id="brightness-modal">
     <p><span>閱讀亮度</span><span id="label-brightness-val">100%</span></p>
@@ -416,15 +397,12 @@
   </div>
 
   <script>
-    // 關閉 PDF.js 外部 Worker 依賴
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    // 固定載入的預設經文檔名
     const DEFAULT_PDF_FILENAME = 'scripture.pdf';
 
-    // DOM 元素快取
     const pdfSection = document.getElementById('pdf-section');
     const statusCard = document.getElementById('status-card');
     const statusTitle = document.getElementById('status-title');
@@ -448,11 +426,7 @@
     const brightnessSlider = document.getElementById('brightness-slider');
     const labelBrightnessVal = document.getElementById('label-brightness-val');
 
-    // 狀態變數
     let currentPdfDoc = null;
-    let currentZoomRatio = 1.0;
-
-    // 音訊錄製變數
     let mediaRecorder = null;
     let recordedAudioChunks = [];
     let audioBlob = null;
@@ -462,7 +436,6 @@
     let recordTimerInterval = null;
     let recordStartTime = 0;
 
-    // 語音音量偵測 (VAD)
     let audioCtx = null;
     let analyserNode = null;
     let vadCheckInterval = null;
@@ -474,7 +447,7 @@
       return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    /* 自動記憶背誦捲動位置 */
+    // 捲動位置自動記憶
     let saveScrollDebounce = null;
     pdfSection.addEventListener('scroll', () => {
       clearTimeout(saveScrollDebounce);
@@ -493,7 +466,7 @@
     }
 
     /* ----------------------------------------------------
-       1. 開啟網頁直接自動載入經文 (scripture.pdf)
+       1. 載入經文 (純 Canvas 渲染，不載入註解層)
     ---------------------------------------------------- */
     window.addEventListener('DOMContentLoaded', () => {
       loadDefaultScripture();
@@ -501,8 +474,8 @@
 
     async function loadDefaultScripture() {
       try {
-        statusTitle.textContent = '📖 正在載入背誦經文...';
-        statusDesc.textContent = '系統正為您準備經文與劃線標註';
+        statusTitle.textContent = '📖 正在載入經文...';
+        statusDesc.textContent = '系統正為您準備經文內容';
 
         const response = await fetch(DEFAULT_PDF_FILENAME);
         if (!response.ok) throw new Error('未找到預設經文檔');
@@ -553,81 +526,54 @@
         canvas.height = viewport.height;
         pageContainer.appendChild(canvas);
 
-        const annotationLayerDiv = document.createElement('div');
-        annotationLayerDiv.className = 'annotationLayer';
-        pageContainer.appendChild(annotationLayerDiv);
-
         pdfPagesContainer.appendChild(pageContainer);
 
+        // 純 Canvas 渲染：保留原汁原味劃線，完全無任何可編輯方塊干擾
         await page.render({
           canvasContext: context,
           viewport: viewport
         }).promise;
-
-        try {
-          const annotations = await page.getAnnotations();
-          if (annotations && annotations.length > 0 && pdfjsLib.AnnotationLayer) {
-            pdfjsLib.AnnotationLayer.render({
-              viewport: viewport.clone({ dontFlip: true }),
-              div: annotationLayerDiv,
-              annotations: annotations,
-              page: page,
-              renderInteractiveForms: false
-            });
-          }
-        } catch (e) {}
       }
     }
 
     /* ----------------------------------------------------
-       2. LINE 按鈕：畫面截圖並直接呼叫 LINE 分享
+       2. LINE 按鈕：截圖存相簿 -> 立刻啟動 LINE APP
     ---------------------------------------------------- */
     btnShareLine.addEventListener('click', async () => {
       btnShareLine.textContent = '截圖中';
       btnShareLine.style.opacity = '0.7';
 
       try {
-        // 擷取目前上半部經文閱讀畫面的當前進度
         const canvas = await html2canvas(pdfSection, {
           backgroundColor: '#FFFFFF',
-          scale: 2, // 高清晰度截圖
+          scale: 2,
           useCORS: true
         });
 
-        canvas.toBlob(async (blob) => {
+        canvas.toBlob((blob) => {
           btnShareLine.textContent = 'LINE';
           btnShareLine.style.opacity = '1';
 
           if (!blob) {
-            alert('截圖產生失敗，請再試一次。');
+            alert('截圖失敗，請再試一次。');
             return;
           }
 
-          const file = new File([blob], `背書進度_${new Date().toISOString().slice(0,10)}.png`, {
-            type: 'image/png'
-          });
+          // 1. 自動儲存截圖至手機相簿/下載區
+          const fileName = `背書進度_${new Date().toISOString().slice(0,10)}.png`;
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = fileName;
+          a.click();
 
-          // 呼叫系統分享面版 (點開即可直接選 LINE 送出截圖)
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({
-                files: [file],
-                title: '歡喜背書進度',
-                text: '隨喜自他 歡喜背書供養'
-              });
-            } catch (err) {}
-          } else {
-            // 若瀏覽器限制直接喚起分享，自動下載圖片並引導
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = file.name;
-            a.click();
-            alert('進度截圖已存入相簿/下載區，可直接在 LINE 訊息內選擇照片送出！');
-          }
+          // 2. 存檔後立即啟動 LINE APP
+          setTimeout(() => {
+            window.location.href = 'line://';
+          }, 400);
+
         }, 'image/png');
 
       } catch (error) {
-        console.error('截圖失敗：', error);
         btnShareLine.textContent = 'LINE';
         btnShareLine.style.opacity = '1';
         alert('截圖失敗：' + error.message);
@@ -635,7 +581,7 @@
     });
 
     /* ----------------------------------------------------
-       3. 錄音、安全檢查與 VAD 語音活動偵測
+       3. 錄音核心
     ---------------------------------------------------- */
     btnRecord.addEventListener('click', async () => {
       if (!isRecording) {
@@ -646,12 +592,6 @@
     });
 
     async function startRecording() {
-      const isSecureOrigin = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-      if (!isSecureOrigin) {
-        alert('錄音功能必須在 HTTPS 網址（如 GitHub Pages）下運作。');
-        return;
-      }
-
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
@@ -707,7 +647,7 @@
         }, 100);
 
       } catch (err) {
-        alert('請先在瀏覽器允許麥克風權限：' + err.message);
+        alert('麥克風授權失敗：請點擊網址列旁的鎖頭允許麥克風權限。');
       }
     }
 
@@ -737,7 +677,7 @@
     }
 
     /* ----------------------------------------------------
-       4. 播放、暫停與變速
+       4. 播放、暫停與倍速
     ---------------------------------------------------- */
     btnPlayPause.addEventListener('click', () => {
       if (!audioElement.src) {
