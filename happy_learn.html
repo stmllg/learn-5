@@ -5,13 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
   <title>歡喜背書</title>
 
-  <!-- iOS 蘋果專屬全螢幕與主畫面設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
   <meta name="theme-color" content="#0F172A">
 
-  <!-- 引入 PDF.js 核心庫 -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 
   <style>
@@ -35,7 +33,6 @@
       flex-direction: column;
     }
 
-    /* LINE 阻擋提示浮動卡片 */
     #line-blocker-modal {
       display: none;
       position: fixed;
@@ -91,7 +88,6 @@
       50% { transform: scale(1.08); opacity: 0.85; }
     }
 
-    /* 1. 上半部經文閱讀區：佔螢幕 60% (3/5) */
     #pdf-section {
       flex: 1 1 60%;
       height: 60dvh;
@@ -107,7 +103,6 @@
       transition: filter 0.15s ease-out;
     }
 
-    /* 綠色導引線 (還原 Python V209 規範: #00E676, 線寬 8px) */
     #guide-line {
       position: absolute;
       display: none;
@@ -116,10 +111,10 @@
       border-radius: 4px;
       z-index: 100;
       pointer-events: none;
-      box-shadow: 0 0 8px rgba(0, 230, 118, 0.7);
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.8);
+      transition: top 0.2s cubic-bezier(0.25, 1, 0.5, 1);
     }
 
-    /* 小紅點游標 (還原 Python V209 規範: #FF1744 飽滿純色圓) */
     #red-dot {
       position: absolute;
       display: none;
@@ -128,13 +123,12 @@
       background: radial-gradient(circle, #FF5252 20%, #FF1744 100%);
       border: 3px solid #FFFFFF;
       border-radius: 50%;
-      box-shadow: 0 0 12px rgba(255, 23, 68, 0.95), 0 3px 6px rgba(0,0,0,0.35);
+      box-shadow: 0 0 14px rgba(255, 23, 68, 0.95), 0 3px 6px rgba(0,0,0,0.35);
       z-index: 101;
       pointer-events: none;
       transform: translate(-50%, -50%);
     }
 
-    /* 載入卡片 */
     #status-card {
       margin: auto;
       padding: 24px;
@@ -220,7 +214,6 @@
       color: #94A3B8;
     }
 
-    /* 2. 下半部固定控制區：高度鎖死為 40% (2/5，40dvh) */
     #bottom-fixed-dock {
       flex: 0 0 40dvh;
       height: 40dvh;
@@ -299,7 +292,7 @@
       background: transparent;
       border: none;
       color: #38BDF8;
-      font-size: 21px;
+      font-size: 20px;
       font-weight: 800;
       text-align-last: center;
       outline: none;
@@ -482,7 +475,6 @@
 </head>
 <body>
 
-  <!-- LINE 內建視窗浮動提示卡片 -->
   <div id="line-blocker-modal">
     <div class="guide-card">
       <h2>⚠️ 請跳出 LINE 視窗</h2>
@@ -497,9 +489,7 @@
     </div>
   </div>
 
-  <!-- 1. 上半部經文閱讀區 -->
   <section id="pdf-section">
-    <!-- 導引元素：直接作為 pdfSection 的子元素，隨滾動無縫貼齊 -->
     <div id="guide-line"></div>
     <div id="red-dot"></div>
 
@@ -519,14 +509,12 @@
     <div id="pdf-pages-container" style="display: none; width: 100%;"></div>
   </section>
 
-  <!-- 2. 下半部固定控制區 -->
   <div id="bottom-fixed-dock">
     <header id="motto-bar">
       隨喜自他 歡喜背書供養
     </header>
 
     <footer id="controls-panel">
-      <!-- 第一排：總時間 / 錄音鈕(金幣+導引) / 播放速度 -->
       <div class="control-row-1">
         <div class="info-card">
           <span class="info-card-label">總時間</span>
@@ -542,27 +530,32 @@
         <div class="info-card speed-card">
           <label class="info-card-label" for="select-playback-speed">速度/節奏</label>
           <select id="select-playback-speed">
-            <option value="0.8">0.8x</option>
-            <option value="0.9">0.9x</option>
-            <option value="1.0" selected>1.0x</option>
+            <option value="0.5">0.5x (沉思)</option>
+            <option value="0.6">0.6x (舒緩)</option>
+            <option value="0.7">0.7x (慢板)</option>
+            <option value="0.8">0.8x (微慢)</option>
+            <option value="0.9">0.9x (微調)</option>
+            <option value="1.0" selected>1.0x (標準)</option>
             <option value="1.1">1.1x</option>
             <option value="1.2">1.2x</option>
             <option value="1.3">1.3x</option>
+            <option value="1.4">1.4x</option>
             <option value="1.5">1.5x</option>
+            <option value="1.6">1.6x</option>
             <option value="1.8">1.8x</option>
             <option value="2.0">2.0x</option>
+            <option value="2.2">2.2x</option>
+            <option value="2.5">2.5x (快板)</option>
           </select>
         </div>
       </div>
 
-      <!-- 第二排：當前時間 / 進度條 / 總長度 -->
       <div class="progress-row">
         <span class="time-text" id="time-current">00:00</span>
         <input type="range" class="seek-slider" id="progress-bar" min="0" max="100" value="0">
         <span class="time-text right" id="time-duration">00:00</span>
       </div>
 
-      <!-- 第三排：LINE 直連 / 播放 / 亮度 -->
       <div class="button-row-3">
         <button class="action-btn btn-line" id="btn-share-line" aria-label="直接開啟 LINE">LINE</button>
         <button class="action-btn btn-green" id="btn-play-pause">播放</button>
@@ -583,6 +576,8 @@
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
+
+    const APP_CONFIG_KEY = 'recite_user_settings';
 
     const lineBlockerModal = document.getElementById('line-blocker-modal');
     const guideIos = document.getElementById('guide-ios');
@@ -625,7 +620,6 @@
     let pageRenderStatus = [];
     let pageScale = 1.25;
 
-    // 解析出之經文行陣列: [{ pageIndex, x0, y0, x1, y1, width, text, topGlobal, bottomGlobal }]
     let parsedTextLines = [];
 
     let mediaRecorder = null;
@@ -642,7 +636,40 @@
     let vadCheckInterval = null;
 
     /* ----------------------------------------------------
-       小紅點與綠色導引線巡航引擎 (對標 Python V209)
+       設定檔操作：整合語速與經文版本記錄
+    ---------------------------------------------------- */
+    function loadUserSettings() {
+      try {
+        const raw = localStorage.getItem(APP_CONFIG_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveUserSettings(patch) {
+      try {
+        const current = loadUserSettings();
+        const updated = Object.assign({}, current, patch);
+        localStorage.setItem(APP_CONFIG_KEY, JSON.stringify(updated));
+      } catch (e) {}
+    }
+
+    function initUserSpeedSetting() {
+      const config = loadUserSettings();
+      if (config.speed) {
+        selectSpeed.value = config.speed;
+      }
+      selectSpeed.addEventListener('change', () => {
+        saveUserSettings({ speed: selectSpeed.value });
+        if (audioElement) {
+          audioElement.playbackRate = parseFloat(selectSpeed.value);
+        }
+      });
+    }
+
+    /* ----------------------------------------------------
+       小紅點與綠線實體驅動核心
     ---------------------------------------------------- */
     let guideAnimId = null;
     let guideLastTime = 0;
@@ -650,13 +677,14 @@
     let cursorCurrentX = 0;
 
     function startGuideRunner() {
-      if (parsedTextLines.length === 0) return;
+      if (parsedTextLines.length === 0) {
+        buildFallbackLines();
+      }
 
-      // 找出當前螢幕視野上方可見之第一行經文
       const scrollTop = pdfSection.scrollTop;
       currentLineIndex = 0;
       for (let i = 0; i < parsedTextLines.length; i++) {
-        if (parsedTextLines[i].bottomGlobal >= scrollTop + 20) {
+        if (parsedTextLines[i].bottomGlobal >= scrollTop + 25) {
           currentLineIndex = i;
           break;
         }
@@ -678,7 +706,6 @@
       const line = parsedTextLines[lineIdx];
       cursorCurrentX = line.x0;
 
-      // 綠線定位在經文文字底端 (偏移 6px)
       const lineY = line.bottomGlobal + 6;
       guideLine.style.top = `${lineY}px`;
       guideLine.style.left = `${line.x0}px`;
@@ -687,9 +714,8 @@
       redDot.style.top = `${lineY}px`;
       redDot.style.left = `${cursorCurrentX}px`;
 
-      // 自動平滑滾動讓當前行保持在最佳視野 (螢幕中上部)
-      const targetScroll = line.topGlobal - 60;
-      if (Math.abs(pdfSection.scrollTop - targetScroll) > 120) {
+      const targetScroll = line.topGlobal - 70;
+      if (Math.abs(pdfSection.scrollTop - targetScroll) > 130) {
         pdfSection.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
       }
     }
@@ -703,12 +729,10 @@
       const line = parsedTextLines[currentLineIndex];
       const speedMultiplier = parseFloat(selectSpeed.value) || 1.0;
       
-      // 基準流速：每秒滑行約 95px * 倍速
-      const pixelsPerSec = 95 * speedMultiplier;
+      const pixelsPerSec = 90 * speedMultiplier;
       cursorCurrentX += pixelsPerSec * dt;
 
-      // 到達行尾，自動換行
-      if (cursorCurrentX >= line.x1 + 8) {
+      if (cursorCurrentX >= line.x1 + 6) {
         currentLineIndex += 1;
         if (currentLineIndex < parsedTextLines.length) {
           setupLineGuide(currentLineIndex);
@@ -729,6 +753,22 @@
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
+    }
+
+    function buildFallbackLines() {
+      parsedTextLines = [];
+      const cWidth = pdfSection.clientWidth || window.innerWidth;
+      const totalH = Math.max(pdfSection.scrollHeight, 1800);
+      const lineHeight = 50;
+      for (let topY = 60; topY < totalH; topY += lineHeight) {
+        parsedTextLines.push({
+          pageIndex: 1,
+          x0: 24,
+          x1: cWidth - 28,
+          topGlobal: topY,
+          bottomGlobal: topY + 30
+        });
+      }
     }
 
     function formatTime(seconds) {
@@ -838,9 +878,10 @@
     }
 
     /* ----------------------------------------------------
-       1. 啟動與版本自動比對
+       1. 啟動與版本嚴格判定（依設定檔版本避免重複下載）
     ---------------------------------------------------- */
     window.addEventListener('DOMContentLoaded', () => {
+      initUserSpeedSetting();
       const isLine = checkAndLockLineBrowser();
       if (!isLine) {
         loadScriptureSmartAutoUpdate();
@@ -918,29 +959,36 @@
 
     async function loadScriptureSmartAutoUpdate() {
       statusTitle.textContent = '📖 正在檢查經文版本...';
-      statusDesc.textContent = '比對最新內容中...';
+      statusDesc.textContent = '讀取設定與離線快取中...';
       btnManualPick.style.display = 'none';
       progressBox.style.display = 'none';
 
+      const config = loadUserSettings();
+      const savedVersionTag = config.versionTag || null;
+
       const cachedRecord = await getCachedRecord();
       const localBuffer = cachedRecord ? (cachedRecord.buffer || cachedRecord) : null;
-      const localDateTag = cachedRecord ? cachedRecord.dateTag : null;
+      const dbDateTag = cachedRecord ? cachedRecord.dateTag : null;
+      const activeVersionTag = savedVersionTag || dbDateTag;
 
       const targetUrl = './scripture.pdf';
       const serverDateTag = await checkServerFileDate(targetUrl);
 
-      if (localBuffer && serverDateTag && localDateTag && serverDateTag === localDateTag) {
-        statusDesc.textContent = '經文為最新版本，直接秒開！';
+      // 若本機已有檔案，且版本標記相符 -> 絕對不重複下載，直接秒開
+      if (localBuffer && serverDateTag && activeVersionTag && serverDateTag === activeVersionTag) {
+        statusDesc.textContent = '經文為本機最新版本，直接秒開！';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         return;
       }
 
+      // 若離線或無法取得伺服器資訊，本機有快取 -> 直接開啟
       if (localBuffer && !serverDateTag) {
         statusDesc.textContent = '離線模式，開啟現存經文...';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         return;
       }
 
+      // 確實偵測到伺服器版本較新，或本機尚未有任何經文
       statusTitle.textContent = localBuffer ? '📖 偵測到新經文，更新中...' : '📖 首次載入經文...';
       statusDesc.textContent = '正自雲端同步最新經文內容...';
       progressBox.style.display = 'block';
@@ -961,7 +1009,12 @@
         downloadBarFill.style.width = '100%';
         statusDesc.textContent = '新經典同步完成，存入本機並開啟...';
 
-        await saveRecordToCache(downloadedBuffer, serverDateTag || new Date().toISOString());
+        const finalTag = serverDateTag || new Date().toISOString();
+        // 儲存至 IndexedDB
+        await saveRecordToCache(downloadedBuffer, finalTag);
+        // 記錄版本於使用者設定檔
+        saveUserSettings({ versionTag: finalTag });
+
         localStorage.removeItem('recite_scroll_pos');
         await parseAndRenderPdfData(new Uint8Array(downloadedBuffer));
       } else {
@@ -993,7 +1046,10 @@
 
       try {
         const arrayBuffer = await file.arrayBuffer();
-        await saveRecordToCache(arrayBuffer, 'manual_' + Date.now());
+        const manualTag = 'manual_' + file.name + '_' + file.lastModified;
+        await saveRecordToCache(arrayBuffer, manualTag);
+        saveUserSettings({ versionTag: manualTag });
+
         localStorage.removeItem('recite_scroll_pos');
         await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
       } catch (err) {
@@ -1003,7 +1059,7 @@
     });
 
     /* ----------------------------------------------------
-       2. 高效能渲染 + 經文行坐標精密解析
+       2. 高效能渲染 + 穩健文字座標解析
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
@@ -1018,7 +1074,7 @@
 
       currentPdfDoc = await loadingTask.promise;
       await setupPagePlaceholders();
-      await parseAllTextLinesCoordinates(); // 精確解析經文字句座標
+      await parseAllTextLinesCoordinates();
       restoreScrollPosition();
     }
 
@@ -1051,86 +1107,75 @@
       }
     }
 
-    // 解析文字行座標 (還原 Python all_lines 邏輯)
     async function parseAllTextLinesCoordinates() {
       parsedTextLines = [];
       if (!currentPdfDoc) return;
 
-      for (let pNum = 1; pNum <= currentPdfDoc.numPages; pNum++) {
-        const page = await currentPdfDoc.getPage(pNum);
-        const viewport = page.getViewport({ scale: pageScale });
-        const textContent = await page.getTextContent();
-        const container = pageContainers[pNum - 1];
-        const pageOffsetTop = container ? container.offsetTop : 0;
-        const pageOffsetLeft = container ? container.offsetLeft : 0;
+      try {
+        for (let pNum = 1; pNum <= currentPdfDoc.numPages; pNum++) {
+          const page = await currentPdfDoc.getPage(pNum);
+          const viewport = page.getViewport({ scale: pageScale });
+          const textContent = await page.getTextContent();
+          const container = pageContainers[pNum - 1];
+          const pageOffsetTop = container ? container.offsetTop : 0;
+          const pageOffsetLeft = container ? container.offsetLeft : 0;
 
-        // 收集字元項目
-        const items = textContent.items;
-        if (!items || items.length === 0) continue;
+          const items = textContent.items;
+          if (!items || items.length === 0) continue;
 
-        // 依據 Y 軸進行分行分組
-        const rowGroups = [];
-        items.forEach(item => {
-          const str = item.str.trim();
-          if (!str) return;
+          const rowGroups = [];
+          items.forEach(item => {
+            const str = item.str.trim();
+            if (!str) return;
 
-          // 透過 PDF 變換矩陣求得視圖坐標
-          const tx = item.transform;
-          const x = tx[4] * pageScale;
-          const y = viewport.height - (tx[5] * pageScale); // PDF Y軸反轉
-          const w = item.width * pageScale;
-          const h = (item.height || 16) * pageScale;
+            const tx = item.transform;
+            const x = tx[4] * pageScale;
+            const y = viewport.height - (tx[5] * pageScale);
+            const w = item.width * pageScale;
+            const h = (item.height || 18) * pageScale;
 
-          let matched = false;
-          for (let g of rowGroups) {
-            if (Math.abs(g.y - y) <= (h * 0.6)) {
-              g.items.push({ x, y, w, h, str });
-              matched = true;
-              break;
+            let matched = false;
+            for (let g of rowGroups) {
+              if (Math.abs(g.y - y) <= (h * 0.7)) {
+                g.items.push({ x, y, w, h, str });
+                matched = true;
+                break;
+              }
             }
-          }
-          if (!matched) {
-            rowGroups.push({ y, items: [{ x, y, w, h, str }] });
-          }
-        });
-
-        // 依垂直順序排列各行
-        rowGroups.sort((a, b) => a.y - b.y);
-
-        rowGroups.forEach(g => {
-          g.items.sort((a, b) => a.x - b.x);
-          const first = g.items[0];
-          const last = g.items[g.items.length - 1];
-
-          const lineX0 = pageOffsetLeft + first.x;
-          const lineX1 = pageOffsetLeft + last.x + last.w;
-          const lineY0 = pageOffsetTop + Math.min(...g.items.map(it => it.y - it.h));
-          const lineY1 = pageOffsetTop + Math.max(...g.items.map(it => it.y));
-
-          parsedTextLines.push({
-            pageIndex: pNum,
-            x0: lineX0,
-            x1: lineX1,
-            topGlobal: lineY0,
-            bottomGlobal: lineY1
+            if (!matched) {
+              rowGroups.push({ y, items: [{ x, y, w, h, str }] });
+            }
           });
-        });
-      }
 
-      // 若未解析出文字（純圖片 PDF），自動提供備用標準排版網格
-      if (parsedTextLines.length === 0) {
-        const cWidth = pdfSection.clientWidth || window.innerWidth;
-        const totalH = pdfSection.scrollHeight || (window.innerHeight * 2);
-        const lH = 46;
-        for (let topY = 40; topY < totalH; topY += lH) {
-          parsedTextLines.push({
-            pageIndex: 1,
-            x0: 24,
-            x1: cWidth - 28,
-            topGlobal: topY,
-            bottomGlobal: topY + 28
+          rowGroups.sort((a, b) => a.y - b.y);
+
+          rowGroups.forEach(g => {
+            g.items.sort((a, b) => a.x - b.x);
+            const first = g.items[0];
+            const last = g.items[g.items.length - 1];
+
+            const lineX0 = pageOffsetLeft + Math.max(16, first.x);
+            const lineX1 = pageOffsetLeft + Math.min(viewport.width - 16, last.x + last.w);
+            const lineY0 = pageOffsetTop + Math.min(...g.items.map(it => it.y - it.h));
+            const lineY1 = pageOffsetTop + Math.max(...g.items.map(it => it.y));
+
+            if (lineX1 > lineX0 + 20) {
+              parsedTextLines.push({
+                pageIndex: pNum,
+                x0: lineX0,
+                x1: lineX1,
+                topGlobal: lineY0,
+                bottomGlobal: lineY1
+              });
+            }
           });
         }
+      } catch (e) {
+        console.error('文字行解析異常，採用備用網格', e);
+      }
+
+      if (parsedTextLines.length === 0) {
+        buildFallbackLines();
       }
     }
 
@@ -1192,10 +1237,10 @@
     btnRecord.addEventListener('click', async () => {
       if (!isRecording) {
         spawnGoldCoins();
-        startGuideRunner(); // 啟動導引
+        startGuideRunner();
         await startRecording();
       } else {
-        stopGuideRunner();  // 停止導引
+        stopGuideRunner();
         stopRecording();
       }
     });
@@ -1289,7 +1334,7 @@
     }
 
     /* ----------------------------------------------------
-       5. 播放、暫停與倍速
+       5. 播放、暫停與進度條
     ---------------------------------------------------- */
     btnPlayPause.addEventListener('click', () => {
       if (!audioElement.src) {
@@ -1323,10 +1368,6 @@
     progressBar.addEventListener('input', () => {
       if (!audioElement.duration) return;
       audioElement.currentTime = (progressBar.value / 100) * audioElement.duration;
-    });
-
-    selectSpeed.addEventListener('change', () => {
-      audioElement.playbackRate = parseFloat(selectSpeed.value);
     });
 
     /* ----------------------------------------------------
