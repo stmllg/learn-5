@@ -5,10 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
   <title>歡喜背書</title>
 
-  <!-- PWA 與全螢幕相容設定 -->
+  <!-- PWA 與桌面圖示相容設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="歡喜背書">
   <meta name="theme-color" content="#0F172A">
+
+  <!-- 內嵌 PWA Web Manifest (支援直接安裝到桌面) -->
+  <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoi5q2h5Zac6IOM5pu4Iiwic2hvcnRfbmFtZSI6IuatoeWlliIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwib3JpZW50YXRpb24iOiJwb3J0cmFpdCIsInN0YXJ0X3VybCI6Ii4iLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBGMTcyQSIsInRoZW1lX2NvbG9yIjoiIzBGMTcyQSJ9">
 
   <!-- 引入 PDF.js 核心庫 (純畫面渲染，不載入註解層) -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
@@ -35,6 +39,21 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+    }
+
+    /* 頂部引導長輩安裝至桌面的醒目提示條 */
+    #install-banner {
+      display: none;
+      background: linear-gradient(90deg, #D97706 0%, #B45309 100%);
+      color: #FFFFFF;
+      padding: 10px 14px;
+      font-size: 17px;
+      font-weight: 800;
+      text-align: center;
+      cursor: pointer;
+      z-index: 100;
+      border-bottom: 2px solid #F59E0B;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
     /* 
@@ -77,7 +96,7 @@
       color: #4A5568;
     }
 
-    /* PDF 單頁容器 (純畫布，無任何編輯與彈出便條) */
+    /* PDF 單頁容器 (純畫布，徹底去除註解彈出層) */
     .pdf-page-container {
       position: relative;
       margin: 6px auto;
@@ -94,7 +113,7 @@
     }
 
     /* 
-      2. 下半部固定控制區：高度嚴格固定為 40% (2/5，40dvh)
+      2. 下半部固定控制區：鎖死為 40% (2/5，40dvh)
     */
     #bottom-fixed-dock {
       flex: 0 0 40dvh;
@@ -109,7 +128,7 @@
       padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
 
-    /* 中央隨喜提詞列：鎖定單行不換行 */
+    /* 中央提詞列：鎖定單行 */
     #motto-bar {
       flex: 0 0 auto;
       background: linear-gradient(180deg, #1E293B 0%, #151F32 100%);
@@ -126,7 +145,7 @@
       text-shadow: 0 1px 3px rgba(0,0,0,0.8);
     }
 
-    /* 控制面板本體 */
+    /* 下方操作面板 */
     #controls-panel {
       flex: 1 1 auto;
       padding: 6px 12px 6px 12px;
@@ -267,7 +286,7 @@
       opacity: 0.9;
     }
 
-    /* LINE 按鈕：專屬 LINE 綠色 */
+    /* LINE 按鈕 */
     .btn-line {
       background: linear-gradient(135deg, #06C755 0%, #048C3C 100%);
       letter-spacing: 1px;
@@ -287,7 +306,7 @@
       background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%);
     }
 
-    /* 亮度浮動調整面板 */
+    /* 亮度面板 */
     #brightness-modal {
       display: none;
       position: absolute;
@@ -331,7 +350,12 @@
 </head>
 <body>
 
-  <!-- 1. 上半部經文閱讀區 (純圖像畫布，徹底封閉任何編輯與註解便條) -->
+  <!-- 長輩專用：一鍵加到主畫面提示條 -->
+  <div id="install-banner">
+    📥 點此將「歡喜背書」加到手機桌面（大圖示點開即用）
+  </div>
+
+  <!-- 1. 上半部經文閱讀區 -->
   <section id="pdf-section">
     <div id="status-card">
       <h2 id="status-title">📖 正在載入背誦經文...</h2>
@@ -403,6 +427,7 @@
 
     const DEFAULT_PDF_FILENAME = 'scripture.pdf';
 
+    const installBanner = document.getElementById('install-banner');
     const pdfSection = document.getElementById('pdf-section');
     const statusCard = document.getElementById('status-card');
     const statusTitle = document.getElementById('status-title');
@@ -447,6 +472,32 @@
       return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
+    /* ----------------------------------------------------
+       PWA 桌面安裝支援（一鍵裝至手機桌面）
+    ---------------------------------------------------- */
+    let deferredPrompt = null;
+
+    // 若瀏覽器支援 PWA 安裝，顯示上方橫幅
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBanner.style.display = 'block';
+    });
+
+    installBanner.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          installBanner.style.display = 'none';
+        }
+        deferredPrompt = null;
+      } else {
+        // iPhone Safari 或一般環境的手動提示
+        alert('【如何加到桌面】\n請點擊瀏覽器下方的「分享」按鈕（或右上角三點選單），選擇「加入主畫面」，桌面就會出現圖示囉！');
+      }
+    });
+
     // 捲動位置自動記憶
     let saveScrollDebounce = null;
     pdfSection.addEventListener('scroll', () => {
@@ -470,7 +521,16 @@
     ---------------------------------------------------- */
     window.addEventListener('DOMContentLoaded', () => {
       loadDefaultScripture();
+      checkLineInAppBrowser();
     });
+
+    // 檢查若在 LINE 內建視窗，跳出引導
+    function checkLineInAppBrowser() {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      if (ua.indexOf('Line') > -1) {
+        alert('【長輩貼心提示】\n您目前在 LINE 裡面開啟，LINE 會擋住麥克風。\n請點右下角「⋮」或右上角「…」，選擇「以其他瀏覽器開啟（Chrome）」，並點擊上方「加到手機桌面」！');
+      }
+    }
 
     async function loadDefaultScripture() {
       try {
@@ -528,7 +588,6 @@
 
         pdfPagesContainer.appendChild(pageContainer);
 
-        // 純 Canvas 渲染：保留原汁原味劃線，完全無任何可編輯方塊干擾
         await page.render({
           canvasContext: context,
           viewport: viewport
@@ -559,14 +618,13 @@
             return;
           }
 
-          // 1. 自動儲存截圖至手機相簿/下載區
           const fileName = `背書進度_${new Date().toISOString().slice(0,10)}.png`;
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
           a.download = fileName;
           a.click();
 
-          // 2. 存檔後立即啟動 LINE APP
+          // 存檔後立即跳轉啟動 LINE APP
           setTimeout(() => {
             window.location.href = 'line://';
           }, 400);
@@ -647,7 +705,7 @@
         }, 100);
 
       } catch (err) {
-        alert('麥克風授權失敗：請點擊網址列旁的鎖頭允許麥克風權限。');
+        alert('請先允許麥克風權限（若從桌面圖示開啟，點選一次允許後就會永久記住）。');
       }
     }
 
