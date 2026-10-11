@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
   <meta name="theme-color" content="#0F172A">
 
-  <!-- 引入 PDF.js 核心庫 (純畫面渲染，不載入註解便條層) -->
+  <!-- 引入 PDF.js 核心庫 -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 
   <style>
@@ -107,49 +107,34 @@
       transition: filter 0.15s ease-out;
     }
 
-    /* 綠色導引線與小紅點容器層（覆蓋在經文上方，不擋滑動） */
-    #pointer-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 10;
-      display: none;
-    }
-
-    /* 綠色半透明引導底線 */
+    /* 綠色導引線 (還原 Python V209 規範: #00E676, 線寬 8px) */
     #guide-line {
       position: absolute;
-      height: 4px;
-      background-color: rgba(34, 197, 94, 0.7);
-      border-radius: 2px;
+      display: none;
+      height: 8px;
+      background-color: #00E676;
+      border-radius: 4px;
+      z-index: 100;
       pointer-events: none;
-      transition: top 0.25s ease-out;
+      box-shadow: 0 0 8px rgba(0, 230, 118, 0.7);
     }
 
-    /* 小紅點游標 */
+    /* 小紅點游標 (還原 Python V209 規範: #FF1744 飽滿純色圓) */
     #red-dot {
       position: absolute;
-      width: 18px;
-      height: 18px;
-      background: radial-gradient(circle, #FF4D4D 30%, #CC0000 100%);
-      border: 2.5px solid #FFFFFF;
+      display: none;
+      width: 32px;
+      height: 32px;
+      background: radial-gradient(circle, #FF5252 20%, #FF1744 100%);
+      border: 3px solid #FFFFFF;
       border-radius: 50%;
-      box-shadow: 0 0 10px rgba(255, 0, 0, 0.9), 0 2px 5px rgba(0,0,0,0.4);
-      transform: translate(-50%, -50%);
+      box-shadow: 0 0 12px rgba(255, 23, 68, 0.95), 0 3px 6px rgba(0,0,0,0.35);
+      z-index: 101;
       pointer-events: none;
-      z-index: 12;
-      animation: pulseRedDot 1.4s infinite alternate;
+      transform: translate(-50%, -50%);
     }
 
-    @keyframes pulseRedDot {
-      from { transform: translate(-50%, -50%) scale(0.95); }
-      to { transform: translate(-50%, -50%) scale(1.15); }
-    }
-
-    /* 載入與下載百分比卡片 */
+    /* 載入卡片 */
     #status-card {
       margin: auto;
       padding: 24px;
@@ -514,11 +499,9 @@
 
   <!-- 1. 上半部經文閱讀區 -->
   <section id="pdf-section">
-    <!-- 導引層：綠線與小紅點 -->
-    <div id="pointer-overlay">
-      <div id="guide-line"></div>
-      <div id="red-dot"></div>
-    </div>
+    <!-- 導引元素：直接作為 pdfSection 的子元素，隨滾動無縫貼齊 -->
+    <div id="guide-line"></div>
+    <div id="red-dot"></div>
 
     <div id="status-card">
       <h2 id="status-title">📖 正在載入背誦經文...</h2>
@@ -606,7 +589,6 @@
     const guideAndroid = document.getElementById('guide-android');
 
     const pdfSection = document.getElementById('pdf-section');
-    const pointerOverlay = document.getElementById('pointer-overlay');
     const guideLine = document.getElementById('guide-line');
     const redDot = document.getElementById('red-dot');
 
@@ -643,6 +625,9 @@
     let pageRenderStatus = [];
     let pageScale = 1.25;
 
+    // 解析出之經文行陣列: [{ pageIndex, x0, y0, x1, y1, width, text, topGlobal, bottomGlobal }]
+    let parsedTextLines = [];
+
     let mediaRecorder = null;
     let recordedAudioChunks = [];
     let audioBlob = null;
@@ -657,78 +642,93 @@
     let vadCheckInterval = null;
 
     /* ----------------------------------------------------
-       小紅點與綠色導引線：平穩巡航引擎
+       小紅點與綠色導引線巡航引擎 (對標 Python V209)
     ---------------------------------------------------- */
-    let guideAnimFrame = null;
-    let guideLastTimestamp = 0;
-    let guideCurrentX = 0;
-    let guideCurrentLine = 0;
-    const LINE_HEIGHT = 44; // 標準經文橫排行距估計 (px)
-    const MARGIN_LEFT = 24;
+    let guideAnimId = null;
+    let guideLastTime = 0;
+    let currentLineIndex = 0;
+    let cursorCurrentX = 0;
 
     function startGuideRunner() {
-      pointerOverlay.style.display = 'block';
-      pointerOverlay.style.height = `${pdfSection.scrollHeight}px`;
-      
-      const containerWidth = pdfSection.clientWidth || window.innerWidth;
-      const lineWidth = Math.max(containerWidth - 48, 200);
+      if (parsedTextLines.length === 0) return;
 
-      // 自當前畫面可見頂端起跑
-      guideCurrentLine = Math.floor(pdfSection.scrollTop / LINE_HEIGHT);
-      guideCurrentX = MARGIN_LEFT;
-
-      const currentY = guideCurrentLine * LINE_HEIGHT + 36;
-      guideLine.style.top = `${currentY + 8}px`;
-      guideLine.style.left = `${MARGIN_LEFT}px`;
-      guideLine.style.width = `${lineWidth}px`;
-
-      redDot.style.top = `${currentY}px`;
-      redDot.style.left = `${guideCurrentX}px`;
-
-      guideLastTimestamp = performance.now();
-      runGuideAnimation();
-    }
-
-    function runGuideAnimation(timestamp = performance.now()) {
-      if (!isRecording) return;
-
-      const delta = (timestamp - guideLastTimestamp) / 1000;
-      guideLastTimestamp = timestamp;
-
-      const containerWidth = pdfSection.clientWidth || window.innerWidth;
-      const lineWidth = Math.max(containerWidth - 48, 200);
-      const rightEdge = MARGIN_LEFT + lineWidth;
-
-      // 基準速度：每秒滑動 65px，受「速度選單」連動乘數放大或縮小
-      const speedMultiplier = parseFloat(selectSpeed.value) || 1.0;
-      const basePixelsPerSec = 65 * speedMultiplier;
-
-      guideCurrentX += basePixelsPerSec * delta;
-
-      // 滑到行尾自動折至下一行
-      if (guideCurrentX >= rightEdge) {
-        guideCurrentX = MARGIN_LEFT;
-        guideCurrentLine += 1;
-
-        const nextY = guideCurrentLine * LINE_HEIGHT + 36;
-        guideLine.style.top = `${nextY + 8}px`;
-
-        // 自動平順推進經文視野
-        if (nextY > pdfSection.scrollTop + pdfSection.clientHeight * 0.7) {
-          pdfSection.scrollBy({ top: LINE_HEIGHT, behavior: 'smooth' });
+      // 找出當前螢幕視野上方可見之第一行經文
+      const scrollTop = pdfSection.scrollTop;
+      currentLineIndex = 0;
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        if (parsedTextLines[i].bottomGlobal >= scrollTop + 20) {
+          currentLineIndex = i;
+          break;
         }
       }
 
-      const activeY = guideCurrentLine * LINE_HEIGHT + 36;
-      redDot.style.top = `${activeY}px`;
-      redDot.style.left = `${guideCurrentX}px`;
+      guideLine.style.display = 'block';
+      redDot.style.display = 'block';
 
-      guideAnimFrame = requestAnimationFrame(runGuideAnimation);
+      setupLineGuide(currentLineIndex);
+      guideLastTime = performance.now();
+      runGuideLoop();
+    }
+
+    function setupLineGuide(lineIdx) {
+      if (lineIdx >= parsedTextLines.length) {
+        stopGuideRunner();
+        return;
+      }
+      const line = parsedTextLines[lineIdx];
+      cursorCurrentX = line.x0;
+
+      // 綠線定位在經文文字底端 (偏移 6px)
+      const lineY = line.bottomGlobal + 6;
+      guideLine.style.top = `${lineY}px`;
+      guideLine.style.left = `${line.x0}px`;
+      guideLine.style.width = `${Math.max(line.x1 - line.x0, 60)}px`;
+
+      redDot.style.top = `${lineY}px`;
+      redDot.style.left = `${cursorCurrentX}px`;
+
+      // 自動平滑滾動讓當前行保持在最佳視野 (螢幕中上部)
+      const targetScroll = line.topGlobal - 60;
+      if (Math.abs(pdfSection.scrollTop - targetScroll) > 120) {
+        pdfSection.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+      }
+    }
+
+    function runGuideLoop(now = performance.now()) {
+      if (!isRecording || currentLineIndex >= parsedTextLines.length) return;
+
+      const dt = Math.min((now - guideLastTime) / 1000, 0.05);
+      guideLastTime = now;
+
+      const line = parsedTextLines[currentLineIndex];
+      const speedMultiplier = parseFloat(selectSpeed.value) || 1.0;
+      
+      // 基準流速：每秒滑行約 95px * 倍速
+      const pixelsPerSec = 95 * speedMultiplier;
+      cursorCurrentX += pixelsPerSec * dt;
+
+      // 到達行尾，自動換行
+      if (cursorCurrentX >= line.x1 + 8) {
+        currentLineIndex += 1;
+        if (currentLineIndex < parsedTextLines.length) {
+          setupLineGuide(currentLineIndex);
+        } else {
+          stopGuideRunner();
+          return;
+        }
+      } else {
+        const lineY = line.bottomGlobal + 6;
+        redDot.style.top = `${lineY}px`;
+        redDot.style.left = `${cursorCurrentX}px`;
+      }
+
+      guideAnimId = requestAnimationFrame(runGuideLoop);
     }
 
     function stopGuideRunner() {
-      if (guideAnimFrame) cancelAnimationFrame(guideAnimFrame);
-      pointerOverlay.style.display = 'none';
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
     }
 
     function formatTime(seconds) {
@@ -764,7 +764,7 @@
     }
 
     /* ----------------------------------------------------
-       IndexedDB 本地資料庫儲存庫（附帶更新日期標籤）
+       IndexedDB 本地資料庫儲存庫
     ---------------------------------------------------- */
     const DB_NAME = 'HappyReciteDB';
     const STORE_NAME = 'pdf_store';
@@ -1003,7 +1003,7 @@
     });
 
     /* ----------------------------------------------------
-       2. 高效能渲染：骨架預留，按需繪製
+       2. 高效能渲染 + 經文行坐標精密解析
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
@@ -1018,6 +1018,7 @@
 
       currentPdfDoc = await loadingTask.promise;
       await setupPagePlaceholders();
+      await parseAllTextLinesCoordinates(); // 精確解析經文字句座標
       restoreScrollPosition();
     }
 
@@ -1027,7 +1028,6 @@
       pageRenderStatus = new Array(currentPdfDoc.numPages).fill(false);
 
       const containerWidth = pdfSection.clientWidth || window.innerWidth;
-
       const firstPage = await currentPdfDoc.getPage(1);
       const unscaledViewport = firstPage.getViewport({ scale: 1.0 });
       const scale = (containerWidth - 20) / unscaledViewport.width;
@@ -1048,6 +1048,89 @@
 
         pdfPagesContainer.appendChild(pageContainer);
         pageContainers.push(pageContainer);
+      }
+    }
+
+    // 解析文字行座標 (還原 Python all_lines 邏輯)
+    async function parseAllTextLinesCoordinates() {
+      parsedTextLines = [];
+      if (!currentPdfDoc) return;
+
+      for (let pNum = 1; pNum <= currentPdfDoc.numPages; pNum++) {
+        const page = await currentPdfDoc.getPage(pNum);
+        const viewport = page.getViewport({ scale: pageScale });
+        const textContent = await page.getTextContent();
+        const container = pageContainers[pNum - 1];
+        const pageOffsetTop = container ? container.offsetTop : 0;
+        const pageOffsetLeft = container ? container.offsetLeft : 0;
+
+        // 收集字元項目
+        const items = textContent.items;
+        if (!items || items.length === 0) continue;
+
+        // 依據 Y 軸進行分行分組
+        const rowGroups = [];
+        items.forEach(item => {
+          const str = item.str.trim();
+          if (!str) return;
+
+          // 透過 PDF 變換矩陣求得視圖坐標
+          const tx = item.transform;
+          const x = tx[4] * pageScale;
+          const y = viewport.height - (tx[5] * pageScale); // PDF Y軸反轉
+          const w = item.width * pageScale;
+          const h = (item.height || 16) * pageScale;
+
+          let matched = false;
+          for (let g of rowGroups) {
+            if (Math.abs(g.y - y) <= (h * 0.6)) {
+              g.items.push({ x, y, w, h, str });
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) {
+            rowGroups.push({ y, items: [{ x, y, w, h, str }] });
+          }
+        });
+
+        // 依垂直順序排列各行
+        rowGroups.sort((a, b) => a.y - b.y);
+
+        rowGroups.forEach(g => {
+          g.items.sort((a, b) => a.x - b.x);
+          const first = g.items[0];
+          const last = g.items[g.items.length - 1];
+
+          const lineX0 = pageOffsetLeft + first.x;
+          const lineX1 = pageOffsetLeft + last.x + last.w;
+          const lineY0 = pageOffsetTop + Math.min(...g.items.map(it => it.y - it.h));
+          const lineY1 = pageOffsetTop + Math.max(...g.items.map(it => it.y));
+
+          parsedTextLines.push({
+            pageIndex: pNum,
+            x0: lineX0,
+            x1: lineX1,
+            topGlobal: lineY0,
+            bottomGlobal: lineY1
+          });
+        });
+      }
+
+      // 若未解析出文字（純圖片 PDF），自動提供備用標準排版網格
+      if (parsedTextLines.length === 0) {
+        const cWidth = pdfSection.clientWidth || window.innerWidth;
+        const totalH = pdfSection.scrollHeight || (window.innerHeight * 2);
+        const lH = 46;
+        for (let topY = 40; topY < totalH; topY += lH) {
+          parsedTextLines.push({
+            pageIndex: 1,
+            x0: 24,
+            x1: cWidth - 28,
+            topGlobal: topY,
+            bottomGlobal: topY + 28
+          });
+        }
       }
     }
 
@@ -1109,10 +1192,10 @@
     btnRecord.addEventListener('click', async () => {
       if (!isRecording) {
         spawnGoldCoins();
-        startGuideRunner(); // 啟動小紅點與綠線領航
+        startGuideRunner(); // 啟動導引
         await startRecording();
       } else {
-        stopGuideRunner();  // 停止小紅點
+        stopGuideRunner();  // 停止導引
         stopRecording();
       }
     });
