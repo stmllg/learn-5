@@ -88,7 +88,6 @@
       50% { transform: scale(1.08); opacity: 0.85; }
     }
 
-    /* 經文區 */
     #pdf-section {
       flex: 1 1 60%;
       height: 60dvh;
@@ -104,7 +103,7 @@
       transition: filter 0.15s ease-out;
     }
 
-    /* 實體導引圖層：覆蓋於 PDF 之上，隨頁面內容滾動 */
+    /* 實體導引層 (貼齊經文區) */
     #guide-stage {
       position: absolute;
       top: 0;
@@ -121,7 +120,7 @@
       height: 8px;
       background-color: #00E676;
       border-radius: 4px;
-      box-shadow: 0 0 12px rgba(0, 230, 118, 0.85);
+      box-shadow: 0 0 12px rgba(0, 230, 118, 0.9);
       pointer-events: none;
       z-index: 51;
     }
@@ -500,7 +499,6 @@
   </div>
 
   <section id="pdf-section">
-    <!-- 導引舞台 -->
     <div id="guide-stage">
       <div id="guide-line"></div>
       <div id="red-dot"></div>
@@ -590,7 +588,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_CONFIG_KEY = 'recite_user_settings';
+    const APP_CONFIG_KEY = 'recite_user_settings_v3';
 
     const lineBlockerModal = document.getElementById('line-blocker-modal');
     const guideIos = document.getElementById('guide-ios');
@@ -650,7 +648,7 @@
     let vadCheckInterval = null;
 
     /* ----------------------------------------------------
-       設定檔操作：整合語速與經文版本
+       設定檔操作
     ---------------------------------------------------- */
     function loadUserSettings() {
       try {
@@ -683,33 +681,36 @@
     }
 
     /* ----------------------------------------------------
-       小紅點與綠線實體驅動核心（時間百分比穩健算法）
+       小紅點與綠線實體自走引擎 (解耦獨立執行)
     ---------------------------------------------------- */
     let guideAnimId = null;
+    let isGuideActive = false;
     let currentLineIndex = 0;
     let lineStartTime = 0;
-    let lineDuration = 3000; // 單行滑動時間 (毫秒)
+    let lineDuration = 3200;
 
     function startGuideRunner() {
+      isGuideActive = true;
       if (parsedTextLines.length === 0) {
         buildFallbackLines();
       }
 
-      // 同步導引舞台尺寸
-      guideStage.style.height = `${Math.max(pdfSection.scrollHeight, 2000)}px`;
+      guideStage.style.height = `${Math.max(pdfSection.scrollHeight, 2500)}px`;
       guideStage.style.display = 'block';
 
-      // 自視野頂部開始
-      const scrollTop = pdfSection.scrollTop;
+      // 找出當前視野中頂部行的索引
+      const sTop = pdfSection.scrollTop;
       currentLineIndex = 0;
       for (let i = 0; i < parsedTextLines.length; i++) {
-        if (parsedTextLines[i].bottomGlobal >= scrollTop + 20) {
+        if (parsedTextLines[i].bottomGlobal >= sTop + 20) {
           currentLineIndex = i;
           break;
         }
       }
 
       setupActiveLine(currentLineIndex);
+
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
@@ -721,45 +722,44 @@
 
       const line = parsedTextLines[idx];
       const speedMultiplier = parseFloat(selectSpeed.value) || 1.0;
-      
-      const lineLen = Math.max(line.x1 - line.x0, 80);
-      // 基準速度：以 90px/s 為標準 (1.0x)，換算本行所需總時間
-      lineDuration = (lineLen / (90 * speedMultiplier)) * 1000;
+      const lineLen = Math.max(line.x1 - line.x0, 100);
+
+      // 每秒推進 85px (1.0x 標準)
+      lineDuration = (lineLen / (85 * speedMultiplier)) * 1000;
       lineStartTime = performance.now();
 
-      // 綠線定位在經文底端
       const lineY = line.bottomGlobal + 6;
       guideLine.style.top = `${lineY}px`;
       guideLine.style.left = `${line.x0}px`;
       guideLine.style.width = `${lineLen}px`;
       guideLine.style.display = 'block';
 
-      // 紅點起點
       redDot.style.top = `${lineY}px`;
       redDot.style.left = `${line.x0}px`;
       redDot.style.display = 'block';
 
-      // 滾動視野，讓目前行處於畫面舒適偏上區域
-      const targetScroll = line.topGlobal - 70;
-      if (Math.abs(pdfSection.scrollTop - targetScroll) > 140) {
+      // 視野自動滾動
+      const targetScroll = line.topGlobal - 60;
+      if (Math.abs(pdfSection.scrollTop - targetScroll) > 130) {
         pdfSection.scrollTop = Math.max(0, targetScroll);
       }
     }
 
     function stepGuideMovement(now) {
-      if (!isRecording || currentLineIndex >= parsedTextLines.length) return;
+      if (!isGuideActive) return;
 
       const elapsed = now - lineStartTime;
       const progress = Math.min(Math.max(elapsed / lineDuration, 0), 1.0);
       const line = parsedTextLines[currentLineIndex];
 
-      const currentX = line.x0 + (line.x1 - line.x0) * progress;
-      const lineY = line.bottomGlobal + 6;
+      if (line) {
+        const curX = line.x0 + (line.x1 - line.x0) * progress;
+        const lineY = line.bottomGlobal + 6;
 
-      redDot.style.left = `${currentX}px`;
-      redDot.style.top = `${lineY}px`;
+        redDot.style.left = `${curX}px`;
+        redDot.style.top = `${lineY}px`;
+      }
 
-      // 抵達行尾，推進到下一行
       if (progress >= 1.0) {
         currentLineIndex += 1;
         if (currentLineIndex < parsedTextLines.length) {
@@ -774,6 +774,7 @@
     }
 
     function stopGuideRunner() {
+      isGuideActive = false;
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
       guideStage.style.display = 'none';
@@ -830,16 +831,16 @@
     }
 
     /* ----------------------------------------------------
-       IndexedDB 本地資料庫儲存庫
+       IndexedDB 永久離線資料庫
     ---------------------------------------------------- */
-    const DB_NAME = 'HappyReciteDB';
+    const DB_NAME = 'HappyReciteDB_V3';
     const STORE_NAME = 'pdf_store';
     const PDF_KEY = 'saved_scripture';
 
     function openDatabase() {
       return new Promise((resolve, reject) => {
         try {
-          const req = indexedDB.open(DB_NAME, 2);
+          const req = indexedDB.open(DB_NAME, 1);
           req.onupgradeneeded = (e) => {
             const db = e.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -858,7 +859,7 @@
       try {
         const db = await Promise.race([
           openDatabase(),
-          new Promise((_, reject) => setTimeout(() => reject('timeout'), 1200))
+          new Promise((_, reject) => setTimeout(() => reject('timeout'), 1000))
         ]);
         return new Promise((resolve) => {
           const tx = db.transaction(STORE_NAME, 'readonly');
@@ -904,13 +905,13 @@
     }
 
     /* ----------------------------------------------------
-       1. 啟動與版本嚴格判定
+       快取優先載入：本機有存檔 0 秒直接開，不重複下載！
     ---------------------------------------------------- */
     window.addEventListener('DOMContentLoaded', () => {
       initUserSpeedSetting();
       const isLine = checkAndLockLineBrowser();
       if (!isLine) {
-        loadScriptureSmartAutoUpdate();
+        loadScriptureFastCacheFirst();
       }
     });
 
@@ -931,30 +932,10 @@
       return false;
     }
 
-    function checkServerFileDate(url) {
-      return new Promise((resolve) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('HEAD', url + '?t=' + Date.now(), true);
-        xhr.timeout = 3000;
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const lastModified = xhr.getResponseHeader('Last-Modified');
-            const etag = xhr.getResponseHeader('ETag');
-            resolve(lastModified || etag || 'unknown');
-          } else {
-            resolve(null);
-          }
-        };
-        xhr.onerror = () => resolve(null);
-        xhr.ontimeout = () => resolve(null);
-        xhr.send();
-      });
-    }
-
     function downloadWithProgress(url) {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', url + '?t=' + Date.now(), true);
+        xhr.open('GET', url, true);
         xhr.responseType = 'arraybuffer';
 
         xhr.onprogress = (e) => {
@@ -977,53 +958,38 @@
 
         xhr.onerror = () => reject(new Error('網路連線失敗'));
         xhr.ontimeout = () => reject(new Error('下載超時'));
-        xhr.timeout = 20000;
+        xhr.timeout = 25000;
 
         xhr.send();
       });
     }
 
-    async function loadScriptureSmartAutoUpdate() {
-      statusTitle.textContent = '📖 正在檢查經文版本...';
-      statusDesc.textContent = '讀取本機快取中...';
+    async function loadScriptureFastCacheFirst() {
+      statusTitle.textContent = '📖 正在開啟背誦經文...';
+      statusDesc.textContent = '讀取本機儲存中...';
       btnManualPick.style.display = 'none';
       progressBox.style.display = 'none';
 
-      const config = loadUserSettings();
-      const savedVersionTag = config.versionTag || null;
-
+      // 1. 優先檢查本機 IndexedDB 快取：有就直接秒開！
       const cachedRecord = await getCachedRecord();
       const localBuffer = cachedRecord ? (cachedRecord.buffer || cachedRecord) : null;
-      const dbDateTag = cachedRecord ? cachedRecord.dateTag : null;
-      const activeVersionTag = savedVersionTag || dbDateTag;
 
-      const targetUrl = './scripture.pdf';
-      const serverDateTag = await checkServerFileDate(targetUrl);
-
-      // 若檔案存在且版本一致，直接秒開
-      if (localBuffer && serverDateTag && activeVersionTag && serverDateTag === activeVersionTag) {
-        statusDesc.textContent = '經文為最新版本，直接秒開！';
+      if (localBuffer) {
+        statusDesc.textContent = '本機秒開！';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         return;
       }
 
-      // 離線模式
-      if (localBuffer && !serverDateTag) {
-        statusDesc.textContent = '離線模式，開啟現存經文...';
-        await parseAndRenderPdfData(new Uint8Array(localBuffer));
-        return;
-      }
-
-      // 下載新經典
-      statusTitle.textContent = localBuffer ? '📖 偵測到新經文，更新中...' : '📖 首次載入經文...';
-      statusDesc.textContent = '正自雲端同步最新經文內容...';
+      // 2. 本機沒有時，才進行初次下載
+      statusTitle.textContent = '📖 首次下載經文...';
+      statusDesc.textContent = '首次載入，正自雲端同步經文...';
       progressBox.style.display = 'block';
       progressPercentText.textContent = '0%';
       downloadBarFill.style.width = '0%';
 
       let downloadedBuffer = null;
       try {
-        downloadedBuffer = await downloadWithProgress(targetUrl);
+        downloadedBuffer = await downloadWithProgress('./scripture.pdf');
       } catch (e) {
         try {
           downloadedBuffer = await downloadWithProgress('./scripture.PDF');
@@ -1033,24 +999,18 @@
       if (downloadedBuffer) {
         progressPercentText.textContent = '100%';
         downloadBarFill.style.width = '100%';
-        statusDesc.textContent = '新經典同步完成，存入本機並開啟...';
+        statusDesc.textContent = '同步完成，存入本機並開啟...';
 
-        const finalTag = serverDateTag || new Date().toISOString();
-        await saveRecordToCache(downloadedBuffer, finalTag);
-        saveUserSettings({ versionTag: finalTag });
+        await saveRecordToCache(downloadedBuffer, 'saved_file');
+        saveUserSettings({ hasSavedPdf: true });
 
         localStorage.removeItem('recite_scroll_pos');
         await parseAndRenderPdfData(new Uint8Array(downloadedBuffer));
       } else {
-        if (localBuffer) {
-          progressBox.style.display = 'none';
-          await parseAndRenderPdfData(new Uint8Array(localBuffer));
-        } else {
-          progressBox.style.display = 'none';
-          statusTitle.textContent = '📖 經文預備區';
-          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，<br>請點擊下方橘色大按鈕手動挑選經文：';
-          btnManualPick.style.display = 'inline-block';
-        }
+        progressBox.style.display = 'none';
+        statusTitle.textContent = '📖 經文預備區';
+        statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，<br>請點擊下方橘色大按鈕手動挑選經文：';
+        btnManualPick.style.display = 'inline-block';
       }
     }
 
@@ -1070,9 +1030,8 @@
 
       try {
         const arrayBuffer = await file.arrayBuffer();
-        const manualTag = 'manual_' + file.name + '_' + file.lastModified;
-        await saveRecordToCache(arrayBuffer, manualTag);
-        saveUserSettings({ versionTag: manualTag });
+        await saveRecordToCache(arrayBuffer, 'manual_' + file.name);
+        saveUserSettings({ hasSavedPdf: true });
 
         localStorage.removeItem('recite_scroll_pos');
         await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
@@ -1083,7 +1042,7 @@
     });
 
     /* ----------------------------------------------------
-       2. 高效能渲染 + 文字座標精準提取
+       2. 高效能渲染與全文字邊界解析
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
@@ -1254,13 +1213,16 @@
     });
 
     /* ----------------------------------------------------
-       4. 錄音核心：啟動導引小紅點
+       4. 錄音核心：按下瞬間保證驅動小紅點自走！
     ---------------------------------------------------- */
-    btnRecord.addEventListener('click', async () => {
+    btnRecord.addEventListener('click', () => {
       if (!isRecording) {
+        // 1. 噴金幣
         spawnGoldCoins();
+        // 2. 立即實體啟動小紅點自走 (完全不等待麥克風權限回應)
         startGuideRunner();
-        await startRecording();
+        // 3. 背景啟動錄音
+        startRecording();
       } else {
         stopGuideRunner();
         stopRecording();
@@ -1325,7 +1287,6 @@
         }, 100);
 
       } catch (err) {
-        stopGuideRunner();
         alert('請點選「允許」使用麥克風，即可開始背書錄音。');
       }
     }
