@@ -35,7 +35,10 @@
       flex-direction: column;
     }
 
-    /* 長輩專屬：LINE 內建視窗防呆全螢幕遮罩 */
+    /* 
+      LINE 強制阻擋全螢幕遮罩：
+      只要在 LINE 內就永遠顯示，絕對不消失，封鎖底層所有操作
+    */
     #line-blocker-modal {
       display: none;
       position: fixed;
@@ -43,8 +46,8 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: rgba(15, 23, 42, 0.98);
-      z-index: 9999;
+      background-color: #0F172A;
+      z-index: 999999;
       flex-direction: column;
       align-items: center;
       justify-content: center;
@@ -54,40 +57,40 @@
 
     .guide-card {
       background-color: #1E293B;
-      border: 3.5px solid #F59E0B;
-      border-radius: 22px;
-      padding: 26px 20px;
-      max-width: 92%;
+      border: 4px solid #EF4444;
+      border-radius: 24px;
+      padding: 30px 22px;
+      max-width: 95%;
       color: #FFFFFF;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
     }
 
     .guide-card h2 {
-      font-size: 28px;
-      font-weight: 800;
-      color: #FBBF24;
-      margin-bottom: 16px;
+      font-size: 30px;
+      font-weight: 900;
+      color: #F87171;
+      margin-bottom: 20px;
     }
 
     .guide-card p {
-      font-size: 21px;
-      line-height: 1.6;
+      font-size: 22px;
+      line-height: 1.7;
       color: #F8FAFC;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
       text-align: left;
     }
 
     .guide-arrow {
-      font-size: 34px;
-      font-weight: 800;
+      font-size: 38px;
+      font-weight: 900;
       color: #38BDF8;
-      margin: 10px 0;
-      animation: pulse 1.5s infinite;
+      margin-top: 14px;
+      animation: pulse 1.2s infinite;
     }
 
     @keyframes pulse {
       0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.06); opacity: 0.85; }
+      50% { transform: scale(1.08); opacity: 0.85; }
     }
 
     /* 
@@ -145,7 +148,7 @@
       cursor: pointer;
     }
 
-    /* PDF 頁面佔位容器（預留高度，滑動順暢） */
+    /* PDF 頁面佔位容器 */
     .pdf-page-container {
       position: relative;
       margin: 6px auto;
@@ -283,7 +286,6 @@
       transform: scale(0.95);
     }
 
-    /* 錄音中說話偵測光暈 */
     #btn-record.recording-active {
       background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
       box-shadow: 0 0 22px rgba(34, 197, 94, 0.9) !important;
@@ -414,18 +416,23 @@
 </head>
 <body>
 
-  <!-- LINE 內建視窗防呆指引 -->
+  <!-- 
+    LINE 內建視窗封鎖全螢幕提示遮罩：
+    只要在 LINE 內就永遠鎖死顯示，絕不消失！
+  -->
   <div id="line-blocker-modal">
     <div class="guide-card">
-      <h2>請換用手機瀏覽器開啟</h2>
+      <h2>⚠️ 請跳出 LINE 視窗</h2>
       
+      <!-- 蘋果 iPhone 指引 -->
       <div id="guide-ios" style="display:none;">
-        <p>1. 請看螢幕<b>最右下角</b>。<br>2. 點擊「指南針／Safari」圖示。<br>3. 換到 Safari 開啟即可正常錄音背書！</p>
-        <div class="guide-arrow">↘ 點右下角指南針圖示</div>
+        <p>因 LINE 限制麥克風功能：<br><br>1. 請看螢幕<b>最右下角</b>。<br>2. 點擊<b>「指南針／Safari」</b>圖示。<br>3. 換到 Safari 開啟才能正常背書！</p>
+        <div class="guide-arrow">↘ 請點右下角指南針圖示</div>
       </div>
 
+      <!-- 安卓 Android 指引 -->
       <div id="guide-android" style="display:none;">
-        <p>1. 請看螢幕<b>右上角</b>或<b>右下角</b>。<br>2. 點擊「三個點 ⋮」按鈕。<br>3. 點選<b>「以其他應用程式／瀏覽器開啟」</b>。<br>4. 換到 Chrome 開啟即可正常背書！</p>
+        <p>因 LINE 限制麥克風功能：<br><br>1. 請看螢幕<b>右上角</b>或<b>右下角</b>。<br>2. 點擊<b>「三個點 ⋮」</b>。<br>3. 點選<b>「以其他瀏覽器開啟」</b>換到 Chrome 才能背書！</p>
         <div class="guide-arrow">👉 找三個點「⋮」按鈕</div>
       </div>
     </div>
@@ -628,14 +635,17 @@
     }
 
     /* ----------------------------------------------------
-       1. 啟動：優先自手機本地硬碟讀取，完全免流量
+       1. 啟動：嚴格阻擋 LINE 內建視窗，並自本地硬碟讀取
     ---------------------------------------------------- */
     window.addEventListener('DOMContentLoaded', () => {
-      detectEnvironment();
-      loadScriptureWithPermanentCache();
+      const isLine = checkAndLockLineBrowser();
+      if (!isLine) {
+        loadScriptureWithPermanentCache();
+      }
     });
 
-    function detectEnvironment() {
+    // 嚴格判斷 LINE 瀏覽器，絕不消失
+    function checkAndLockLineBrowser() {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       const isLine = ua.indexOf('Line') > -1;
       const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -647,7 +657,9 @@
         } else {
           guideAndroid.style.display = 'block';
         }
+        return true; // 鎖定
       }
+      return false;
     }
 
     async function loadScriptureWithPermanentCache() {
@@ -655,14 +667,12 @@
       statusDesc.textContent = '直接自本機讀取經文內容';
       btnManualPick.style.display = 'none';
 
-      // 1. 優先從手機本機硬碟讀取
       const cachedData = await getCachedPdf();
       if (cachedData) {
         await parseAndRenderPdfData(new Uint8Array(cachedData));
         return;
       }
 
-      // 2. 本機沒有時，僅在第一次自網路下載並自動永久存檔
       const fileCandidates = ['./scripture.pdf', './scripture.PDF'];
       let downloadedBuffer = null;
 
@@ -677,7 +687,6 @@
       }
 
       if (downloadedBuffer) {
-        // 永久寫入手機硬碟
         await savePdfToCache(downloadedBuffer);
         await parseAndRenderPdfData(new Uint8Array(downloadedBuffer));
       } else {
@@ -701,7 +710,6 @@
 
       try {
         const arrayBuffer = await file.arrayBuffer();
-        // 手動挑選的經文也直接永久存入手機硬碟
         await savePdfToCache(arrayBuffer);
         await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
       } catch (err) {
