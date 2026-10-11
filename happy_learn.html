@@ -35,10 +35,7 @@
       flex-direction: column;
     }
 
-    /* 
-      專為長輩設計的 LINE 內建視窗防呆全螢幕遮罩
-      (長輩從 LINE 點開時自動跳出大字圖解指引)
-    */
+    /* 長輩專屬：LINE 內建視窗防呆全螢幕遮罩 */
     #line-blocker-modal {
       display: none;
       position: fixed;
@@ -133,7 +130,7 @@
       color: #4A5568;
     }
 
-    /* PDF 畫布容器 (純圖像，無任何文字層與註解便條) */
+    /* PDF 畫布容器 (純圖像，無任何可編輯文字或彈出便條) */
     .pdf-page-container {
       position: relative;
       margin: 6px auto;
@@ -150,7 +147,7 @@
     }
 
     /* 
-      2. 下半部固定控制區：高度嚴格鎖死為 40% (2/5，40dvh)
+      2. 下半部固定控制區：高度鎖死為 40% (2/5，40dvh)
     */
     #bottom-fixed-dock {
       flex: 0 0 40dvh;
@@ -165,7 +162,7 @@
       padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
 
-    /* 中央隨喜提詞列：單行鎖死 */
+    /* 中央隨喜提詞列：鎖定單行 */
     #motto-bar {
       flex: 0 0 auto;
       background: linear-gradient(180deg, #1E293B 0%, #151F32 100%);
@@ -388,7 +385,7 @@
 </head>
 <body>
 
-  <!-- 長輩專屬：LINE 內建視窗防呆指引 (精確標明右上角或右下角) -->
+  <!-- LINE 內建視窗防呆指引 -->
   <div id="line-blocker-modal">
     <div class="guide-card">
       <h2>請換用手機瀏覽器開啟</h2>
@@ -523,280 +520,4 @@
     function formatTime(seconds) {
       if (!seconds || isNaN(seconds) || seconds < 0) return '00:00';
       const m = Math.floor(seconds / 60);
-      const s = Math.floor(seconds % 60);
-      return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-    }
-
-    // 捲動記憶
-    let saveScrollDebounce = null;
-    pdfSection.addEventListener('scroll', () => {
-      clearTimeout(saveScrollDebounce);
-      saveScrollDebounce = setTimeout(() => {
-        localStorage.setItem('recite_scroll_pos', pdfSection.scrollTop);
-      }, 300);
-    }, { passive: true });
-
-    function restoreScrollPosition() {
-      const savedPos = localStorage.getItem('recite_scroll_pos');
-      if (savedPos) {
-        setTimeout(() => {
-          pdfSection.scrollTop = parseInt(savedPos, 10);
-        }, 150);
-      }
-    }
-
-    /* ----------------------------------------------------
-       1. 啟動與環境偵測
-    ---------------------------------------------------- */
-    window.addEventListener('DOMContentLoaded', () => {
-      detectEnvironment();
-      loadDefaultScripture();
-    });
-
-    function detectEnvironment() {
-      const ua = navigator.userAgent || navigator.vendor || window.opera;
-      const isLine = ua.indexOf('Line') > -1;
-      const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-      if (isLine) {
-        lineBlockerModal.style.display = 'flex';
-        if (isIos) {
-          guideIos.style.display = 'block';
-        } else {
-          guideAndroid.style.display = 'block';
-        }
-      }
-    }
-
-    async function loadDefaultScripture() {
-      try {
-        statusTitle.textContent = '📖 正在載入經文...';
-        statusDesc.textContent = '系統正為您準備經文內容';
-
-        const response = await fetch(DEFAULT_PDF_FILENAME);
-        if (!response.ok) throw new Error('未找到預設經文檔');
-        const arrayBuffer = await response.arrayBuffer();
-        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
-      } catch (err) {
-        statusTitle.textContent = '📖 請確認經文檔案';
-        statusDesc.innerHTML = `請將經文 PDF 命名為 <b>${DEFAULT_PDF_FILENAME}</b> 放在同一資料夾，開啟即用。`;
-      }
-    }
-
-    async function parseAndRenderPdfData(typedarray) {
-      statusCard.style.display = 'none';
-      pdfPagesContainer.style.display = 'block';
-      pdfPagesContainer.innerHTML = '';
-
-      const loadingTask = pdfjsLib.getDocument({
-        data: typedarray,
-        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
-        cMapPacked: true
-      });
-
-      currentPdfDoc = await loadingTask.promise;
-      await renderAllPdfPages();
-      restoreScrollPosition();
-    }
-
-    async function renderAllPdfPages() {
-      if (!currentPdfDoc) return;
-      pdfPagesContainer.innerHTML = '';
-
-      const containerWidth = pdfSection.clientWidth || window.innerWidth;
-
-      for (let pageNum = 1; pageNum <= currentPdfDoc.numPages; pageNum++) {
-        const page = await currentPdfDoc.getPage(pageNum);
-        const unscaledViewport = page.getViewport({ scale: 1.0 });
-        const scale = (containerWidth - 20) / unscaledViewport.width;
-        const viewport = page.getViewport({ scale: Math.max(scale, 1.25) });
-
-        const pageContainer = document.createElement('div');
-        pageContainer.className = 'pdf-page-container';
-        pageContainer.style.width = `${viewport.width}px`;
-        pageContainer.style.height = `${viewport.height}px`;
-
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        pageContainer.appendChild(canvas);
-
-        pdfPagesContainer.appendChild(pageContainer);
-
-        await page.render({
-          canvasContext: context,
-          viewport: viewport
-        }).promise;
-      }
-    }
-
-    /* ----------------------------------------------------
-       2. LINE 按鈕：不經下載，點擊直接秒連開啟 LINE APP
-    ---------------------------------------------------- */
-    btnShareLine.addEventListener('click', () => {
-      // 直接呼叫 LINE 的 Deep Link，秒開應用程式
-      window.location.href = 'line://';
-    });
-
-    /* ----------------------------------------------------
-       3. 錄音核心 (相容 iOS Safari 與 Android Chrome)
-    ---------------------------------------------------- */
-    btnRecord.addEventListener('click', async () => {
-      if (!isRecording) {
-        await startRecording();
-      } else {
-        stopRecording();
-      }
-    });
-
-    async function startRecording() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-        });
-        
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContextClass();
-        const source = audioCtx.createMediaStreamSource(stream);
-        analyserNode = audioCtx.createAnalyser();
-        analyserNode.fftSize = 256;
-        source.connect(analyserNode);
-
-        recordedAudioChunks = [];
-        
-        let mimeType = '';
-        if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          mimeType = 'audio/mp4';
-        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-          mimeType = 'audio/webm';
-        }
-
-        mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-        
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) recordedAudioChunks.push(e.data);
-        };
-
-        mediaRecorder.onstop = () => {
-          stream.getTracks().forEach(track => track.stop());
-          if (audioCtx && audioCtx.state !== 'closed') audioCtx.close();
-          finalizeRecording(mimeType);
-        };
-
-        mediaRecorder.start(250);
-        isRecording = true;
-        recordStartTime = Date.now();
-        recordText.textContent = '停止';
-
-        recordTimerInterval = setInterval(() => {
-          const elapsed = (Date.now() - recordStartTime) / 1000;
-          labelTotalRecorded.textContent = formatTime(elapsed);
-        }, 300);
-
-        const pcmData = new Uint8Array(analyserNode.frequencyBinCount);
-        vadCheckInterval = setInterval(() => {
-          analyserNode.getByteFrequencyData(pcmData);
-          let sum = 0;
-          for (let i = 0; i < pcmData.length; i++) sum += pcmData[i];
-          const average = sum / pcmData.length;
-          if (average > 18) {
-            btnRecord.classList.add('recording-active');
-          } else {
-            btnRecord.classList.remove('recording-active');
-          }
-        }, 100);
-
-      } catch (err) {
-        alert('請點選「允許」使用麥克風，即可開始背書錄音。');
-      }
-    }
-
-    function stopRecording() {
-      if (!mediaRecorder) return;
-      isRecording = false;
-      clearInterval(recordTimerInterval);
-      clearInterval(vadCheckInterval);
-      btnRecord.classList.remove('recording-active');
-      recordText.textContent = '錄音';
-      mediaRecorder.stop();
-    }
-
-    function finalizeRecording(mimeType) {
-      const type = mimeType || 'audio/mp4';
-      audioBlob = new Blob(recordedAudioChunks, { type });
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
-      audioUrl = URL.createObjectURL(audioBlob);
-
-      audioElement.src = audioUrl;
-      audioElement.playbackRate = parseFloat(selectSpeed.value);
-
-      audioElement.onloadedmetadata = () => {
-        timeDuration.textContent = formatTime(audioElement.duration);
-        labelTotalRecorded.textContent = formatTime(audioElement.duration);
-      };
-    }
-
-    /* ----------------------------------------------------
-       4. 播放、暫停與倍速
-    ---------------------------------------------------- */
-    btnPlayPause.addEventListener('click', () => {
-      if (!audioElement.src) {
-        alert('目前尚無錄音，請先按下紅色圓鈕錄音。');
-        return;
-      }
-      if (audioElement.paused) {
-        audioElement.play();
-        btnPlayPause.textContent = '暫停';
-        btnPlayPause.classList.add('is-playing');
-      } else {
-        audioElement.pause();
-        btnPlayPause.textContent = '播放';
-        btnPlayPause.classList.remove('is-playing');
-      }
-    });
-
-    audioElement.addEventListener('timeupdate', () => {
-      if (!audioElement.duration) return;
-      timeCurrent.textContent = formatTime(audioElement.currentTime);
-      progressBar.value = (audioElement.currentTime / audioElement.duration) * 100;
-    });
-
-    audioElement.addEventListener('ended', () => {
-      btnPlayPause.textContent = '播放';
-      btnPlayPause.classList.remove('is-playing');
-      progressBar.value = 0;
-      timeCurrent.textContent = '00:00';
-    });
-
-    progressBar.addEventListener('input', () => {
-      if (!audioElement.duration) return;
-      audioElement.currentTime = (progressBar.value / 100) * audioElement.duration;
-    });
-
-    selectSpeed.addEventListener('change', () => {
-      audioElement.playbackRate = parseFloat(selectSpeed.value);
-    });
-
-    /* ----------------------------------------------------
-       5. 亮度調整
-    ---------------------------------------------------- */
-    btnToggleBrightness.addEventListener('click', () => {
-      const isVisible = brightnessModal.style.display === 'block';
-      brightnessModal.style.display = isVisible ? 'none' : 'block';
-      brightnessBackdrop.style.display = isVisible ? 'none' : 'block';
-    });
-
-    brightnessBackdrop.addEventListener('click', () => {
-      brightnessModal.style.display = 'none';
-      brightnessBackdrop.style.display = 'none';
-    });
-
-    brightnessSlider.addEventListener('input', (e) => {
-      const val = e.target.value;
-      labelBrightnessVal.textContent = `${val}%`;
-      pdfSection.style.filter = `brightness(${val}%)`;
-    });
-  </script>
-</body>
-</html>
+      const
