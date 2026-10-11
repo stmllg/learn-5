@@ -36,8 +36,8 @@
     }
 
     /* 
-      LINE 阻擋提示遮罩：
-      支援整頁滾動，大字體絕不截斷
+      3. LINE 阻擋提示浮動卡片：
+      不佔滿全螢幕，半透明背景，四周留白，絕不遮住右上/右下角的三點選單！
     */
     #line-blocker-modal {
       display: none;
@@ -46,46 +46,46 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: #0F172A;
+      background-color: rgba(15, 23, 42, 0.75);
       z-index: 999999;
+      padding: 40px 20px;
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 20px 16px;
-      box-sizing: border-box;
+      pointer-events: none; /* 允許手指點擊邊角的系統選單 */
     }
 
     .guide-card {
       background-color: #1E293B;
-      border: 4px solid #EF4444;
+      border: 4px solid #F59E0B;
       border-radius: 20px;
-      padding: 24px 18px;
+      padding: 22px 18px;
       margin: auto;
-      max-width: 500px;
+      max-width: 420px;
       color: #FFFFFF;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.85);
       text-align: center;
+      pointer-events: auto; /* 卡片內部可操作 */
     }
 
     .guide-card h2 {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 900;
-      color: #F87171;
-      margin-bottom: 16px;
+      color: #FBBF24;
+      margin-bottom: 12px;
     }
 
     .guide-card p {
-      font-size: 20px;
+      font-size: 19px;
       line-height: 1.6;
       color: #F8FAFC;
-      margin-bottom: 14px;
+      margin-bottom: 10px;
       text-align: left;
     }
 
     .guide-arrow {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 900;
       color: #38BDF8;
-      margin-top: 10px;
+      margin-top: 8px;
       animation: pulse 1.2s infinite;
     }
 
@@ -112,7 +112,7 @@
       transition: filter 0.15s ease-out;
     }
 
-    /* 載入與錯誤提示卡片 (支援垂直捲動) */
+    /* 載入與下載百分比卡片 */
     #status-card {
       margin: auto;
       padding: 24px;
@@ -131,9 +131,34 @@
     }
 
     #status-card p {
-      font-size: 19px;
+      font-size: 20px;
       line-height: 1.6;
       color: #4A5568;
+    }
+
+    /* 下載進度大字與進度條 */
+    #progress-percent-text {
+      font-size: 32px;
+      font-weight: 900;
+      color: #0284C7;
+      margin: 10px 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .download-bar-box {
+      width: 220px;
+      height: 12px;
+      background-color: #E2E8F0;
+      border-radius: 6px;
+      margin: 8px auto;
+      overflow: hidden;
+    }
+
+    .download-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #38BDF8, #0284C7);
+      transition: width 0.15s ease-out;
     }
 
     /* 手動挑選備用按鈕 (長輩特大字) */
@@ -189,6 +214,7 @@
       justify-content: space-between;
       border-top: 2px solid #334155;
       z-index: 20;
+      position: relative;
       padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
 
@@ -225,6 +251,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
+      position: relative;
     }
 
     .info-card {
@@ -265,6 +292,15 @@
       width: 100%;
     }
 
+    /* 錄音按鈕容器（提供金幣動畫噴發的原點） */
+    .record-btn-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
     /* 中央錄音大圓鈕 */
     #btn-record {
       width: 66px;
@@ -281,8 +317,8 @@
       font-weight: 800;
       box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45);
       cursor: pointer;
-      flex-shrink: 0;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 5;
     }
 
     #btn-record:active {
@@ -294,6 +330,29 @@
       background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
       box-shadow: 0 0 22px rgba(34, 197, 94, 0.9) !important;
       border-color: #DCFCE7 !important;
+    }
+
+    /* 噴射金色金幣元素樣式 */
+    .gold-coin {
+      position: absolute;
+      font-size: 24px;
+      pointer-events: none;
+      z-index: 50;
+      animation: explodeCoin 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+
+    @keyframes explodeCoin {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(0.6) rotate(0deg);
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) scale(1.3) rotate(var(--rot));
+      }
     }
 
     /* 第二排：進度條 */
@@ -420,21 +479,21 @@
 </head>
 <body>
 
-  <!-- LINE 內建視窗封鎖全螢幕提示遮罩 (可垂直滾動，絕不截斷) -->
+  <!-- LINE 內建視窗浮動提示卡片（不佔滿全螢幕，邊緣留白不擋三點選單） -->
   <div id="line-blocker-modal">
     <div class="guide-card">
       <h2>⚠️ 請跳出 LINE 視窗</h2>
       
       <!-- 蘋果 iPhone 指引 -->
       <div id="guide-ios" style="display:none;">
-        <p>因 LINE 限制麥克風功能：<br><br>1. 請看螢幕<b>最右下角</b>。<br>2. 點擊<b>「指南針／Safari」</b>圖示。<br>3. 換到 Safari 開啟才能正常背書！</p>
-        <div class="guide-arrow">↘ 請點右下角指南針圖示</div>
+        <p>因 LINE 限制麥克風功能：<br><br>請看螢幕<b>右下角</b>，點擊<b>「指南針／Safari」</b>圖示，跳出後即可順暢背書！</p>
+        <div class="guide-arrow">↘ 請看右下角指南針圖示</div>
       </div>
 
       <!-- 安卓 Android 指引 -->
       <div id="guide-android" style="display:none;">
-        <p>因 LINE 限制麥克風功能：<br><br>1. 請看螢幕<b>右上角</b>或<b>右下角</b>。<br>2. 點擊<b>「三個點 ⋮」</b>。<br>3. 點選<b>「以其他瀏覽器開啟」</b>換到 Chrome 才能背書！</p>
-        <div class="guide-arrow">👉 找三個點「⋮」按鈕</div>
+        <p>因 LINE 限制麥克風功能：<br><br>請看螢幕<b>右上角或右下角</b>，點擊<b>「三個點 ⋮」</b>選擇<b>「以其他瀏覽器開啟」</b>！</p>
+        <div class="guide-arrow">👉 找邊角三個點「⋮」按鈕</div>
       </div>
     </div>
   </div>
@@ -443,7 +502,16 @@
   <section id="pdf-section">
     <div id="status-card">
       <h2 id="status-title">📖 正在載入背誦經文...</h2>
-      <p id="status-desc">系統正為您準備經文內容。</p>
+      <p id="status-desc">讀取中，請稍候...</p>
+      
+      <!-- 即時下載百分比顯示 -->
+      <div id="progress-box" style="display: none;">
+        <div id="progress-percent-text">0%</div>
+        <div class="download-bar-box">
+          <div class="download-bar-fill" id="download-bar-fill"></div>
+        </div>
+      </div>
+
       <button id="btn-manual-pick">📂 點此挑選經文檔案</button>
     </div>
     <div id="pdf-pages-container" style="display: none; width: 100%;"></div>
@@ -456,16 +524,18 @@
     </header>
 
     <footer id="controls-panel">
-      <!-- 第一排：總時間 / 大錄音鈕 / 播放速度 -->
+      <!-- 第一排：總時間 / 錄音鈕(金幣動畫) / 播放速度 -->
       <div class="control-row-1">
         <div class="info-card">
           <span class="info-card-label">總時間</span>
           <span class="info-card-value" id="label-total-recorded">00:00</span>
         </div>
 
-        <button id="btn-record" type="button" aria-label="開始或結束錄音">
-          <span id="record-text">錄音</span>
-        </button>
+        <div class="record-btn-wrapper" id="record-wrapper">
+          <button id="btn-record" type="button" aria-label="開始或結束錄音">
+            <span id="record-text">錄音</span>
+          </button>
+        </div>
 
         <div class="info-card speed-card">
           <label class="info-card-label" for="select-playback-speed">播放速度</label>
@@ -521,10 +591,14 @@
     const statusCard = document.getElementById('status-card');
     const statusTitle = document.getElementById('status-title');
     const statusDesc = document.getElementById('status-desc');
+    const progressBox = document.getElementById('progress-box');
+    const progressPercentText = document.getElementById('progress-percent-text');
+    const downloadBarFill = document.getElementById('download-bar-fill');
     const btnManualPick = document.getElementById('btn-manual-pick');
     const filePdfInput = document.getElementById('file-pdf-input');
     const pdfPagesContainer = document.getElementById('pdf-pages-container');
 
+    const recordWrapper = document.getElementById('record-wrapper');
     const btnRecord = document.getElementById('btn-record');
     const recordText = document.getElementById('record-text');
     const labelTotalRecorded = document.getElementById('label-total-recorded');
@@ -568,7 +642,36 @@
     }
 
     /* ----------------------------------------------------
-       IndexedDB 本地資料庫儲存庫（加強超時防呆）
+       噴灑金幣視覺動畫（🪙 隨喜功德，金光四射）
+    ---------------------------------------------------- */
+    function spawnGoldCoins() {
+      const coinCount = 12;
+      for (let i = 0; i < coinCount; i++) {
+        const coin = document.createElement('div');
+        coin.className = 'gold-coin';
+        coin.textContent = '🪙';
+
+        // 隨機向四周發散的位移與旋轉角度
+        const angle = (i / coinCount) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
+        const distance = 80 + Math.random() * 60;
+        const dx = Math.cos(angle) * distance;
+        const dy = Math.sin(angle) * distance - 20;
+        const rot = (Math.random() * 360 - 180) + 'deg';
+
+        coin.style.setProperty('--dx', `${dx}px`);
+        coin.style.setProperty('--dy', `${dy}px`);
+        coin.style.setProperty('--rot', rot);
+
+        recordWrapper.appendChild(coin);
+
+        setTimeout(() => {
+          if (coin.parentNode) coin.parentNode.removeChild(coin);
+        }, 900);
+      }
+    }
+
+    /* ----------------------------------------------------
+       IndexedDB 本地資料庫儲存庫（永久離線快取）
     ---------------------------------------------------- */
     const DB_NAME = 'HappyReciteDB';
     const STORE_NAME = 'pdf_store';
@@ -596,7 +699,7 @@
       try {
         const db = await Promise.race([
           openDatabase(),
-          new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500))
+          new Promise((_, reject) => setTimeout(() => reject('timeout'), 1200))
         ]);
         return new Promise((resolve) => {
           const tx = db.transaction(STORE_NAME, 'readonly');
@@ -643,12 +746,12 @@
     }
 
     /* ----------------------------------------------------
-       1. 啟動：5 秒超時自動防呆，保證不當機
+       1. 啟動：帶真實下載百分比（%）的載入核心
     ---------------------------------------------------- */
     window.addEventListener('DOMContentLoaded', () => {
       const isLine = checkAndLockLineBrowser();
       if (!isLine) {
-        loadScriptureSafe();
+        loadScriptureWithRealProgress();
       }
     });
 
@@ -669,59 +772,81 @@
       return false;
     }
 
-    // 帶超時機制的下載 fetch
-    function fetchWithTimeout(resource, options = {}) {
-      const { timeout = 4000 } = options;
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), timeout);
-      return fetch(resource, {
-        ...options,
-        signal: controller.signal
-      }).then(response => {
-        clearTimeout(id);
-        return response;
-      }).catch(err => {
-        clearTimeout(id);
-        throw err;
+    // 帶進度監聽的 XMLHttpRequest 下載函式
+    function downloadWithProgress(url) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+
+        xhr.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            progressPercentText.textContent = `${percent}%`;
+            downloadBarFill.style.width = `${percent}%`;
+          } else {
+            // 無法得知總大小時計步增加
+            progressPercentText.textContent = '下載中...';
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(xhr.response);
+          } else {
+            reject(new Error(`HTTP ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('網路連線失敗'));
+        xhr.ontimeout = () => reject(new Error('下載超時'));
+        xhr.timeout = 15000;
+
+        xhr.send();
       });
     }
 
-    async function loadScriptureSafe() {
+    async function loadScriptureWithRealProgress() {
       statusTitle.textContent = '📖 正在開啟背誦經文...';
-      statusDesc.textContent = '讀取中，請稍候...';
+      statusDesc.textContent = '檢查手機儲存中...';
       btnManualPick.style.display = 'none';
+      progressBox.style.display = 'none';
 
-      // 1. 優先從手機本機硬碟快速讀取 (1.5 秒上限)
+      // 1. 優先檢查手機本地快取 (0.2 秒秒開)
       try {
         const cachedData = await getCachedPdf();
         if (cachedData) {
-          statusDesc.textContent = '已從手機儲存讀取，正在開啟...';
+          statusDesc.textContent = '已從手機本地儲存秒開！';
           await parseAndRenderPdfData(new Uint8Array(cachedData));
           return;
         }
       } catch (e) {}
 
-      // 2. 本機沒有時，自網路下載 (限制 4 秒超時)
+      // 2. 本地沒有時，自網路下載並顯示真實 % 進度
+      statusDesc.textContent = '首次載入，正自雲端下載經文...';
+      progressBox.style.display = 'block';
+      progressPercentText.textContent = '0%';
+      downloadBarFill.style.width = '0%';
+
       const fileCandidates = ['./scripture.pdf', './scripture.PDF'];
       let downloadedBuffer = null;
 
       for (const fileName of fileCandidates) {
         try {
-          statusDesc.textContent = `嘗試讀取 ${fileName}...`;
-          const res = await fetchWithTimeout(fileName, { timeout: 4000 });
-          if (res.ok) {
-            downloadedBuffer = await res.arrayBuffer();
-            break;
-          }
+          downloadedBuffer = await downloadWithProgress(fileName);
+          if (downloadedBuffer) break;
         } catch (e) {}
       }
 
       if (downloadedBuffer) {
-        statusDesc.textContent = '下載完成，儲存並解析中...';
+        progressPercentText.textContent = '100%';
+        downloadBarFill.style.width = '100%';
+        statusDesc.textContent = '下載完成，正永久存入手機並解析...';
+
         savePdfToCache(downloadedBuffer);
         await parseAndRenderPdfData(new Uint8Array(downloadedBuffer));
       } else {
-        // 超時或找不到檔案，立即呈現大按鈕，絕不白等
+        progressBox.style.display = 'none';
         statusTitle.textContent = '📖 經文預備區';
         statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，<br>請直接點擊下方橘色大按鈕挑選經文：';
         btnManualPick.style.display = 'inline-block';
@@ -740,6 +865,7 @@
       statusTitle.textContent = '📖 正在儲存並解析經文...';
       statusDesc.textContent = '處理中，請稍候...';
       btnManualPick.style.display = 'none';
+      progressBox.style.display = 'none';
 
       try {
         const arrayBuffer = await file.arrayBuffer();
@@ -853,10 +979,12 @@
     });
 
     /* ----------------------------------------------------
-       4. 錄音核心 (相容 iOS Safari 與 Android Chrome)
+       4. 錄音核心 (按下觸發金幣噴灑動畫)
     ---------------------------------------------------- */
     btnRecord.addEventListener('click', async () => {
       if (!isRecording) {
+        // 按下錄音鍵，瞬間噴灑金幣動畫！
+        spawnGoldCoins();
         await startRecording();
       } else {
         stopRecording();
