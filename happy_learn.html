@@ -5,16 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
   <title>歡喜背書</title>
 
-  <!-- PWA 與桌面圖示相容設定 -->
+  <!-- iOS 蘋果專屬圖示與全螢幕設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
   <meta name="theme-color" content="#0F172A">
 
-  <!-- 內嵌 PWA Web Manifest (支援直接安裝到桌面) -->
-  <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoi5q2h5Zac6IOM5pu4Iiwic2hvcnRfbmFtZSI6IuatoeWlliIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwib3JpZW50YXRpb24iOiJwb3J0cmFpdCIsInN0YXJ0X3VybCI6Ii4iLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBGMTcyQSIsInRoZW1lX2NvbG9yIjoiIzBGMTcyQSJ9">
-
-  <!-- 引入 PDF.js 核心庫 (純畫面渲染，不載入註解層) -->
+  <!-- 引入 PDF.js 核心庫 (純畫面渲染，完全關閉彈出便條) -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 
   <!-- 引入 html2canvas (畫面截圖) -->
@@ -41,23 +38,64 @@
       flex-direction: column;
     }
 
-    /* 頂部引導長輩安裝至桌面的醒目提示條 */
-    #install-banner {
+    /* 
+      專為長輩設計的 LINE 內建視窗防呆全螢幕遮罩
+      (長輩從 LINE 點開時自動跳出大字圖解指引)
+    */
+    #line-blocker-modal {
       display: none;
-      background: linear-gradient(90deg, #D97706 0%, #B45309 100%);
-      color: #FFFFFF;
-      padding: 10px 14px;
-      font-size: 17px;
-      font-weight: 800;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(15, 23, 42, 0.98);
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
       text-align: center;
-      cursor: pointer;
-      z-index: 100;
-      border-bottom: 2px solid #F59E0B;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .guide-card {
+      background-color: #1E293B;
+      border: 3px solid #F59E0B;
+      border-radius: 20px;
+      padding: 24px 20px;
+      max-width: 92%;
+      color: #FFFFFF;
+    }
+
+    .guide-card h2 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #FBBF24;
+      margin-bottom: 14px;
+    }
+
+    .guide-card p {
+      font-size: 20px;
+      line-height: 1.6;
+      color: #F8FAFC;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .guide-arrow {
+      font-size: 38px;
+      color: #38BDF8;
+      margin: 8px 0;
+      animation: bounce 1.5s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
     }
 
     /* 
-      1. 上半部經文閱讀區：佔 60% (3/5)
+      1. 上半部經文閱讀區：佔螢幕 60% (3/5)
     */
     #pdf-section {
       flex: 1 1 60%;
@@ -74,7 +112,7 @@
       transition: filter 0.15s ease-out;
     }
 
-    /* 提示訊息卡片 */
+    /* 載入提示卡片 */
     #status-card {
       margin: auto;
       padding: 24px;
@@ -96,7 +134,7 @@
       color: #4A5568;
     }
 
-    /* PDF 單頁容器 (純畫布，徹底去除註解彈出層) */
+    /* PDF 畫布容器 (純圖像，無任何文字層與註解便條) */
     .pdf-page-container {
       position: relative;
       margin: 6px auto;
@@ -113,7 +151,7 @@
     }
 
     /* 
-      2. 下半部固定控制區：鎖死為 40% (2/5，40dvh)
+      2. 下半部固定控制區：高度嚴格鎖死為 40% (2/5，40dvh)
     */
     #bottom-fixed-dock {
       flex: 0 0 40dvh;
@@ -128,7 +166,7 @@
       padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
 
-    /* 中央提詞列：鎖定單行 */
+    /* 中央隨喜提詞列：鎖定單行 */
     #motto-bar {
       flex: 0 0 auto;
       background: linear-gradient(180deg, #1E293B 0%, #151F32 100%);
@@ -225,6 +263,7 @@
       transform: scale(0.95);
     }
 
+    /* 錄音中說話偵測光暈 */
     #btn-record.recording-active {
       background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
       box-shadow: 0 0 22px rgba(34, 197, 94, 0.9) !important;
@@ -350,9 +389,19 @@
 </head>
 <body>
 
-  <!-- 長輩專用：一鍵加到主畫面提示條 -->
-  <div id="install-banner">
-    📥 點此將「歡喜背書」加到手機桌面（大圖示點開即用）
+  <!-- 長輩專屬：LINE 內建瀏覽器自動引導大圖示遮罩 -->
+  <div id="line-blocker-modal">
+    <div class="guide-card">
+      <h2>請換用手機瀏覽器開啟</h2>
+      <div id="guide-ios" style="display:none;">
+        <p>1. 請看螢幕<b>最右下角</b>。<br>2. 點擊「小指南針／Safari」圖示。<br>3. 換到 Safari 開啟即可錄音與存桌面！</p>
+        <div class="guide-arrow">↘ 點右下角圖示</div>
+      </div>
+      <div id="guide-android" style="display:none;">
+        <p>1. 請看螢幕<b>最右上角</b>三個點「⋮」。<br>2. 點擊後選擇<b>「以其他瀏覽器開啟」</b>。<br>3. 換到 Chrome 開啟即可正常背書！</p>
+        <div class="guide-arrow">↗ 點右上角三個點</div>
+      </div>
+    </div>
   </div>
 
   <!-- 1. 上半部經文閱讀區 -->
@@ -427,7 +476,10 @@
 
     const DEFAULT_PDF_FILENAME = 'scripture.pdf';
 
-    const installBanner = document.getElementById('install-banner');
+    const lineBlockerModal = document.getElementById('line-blocker-modal');
+    const guideIos = document.getElementById('guide-ios');
+    const guideAndroid = document.getElementById('guide-android');
+
     const pdfSection = document.getElementById('pdf-section');
     const statusCard = document.getElementById('status-card');
     const statusTitle = document.getElementById('status-title');
@@ -472,33 +524,7 @@
       return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    /* ----------------------------------------------------
-       PWA 桌面安裝支援（一鍵裝至手機桌面）
-    ---------------------------------------------------- */
-    let deferredPrompt = null;
-
-    // 若瀏覽器支援 PWA 安裝，顯示上方橫幅
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBanner.style.display = 'block';
-    });
-
-    installBanner.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          installBanner.style.display = 'none';
-        }
-        deferredPrompt = null;
-      } else {
-        // iPhone Safari 或一般環境的手動提示
-        alert('【如何加到桌面】\n請點擊瀏覽器下方的「分享」按鈕（或右上角三點選單），選擇「加入主畫面」，桌面就會出現圖示囉！');
-      }
-    });
-
-    // 捲動位置自動記憶
+    /* 記憶捲動位置 */
     let saveScrollDebounce = null;
     pdfSection.addEventListener('scroll', () => {
       clearTimeout(saveScrollDebounce);
@@ -517,18 +543,25 @@
     }
 
     /* ----------------------------------------------------
-       1. 載入經文 (純 Canvas 渲染，不載入註解層)
+       1. 啟動與 LINE 雙平台環境判斷
     ---------------------------------------------------- */
     window.addEventListener('DOMContentLoaded', () => {
+      detectEnvironment();
       loadDefaultScripture();
-      checkLineInAppBrowser();
     });
 
-    // 檢查若在 LINE 內建視窗，跳出引導
-    function checkLineInAppBrowser() {
+    function detectEnvironment() {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
-      if (ua.indexOf('Line') > -1) {
-        alert('【長輩貼心提示】\n您目前在 LINE 裡面開啟，LINE 會擋住麥克風。\n請點右下角「⋮」或右上角「…」，選擇「以其他瀏覽器開啟（Chrome）」，並點擊上方「加到手機桌面」！');
+      const isLine = ua.indexOf('Line') > -1;
+      const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      if (isLine) {
+        lineBlockerModal.style.display = 'flex';
+        if (isIos) {
+          guideIos.style.display = 'block';
+        } else {
+          guideAndroid.style.display = 'block';
+        }
       }
     }
 
@@ -596,7 +629,7 @@
     }
 
     /* ----------------------------------------------------
-       2. LINE 按鈕：截圖存相簿 -> 立刻啟動 LINE APP
+       2. LINE 截圖存相簿 -> 啟動 LINE
     ---------------------------------------------------- */
     btnShareLine.addEventListener('click', async () => {
       btnShareLine.textContent = '截圖中';
@@ -614,7 +647,7 @@
           btnShareLine.style.opacity = '1';
 
           if (!blob) {
-            alert('截圖失敗，請再試一次。');
+            alert('截圖失敗');
             return;
           }
 
@@ -624,7 +657,6 @@
           a.download = fileName;
           a.click();
 
-          // 存檔後立即跳轉啟動 LINE APP
           setTimeout(() => {
             window.location.href = 'line://';
           }, 400);
@@ -639,7 +671,7 @@
     });
 
     /* ----------------------------------------------------
-       3. 錄音核心
+       3. 錄音核心 (相容 iOS Safari 與 Android Chrome)
     ---------------------------------------------------- */
     btnRecord.addEventListener('click', async () => {
       if (!isRecording) {
@@ -651,6 +683,7 @@
 
     async function startRecording() {
       try {
+        // iPhone 與 Android 原生音訊流請求
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         });
@@ -663,14 +696,17 @@
         source.connect(analyserNode);
 
         recordedAudioChunks = [];
-        let mimeType = 'audio/webm';
-        if (!MediaRecorder.isTypeSupported('audio/webm')) {
-          if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
-          else if (MediaRecorder.isTypeSupported('audio/aac')) mimeType = 'audio/aac';
-          else mimeType = '';
+        
+        // 挑選相容 iOS (mp4/aac) 與 Android (webm) 的錄音編碼
+        let mimeType = '';
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4'; // iOS Safari 首選
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm'; // Android Chrome 首選
         }
 
         mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+        
         mediaRecorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0) recordedAudioChunks.push(e.data);
         };
@@ -705,7 +741,7 @@
         }, 100);
 
       } catch (err) {
-        alert('請先允許麥克風權限（若從桌面圖示開啟，點選一次允許後就會永久記住）。');
+        alert('請點選「允許」使用麥克風，即可開始背書錄音。');
       }
     }
 
@@ -720,7 +756,7 @@
     }
 
     function finalizeRecording(mimeType) {
-      const type = mimeType || 'audio/webm';
+      const type = mimeType || 'audio/mp4';
       audioBlob = new Blob(recordedAudioChunks, { type });
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       audioUrl = URL.createObjectURL(audioBlob);
