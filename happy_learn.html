@@ -108,7 +108,7 @@
       transition: filter 0.15s ease-out;
     }
 
-    /* 載入提示卡片 */
+    /* 載入與錯誤提示卡片 */
     #status-card {
       margin: auto;
       padding: 24px;
@@ -128,6 +128,21 @@
       font-size: 19px;
       line-height: 1.6;
       color: #4A5568;
+    }
+
+    /* 手動挑選備用按鈕 (長輩特大字) */
+    #btn-manual-pick {
+      display: none;
+      margin-top: 18px;
+      padding: 14px 28px;
+      font-size: 22px;
+      font-weight: 800;
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #F97316 0%, #C2410C 100%);
+      border: none;
+      border-radius: 14px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      cursor: pointer;
     }
 
     /* PDF 畫布容器 (純圖像，無任何可編輯文字或彈出便條) */
@@ -341,6 +356,11 @@
       background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%);
     }
 
+    /* 隱藏原生檔案選擇 */
+    #file-pdf-input {
+      display: none;
+    }
+
     /* 亮度面板 */
     #brightness-modal {
       display: none;
@@ -396,7 +416,7 @@
         <div class="guide-arrow">↘ 點右下角指南針圖示</div>
       </div>
 
-      <!-- 安卓 Android 指引 (涵蓋右上或右下) -->
+      <!-- 安卓 Android 指引 -->
       <div id="guide-android" style="display:none;">
         <p>1. 請看螢幕<b>右上角</b>或<b>右下角</b>。<br>2. 點擊「三個點 ⋮」按鈕。<br>3. 點選<b>「以其他應用程式／瀏覽器開啟」</b>。<br>4. 換到 Chrome 開啟即可正常背書！</p>
         <div class="guide-arrow">👉 找三個點「⋮」按鈕</div>
@@ -409,6 +429,7 @@
     <div id="status-card">
       <h2 id="status-title">📖 正在載入背誦經文...</h2>
       <p id="status-desc">系統正為您準備經文內容。</p>
+      <button id="btn-manual-pick">📂 點此挑選經文檔案</button>
     </div>
     <div id="pdf-pages-container" style="display: none; width: 100%;"></div>
   </section>
@@ -463,6 +484,9 @@
     </footer>
   </div>
 
+  <!-- 備用檔案選取器 -->
+  <input type="file" id="file-pdf-input" accept=".pdf,.PDF,application/pdf">
+
   <div id="brightness-backdrop"></div>
   <div id="brightness-modal">
     <p><span>閱讀亮度</span><span id="label-brightness-val">100%</span></p>
@@ -474,8 +498,6 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const DEFAULT_PDF_FILENAME = 'scripture.pdf';
-
     const lineBlockerModal = document.getElementById('line-blocker-modal');
     const guideIos = document.getElementById('guide-ios');
     const guideAndroid = document.getElementById('guide-android');
@@ -484,6 +506,8 @@
     const statusCard = document.getElementById('status-card');
     const statusTitle = document.getElementById('status-title');
     const statusDesc = document.getElementById('status-desc');
+    const btnManualPick = document.getElementById('btn-manual-pick');
+    const filePdfInput = document.getElementById('file-pdf-input');
     const pdfPagesContainer = document.getElementById('pdf-pages-container');
 
     const btnRecord = document.getElementById('btn-record');
@@ -520,4 +544,107 @@
     function formatTime(seconds) {
       if (!seconds || isNaN(seconds) || seconds < 0) return '00:00';
       const m = Math.floor(seconds / 60);
-      const
+      const s = Math.floor(seconds % 60);
+      return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // 捲動記憶
+    let saveScrollDebounce = null;
+    pdfSection.addEventListener('scroll', () => {
+      clearTimeout(saveScrollDebounce);
+      saveScrollDebounce = setTimeout(() => {
+        localStorage.setItem('recite_scroll_pos', pdfSection.scrollTop);
+      }, 300);
+    }, { passive: true });
+
+    function restoreScrollPosition() {
+      const savedPos = localStorage.getItem('recite_scroll_pos');
+      if (savedPos) {
+        setTimeout(() => {
+          pdfSection.scrollTop = parseInt(savedPos, 10);
+        }, 150);
+      }
+    }
+
+    /* ----------------------------------------------------
+       1. 啟動與多重備用載入機制
+    ---------------------------------------------------- */
+    window.addEventListener('DOMContentLoaded', () => {
+      detectEnvironment();
+      tryLoadScripture();
+    });
+
+    function detectEnvironment() {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      const isLine = ua.indexOf('Line') > -1;
+      const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      if (isLine) {
+        lineBlockerModal.style.display = 'flex';
+        if (isIos) {
+          guideIos.style.display = 'block';
+        } else {
+          guideAndroid.style.display = 'block';
+        }
+      }
+    }
+
+    // 自動嘗試大小寫兩種檔名
+    async function tryLoadScripture() {
+      statusTitle.textContent = '📖 正在載入背誦經文...';
+      statusDesc.textContent = '系統正為您準備經文內容';
+      btnManualPick.style.display = 'none';
+
+      const fileCandidates = ['./scripture.pdf', './scripture.PDF'];
+      let loadedBuffer = null;
+
+      for (const fileName of fileCandidates) {
+        try {
+          const res = await fetch(fileName, { cache: 'no-cache' });
+          if (res.ok) {
+            loadedBuffer = await res.arrayBuffer();
+            break;
+          }
+        } catch (e) {}
+      }
+
+      if (loadedBuffer) {
+        await parseAndRenderPdfData(new Uint8Array(loadedBuffer));
+      } else {
+        // 自動載入失敗，提供大字按鈕手動挑選
+        statusTitle.textContent = '📖 經文預備區';
+        statusDesc.innerHTML = '請確認已將 <b>scripture.pdf</b> 上傳至同目錄，<br>或直接點擊下方橘色大按鈕挑選經文：';
+        btnManualPick.style.display = 'inline-block';
+      }
+    }
+
+    // 手動挑選備用按鈕
+    btnManualPick.addEventListener('click', () => {
+      filePdfInput.value = '';
+      filePdfInput.click();
+    });
+
+    filePdfInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      statusTitle.textContent = '📖 正在解析經文...';
+      btnManualPick.style.display = 'none';
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
+      } catch (err) {
+        alert('經文解析失敗：' + err.message);
+        btnManualPick.style.display = 'inline-block';
+      }
+    });
+
+    async function parseAndRenderPdfData(typedarray) {
+      statusCard.style.display = 'none';
+      pdfPagesContainer.style.display = 'block';
+      pdfPagesContainer.innerHTML = '';
+
+      const loadingTask = pdfjsLib.getDocument({
+        data: typedarray,
+        cMapUrl: '
