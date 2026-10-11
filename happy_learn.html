@@ -88,6 +88,7 @@
       50% { transform: scale(1.08); opacity: 0.85; }
     }
 
+    /* 經文區 */
     #pdf-section {
       flex: 1 1 60%;
       height: 60dvh;
@@ -103,30 +104,39 @@
       transition: filter 0.15s ease-out;
     }
 
+    /* 實體導引圖層：覆蓋於 PDF 之上，隨頁面內容滾動 */
+    #guide-stage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 50;
+      display: none;
+    }
+
     #guide-line {
       position: absolute;
-      display: none;
       height: 8px;
       background-color: #00E676;
       border-radius: 4px;
-      z-index: 100;
+      box-shadow: 0 0 12px rgba(0, 230, 118, 0.85);
       pointer-events: none;
-      box-shadow: 0 0 10px rgba(0, 230, 118, 0.8);
-      transition: top 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+      z-index: 51;
     }
 
     #red-dot {
       position: absolute;
-      display: none;
       width: 32px;
       height: 32px;
       background: radial-gradient(circle, #FF5252 20%, #FF1744 100%);
       border: 3px solid #FFFFFF;
       border-radius: 50%;
-      box-shadow: 0 0 14px rgba(255, 23, 68, 0.95), 0 3px 6px rgba(0,0,0,0.35);
-      z-index: 101;
+      box-shadow: 0 0 15px rgba(255, 23, 68, 1), 0 3px 6px rgba(0,0,0,0.4);
       pointer-events: none;
       transform: translate(-50%, -50%);
+      z-index: 52;
     }
 
     #status-card {
@@ -490,8 +500,11 @@
   </div>
 
   <section id="pdf-section">
-    <div id="guide-line"></div>
-    <div id="red-dot"></div>
+    <!-- 導引舞台 -->
+    <div id="guide-stage">
+      <div id="guide-line"></div>
+      <div id="red-dot"></div>
+    </div>
 
     <div id="status-card">
       <h2 id="status-title">📖 正在載入背誦經文...</h2>
@@ -584,6 +597,7 @@
     const guideAndroid = document.getElementById('guide-android');
 
     const pdfSection = document.getElementById('pdf-section');
+    const guideStage = document.getElementById('guide-stage');
     const guideLine = document.getElementById('guide-line');
     const redDot = document.getElementById('red-dot');
 
@@ -636,7 +650,7 @@
     let vadCheckInterval = null;
 
     /* ----------------------------------------------------
-       設定檔操作：整合語速與經文版本記錄
+       設定檔操作：整合語速與經文版本
     ---------------------------------------------------- */
     function loadUserSettings() {
       try {
@@ -669,88 +683,100 @@
     }
 
     /* ----------------------------------------------------
-       小紅點與綠線實體驅動核心
+       小紅點與綠線實體驅動核心（時間百分比穩健算法）
     ---------------------------------------------------- */
     let guideAnimId = null;
-    let guideLastTime = 0;
     let currentLineIndex = 0;
-    let cursorCurrentX = 0;
+    let lineStartTime = 0;
+    let lineDuration = 3000; // 單行滑動時間 (毫秒)
 
     function startGuideRunner() {
       if (parsedTextLines.length === 0) {
         buildFallbackLines();
       }
 
+      // 同步導引舞台尺寸
+      guideStage.style.height = `${Math.max(pdfSection.scrollHeight, 2000)}px`;
+      guideStage.style.display = 'block';
+
+      // 自視野頂部開始
       const scrollTop = pdfSection.scrollTop;
       currentLineIndex = 0;
       for (let i = 0; i < parsedTextLines.length; i++) {
-        if (parsedTextLines[i].bottomGlobal >= scrollTop + 25) {
+        if (parsedTextLines[i].bottomGlobal >= scrollTop + 20) {
           currentLineIndex = i;
           break;
         }
       }
 
-      guideLine.style.display = 'block';
-      redDot.style.display = 'block';
-
-      setupLineGuide(currentLineIndex);
-      guideLastTime = performance.now();
-      runGuideLoop();
+      setupActiveLine(currentLineIndex);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
-    function setupLineGuide(lineIdx) {
-      if (lineIdx >= parsedTextLines.length) {
+    function setupActiveLine(idx) {
+      if (idx >= parsedTextLines.length) {
         stopGuideRunner();
         return;
       }
-      const line = parsedTextLines[lineIdx];
-      cursorCurrentX = line.x0;
 
+      const line = parsedTextLines[idx];
+      const speedMultiplier = parseFloat(selectSpeed.value) || 1.0;
+      
+      const lineLen = Math.max(line.x1 - line.x0, 80);
+      // 基準速度：以 90px/s 為標準 (1.0x)，換算本行所需總時間
+      lineDuration = (lineLen / (90 * speedMultiplier)) * 1000;
+      lineStartTime = performance.now();
+
+      // 綠線定位在經文底端
       const lineY = line.bottomGlobal + 6;
       guideLine.style.top = `${lineY}px`;
       guideLine.style.left = `${line.x0}px`;
-      guideLine.style.width = `${Math.max(line.x1 - line.x0, 60)}px`;
+      guideLine.style.width = `${lineLen}px`;
+      guideLine.style.display = 'block';
 
+      // 紅點起點
       redDot.style.top = `${lineY}px`;
-      redDot.style.left = `${cursorCurrentX}px`;
+      redDot.style.left = `${line.x0}px`;
+      redDot.style.display = 'block';
 
+      // 滾動視野，讓目前行處於畫面舒適偏上區域
       const targetScroll = line.topGlobal - 70;
-      if (Math.abs(pdfSection.scrollTop - targetScroll) > 130) {
-        pdfSection.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+      if (Math.abs(pdfSection.scrollTop - targetScroll) > 140) {
+        pdfSection.scrollTop = Math.max(0, targetScroll);
       }
     }
 
-    function runGuideLoop(now = performance.now()) {
+    function stepGuideMovement(now) {
       if (!isRecording || currentLineIndex >= parsedTextLines.length) return;
 
-      const dt = Math.min((now - guideLastTime) / 1000, 0.05);
-      guideLastTime = now;
-
+      const elapsed = now - lineStartTime;
+      const progress = Math.min(Math.max(elapsed / lineDuration, 0), 1.0);
       const line = parsedTextLines[currentLineIndex];
-      const speedMultiplier = parseFloat(selectSpeed.value) || 1.0;
-      
-      const pixelsPerSec = 90 * speedMultiplier;
-      cursorCurrentX += pixelsPerSec * dt;
 
-      if (cursorCurrentX >= line.x1 + 6) {
+      const currentX = line.x0 + (line.x1 - line.x0) * progress;
+      const lineY = line.bottomGlobal + 6;
+
+      redDot.style.left = `${currentX}px`;
+      redDot.style.top = `${lineY}px`;
+
+      // 抵達行尾，推進到下一行
+      if (progress >= 1.0) {
         currentLineIndex += 1;
         if (currentLineIndex < parsedTextLines.length) {
-          setupLineGuide(currentLineIndex);
+          setupActiveLine(currentLineIndex);
         } else {
           stopGuideRunner();
           return;
         }
-      } else {
-        const lineY = line.bottomGlobal + 6;
-        redDot.style.top = `${lineY}px`;
-        redDot.style.left = `${cursorCurrentX}px`;
       }
 
-      guideAnimId = requestAnimationFrame(runGuideLoop);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
     function stopGuideRunner() {
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      guideStage.style.display = 'none';
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
     }
@@ -758,8 +784,8 @@
     function buildFallbackLines() {
       parsedTextLines = [];
       const cWidth = pdfSection.clientWidth || window.innerWidth;
-      const totalH = Math.max(pdfSection.scrollHeight, 1800);
-      const lineHeight = 50;
+      const totalH = Math.max(pdfSection.scrollHeight, 2500);
+      const lineHeight = 52;
       for (let topY = 60; topY < totalH; topY += lineHeight) {
         parsedTextLines.push({
           pageIndex: 1,
@@ -878,7 +904,7 @@
     }
 
     /* ----------------------------------------------------
-       1. 啟動與版本嚴格判定（依設定檔版本避免重複下載）
+       1. 啟動與版本嚴格判定
     ---------------------------------------------------- */
     window.addEventListener('DOMContentLoaded', () => {
       initUserSpeedSetting();
@@ -959,7 +985,7 @@
 
     async function loadScriptureSmartAutoUpdate() {
       statusTitle.textContent = '📖 正在檢查經文版本...';
-      statusDesc.textContent = '讀取設定與離線快取中...';
+      statusDesc.textContent = '讀取本機快取中...';
       btnManualPick.style.display = 'none';
       progressBox.style.display = 'none';
 
@@ -974,21 +1000,21 @@
       const targetUrl = './scripture.pdf';
       const serverDateTag = await checkServerFileDate(targetUrl);
 
-      // 若本機已有檔案，且版本標記相符 -> 絕對不重複下載，直接秒開
+      // 若檔案存在且版本一致，直接秒開
       if (localBuffer && serverDateTag && activeVersionTag && serverDateTag === activeVersionTag) {
-        statusDesc.textContent = '經文為本機最新版本，直接秒開！';
+        statusDesc.textContent = '經文為最新版本，直接秒開！';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         return;
       }
 
-      // 若離線或無法取得伺服器資訊，本機有快取 -> 直接開啟
+      // 離線模式
       if (localBuffer && !serverDateTag) {
         statusDesc.textContent = '離線模式，開啟現存經文...';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         return;
       }
 
-      // 確實偵測到伺服器版本較新，或本機尚未有任何經文
+      // 下載新經典
       statusTitle.textContent = localBuffer ? '📖 偵測到新經文，更新中...' : '📖 首次載入經文...';
       statusDesc.textContent = '正自雲端同步最新經文內容...';
       progressBox.style.display = 'block';
@@ -1010,9 +1036,7 @@
         statusDesc.textContent = '新經典同步完成，存入本機並開啟...';
 
         const finalTag = serverDateTag || new Date().toISOString();
-        // 儲存至 IndexedDB
         await saveRecordToCache(downloadedBuffer, finalTag);
-        // 記錄版本於使用者設定檔
         saveUserSettings({ versionTag: finalTag });
 
         localStorage.removeItem('recite_scroll_pos');
@@ -1059,7 +1083,7 @@
     });
 
     /* ----------------------------------------------------
-       2. 高效能渲染 + 穩健文字座標解析
+       2. 高效能渲染 + 文字座標精準提取
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
@@ -1136,7 +1160,7 @@
 
             let matched = false;
             for (let g of rowGroups) {
-              if (Math.abs(g.y - y) <= (h * 0.7)) {
+              if (Math.abs(g.y - y) <= (h * 0.75)) {
                 g.items.push({ x, y, w, h, str });
                 matched = true;
                 break;
@@ -1170,9 +1194,7 @@
             }
           });
         }
-      } catch (e) {
-        console.error('文字行解析異常，採用備用網格', e);
-      }
+      } catch (e) {}
 
       if (parsedTextLines.length === 0) {
         buildFallbackLines();
@@ -1224,7 +1246,7 @@
     }
 
     /* ----------------------------------------------------
-       3. LINE 按鈕：官方通用連結
+       3. LINE 按鈕
     ---------------------------------------------------- */
     btnShareLine.addEventListener('click', () => {
       const shareText = encodeURIComponent('隨喜自他 歡喜背書供養');
@@ -1232,7 +1254,7 @@
     });
 
     /* ----------------------------------------------------
-       4. 錄音核心：按下啟動小紅點與綠線導引
+       4. 錄音核心：啟動導引小紅點
     ---------------------------------------------------- */
     btnRecord.addEventListener('click', async () => {
       if (!isRecording) {
