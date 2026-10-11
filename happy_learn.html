@@ -49,8 +49,8 @@
       transition: filter 0.15s ease-out;
     }
 
-    /* 未載入時的大字指南卡片 */
-    #placeholder-card {
+    /* 載入中與提示卡片 */
+    #status-card {
       margin: auto;
       padding: 24px;
       text-align: center;
@@ -58,28 +58,17 @@
       max-width: 90%;
     }
 
-    #placeholder-card h2 {
+    #status-card h2 {
       font-size: 30px;
       font-weight: 800;
       color: #1A365D;
       margin-bottom: 14px;
     }
 
-    #placeholder-card p {
+    #status-card p {
       font-size: 22px;
       line-height: 1.6;
       color: #4A5568;
-    }
-
-    /* 載入中動畫提示 */
-    #loading-indicator {
-      display: none;
-      margin: auto;
-      font-size: 24px;
-      font-weight: 800;
-      color: #0284C7;
-      text-align: center;
-      padding: 20px;
     }
 
     /* PDF 頁面容器 */
@@ -248,7 +237,7 @@
       cursor: pointer;
     }
 
-    /* 第三排：三大操作按鈕（PDF、播放、亮度） */
+    /* 第三排：三大操作按鈕（更換/重選、播放、亮度） */
     .button-row-3 {
       display: grid;
       grid-template-columns: 1fr 1.3fr 1fr;
@@ -275,7 +264,7 @@
       opacity: 0.9;
     }
 
-    /* 橙色 PDF 按鈕 */
+    /* 橙色 按鈕 (預設經文時顯示【換經文】，備用) */
     .btn-orange {
       background: linear-gradient(135deg, #F97316 0%, #C2410C 100%);
     }
@@ -320,6 +309,7 @@
       font-weight: 700;
       color: #F8FAFC;
       margin-bottom: 10px;
+      display: space-between;
       display: flex;
       justify-content: space-between;
     }
@@ -346,11 +336,10 @@
 
   <!-- 1. 上半部 PDF 經文閱讀區 -->
   <section id="pdf-section">
-    <div id="placeholder-card">
-      <h2>📖 經文預備區</h2>
-      <p>請點擊下方橘色【PDF】按鈕<br>挑選讀誦經文檔案<br><br><span style="color: #64748B; font-size: 18px;">（完整保留劃線標註，支援大字閱讀）</span></p>
+    <div id="status-card">
+      <h2 id="status-title">📖 正在載入經文...</h2>
+      <p id="status-desc">請稍候，系統正為您備妥經文內容與劃線標註。</p>
     </div>
-    <div id="loading-indicator">檔案載入解析中，請稍候...</div>
     <div id="pdf-pages-container" style="display: none; width: 100%;"></div>
   </section>
 
@@ -398,15 +387,16 @@
 
     <!-- 第三排：按鈕組 -->
     <div class="button-row-3">
-      <button class="action-btn btn-orange" id="btn-select-pdf">PDF</button>
+      <button class="action-btn btn-orange" id="btn-select-pdf">換經文</button>
       <button class="action-btn btn-green" id="btn-play-pause">播放</button>
       <button class="action-btn btn-blue" id="btn-toggle-brightness">亮度</button>
     </div>
 
   </footer>
 
-  <!-- 隱藏控制項與彈出層 -->
-  <input type="file" id="file-pdf-input" accept="application/pdf,.pdf">
+  <!-- 備用檔案選取器 -->
+  <input type="file" id="file-pdf-input" accept=".pdf,.PDF,application/pdf">
+
   <div id="brightness-backdrop"></div>
   <div id="brightness-modal">
     <p><span>閱讀亮度</span><span id="label-brightness-val">100%</span></p>
@@ -414,15 +404,19 @@
   </div>
 
   <script>
-    // 關閉 PDF.js 外部 worker 依賴，避免本地或跨域安全性報錯
+    // 關閉外部 Worker 依賴
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
+    // 預設經文檔案名稱（請將經文 PDF 命名為此檔名放在同資料夾）
+    const DEFAULT_PDF_FILENAME = 'scripture.pdf';
+
     // DOM 元素快取
     const pdfSection = document.getElementById('pdf-section');
-    const placeholderCard = document.getElementById('placeholder-card');
-    const loadingIndicator = document.getElementById('loading-indicator');
+    const statusCard = document.getElementById('status-card');
+    const statusTitle = document.getElementById('status-title');
+    const statusDesc = document.getElementById('status-desc');
     const pdfPagesContainer = document.getElementById('pdf-pages-container');
     const filePdfInput = document.getElementById('file-pdf-input');
     const btnSelectPdf = document.getElementById('btn-select-pdf');
@@ -471,10 +465,53 @@
     }
 
     /* ----------------------------------------------------
-       1. PDF 檔案載入與劃線渲染（完全相容 ArrayBuffer）
+       自動記憶背誦捲動位置（支援 4 個月長期閱讀）
     ---------------------------------------------------- */
+    let saveScrollDebounce = null;
+    pdfSection.addEventListener('scroll', () => {
+      clearTimeout(saveScrollDebounce);
+      saveScrollDebounce = setTimeout(() => {
+        localStorage.setItem('recite_scroll_pos', pdfSection.scrollTop);
+      }, 300);
+    }, { passive: true });
+
+    function restoreScrollPosition() {
+      const savedPos = localStorage.getItem('recite_scroll_pos');
+      if (savedPos) {
+        setTimeout(() => {
+          pdfSection.scrollTop = parseInt(savedPos, 10);
+        }, 150);
+      }
+    }
+
+    /* ----------------------------------------------------
+       1. 載入流程（開檔即自動讀取預設經文）
+    ---------------------------------------------------- */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDefaultScripture();
+    });
+
+    async function loadDefaultScripture() {
+      try {
+        statusTitle.textContent = '📖 正在載入背誦經文...';
+        statusDesc.textContent = '系統正為您準備經文與劃線標註';
+
+        const response = await fetch(DEFAULT_PDF_FILENAME);
+        if (!response.ok) {
+          throw new Error('未找到預設經文檔');
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
+      } catch (err) {
+        // 若找不到預設檔案，顯示友好手動指引
+        statusTitle.textContent = '📖 經文預備區';
+        statusDesc.innerHTML = `請將經文 PDF 命名為 <b>${DEFAULT_PDF_FILENAME}</b> 與本網頁放在一起，即可全自動開檔。<br><br>或點擊下方橘色【換經文】手動載入。`;
+      }
+    }
+
+    // 手動選取備用
     btnSelectPdf.addEventListener('click', () => {
-      filePdfInput.value = ''; // 清除舊狀態以利重複選取同檔案
+      filePdfInput.value = '';
       filePdfInput.click();
     });
 
@@ -482,40 +519,45 @@
       const file = e.target.files[0];
       if (!file) return;
 
-      placeholderCard.style.display = 'none';
-      loadingIndicator.style.display = 'block';
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        alert('請選取副檔名為 .pdf 的經文檔案。');
+        filePdfInput.value = '';
+        return;
+      }
+
+      statusCard.style.display = 'block';
+      statusTitle.textContent = '📖 正在更新經文...';
       pdfPagesContainer.style.display = 'none';
-      pdfPagesContainer.innerHTML = '';
 
       try {
         const arrayBuffer = await file.arrayBuffer();
-        // 傳遞 Uint8Array 給 PDF.js
-        const typedarray = new Uint8Array(arrayBuffer);
-        
-        const loadingTask = pdfjsLib.getDocument({
-          data: typedarray,
-          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
-          cMapPacked: true
-        });
-
-        currentPdfDoc = await loadingTask.promise;
-        await renderAllPdfPages();
-
-        loadingIndicator.style.display = 'none';
-        pdfPagesContainer.style.display = 'block';
+        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
       } catch (err) {
-        console.error('PDF 解析失敗：', err);
-        loadingIndicator.style.display = 'none';
-        placeholderCard.style.display = 'block';
-        alert('PDF 讀取發生問題：' + (err.message || '檔案格式不相容'));
+        alert('經文載入失敗：' + (err.message || '格式不符'));
+        statusCard.style.display = 'block';
       }
     });
+
+    async function parseAndRenderPdfData(typedarray) {
+      statusCard.style.display = 'none';
+      pdfPagesContainer.style.display = 'block';
+      pdfPagesContainer.innerHTML = '';
+
+      const loadingTask = pdfjsLib.getDocument({
+        data: typedarray,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+        cMapPacked: true
+      });
+
+      currentPdfDoc = await loadingTask.promise;
+      await renderAllPdfPages();
+      restoreScrollPosition();
+    }
 
     async function renderAllPdfPages() {
       if (!currentPdfDoc) return;
       pdfPagesContainer.innerHTML = '';
 
-      // 計算符合畫面寬度的基準縮放比
       const containerWidth = pdfSection.clientWidth || window.innerWidth;
 
       for (let pageNum = 1; pageNum <= currentPdfDoc.numPages; pageNum++) {
@@ -526,17 +568,15 @@
 
         const pageContainer = document.createElement('div');
         pageContainer.className = 'pdf-page-container';
-        pageContainer.style.width = `\${viewport.width}px`;
-        pageContainer.style.height = `\${viewport.height}px`;
+        pageContainer.style.width = `${viewport.width}px`;
+        pageContainer.style.height = `${viewport.height}px`;
 
-        // 繪製畫布 Canvas
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         pageContainer.appendChild(canvas);
 
-        // 劃線與標註圖層 (Annotation Layer)
         const annotationLayerDiv = document.createElement('div');
         annotationLayerDiv.className = 'annotationLayer';
         pageContainer.appendChild(annotationLayerDiv);
@@ -591,8 +631,8 @@
         
         const pages = document.querySelectorAll('.pdf-page-container');
         pages.forEach(p => {
-          p.style.transform = `scale(\${currentZoomRatio})`;
-          p.style.marginBottom = `\${(currentZoomRatio - 1) * 260}px`;
+          p.style.transform = `scale(${currentZoomRatio})`;
+          p.style.marginBottom = `${(currentZoomRatio - 1) * 260}px`;
         });
       }
     }, { passive: true });
@@ -613,10 +653,9 @@
     });
 
     async function startRecording() {
-      // 1. 環境安全性診斷 (getUserMedia 規範)
       const isSecureOrigin = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
       if (!isSecureOrigin) {
-        alert('【無法啟動錄音】\n瀏覽器安全條款規定：錄音功能必須在 HTTPS 網址下運作。\n若您目前是以本機雙擊開啟（file://），請將此檔案上傳至 GitHub Pages 網址開啟即可正常使用！');
+        alert('【無法啟動錄音】\n瀏覽器安全條款規定：錄音功能必須在 HTTPS 網址下運作。\n請將檔案上傳至 GitHub Pages 網址開啟即可正常使用！');
         return;
       }
 
@@ -634,7 +673,6 @@
           }
         });
         
-        // 建立 Web Audio API 偵測說話音量
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         audioCtx = new AudioContextClass();
         const source = audioCtx.createMediaStreamSource(stream);
@@ -644,7 +682,6 @@
 
         recordedAudioChunks = [];
         
-        // 挑選瀏覽器支援之 MIME 類型 (相容 iOS Safari 與 Android Chrome)
         let mimeType = 'audio/webm';
         if (!MediaRecorder.isTypeSupported('audio/webm')) {
           if (MediaRecorder.isTypeSupported('audio/mp4')) {
@@ -676,13 +713,11 @@
         recordText.textContent = '停止';
         btnRecord.style.background = 'radial-gradient(circle, #EF4444 0%, #B91C1C 100%)';
 
-        // 更新總時間計時
         recordTimerInterval = setInterval(() => {
           const elapsed = (Date.now() - recordStartTime) / 1000;
           labelTotalRecorded.textContent = formatTime(elapsed);
         }, 300);
 
-        // VAD 語音活動偵測 (超過門檻變綠色波紋)
         const pcmData = new Uint8Array(analyserNode.frequencyBinCount);
         vadCheckInterval = setInterval(() => {
           analyserNode.getByteFrequencyData(pcmData);
@@ -735,7 +770,6 @@
         labelTotalRecorded.textContent = formatTime(audioElement.duration);
       };
 
-      // 結束後提示分享
       setTimeout(() => {
         askAndShare(type);
       }, 400);
@@ -759,7 +793,7 @@
             text: '隨喜自他 歡喜背書供養'
           });
         } catch (err) {
-          // 使用者點選取消分享
+          // 取消
         }
       } else {
         const a = document.createElement('a');
@@ -835,8 +869,8 @@
 
     brightnessSlider.addEventListener('input', (e) => {
       const val = e.target.value;
-      labelBrightnessVal.textContent = `\${val}%`;
-      pdfSection.style.filter = `brightness(\${val}%)`;
+      labelBrightnessVal.textContent = `${val}%`;
+      pdfSection.style.filter = `brightness(${val}%)`;
     });
   </script>
 </body>
