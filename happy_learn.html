@@ -42,6 +42,23 @@
       overflow: hidden;
     }
 
+    /* LINE 內建瀏覽器提醒橫條 */
+    #line-warning-banner {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(90deg, #DC2626, #EA580C);
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 8px 14px;
+      text-align: center;
+      z-index: 9999;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
     .side-wing {
       width: calc(78px + env(safe-area-inset-left));
       flex-shrink: 0;
@@ -413,6 +430,9 @@
 </head>
 <body>
 
+  <!-- LINE 內建瀏覽器警示條 -->
+  <div id="line-warning-banner">⚠️ 偵測到 LINE 內建瀏覽器：請點選右上角「直線三點 (⋮)」，選擇「以預設瀏覽器開啟」以正常使用麥克風！</div>
+
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
       <div class="slot">
@@ -514,7 +534,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v78_adaptive_restored_perfect';
+    const APP_BUILD_VERSION = 'v80_integrated_release';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -570,7 +590,7 @@
     let isTransitioningLine = false;
 
     /* ----------------------------------------------------
-       【自適應環境底噪演算法（完整復原）】
+       【自適應環境底噪演算法（完整保有）】
     ---------------------------------------------------- */
     let audioContext = null;
     let analyser = null;
@@ -578,14 +598,14 @@
     let vadCheckTimer = null;
     let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
-    const SILENCE_TIMEOUT_MS = 800; // 0.8 秒換氣兼顧快速煞車
+    const SILENCE_TIMEOUT_MS = 800; // 0.8 秒自然換氣停頓
 
     let baseNoiseLevel = 0.002;
     let dynamicThreshold = 0.004;
     let calibrationSamples = [];
     let isCalibrating = false;
 
-    // 語音提示：音量調小一格 (volume = 0.7)
+    // 語音提示控制（音量維持調柔和一格 volume = 0.7）
     function speakPrompt(text) {
       try {
         if ('speechSynthesis' in window) {
@@ -597,6 +617,18 @@
           window.speechSynthesis.speak(utterance);
         }
       } catch (e) {}
+    }
+
+    // LINE 內建瀏覽器環境判定與自動發聲提示
+    function checkLineInAppBrowser() {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      if (/Line/i.test(ua)) {
+        const banner = document.getElementById('line-warning-banner');
+        if (banner) banner.style.display = 'block';
+        setTimeout(() => {
+          speakPrompt("請按直線三點，以預設瀏覽器開啟");
+        }, 1200);
+      }
     }
 
     async function triggerLandscapeLock() {
@@ -743,7 +775,7 @@
 
       const reader = response.body.getReader();
       let receivedLength = 0;
-      const chunks = [];
+      chunks = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -1248,7 +1280,7 @@
 
       currentLineProgress += (delta / lineDuration);
 
-      // 最後一個字過半 (0.90) 提前將下一行平滑滾入視線
+      // 最後一個字過半 (0.90) 提前平滑滾入視線
       if (currentLineProgress >= 0.90 && !hasPreScrolled) {
         const nextIndex = currentLineIndex + 1;
         if (nextIndex < parsedTextLines.length) {
@@ -1465,4 +1497,243 @@
 
     async function saveRecordToCache(arrayBuffer, fileTag) {
       try {
-        const db =
+        const db = await openDatabase();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.put({ buffer: arrayBuffer, tag: fileTag }, PDF_KEY);
+      } catch (e) {}
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      verifyVersionAndCleanState();
+      initUserPreferences();
+      checkLineInAppBrowser(); // 啟動 LINE 內建瀏覽器偵測
+      loadScriptureWithSmartAutoUpdate(true);
+    });
+
+    async function loadScriptureWithSmartAutoUpdate(canLoadOldData = true) {
+      statusCard.style.display = 'block';
+      pdfContainerWrap.style.display = 'none';
+
+      appProgressFill.style.width = '100%';
+      appProgressVal.textContent = '100% (已載入)';
+
+      const cached = await getCachedRecord();
+      const localBuffer = cached ? (cached.buffer || cached) : null;
+      const localTag = (cached && cached.tag) ? cached.tag : localStorage.getItem('APP_SAVED_PDF_TAG');
+
+      if (localBuffer) {
+        cachedRawBuffer = localBuffer;
+        currentActiveFileTag = localTag || 'local';
+        pdfProgressFill.style.width = '100%';
+        pdfProgressVal.textContent = '100% (本地快取)';
+        statusTitle.textContent = '📖 正在渲染經文...';
+
+        await parseAndRenderPdfData(new Uint8Array(localBuffer));
+        restoreSessionMarkersAndPosition(canLoadOldData);
+        return;
+      }
+
+      await fetchAndSaveNewPdf('initial_' + Date.now(), canLoadOldData);
+    }
+
+    async function fetchAndSaveNewPdf(fileTag, canLoadOldData = true) {
+      statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
+      try {
+        const res = await fetchWithProgress('./scripture.pdf?t=' + Date.now(), (pct, cur, total) => {
+          const curMb = (cur / (1024 * 1024)).toFixed(1);
+          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
+          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
+          pdfProgressFill.style.width = `${pct}%`;
+        });
+
+        cachedRawBuffer = res.buffer;
+        const tag = res.tag || fileTag;
+        currentActiveFileTag = tag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
+        await saveRecordToCache(res.buffer, tag);
+        await parseAndRenderPdfData(new Uint8Array(res.buffer));
+        restoreSessionMarkersAndPosition(canLoadOldData);
+      } catch (e) {
+        const fallback = await getCachedRecord();
+        if (fallback && fallback.buffer) {
+          cachedRawBuffer = fallback.buffer;
+          currentActiveFileTag = fallback.tag || 'fallback';
+          await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
+          restoreSessionMarkersAndPosition(canLoadOldData);
+        } else {
+          statusTitle.textContent = '📖 請挑選經文檔案';
+          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
+          btnManualPick.style.display = 'inline-block';
+        }
+      }
+    }
+
+    btnManualPick.addEventListener('click', () => {
+      filePdfInput.value = '';
+      filePdfInput.click();
+    });
+
+    filePdfInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      statusTitle.textContent = '📖 正在載入經文...';
+      btnManualPick.style.display = 'none';
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        cachedRawBuffer = arrayBuffer;
+        const tag = 'manual_' + file.lastModified;
+        currentActiveFileTag = tag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
+        await saveRecordToCache(arrayBuffer, tag);
+        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
+        restoreSessionMarkersAndPosition(false);
+      } catch (err) {
+        alert('經文解析失敗：' + err.message);
+        btnManualPick.style.display = 'inline-block';
+      }
+    });
+
+    /* ----------------------------------------------------
+       【文字物理幾何提取】：
+       1. 嚴格過濾純數字與標點（導引線只畫在經文漢字上）
+       2. 導引線下移 7px，不壓到文字底緣
+    ---------------------------------------------------- */
+    async function parseAndRenderPdfData(typedarray) {
+      statusCard.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
+
+      const loadingTask = pdfjsLib.getDocument({
+        data: typedarray,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+        cMapPacked: true
+      });
+
+      currentPdfDoc = await loadingTask.promise;
+      const page = await currentPdfDoc.getPage(1);
+
+      const availableWidth = centerCore.clientWidth || (window.innerWidth - 160);
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+      const pageScale = availableWidth / unscaledViewport.width;
+      const viewport = page.getViewport({ scale: pageScale });
+
+      pdfCanvas.width = viewport.width;
+      pdfCanvas.height = viewport.height;
+      const ctx = pdfCanvas.getContext('2d');
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: viewport
+      }).promise;
+
+      const textContent = await page.getTextContent();
+      const items = textContent.items;
+
+      const validSpans = [];
+
+      items.forEach(it => {
+        const str = it.str.trim();
+        if (!str) return;
+        if (/^[\d\.\s\(\)\[\]、\-:：,，。！？]+\$/.test(str)) return;
+
+        const tx = it.transform;
+        const pdfX = tx[4];
+        const pdfY = tx[5];
+
+        const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
+        const fontWidth = it.width * pageScale;
+
+        const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
+        const screenX0 = p0[0];
+
+        const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
+        const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+
+        const realTop = Math.min(p0[1], pTop[1]);
+        const realBottom = Math.max(p0[1], pTop[1]);
+
+        validSpans.push({
+          x0: screenX0,
+          x1: screenX0 + fontWidth,
+          w: fontWidth,
+          topY: realTop,
+          bottomY: realBottom,
+          fs: fontScale,
+          str: str
+        });
+      });
+
+      validSpans.sort((a, b) => a.topY - b.topY);
+      const rowGroups = [];
+
+      validSpans.forEach(span => {
+        let matched = false;
+        for (let g of rowGroups) {
+          if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
+            g.spans.push(span);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          rowGroups.push({ topY: span.topY, spans: [span] });
+        }
+      });
+
+      parsedTextLines = [];
+      let internalIndex = 0;
+
+      rowGroups.forEach(g => {
+        g.spans.sort((a, b) => a.x0 - b.x0);
+
+        const firstSpan = g.spans[0];
+        const lastSpan = g.spans[g.spans.length - 1];
+
+        const lineX0 = firstSpan.x0;
+        const lineX1 = lastSpan.x1;
+
+        const minTop = Math.min(...g.spans.map(s => s.topY));
+        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
+
+        const totalChars = g.spans.reduce((acc, s) => acc + s.str.length, 0);
+        const singleCharW = (lineX1 - lineX0) / Math.max(1, totalChars);
+
+        // 下移 7px，字底清晰
+        const underLineY = maxBottom + 7;
+
+        if ((lineX1 - lineX0) >= 80) {
+          parsedTextLines.push({
+            lineIndex: internalIndex++,
+            x0: lineX0,
+            x1: lineX1,
+            singleCharW: singleCharW,
+            topGlobal: minTop,
+            bottomGlobal: maxBottom,
+            underLineY: underLineY
+          });
+        }
+      });
+
+      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+      guideStage.style.height = `${viewport.height}px`;
+    }
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      if (isGuideActive) return;
+
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (cachedRawBuffer) {
+          parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
+            updateVisualDisplay();
+            scrollToAlignTop(currentLineIndex);
+          });
+        }
+      }, 300);
+    });
+  </script>
+</body>
+</html>
