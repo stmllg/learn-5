@@ -234,7 +234,6 @@
       display: none;
     }
 
-    /* 狀態卡片與進度條樣式 */
     #status-card {
       margin: auto;
       padding: 24px;
@@ -424,11 +423,11 @@
         <h2 id="status-title">🔍 檢查 GitHub 更新狀態...</h2>
         <div id="status-desc">比對伺服器發布時間中...</div>
 
-        <!-- 進度條區域 -->
+        <!-- 雙軌下載百分比監視器 -->
         <div class="progress-box" id="app-progress-box">
           <div class="progress-label">
-            <span>程式本體 (HTML/JS)</span>
-            <span id="app-progress-val">檢查中...</span>
+            <span>程式本體 (index.html)</span>
+            <span id="app-progress-val">等待中...</span>
           </div>
           <div class="progress-track">
             <div class="progress-fill" id="app-progress-fill"></div>
@@ -498,10 +497,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    /* ----------------------------------------------------
-       程式版本與時間校準
-    ---------------------------------------------------- */
-    const APP_BUILD_VERSION = 'v66_sync_progress_monitor';
+    const APP_BUILD_VERSION = 'v67_dual_smart_cache_monitor';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -712,7 +708,7 @@
     }
 
     /* ----------------------------------------------------
-       【帶有進度條與時間比對的通用下載器】
+       【帶有真實進度百分比的串流下載核心】
     ---------------------------------------------------- */
     async function fetchWithProgress(url, onProgress) {
       const response = await fetch(url, { cache: 'no-store' });
@@ -720,7 +716,7 @@
 
       const contentLength = response.headers.get('content-length');
       const total = contentLength ? parseInt(contentLength, 10) : 0;
-      const lastModified = response.headers.get('last-modified') || '';
+      const lastModified = response.headers.get('last-modified') || response.headers.get('etag') || '';
 
       if (!response.body) {
         const buffer = await response.arrayBuffer();
@@ -757,7 +753,7 @@
     }
 
     /* ----------------------------------------------------
-       左3【更新】按鈕：完整雙向比對伺服器發布時間
+       左3【更新】按鈕：雙軌日期比對 + 百分比進度
     ---------------------------------------------------- */
     btnReload.addEventListener('click', async () => {
       haltGuideRunnerImmediately();
@@ -765,36 +761,71 @@
       pdfContainerWrap.style.display = 'none';
 
       statusTitle.textContent = '🔄 檢查伺服器部署狀態...';
-      statusDesc.textContent = '正向 GitHub Pages 請求最新發布時間戳...';
+      statusDesc.textContent = '比對程式與經文最新時間標頭中...';
 
-      // 1. 比對 HTML 程式本體是否有新版
+      // --------------------------------------------------
+      // 1. 檢查程式本體 (index.html)：先查 HEAD，沒改不重抓
+      // --------------------------------------------------
       try {
-        appProgressVal.textContent = '比對版本中...';
+        appProgressVal.textContent = '比對程式版本中...';
         appProgressFill.style.width = '30%';
 
         const htmlHead = await fetch('./index.html?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-        const remoteHtmlTime = htmlHead.headers.get('last-modified');
-        const localHtmlTime = localStorage.getItem('APP_SERVER_LAST_MODIFIED');
+        const remoteHtmlTag = htmlHead.headers.get('last-modified') || htmlHead.headers.get('etag');
+        const localHtmlTag = localStorage.getItem('APP_SERVER_LAST_MODIFIED');
 
-        if (remoteHtmlTime && localHtmlTime && remoteHtmlTime !== localHtmlTime) {
-          appProgressVal.textContent = '偵測到程式更新，即將重新載入...';
-          appProgressFill.style.width = '100%';
-          localStorage.setItem('APP_SERVER_LAST_MODIFIED', remoteHtmlTime);
+        if (remoteHtmlTag && localHtmlTag && remoteHtmlTag !== localHtmlTag) {
+          // 偵測到程式在 GitHub 有新版，串流下載新程式並顯示百分比
+          appProgressVal.textContent = '偵測到程式更新，下載新版中...';
+          await fetchWithProgress('./index.html?sync=' + Date.now(), (pct, cur, total) => {
+            appProgressVal.textContent = `下載新程式 ${pct}%`;
+            appProgressFill.style.width = `${pct}%`;
+          });
+
+          localStorage.setItem('APP_SERVER_LAST_MODIFIED', remoteHtmlTag);
+          statusTitle.textContent = '⚡ 程式已更新，即將重新載入...';
           setTimeout(() => location.reload(true), 600);
           return;
         } else {
-          if (remoteHtmlTime) localStorage.setItem('APP_SERVER_LAST_MODIFIED', remoteHtmlTime);
-          appProgressVal.textContent = '程式已是最新 (100%)';
+          // 程式無變更，秒速完成
+          if (remoteHtmlTag) localStorage.setItem('APP_SERVER_LAST_MODIFIED', remoteHtmlTag);
+          appProgressVal.textContent = '程式無變更，跳過下載 (100%)';
           appProgressFill.style.width = '100%';
         }
       } catch (e) {
-        appProgressVal.textContent = '已確認 (離線/最新)';
+        appProgressVal.textContent = '程式確認完畢 (100%)';
         appProgressFill.style.width = '100%';
       }
 
-      // 2. 串流下載經文 PDF 並即時更新進度條
+      // --------------------------------------------------
+      // 2. 檢查經文 (scripture.pdf)：先查 HEAD，沒改秒速還原
+      // --------------------------------------------------
       try {
-        pdfProgressVal.textContent = '正在下載...';
+        pdfProgressVal.textContent = '比對經文日期中...';
+        pdfProgressFill.style.width = '30%';
+
+        const pdfHead = await fetch('./scripture.pdf?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+        const remotePdfTag = pdfHead.headers.get('last-modified') || pdfHead.headers.get('etag') || '';
+        const localPdfTag = currentActiveFileTag;
+
+        // 如果經文完全沒改，直接使用記憶體還原，耗時 0.2 秒
+        if (cachedRawBuffer && remotePdfTag && remotePdfTag === localPdfTag) {
+          pdfProgressVal.textContent = '經文無變更，跳過下載 (100%)';
+          pdfProgressFill.style.width = '100%';
+          statusTitle.textContent = '⚡ 經文已是最新版本';
+          statusDesc.textContent = '檔案未變更，立即還原視圖！';
+
+          setTimeout(() => {
+            statusCard.style.display = 'none';
+            pdfContainerWrap.style.display = 'flex';
+            updateVisualDisplay();
+            scrollToAlignTop(currentLineIndex);
+          }, 350);
+          return;
+        }
+
+        // 偵測到經文有變更（或本地無快取），真正串流下載並顯示進度條
+        pdfProgressVal.textContent = '偵測到新經文，下載中...';
         const res = await fetchWithProgress('./scripture.pdf?check=' + Date.now(), (pct, current, total) => {
           const curMb = (current / (1024 * 1024)).toFixed(1);
           const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
@@ -803,22 +834,26 @@
         });
 
         cachedRawBuffer = res.buffer;
-        currentActiveFileTag = res.lastModified || ('pdf_' + Date.now());
+        currentActiveFileTag = remotePdfTag || res.lastModified || ('pdf_' + Date.now());
         await saveRecordToCache(res.buffer, currentActiveFileTag);
 
-        statusTitle.textContent = '✅ 更新成功，正在渲染畫布...';
+        statusTitle.textContent = '✅ 新經文下載完成，渲染中...';
         await parseAndRenderPdfData(new Uint8Array(res.buffer));
         updateVisualDisplay();
         scrollToAlignTop(currentLineIndex);
+
       } catch (e) {
         if (cachedRawBuffer) {
-          statusTitle.textContent = '⚠️ 網路連線失敗，使用本地快取重繪';
-          await parseAndRenderPdfData(new Uint8Array(cachedRawBuffer));
+          pdfProgressVal.textContent = '使用本地快取 (100%)';
+          pdfProgressFill.style.width = '100%';
+          statusTitle.textContent = '⚡ 已使用本機經文恢復視圖';
+          statusCard.style.display = 'none';
+          pdfContainerWrap.style.display = 'flex';
           updateVisualDisplay();
           scrollToAlignTop(currentLineIndex);
         } else {
           statusTitle.textContent = '❌ 更新失敗';
-          statusDesc.textContent = '無法取得經文檔案，請檢查網路連線。';
+          statusDesc.textContent = '無法連線至伺服器，請檢查網路。';
         }
       }
     });
@@ -1363,7 +1398,7 @@
       }
     }
 
-    const DB_NAME = 'HappyReciteDB_Clean_v66';
+    const DB_NAME = 'HappyReciteDB_Clean_v67';
     const STORE_NAME = 'pdf_store';
     const PDF_KEY = 'saved_scripture';
 
