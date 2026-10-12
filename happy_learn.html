@@ -234,7 +234,6 @@
       display: none;
     }
 
-    /* 狀態卡片與進度條樣式 */
     #status-card {
       margin: auto;
       padding: 24px;
@@ -498,7 +497,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v72_smart_update_v57_stable';
+    const APP_BUILD_VERSION = 'v73_vad_strict_working';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -553,15 +552,15 @@
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
 
-    // VAD 聲音活性偵測
+    // VAD 聲音活性偵測核心參數
     let audioContext = null;
     let analyser = null;
     let micStream = null;
     let vadCheckTimer = null;
     let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
-    const SILENCE_TIMEOUT_MS = 2000;
-    const VOICE_THRESHOLD = 0.038;
+    const SILENCE_TIMEOUT_MS = 2000; // 靜止 2 秒凍結
+    const VOICE_THRESHOLD = 0.020;   // 實測適中門檻值
 
     function speakPrompt(text) {
       try {
@@ -601,7 +600,6 @@
       btnFullscreen.textContent = document.fullscreenElement ? '退' : '全';
     });
 
-    // 只更新版號標籤，保留所有快取設定
     function verifyVersionAndCleanState() {
       const installedVer = localStorage.getItem('APP_INSTALLED_BUILD_VER');
       if (installedVer !== APP_BUILD_VERSION) {
@@ -1018,13 +1016,17 @@
       }
     });
 
+    /* ----------------------------------------------------
+       【背書開關按鈕】：點擊瞬間立即喚醒麥克風與導引線
+    ---------------------------------------------------- */
     btnGuideToggle.addEventListener('click', async () => {
       triggerLandscapeLock();
+
       if (!isGuideActive) {
         if (parsedTextLines.length === 0) return;
 
         isGuideActive = true;
-        isVoiceActive = false;
+        isVoiceActive = false; // 初始嚴格靜止
 
         const isResuming = (btnGuideToggle.textContent === '再來');
 
@@ -1043,11 +1045,14 @@
 
         hasEverStarted = true;
 
-        btnGuideToggle.textContent = '背誦中';
-        btnGuideToggle.classList.remove('guide-waiting');
-        btnGuideToggle.classList.add('guide-active');
+        btnGuideToggle.textContent = '靜止';
+        btnGuideToggle.classList.remove('guide-active');
+        btnGuideToggle.classList.add('guide-waiting');
 
+        // 立即顯示導引線與紅點
         startGuideRunner();
+
+        // 啟動聲音偵測
         await startVoiceActivityDetection();
       } else {
         haltGuideRunnerImmediately();
@@ -1056,10 +1061,11 @@
 
     async function startVoiceActivityDetection() {
       try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioContext) {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           audioContext = new AudioContextClass();
         }
+        // 使用者點擊時必須直接 resume()
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
         }
@@ -1068,25 +1074,27 @@
           micStream = await navigator.mediaDevices.getUserMedia({
             audio: {
               echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: false
+              noiseSuppression: false,
+              autoGainControl: true
             }
           });
         }
 
         const source = audioContext.createMediaStreamSource(micStream);
         analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
+        analyser.fftSize = 256;
         analyser.smoothingTimeConstant = 0.1;
         source.connect(analyser);
 
         lastVoiceDetectedTime = 0;
         startVadMonitorLoop();
       } catch (err) {
-        isVoiceActive = true;
-        btnGuideToggle.textContent = '背誦中';
-        btnGuideToggle.classList.remove('guide-waiting');
-        btnGuideToggle.classList.add('guide-active');
+        console.warn("麥克風無法啟動:", err);
+        // 嚴格保持 false，不自動放行
+        isVoiceActive = false;
+        btnGuideToggle.textContent = '靜止';
+        btnGuideToggle.classList.remove('guide-active');
+        btnGuideToggle.classList.add('guide-waiting');
       }
     }
 
@@ -1110,6 +1118,7 @@
           const rms = Math.sqrt(sumSquares / bufferLength);
           const now = performance.now();
 
+          // 嚴格判定出聲
           if (rms > VOICE_THRESHOLD) {
             lastVoiceDetectedTime = now;
             if (!isVoiceActive) {
@@ -1120,6 +1129,7 @@
               lastAnimTimestamp = performance.now();
             }
           } else {
+            // 超過 2 秒無聲音 -> 立即凍結
             if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
               isVoiceActive = false;
               btnGuideToggle.textContent = '靜止';
@@ -1141,15 +1151,6 @@
         cancelAnimationFrame(vadCheckTimer);
         vadCheckTimer = null;
       }
-      if (micStream) {
-        micStream.getTracks().forEach(track => track.stop());
-        micStream = null;
-      }
-      if (audioContext && audioContext.state !== 'closed') {
-        try { audioContext.close(); } catch(e) {}
-        audioContext = null;
-      }
-      analyser = null;
       isVoiceActive = false;
     }
 
@@ -1211,6 +1212,7 @@
       const delta = now - lastAnimTimestamp;
       lastAnimTimestamp = now;
 
+      // 【核心控制】：若無聲音，導引線亮起但停在原地，不累加任何進度
       if (!isVoiceActive) {
         guideAnimId = requestAnimationFrame(stepGuideMovement);
         return;
@@ -1260,7 +1262,6 @@
           currentLineIndex = nextIndex;
           currentLineProgress = 0.0;
           setupActiveLine(currentLineIndex, 0.0);
-
           lastAnimTimestamp = performance.now();
           guideAnimId = requestAnimationFrame(stepGuideMovement);
         }, 180);
@@ -1436,14 +1437,17 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      const canLoadOldData = verifyVersionAndCleanState();
+      verifyVersionAndCleanState();
       initUserPreferences();
-      loadScriptureWithSmartAutoUpdate(canLoadOldData);
+      loadScriptureWithSmartAutoUpdate(true);
     });
 
     async function loadScriptureWithSmartAutoUpdate(canLoadOldData = true) {
-      statusTitle.textContent = '📖 正在檢查經文版本...';
-      btnManualPick.style.display = 'none';
+      statusCard.style.display = 'block';
+      pdfContainerWrap.style.display = 'none';
+
+      appProgressFill.style.width = '100%';
+      appProgressVal.textContent = '100% (已載入)';
 
       const cached = await getCachedRecord();
       const localBuffer = cached ? (cached.buffer || cached) : null;
@@ -1452,6 +1456,10 @@
       if (localBuffer) {
         cachedRawBuffer = localBuffer;
         currentActiveFileTag = localTag || 'local';
+        pdfProgressFill.style.width = '100%';
+        pdfProgressVal.textContent = '100% (本地快取)';
+        statusTitle.textContent = '📖 正在渲染經文...';
+
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         restoreSessionMarkersAndPosition(canLoadOldData);
         return;
@@ -1461,6 +1469,7 @@
     }
 
     async function fetchAndSaveNewPdf(fileTag, canLoadOldData = true) {
+      statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
       try {
         const res = await fetchWithProgress('./scripture.pdf?t=' + Date.now(), (pct, cur, total) => {
           const curMb = (cur / (1024 * 1024)).toFixed(1);
@@ -1476,19 +1485,18 @@
         await saveRecordToCache(res.buffer, tag);
         await parseAndRenderPdfData(new Uint8Array(res.buffer));
         restoreSessionMarkersAndPosition(canLoadOldData);
-        return;
-      } catch (e) {}
-
-      const fallback = await getCachedRecord();
-      if (fallback && fallback.buffer) {
-        cachedRawBuffer = fallback.buffer;
-        currentActiveFileTag = fallback.tag || 'fallback';
-        await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
-        restoreSessionMarkersAndPosition(canLoadOldData);
-      } else {
-        statusTitle.textContent = '📖 請挑選經文檔案';
-        statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
-        btnManualPick.style.display = 'inline-block';
+      } catch (e) {
+        const fallback = await getCachedRecord();
+        if (fallback && fallback.buffer) {
+          cachedRawBuffer = fallback.buffer;
+          currentActiveFileTag = fallback.tag || 'fallback';
+          await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
+          restoreSessionMarkersAndPosition(canLoadOldData);
+        } else {
+          statusTitle.textContent = '📖 請挑選經文檔案';
+          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
+          btnManualPick.style.display = 'inline-block';
+        }
       }
     }
 
@@ -1520,7 +1528,7 @@
     });
 
     /* ----------------------------------------------------
-       【嚴格回歸原始 v57 文字物理幾何提取演算法】
+       【文字物理幾何提取】：100% 採用原始 v57 算法
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
