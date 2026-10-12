@@ -497,7 +497,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v67_dual_smart_cache_monitor';
+    const APP_BUILD_VERSION = 'v69_vad_strict_prompt';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -552,14 +552,15 @@
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
 
+    // VAD 聲音活性偵測核心參數
     let audioContext = null;
     let analyser = null;
     let micStream = null;
     let vadCheckTimer = null;
     let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
-    const SILENCE_TIMEOUT_MS = 2000;
-    const VOICE_THRESHOLD = 0.038;
+    const SILENCE_TIMEOUT_MS = 2000; // 靜止 2 秒凍結
+    const VOICE_THRESHOLD = 0.040;   // 出聲門檻值 (RMS)
 
     function speakPrompt(text) {
       try {
@@ -606,9 +607,7 @@
     function verifyVersionAndCleanState() {
       const installedVer = localStorage.getItem('APP_INSTALLED_BUILD_VER');
       if (installedVer !== APP_BUILD_VERSION) {
-        localStorage.clear();
         localStorage.setItem('APP_INSTALLED_BUILD_VER', APP_BUILD_VERSION);
-        return false;
       }
       return true;
     }
@@ -708,7 +707,388 @@
     }
 
     /* ----------------------------------------------------
-       【帶有真實進度百分比的串流下載核心】
+       【主動請求麥克風權限】：支援啟動即詢問
+    ---------------------------------------------------- */
+    async function requestMicrophonePermission(autoSilent = false) {
+      if (micStream) return true;
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          if (!autoSilent) alert("當前環境不支援麥克風，請確認使用 HTTPS 或 localhost 連線");
+          return false;
+        }
+
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: false
+          }
+        });
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.1;
+        source.connect(analyser);
+
+        return true;
+      } catch (err) {
+        if (!autoSilent) alert("請允許麥克風權限以偵測背書聲音");
+        return false;
+      }
+    }
+
+    /* ----------------------------------------------------
+       【聲音活性即時監聽回圈】：2 秒無聲凍結
+    ---------------------------------------------------- */
+    function startVadMonitorLoop() {
+      if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
+
+      const bufferLength = analyser ? analyser.frequencyBinCount : 0;
+      const dataArray = new Float32Array(bufferLength);
+
+      function checkVolume() {
+        if (!isGuideActive) return;
+
+        if (analyser) {
+          analyser.getFloatTimeDomainData(dataArray);
+
+          let sumSquares = 0.0;
+          for (let i = 0; i < bufferLength; i++) {
+            const val = dataArray[i];
+            sumSquares += val * val;
+          }
+          const rms = Math.sqrt(sumSquares / bufferLength);
+          const now = performance.now();
+
+          // 判斷是否出聲
+          if (rms > VOICE_THRESHOLD) {
+            lastVoiceDetectedTime = now;
+            if (!isVoiceActive) {
+              isVoiceActive = true;
+              btnGuideToggle.textContent = '背誦中';
+              btnGuideToggle.classList.remove('guide-waiting');
+              btnGuideToggle.classList.add('guide-active');
+              lastAnimTimestamp = performance.now(); // 恢復前進時重設時間基準
+            }
+          } else {
+            // 超過 2 秒無聲音 -> 立即凍結
+            if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
+              isVoiceActive = false;
+              btnGuideToggle.textContent = '靜止';
+              btnGuideToggle.classList.remove('guide-active');
+              btnGuideToggle.classList.add('guide-waiting');
+              saveCurrentProgress();
+            }
+          }
+        }
+
+        vadCheckTimer = requestAnimationFrame(checkVolume);
+      }
+
+      vadCheckTimer = requestAnimationFrame(checkVolume);
+    }
+
+    function stopVoiceActivityDetection() {
+      if (vadCheckTimer) {
+        cancelAnimationFrame(vadCheckTimer);
+        vadCheckTimer = null;
+      }
+      isVoiceActive = false;
+    }
+
+    /* ----------------------------------------------------
+       【導引動畫引擎】：嚴格遵守「有聲才動」
+    ---------------------------------------------------- */
+    function startGuideRunner() {
+      if (parsedTextLines.length === 0) return;
+
+      guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
+
+      scrollToAlignTop(currentLineIndex);
+      setupActiveLine(currentLineIndex, currentLineProgress);
+
+      lastAnimTimestamp = performance.now();
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function scrollToAlignTop(idx) {
+      const line = parsedTextLines[idx];
+      if (line) {
+        centerCore.scrollTop = Math.max(0, line.topGlobal - 16);
+      }
+    }
+
+    function setupActiveLine(idx, initialProgress = 0.0) {
+      if (idx >= parsedTextLines.length) {
+        handleCycleCompletion();
+        return;
+      }
+
+      const line = parsedTextLines[idx];
+      const lineLen = Math.max(line.x1 - line.x0, 60);
+
+      lineDuration = (lineLen / (90 * currentSpeed)) * 1000;
+      currentLineProgress = initialProgress;
+
+      const lineY = line.underLineY;
+
+      if (isGuideActive) {
+        guideLine.style.top = `${lineY}px`;
+        guideLine.style.left = `${line.x0}px`;
+        guideLine.style.width = `${lineLen}px`;
+        guideLine.style.display = 'block';
+
+        const startX = line.x0 + (line.singleCharW / 2);
+        const endX = line.x1 - (line.singleCharW / 2);
+        const curX = startX + (endX - startX) * currentLineProgress;
+
+        redDot.style.top = `${lineY}px`;
+        redDot.style.left = `${curX}px`;
+        redDot.style.display = 'block';
+      }
+
+      isTransitioningLine = false;
+    }
+
+    function stepGuideMovement(now) {
+      if (!isGuideActive || isTransitioningLine) return;
+
+      const delta = now - lastAnimTimestamp;
+      lastAnimTimestamp = now;
+
+      // 【核心控制】：若無聲音活性，完全凍結原地，不累加任何進度
+      if (!isVoiceActive) {
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+        return;
+      }
+
+      currentLineProgress += (delta / lineDuration);
+
+      // 單行完成
+      if (currentLineProgress >= 1.0) {
+        currentLineProgress = 1.0;
+
+        const curLine = parsedTextLines[currentLineIndex];
+        if (curLine) {
+          const endX = curLine.x1 - (curLine.singleCharW / 2);
+          redDot.style.left = `${endX}px`;
+          redDot.style.top = `${curLine.underLineY}px`;
+        }
+
+        if (guideAnimId) {
+          cancelAnimationFrame(guideAnimId);
+          guideAnimId = null;
+        }
+
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
+          handleCycleCompletion();
+          return;
+        }
+
+        const nextIndex = currentLineIndex + 1;
+        if (nextIndex >= parsedTextLines.length) {
+          handleCycleCompletion();
+          return;
+        }
+
+        isTransitioningLine = true;
+        guideLine.style.display = 'none';
+
+        setTimeout(() => {
+          if (!isGuideActive) return;
+
+          const nextLine = parsedTextLines[nextIndex];
+          const screenBottom = centerCore.scrollTop + centerCore.clientHeight;
+
+          if (nextLine && nextLine.underLineY > screenBottom - 8) {
+            scrollToAlignTop(nextIndex);
+          }
+
+          currentLineIndex = nextIndex;
+          currentLineProgress = 0.0;
+          setupActiveLine(currentLineIndex, 0.0);
+
+          lastAnimTimestamp = performance.now();
+          guideAnimId = requestAnimationFrame(stepGuideMovement);
+        }, 180);
+
+        return;
+      }
+
+      const line = parsedTextLines[currentLineIndex];
+      if (line) {
+        const startX = line.x0 + (line.singleCharW / 2);
+        const endX = line.x1 - (line.singleCharW / 2);
+        const curX = startX + (endX - startX) * currentLineProgress;
+
+        redDot.style.left = `${curX}px`;
+        redDot.style.top = `${line.underLineY}px`;
+      }
+
+      saveCurrentProgress();
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function handleCycleCompletion() {
+      completedCycles += 1;
+      const remain = Math.max(0, totalTargetCycles - completedCycles);
+      btnRepeatCount.textContent = `${remain}次`;
+
+      if (completedCycles >= totalTargetCycles) {
+        finishAndStopPermanently();
+        return;
+      }
+
+      saveCurrentProgress();
+
+      isTransitioningLine = true;
+      guideLine.style.display = 'none';
+
+      if (guideAnimId) {
+        cancelAnimationFrame(guideAnimId);
+        guideAnimId = null;
+      }
+
+      setTimeout(() => {
+        if (!isGuideActive) return;
+
+        currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
+        currentLineProgress = 0.0;
+        scrollToAlignTop(currentLineIndex);
+        setupActiveLine(currentLineIndex, 0.0);
+        lastAnimTimestamp = performance.now();
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+      }, 2000);
+    }
+
+    function finishAndStopPermanently() {
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      stopVoiceActivityDetection();
+
+      markALine.style.display = 'none';
+      markBLine.style.display = 'none';
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+      btnMarkA.classList.remove('active-mark');
+      btnMarkB.classList.remove('active-mark');
+
+      markA_Index = -1;
+      markB_Index = -1;
+      hasEverStarted = false;
+      completedCycles = 0;
+      currentLineIndex = 0;
+      currentLineProgress = 0.0;
+
+      btnGuideToggle.textContent = '背書';
+      btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+
+      try {
+        localStorage.removeItem(APP_CONFIG_KEY);
+      } catch (e) {}
+    }
+
+    function haltGuideRunnerImmediately() {
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      stopVoiceActivityDetection();
+
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+
+      updateVisualDisplay();
+      saveCurrentProgress();
+    }
+
+    /* ----------------------------------------------------
+       【背書開關按鈕點擊】
+    ---------------------------------------------------- */
+    btnGuideToggle.addEventListener('click', async () => {
+      if (!isGuideActive) {
+        if (parsedTextLines.length === 0) {
+          alert("經文尚未載入完成，請稍候");
+          return;
+        }
+
+        const micReady = await requestMicrophonePermission();
+        if (!micReady) return;
+
+        isGuideActive = true;
+        isVoiceActive = false; // 初始等待發聲
+
+        const isResuming = (btnGuideToggle.textContent === '再來');
+
+        if (!isResuming) {
+          spawnGoldCoinsAt(btnGuideToggle);
+          completedCycles = 0;
+          btnRepeatCount.textContent = `${totalTargetCycles}次`;
+          currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
+          currentLineProgress = 0.0;
+        } else {
+          if (currentLineIndex < (markA_Index !== -1 ? markA_Index : 0)) {
+            currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
+            currentLineProgress = 0.0;
+          }
+        }
+
+        hasEverStarted = true;
+
+        btnGuideToggle.textContent = '靜止';
+        btnGuideToggle.classList.remove('guide-active');
+        btnGuideToggle.classList.add('guide-waiting');
+
+        startGuideRunner();
+        startVadMonitorLoop();
+        triggerLandscapeLock();
+      } else {
+        haltGuideRunnerImmediately();
+      }
+    });
+
+    function spawnGoldCoinsAt(targetElement) {
+      const rect = targetElement.getBoundingClientRect();
+      const originX = rect.left + rect.width / 2;
+      const originY = rect.top + rect.height / 2;
+
+      for (let i = 0; i < 14; i++) {
+        const coin = document.createElement('div');
+        coin.className = 'gold-coin';
+        coin.textContent = '🪙';
+        coin.style.left = `${originX}px`;
+        coin.style.top = `${originY}px`;
+
+        const angle = (i / 14) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
+        const distance = 70 + Math.random() * 60;
+        const dx = Math.cos(angle) * distance;
+        const dy = Math.sin(angle) * distance - 10;
+        const rot = (Math.random() * 360 - 180) + 'deg';
+
+        coin.style.setProperty('--dx', `${dx}px`);
+        coin.style.setProperty('--dy', `${dy}px`);
+        coin.style.setProperty('--rot', rot);
+
+        document.body.appendChild(coin);
+        setTimeout(() => {
+          if (coin.parentNode) coin.parentNode.removeChild(coin);
+        }, 900);
+      }
+    }
+
+    /* ----------------------------------------------------
+       下載與快取持久化核心
     ---------------------------------------------------- */
     async function fetchWithProgress(url, onProgress) {
       const response = await fetch(url, { cache: 'no-store' });
@@ -716,12 +1096,12 @@
 
       const contentLength = response.headers.get('content-length');
       const total = contentLength ? parseInt(contentLength, 10) : 0;
-      const lastModified = response.headers.get('last-modified') || response.headers.get('etag') || '';
+      const tag = response.headers.get('etag') || response.headers.get('last-modified') || '';
 
       if (!response.body) {
         const buffer = await response.arrayBuffer();
         onProgress(100, buffer.byteLength, buffer.byteLength);
-        return { buffer, lastModified };
+        return { buffer, tag };
       }
 
       const reader = response.body.getReader();
@@ -749,82 +1129,77 @@
       }
 
       onProgress(100, receivedLength, receivedLength);
-      return { buffer: fullBytes.buffer, lastModified };
+      return { buffer: fullBytes.buffer, tag };
     }
 
-    /* ----------------------------------------------------
-       左3【更新】按鈕：雙軌日期比對 + 百分比進度
-    ---------------------------------------------------- */
     btnReload.addEventListener('click', async () => {
       haltGuideRunnerImmediately();
       statusCard.style.display = 'block';
       pdfContainerWrap.style.display = 'none';
 
       statusTitle.textContent = '🔄 檢查伺服器部署狀態...';
-      statusDesc.textContent = '比對程式與經文最新時間標頭中...';
+      statusDesc.textContent = '向 GitHub 查詢檔案標籤中...';
 
-      // --------------------------------------------------
-      // 1. 檢查程式本體 (index.html)：先查 HEAD，沒改不重抓
-      // --------------------------------------------------
+      // 1. 檢查程式
       try {
-        appProgressVal.textContent = '比對程式版本中...';
+        appProgressVal.textContent = '比對程式版本...';
         appProgressFill.style.width = '30%';
 
-        const htmlHead = await fetch('./index.html?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-        const remoteHtmlTag = htmlHead.headers.get('last-modified') || htmlHead.headers.get('etag');
-        const localHtmlTag = localStorage.getItem('APP_SERVER_LAST_MODIFIED');
+        const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG') || '';
+        const htmlHeaders = {};
+        if (localHtmlTag) {
+          htmlHeaders['If-None-Match'] = localHtmlTag;
+          htmlHeaders['If-Modified-Since'] = localHtmlTag;
+        }
 
-        if (remoteHtmlTag && localHtmlTag && remoteHtmlTag !== localHtmlTag) {
-          // 偵測到程式在 GitHub 有新版，串流下載新程式並顯示百分比
-          appProgressVal.textContent = '偵測到程式更新，下載新版中...';
-          await fetchWithProgress('./index.html?sync=' + Date.now(), (pct, cur, total) => {
-            appProgressVal.textContent = `下載新程式 ${pct}%`;
-            appProgressFill.style.width = `${pct}%`;
-          });
+        const htmlRes = await fetch('./index.html?t=' + Date.now(), { method: 'HEAD', headers: htmlHeaders, cache: 'no-store' });
+        const remoteHtmlTag = htmlRes.headers.get('etag') || htmlRes.headers.get('last-modified') || '';
 
-          localStorage.setItem('APP_SERVER_LAST_MODIFIED', remoteHtmlTag);
-          statusTitle.textContent = '⚡ 程式已更新，即將重新載入...';
-          setTimeout(() => location.reload(true), 600);
-          return;
-        } else {
-          // 程式無變更，秒速完成
-          if (remoteHtmlTag) localStorage.setItem('APP_SERVER_LAST_MODIFIED', remoteHtmlTag);
+        if (htmlRes.status === 304 || (localHtmlTag && remoteHtmlTag === localHtmlTag)) {
           appProgressVal.textContent = '程式無變更，跳過下載 (100%)';
           appProgressFill.style.width = '100%';
+        } else {
+          appProgressVal.textContent = '偵測到程式更新，即將重新載入...';
+          appProgressFill.style.width = '100%';
+          if (remoteHtmlTag) localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
+          setTimeout(() => location.reload(true), 600);
+          return;
         }
       } catch (e) {
-        appProgressVal.textContent = '程式確認完畢 (100%)';
+        appProgressVal.textContent = '程式已確認 (100%)';
         appProgressFill.style.width = '100%';
       }
 
-      // --------------------------------------------------
-      // 2. 檢查經文 (scripture.pdf)：先查 HEAD，沒改秒速還原
-      // --------------------------------------------------
+      // 2. 檢查經文
       try {
-        pdfProgressVal.textContent = '比對經文日期中...';
+        pdfProgressVal.textContent = '比對經文修改標籤...';
         pdfProgressFill.style.width = '30%';
 
-        const pdfHead = await fetch('./scripture.pdf?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-        const remotePdfTag = pdfHead.headers.get('last-modified') || pdfHead.headers.get('etag') || '';
-        const localPdfTag = currentActiveFileTag;
+        const savedPdfTag = localStorage.getItem('APP_SAVED_PDF_TAG') || currentActiveFileTag || '';
+        const pdfHeaders = {};
+        if (savedPdfTag) {
+          pdfHeaders['If-None-Match'] = savedPdfTag;
+          pdfHeaders['If-Modified-Since'] = savedPdfTag;
+        }
 
-        // 如果經文完全沒改，直接使用記憶體還原，耗時 0.2 秒
-        if (cachedRawBuffer && remotePdfTag && remotePdfTag === localPdfTag) {
+        const headRes = await fetch('./scripture.pdf?t=' + Date.now(), { method: 'HEAD', headers: pdfHeaders, cache: 'no-store' });
+        const remotePdfTag = headRes.headers.get('etag') || headRes.headers.get('last-modified') || '';
+
+        if ((headRes.status === 304 || (savedPdfTag && remotePdfTag === savedPdfTag)) && cachedRawBuffer) {
           pdfProgressVal.textContent = '經文無變更，跳過下載 (100%)';
           pdfProgressFill.style.width = '100%';
           statusTitle.textContent = '⚡ 經文已是最新版本';
-          statusDesc.textContent = '檔案未變更，立即還原視圖！';
+          statusDesc.textContent = '未偵測到變更，立即還原畫面！';
 
           setTimeout(() => {
             statusCard.style.display = 'none';
             pdfContainerWrap.style.display = 'flex';
             updateVisualDisplay();
             scrollToAlignTop(currentLineIndex);
-          }, 350);
+          }, 300);
           return;
         }
 
-        // 偵測到經文有變更（或本地無快取），真正串流下載並顯示進度條
         pdfProgressVal.textContent = '偵測到新經文，下載中...';
         const res = await fetchWithProgress('./scripture.pdf?check=' + Date.now(), (pct, current, total) => {
           const curMb = (current / (1024 * 1024)).toFixed(1);
@@ -834,8 +1209,10 @@
         });
 
         cachedRawBuffer = res.buffer;
-        currentActiveFileTag = remotePdfTag || res.lastModified || ('pdf_' + Date.now());
-        await saveRecordToCache(res.buffer, currentActiveFileTag);
+        const finalTag = remotePdfTag || res.tag || ('tag_' + Date.now());
+        currentActiveFileTag = finalTag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', finalTag);
+        await saveRecordToCache(res.buffer, finalTag);
 
         statusTitle.textContent = '✅ 新經文下載完成，渲染中...';
         await parseAndRenderPdfData(new Uint8Array(res.buffer));
@@ -857,6 +1234,266 @@
         }
       }
     });
+
+    const DB_NAME = 'HappyReciteDB_Clean_v69';
+    const STORE_NAME = 'pdf_store';
+    const PDF_KEY = 'saved_scripture';
+
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        try {
+          const req = indexedDB.open(DB_NAME, 1);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+              db.createObjectStore(STORE_NAME);
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+
+    async function getCachedRecord() {
+      try {
+        const db = await openDatabase();
+        return new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get(PDF_KEY);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function saveRecordToCache(arrayBuffer, fileTag) {
+      try {
+        const db = await openDatabase();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.put({ buffer: arrayBuffer, tag: fileTag }, PDF_KEY);
+      } catch (e) {}
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      verifyVersionAndCleanState();
+      initUserPreferences();
+      loadScriptureWithSmartAutoUpdate(true);
+
+      // 初次點擊畫面任何位置即嘗試取得麥克風授權（提升相容性）
+      document.body.addEventListener('click', () => {
+        requestMicrophonePermission(true);
+      }, { once: true });
+    });
+
+    async function loadScriptureWithSmartAutoUpdate(canLoadOldData = true) {
+      statusCard.style.display = 'block';
+      pdfContainerWrap.style.display = 'none';
+
+      appProgressFill.style.width = '100%';
+      appProgressVal.textContent = '100% (已載入)';
+
+      const cached = await getCachedRecord();
+      const localBuffer = cached ? (cached.buffer || cached) : null;
+      const localTag = (cached && cached.tag) ? cached.tag : localStorage.getItem('APP_SAVED_PDF_TAG');
+
+      if (localBuffer) {
+        cachedRawBuffer = localBuffer;
+        currentActiveFileTag = localTag || 'local';
+        pdfProgressFill.style.width = '100%';
+        pdfProgressVal.textContent = '100% (本地快取)';
+        statusTitle.textContent = '📖 正在渲染經文...';
+
+        await parseAndRenderPdfData(new Uint8Array(localBuffer));
+        restoreSessionMarkersAndPosition(canLoadOldData);
+        return;
+      }
+
+      await fetchAndSaveNewPdf('initial_' + Date.now(), canLoadOldData);
+    }
+
+    async function fetchAndSaveNewPdf(fileTag, canLoadOldData = true) {
+      statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
+      try {
+        const res = await fetchWithProgress('./scripture.pdf?t=' + Date.now(), (pct, cur, total) => {
+          const curMb = (cur / (1024 * 1024)).toFixed(1);
+          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
+          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
+          pdfProgressFill.style.width = `${pct}%`;
+        });
+
+        cachedRawBuffer = res.buffer;
+        const tag = res.tag || fileTag;
+        currentActiveFileTag = tag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
+        await saveRecordToCache(res.buffer, tag);
+        await parseAndRenderPdfData(new Uint8Array(res.buffer));
+        restoreSessionMarkersAndPosition(canLoadOldData);
+      } catch (e) {
+        const fallback = await getCachedRecord();
+        if (fallback && fallback.buffer) {
+          cachedRawBuffer = fallback.buffer;
+          currentActiveFileTag = fallback.tag || 'fallback';
+          await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
+          restoreSessionMarkersAndPosition(canLoadOldData);
+        } else {
+          statusTitle.textContent = '📖 請挑選經文檔案';
+          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
+          btnManualPick.style.display = 'inline-block';
+        }
+      }
+    }
+
+    btnManualPick.addEventListener('click', () => {
+      filePdfInput.value = '';
+      filePdfInput.click();
+    });
+
+    filePdfInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      statusTitle.textContent = '📖 正在載入經文...';
+      btnManualPick.style.display = 'none';
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        cachedRawBuffer = arrayBuffer;
+        const tag = 'manual_' + file.lastModified;
+        currentActiveFileTag = tag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
+        await saveRecordToCache(arrayBuffer, tag);
+        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
+        restoreSessionMarkersAndPosition(false);
+      } catch (err) {
+        alert('經文解析失敗：' + err.message);
+        btnManualPick.style.display = 'inline-block';
+      }
+    });
+
+    async function parseAndRenderPdfData(typedarray) {
+      statusCard.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
+
+      const loadingTask = pdfjsLib.getDocument({
+        data: typedarray,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+        cMapPacked: true
+      });
+
+      currentPdfDoc = await loadingTask.promise;
+      const page = await currentPdfDoc.getPage(1);
+
+      const availableWidth = centerCore.clientWidth || (window.innerWidth - 160);
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+      const pageScale = availableWidth / unscaledViewport.width;
+      const viewport = page.getViewport({ scale: pageScale });
+
+      pdfCanvas.width = viewport.width;
+      pdfCanvas.height = viewport.height;
+      const ctx = pdfCanvas.getContext('2d');
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: viewport
+      }).promise;
+
+      const textContent = await page.getTextContent();
+      const items = textContent.items;
+
+      const validSpans = [];
+
+      items.forEach(it => {
+        const str = it.str.trim();
+        if (!str || /^[\d\.\s\(\)\[\]、\-]+\$/.test(str)) return;
+        if (/^[，。、；！？.]\$/.test(str)) return;
+
+        const tx = it.transform;
+        const pdfX = tx[4];
+        const pdfY = tx[5];
+
+        const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
+        const fontWidth = it.width * pageScale;
+
+        const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
+        const screenX0 = p0[0];
+
+        const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
+        const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+
+        const realTop = Math.min(p0[1], pTop[1]);
+        const realBottom = Math.max(p0[1], pTop[1]);
+
+        validSpans.push({
+          x0: screenX0,
+          x1: screenX0 + fontWidth,
+          w: fontWidth,
+          topY: realTop,
+          bottomY: realBottom,
+          fs: fontScale,
+          str: str
+        });
+      });
+
+      validSpans.sort((a, b) => a.topY - b.topY);
+      const rowGroups = [];
+
+      validSpans.forEach(span => {
+        let matched = false;
+        for (let g of rowGroups) {
+          if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
+            g.spans.push(span);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          rowGroups.push({ topY: span.topY, spans: [span] });
+        }
+      });
+
+      parsedTextLines = [];
+      let internalIndex = 0;
+
+      rowGroups.forEach(g => {
+        g.spans.sort((a, b) => a.x0 - b.x0);
+
+        const firstSpan = g.spans[0];
+        const lastSpan = g.spans[g.spans.length - 1];
+
+        const lineX0 = firstSpan.x0;
+        const lineX1 = lastSpan.x1;
+
+        const minTop = Math.min(...g.spans.map(s => s.topY));
+        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
+
+        const totalChars = g.spans.reduce((acc, s) => acc + s.str.length, 0);
+        const singleCharW = (lineX1 - lineX0) / Math.max(1, totalChars);
+
+        const underLineY = maxBottom + 3;
+
+        if ((lineX1 - lineX0) >= 80) {
+          parsedTextLines.push({
+            lineIndex: internalIndex++,
+            x0: lineX0,
+            x1: lineX1,
+            singleCharW: singleCharW,
+            topGlobal: minTop,
+            bottomGlobal: maxBottom,
+            underLineY: underLineY
+          });
+        }
+      });
+
+      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+      guideStage.style.height = `${viewport.height}px`;
+    }
 
     function restoreSessionMarkersAndPosition(canLoadOldData = true) {
       if (!canLoadOldData) {
@@ -1017,638 +1654,6 @@
         speedModal.style.display = 'none';
       }
     });
-
-    btnGuideToggle.addEventListener('click', async () => {
-      if (!isGuideActive) {
-        if (parsedTextLines.length === 0) {
-          alert("經文尚未載入完成，請稍候");
-          return;
-        }
-
-        isGuideActive = true;
-        isVoiceActive = false;
-
-        const isResuming = (btnGuideToggle.textContent === '再來');
-
-        if (!isResuming) {
-          spawnGoldCoinsAt(btnGuideToggle);
-          completedCycles = 0;
-          btnRepeatCount.textContent = `${totalTargetCycles}次`;
-          currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
-          currentLineProgress = 0.0;
-        } else {
-          if (currentLineIndex < (markA_Index !== -1 ? markA_Index : 0)) {
-            currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
-            currentLineProgress = 0.0;
-          }
-        }
-
-        hasEverStarted = true;
-
-        btnGuideToggle.textContent = '等待中';
-        btnGuideToggle.classList.remove('guide-active');
-        btnGuideToggle.classList.add('guide-waiting');
-
-        startGuideRunner();
-
-        startVoiceActivityDetection();
-        triggerLandscapeLock();
-      } else {
-        haltGuideRunnerImmediately();
-      }
-    });
-
-    async function startVoiceActivityDetection() {
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("此環境不支援 getUserMedia");
-        }
-
-        if (!micStream) {
-          micStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: false
-            }
-          });
-        }
-
-        if (!audioContext) {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          audioContext = new AudioContextClass();
-        }
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-
-        const source = audioContext.createMediaStreamSource(micStream);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.1;
-        source.connect(analyser);
-
-        lastVoiceDetectedTime = 0;
-        startVadMonitorLoop();
-      } catch (err) {
-        console.warn("麥克風存取失敗，轉為自動模式:", err);
-        isVoiceActive = true;
-        btnGuideToggle.textContent = '背誦中';
-        btnGuideToggle.classList.remove('guide-waiting');
-        btnGuideToggle.classList.add('guide-active');
-      }
-    }
-
-    function startVadMonitorLoop() {
-      if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
-
-      const bufferLength = analyser ? analyser.frequencyBinCount : 0;
-      const dataArray = new Float32Array(bufferLength);
-
-      function checkVolume() {
-        if (!isGuideActive) return;
-
-        if (analyser) {
-          analyser.getFloatTimeDomainData(dataArray);
-
-          let sumSquares = 0.0;
-          for (let i = 0; i < bufferLength; i++) {
-            const val = dataArray[i];
-            sumSquares += val * val;
-          }
-          const rms = Math.sqrt(sumSquares / bufferLength);
-          const now = performance.now();
-
-          if (rms > VOICE_THRESHOLD) {
-            lastVoiceDetectedTime = now;
-            if (!isVoiceActive) {
-              isVoiceActive = true;
-              btnGuideToggle.textContent = '背誦中';
-              btnGuideToggle.classList.remove('guide-waiting');
-              btnGuideToggle.classList.add('guide-active');
-              lastAnimTimestamp = performance.now();
-            }
-          } else {
-            if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
-              isVoiceActive = false;
-              btnGuideToggle.textContent = '等待中';
-              btnGuideToggle.classList.remove('guide-active');
-              btnGuideToggle.classList.add('guide-waiting');
-              saveCurrentProgress();
-            }
-          }
-        }
-
-        vadCheckTimer = requestAnimationFrame(checkVolume);
-      }
-
-      vadCheckTimer = requestAnimationFrame(checkVolume);
-    }
-
-    function stopVoiceActivityDetection() {
-      if (vadCheckTimer) {
-        cancelAnimationFrame(vadCheckTimer);
-        vadCheckTimer = null;
-      }
-      if (micStream) {
-        micStream.getTracks().forEach(track => track.stop());
-        micStream = null;
-      }
-      if (audioContext && audioContext.state !== 'closed') {
-        try { audioContext.close(); } catch(e) {}
-        audioContext = null;
-      }
-      analyser = null;
-      isVoiceActive = false;
-    }
-
-    function startGuideRunner() {
-      if (parsedTextLines.length === 0) return;
-
-      guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
-
-      scrollToAlignTop(currentLineIndex);
-      setupActiveLine(currentLineIndex, currentLineProgress);
-
-      lastAnimTimestamp = performance.now();
-      if (guideAnimId) cancelAnimationFrame(guideAnimId);
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function scrollToAlignTop(idx) {
-      const line = parsedTextLines[idx];
-      if (line) {
-        centerCore.scrollTop = Math.max(0, line.topGlobal - 16);
-      }
-    }
-
-    function setupActiveLine(idx, initialProgress = 0.0) {
-      if (idx >= parsedTextLines.length) {
-        handleCycleCompletion();
-        return;
-      }
-
-      const line = parsedTextLines[idx];
-      const lineLen = Math.max(line.x1 - line.x0, 60);
-
-      lineDuration = (lineLen / (90 * currentSpeed)) * 1000;
-      currentLineProgress = initialProgress;
-
-      const lineY = line.underLineY;
-
-      if (isGuideActive) {
-        guideLine.style.top = `${lineY}px`;
-        guideLine.style.left = `${line.x0}px`;
-        guideLine.style.width = `${lineLen}px`;
-        guideLine.style.display = 'block';
-
-        const startX = line.x0 + (line.singleCharW / 2);
-        const endX = line.x1 - (line.singleCharW / 2);
-        const curX = startX + (endX - startX) * currentLineProgress;
-
-        redDot.style.top = `${lineY}px`;
-        redDot.style.left = `${curX}px`;
-        redDot.style.display = 'block';
-      }
-
-      isTransitioningLine = false;
-    }
-
-    function stepGuideMovement(now) {
-      if (!isGuideActive || isTransitioningLine) return;
-
-      const delta = now - lastAnimTimestamp;
-      lastAnimTimestamp = now;
-
-      if (!isVoiceActive) {
-        guideAnimId = requestAnimationFrame(stepGuideMovement);
-        return;
-      }
-
-      currentLineProgress += (delta / lineDuration);
-
-      if (currentLineProgress >= 1.0) {
-        currentLineProgress = 1.0;
-
-        const curLine = parsedTextLines[currentLineIndex];
-        if (curLine) {
-          const endX = curLine.x1 - (curLine.singleCharW / 2);
-          redDot.style.left = `${endX}px`;
-          redDot.style.top = `${curLine.underLineY}px`;
-        }
-
-        if (guideAnimId) {
-          cancelAnimationFrame(guideAnimId);
-          guideAnimId = null;
-        }
-
-        if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
-          handleCycleCompletion();
-          return;
-        }
-
-        const nextIndex = currentLineIndex + 1;
-        if (nextIndex >= parsedTextLines.length) {
-          handleCycleCompletion();
-          return;
-        }
-
-        isTransitioningLine = true;
-        guideLine.style.display = 'none';
-
-        setTimeout(() => {
-          if (!isGuideActive) return;
-
-          const nextLine = parsedTextLines[nextIndex];
-          const screenBottom = centerCore.scrollTop + centerCore.clientHeight;
-
-          if (nextLine && nextLine.underLineY > screenBottom - 8) {
-            scrollToAlignTop(nextIndex);
-          }
-
-          currentLineIndex = nextIndex;
-          currentLineProgress = 0.0;
-          setupActiveLine(currentLineIndex, 0.0);
-
-          lastAnimTimestamp = performance.now();
-          guideAnimId = requestAnimationFrame(stepGuideMovement);
-        }, 180);
-
-        return;
-      }
-
-      const line = parsedTextLines[currentLineIndex];
-      if (line) {
-        const startX = line.x0 + (line.singleCharW / 2);
-        const endX = line.x1 - (line.singleCharW / 2);
-        const curX = startX + (endX - startX) * currentLineProgress;
-
-        redDot.style.left = `${curX}px`;
-        redDot.style.top = `${line.underLineY}px`;
-      }
-
-      saveCurrentProgress();
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function handleCycleCompletion() {
-      completedCycles += 1;
-      const remain = Math.max(0, totalTargetCycles - completedCycles);
-      btnRepeatCount.textContent = `${remain}次`;
-
-      if (completedCycles >= totalTargetCycles) {
-        finishAndStopPermanently();
-        return;
-      }
-
-      saveCurrentProgress();
-
-      isTransitioningLine = true;
-      guideLine.style.display = 'none';
-
-      if (guideAnimId) {
-        cancelAnimationFrame(guideAnimId);
-        guideAnimId = null;
-      }
-
-      setTimeout(() => {
-        if (!isGuideActive) return;
-
-        currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
-        currentLineProgress = 0.0;
-        scrollToAlignTop(currentLineIndex);
-        setupActiveLine(currentLineIndex, 0.0);
-        lastAnimTimestamp = performance.now();
-        guideAnimId = requestAnimationFrame(stepGuideMovement);
-      }, 2000);
-    }
-
-    function finishAndStopPermanently() {
-      if (guideAnimId) cancelAnimationFrame(guideAnimId);
-      guideAnimId = null;
-      isGuideActive = false;
-      isTransitioningLine = false;
-
-      stopVoiceActivityDetection();
-
-      markALine.style.display = 'none';
-      markBLine.style.display = 'none';
-      guideLine.style.display = 'none';
-      redDot.style.display = 'none';
-      btnMarkA.classList.remove('active-mark');
-      btnMarkB.classList.remove('active-mark');
-
-      markA_Index = -1;
-      markB_Index = -1;
-      hasEverStarted = false;
-      completedCycles = 0;
-      currentLineIndex = 0;
-      currentLineProgress = 0.0;
-
-      btnGuideToggle.textContent = '背書';
-      btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
-      btnRepeatCount.textContent = `${totalTargetCycles}次`;
-
-      try {
-        localStorage.removeItem(APP_CONFIG_KEY);
-      } catch (e) {}
-    }
-
-    function haltGuideRunnerImmediately() {
-      if (guideAnimId) cancelAnimationFrame(guideAnimId);
-      guideAnimId = null;
-      isGuideActive = false;
-      isTransitioningLine = false;
-
-      stopVoiceActivityDetection();
-
-      guideLine.style.display = 'none';
-      redDot.style.display = 'none';
-
-      updateVisualDisplay();
-      saveCurrentProgress();
-    }
-
-    function spawnGoldCoinsAt(targetElement) {
-      const rect = targetElement.getBoundingClientRect();
-      const originX = rect.left + rect.width / 2;
-      const originY = rect.top + rect.height / 2;
-
-      for (let i = 0; i < 14; i++) {
-        const coin = document.createElement('div');
-        coin.className = 'gold-coin';
-        coin.textContent = '🪙';
-        coin.style.left = `${originX}px`;
-        coin.style.top = `${originY}px`;
-
-        const angle = (i / 14) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
-        const distance = 70 + Math.random() * 60;
-        const dx = Math.cos(angle) * distance;
-        const dy = Math.sin(angle) * distance - 10;
-        const rot = (Math.random() * 360 - 180) + 'deg';
-
-        coin.style.setProperty('--dx', `${dx}px`);
-        coin.style.setProperty('--dy', `${dy}px`);
-        coin.style.setProperty('--rot', rot);
-
-        document.body.appendChild(coin);
-        setTimeout(() => {
-          if (coin.parentNode) coin.parentNode.removeChild(coin);
-        }, 900);
-      }
-    }
-
-    const DB_NAME = 'HappyReciteDB_Clean_v67';
-    const STORE_NAME = 'pdf_store';
-    const PDF_KEY = 'saved_scripture';
-
-    function openDatabase() {
-      return new Promise((resolve, reject) => {
-        try {
-          const req = indexedDB.open(DB_NAME, 1);
-          req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-              db.createObjectStore(STORE_NAME);
-            }
-          };
-          req.onsuccess = () => resolve(req.result);
-          req.onerror = () => reject(req.error);
-        } catch (e) {
-          reject(e);
-        }
-      });
-    }
-
-    async function getCachedRecord() {
-      try {
-        const db = await openDatabase();
-        return new Promise((resolve) => {
-          const tx = db.transaction(STORE_NAME, 'readonly');
-          const store = tx.objectStore(STORE_NAME);
-          const req = store.get(PDF_KEY);
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror = () => resolve(null);
-        });
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function saveRecordToCache(arrayBuffer, fileTag) {
-      try {
-        const db = await openDatabase();
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        store.put({ buffer: arrayBuffer, tag: fileTag }, PDF_KEY);
-      } catch (e) {}
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const canLoadOldData = verifyVersionAndCleanState();
-      initUserPreferences();
-      loadScriptureWithSmartAutoUpdate(canLoadOldData);
-    });
-
-    async function loadScriptureWithSmartAutoUpdate(canLoadOldData = true) {
-      statusCard.style.display = 'block';
-      pdfContainerWrap.style.display = 'none';
-
-      appProgressFill.style.width = '100%';
-      appProgressVal.textContent = '100% (已載入)';
-
-      const cached = await getCachedRecord();
-      const localBuffer = cached ? (cached.buffer || cached) : null;
-      const localTag = cached ? cached.tag : null;
-
-      if (localBuffer) {
-        cachedRawBuffer = localBuffer;
-        currentActiveFileTag = localTag || 'local';
-        pdfProgressFill.style.width = '100%';
-        pdfProgressVal.textContent = '100% (本地快取)';
-        statusTitle.textContent = '📖 正在渲染經文...';
-
-        await parseAndRenderPdfData(new Uint8Array(localBuffer));
-        restoreSessionMarkersAndPosition(canLoadOldData);
-        return;
-      }
-
-      await fetchAndSaveNewPdf('initial_' + Date.now(), canLoadOldData);
-    }
-
-    async function fetchAndSaveNewPdf(fileTag, canLoadOldData = true) {
-      statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
-      try {
-        const res = await fetchWithProgress('./scripture.pdf?t=' + Date.now(), (pct, cur, total) => {
-          const curMb = (cur / (1024 * 1024)).toFixed(1);
-          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
-          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
-          pdfProgressFill.style.width = `${pct}%`;
-        });
-
-        cachedRawBuffer = res.buffer;
-        currentActiveFileTag = res.lastModified || fileTag;
-        await saveRecordToCache(res.buffer, currentActiveFileTag);
-        await parseAndRenderPdfData(new Uint8Array(res.buffer));
-        restoreSessionMarkersAndPosition(canLoadOldData);
-      } catch (e) {
-        const fallback = await getCachedRecord();
-        if (fallback && fallback.buffer) {
-          cachedRawBuffer = fallback.buffer;
-          currentActiveFileTag = fallback.tag || 'fallback';
-          await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
-          restoreSessionMarkersAndPosition(canLoadOldData);
-        } else {
-          statusTitle.textContent = '📖 請挑選經文檔案';
-          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
-          btnManualPick.style.display = 'inline-block';
-        }
-      }
-    }
-
-    btnManualPick.addEventListener('click', () => {
-      filePdfInput.value = '';
-      filePdfInput.click();
-    });
-
-    filePdfInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      statusTitle.textContent = '📖 正在載入經文...';
-      btnManualPick.style.display = 'none';
-
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        cachedRawBuffer = arrayBuffer;
-        const tag = 'manual_' + file.lastModified;
-        currentActiveFileTag = tag;
-        await saveRecordToCache(arrayBuffer, tag);
-        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
-        restoreSessionMarkersAndPosition(false);
-      } catch (err) {
-        alert('經文解析失敗：' + err.message);
-        btnManualPick.style.display = 'inline-block';
-      }
-    });
-
-    async function parseAndRenderPdfData(typedarray) {
-      statusCard.style.display = 'none';
-      pdfContainerWrap.style.display = 'flex';
-
-      const loadingTask = pdfjsLib.getDocument({
-        data: typedarray,
-        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
-        cMapPacked: true
-      });
-
-      currentPdfDoc = await loadingTask.promise;
-      const page = await currentPdfDoc.getPage(1);
-
-      const availableWidth = centerCore.clientWidth || (window.innerWidth - 160);
-      const unscaledViewport = page.getViewport({ scale: 1.0 });
-      const pageScale = availableWidth / unscaledViewport.width;
-      const viewport = page.getViewport({ scale: pageScale });
-
-      pdfCanvas.width = viewport.width;
-      pdfCanvas.height = viewport.height;
-      const ctx = pdfCanvas.getContext('2d');
-
-      await page.render({
-        canvasContext: ctx,
-        viewport: viewport
-      }).promise;
-
-      const textContent = await page.getTextContent();
-      const items = textContent.items;
-
-      const validSpans = [];
-
-      items.forEach(it => {
-        const str = it.str.trim();
-        if (!str || /^[\d\.\s\(\)\[\]、\-]+\$/.test(str)) return;
-        if (/^[，。、；！？.]\$/.test(str)) return;
-
-        const tx = it.transform;
-        const pdfX = tx[4];
-        const pdfY = tx[5];
-
-        const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
-        const fontWidth = it.width * pageScale;
-
-        const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
-        const screenX0 = p0[0];
-
-        const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
-        const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
-
-        const realTop = Math.min(p0[1], pTop[1]);
-        const realBottom = Math.max(p0[1], pTop[1]);
-
-        validSpans.push({
-          x0: screenX0,
-          x1: screenX0 + fontWidth,
-          w: fontWidth,
-          topY: realTop,
-          bottomY: realBottom,
-          fs: fontScale,
-          str: str
-        });
-      });
-
-      validSpans.sort((a, b) => a.topY - b.topY);
-      const rowGroups = [];
-
-      validSpans.forEach(span => {
-        let matched = false;
-        for (let g of rowGroups) {
-          if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
-            g.spans.push(span);
-            matched = true;
-            break;
-          }
-        }
-        if (!matched) {
-          rowGroups.push({ topY: span.topY, spans: [span] });
-        }
-      });
-
-      parsedTextLines = [];
-      let internalIndex = 0;
-
-      rowGroups.forEach(g => {
-        g.spans.sort((a, b) => a.x0 - b.x0);
-
-        const firstSpan = g.spans[0];
-        const lastSpan = g.spans[g.spans.length - 1];
-
-        const lineX0 = firstSpan.x0;
-        const lineX1 = lastSpan.x1;
-
-        const minTop = Math.min(...g.spans.map(s => s.topY));
-        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
-
-        const totalChars = g.spans.reduce((acc, s) => acc + s.str.length, 0);
-        const singleCharW = (lineX1 - lineX0) / Math.max(1, totalChars);
-
-        const underLineY = maxBottom + 3;
-
-        if ((lineX1 - lineX0) >= 80) {
-          parsedTextLines.push({
-            lineIndex: internalIndex++,
-            x0: lineX0,
-            x1: lineX1,
-            singleCharW: singleCharW,
-            topGlobal: minTop,
-            bottomGlobal: maxBottom,
-            underLineY: underLineY
-          });
-        }
-      });
-
-      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
-      guideStage.style.height = `${viewport.height}px`;
-    }
 
     let resizeTimer = null;
     window.addEventListener('resize', () => {
