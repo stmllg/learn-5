@@ -85,12 +85,14 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: min(16px, 5.2vh);
+      font-size: min(15px, 4.8vh);
       font-weight: 900;
       color: #FFFFFF;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
       transition: all 0.2s ease-out;
+      text-align: center;
+      line-height: 1.1;
     }
 
     .circle-btn:active {
@@ -125,7 +127,6 @@
       font-size: min(15px, 4.8vh);
     }
 
-    /* 背書按鈕樣式與呼吸動態效果 */
     #btn-guide-toggle {
       background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%);
       border-color: #FECACA;
@@ -148,8 +149,8 @@
         box-shadow: 0 0 10px rgba(34, 197, 94, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.4);
       }
       50% {
-        transform: scale(1.09);
-        box-shadow: 0 0 24px rgba(34, 197, 94, 0.95), inset 0 0 10px rgba(255, 255, 255, 0.8);
+        transform: scale(1.08);
+        box-shadow: 0 0 22px rgba(34, 197, 94, 0.95), inset 0 0 10px rgba(255, 255, 255, 0.8);
       }
       100% {
         transform: scale(1.0);
@@ -513,7 +514,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v74_adaptive_vad_breathing';
+    const APP_BUILD_VERSION = 'v77_perfect_visual_pacing';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -568,22 +569,16 @@
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
 
-    /* ----------------------------------------------------
-       自適應環境底噪 (Adaptive VAD) 與動態門檻核心
-    ---------------------------------------------------- */
     let audioContext = null;
     let analyser = null;
     let micStream = null;
     let vadCheckTimer = null;
     let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
-    const SILENCE_TIMEOUT_MS = 2000; // 靜止 2 秒凍結
+    const SILENCE_TIMEOUT_MS = 500; // 0.5 秒無聲即凍結
+    let dynamicThreshold = 0.005;
 
-    let baseNoiseLevel = 0.003;      // 環境底噪基準
-    let dynamicThreshold = 0.008;    // 自適應發聲門檻
-    let calibrationSamples = [];     // 校準取樣緩衝區
-    let isCalibrating = false;
-
+    // 語音提示：音量調小一格 (volume = 0.7)
     function speakPrompt(text) {
       try {
         if ('speechSynthesis' in window) {
@@ -591,6 +586,7 @@
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'zh-TW';
           utterance.rate = 1.1;
+          utterance.volume = 0.7;
           window.speechSynthesis.speak(utterance);
         }
       } catch (e) {}
@@ -724,9 +720,6 @@
       lineElement.style.display = 'block';
     }
 
-    /* ----------------------------------------------------
-       【帶有真實進度百分比的通用串流下載核心】
-    ---------------------------------------------------- */
     async function fetchWithProgress(url, onProgress) {
       const response = await fetch(url, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -769,9 +762,6 @@
       return { buffer: fullBytes.buffer, tag };
     }
 
-    /* ----------------------------------------------------
-       左3【更新】按鈕：雙軌日期比對 + 經文秒級還原 + 下載進度條
-    ---------------------------------------------------- */
     btnReload.addEventListener('click', async () => {
       haltGuideRunnerImmediately();
       statusCard.style.display = 'block';
@@ -780,7 +770,6 @@
       statusTitle.textContent = '🔄 檢查伺服器部署狀態...';
       statusDesc.textContent = '向 GitHub 查詢程式與經文最新標籤...';
 
-      // 1. 比對程式本體 (index.html)
       try {
         appProgressVal.textContent = '比對程式版本...';
         appProgressFill.style.width = '30%';
@@ -810,7 +799,6 @@
         appProgressFill.style.width = '100%';
       }
 
-      // 2. 比對經文檔案 (scripture.pdf)
       try {
         pdfProgressVal.textContent = '比對經文修改標籤...';
         pdfProgressFill.style.width = '30%';
@@ -980,6 +968,7 @@
       markB_Index = selectedB;
       updateVisualDisplay();
       saveCurrentProgress();
+      speakPrompt("終點設定完畢");
     });
 
     btnOffering.addEventListener('click', () => {});
@@ -1035,11 +1024,18 @@
       }
     });
 
-    /* ----------------------------------------------------
-       【背書開關按鈕】：點擊瞬間立即喚醒並啟動底噪校準
-    ---------------------------------------------------- */
     btnGuideToggle.addEventListener('click', async () => {
       triggerLandscapeLock();
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) {
+          audioContext = new AudioContextClass();
+        }
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+      } catch (e) {}
 
       if (!isGuideActive) {
         if (parsedTextLines.length === 0) return;
@@ -1047,7 +1043,7 @@
         isGuideActive = true;
         isVoiceActive = false;
 
-        const isResuming = (btnGuideToggle.textContent === '再來');
+        const isResuming = (btnGuideToggle.textContent.includes('再來'));
 
         if (!isResuming) {
           spawnGoldCoinsAt(btnGuideToggle);
@@ -1064,8 +1060,7 @@
 
         hasEverStarted = true;
 
-        // 初始狀態為黃色靜止
-        btnGuideToggle.textContent = '靜止';
+        btnGuideToggle.innerHTML = '靜止<br><span style="font-size:11px;">0.000</span>';
         btnGuideToggle.classList.remove('guide-active');
         btnGuideToggle.classList.add('guide-waiting');
 
@@ -1078,51 +1073,31 @@
 
     async function startVoiceActivityDetection() {
       try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) {
-          audioContext = new AudioContextClass();
-        }
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-
         if (!micStream) {
           micStream = await navigator.mediaDevices.getUserMedia({
             audio: {
-              echoCancellation: true,
+              echoCancellation: false,
               noiseSuppression: false,
               autoGainControl: true
             }
           });
         }
 
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
         const source = audioContext.createMediaStreamSource(micStream);
         analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.1;
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.05;
         source.connect(analyser);
-
-        // 啟動 0.4 秒自適應環境底噪校準
-        isCalibrating = true;
-        calibrationSamples = [];
-        setTimeout(() => {
-          if (calibrationSamples.length > 0) {
-            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
-            baseNoiseLevel = sum / calibrationSamples.length;
-            // 動態門檻：底噪 1.5 倍 + 固定偏移 0.004
-            dynamicThreshold = Math.max(0.006, baseNoiseLevel * 1.5 + 0.004);
-          }
-          isCalibrating = false;
-        }, 400);
 
         lastVoiceDetectedTime = 0;
         startVadMonitorLoop();
       } catch (err) {
         console.warn("麥克風無法啟動:", err);
-        isVoiceActive = false;
-        btnGuideToggle.textContent = '靜止';
-        btnGuideToggle.classList.remove('guide-active');
-        btnGuideToggle.classList.add('guide-waiting');
+        btnGuideToggle.innerHTML = '靜止<br><span style="font-size:11px;">無音訊</span>';
       }
     }
 
@@ -1146,30 +1121,26 @@
           const rms = Math.sqrt(sumSquares / bufferLength);
           const now = performance.now();
 
-          // 校準期記錄底噪
-          if (isCalibrating) {
-            calibrationSamples.push(rms);
-          }
-
-          // 【自適應判定】：高於動態門檻即判定出聲
           if (rms > dynamicThreshold) {
             lastVoiceDetectedTime = now;
             if (!isVoiceActive) {
               isVoiceActive = true;
-              // 進入綠色呼吸光暈律動
-              btnGuideToggle.textContent = '背誦中';
+              btnGuideToggle.innerHTML = `背誦中<br><span style="font-size:11px;">${rms.toFixed(3)}</span>`;
               btnGuideToggle.classList.remove('guide-waiting');
               btnGuideToggle.classList.add('guide-active');
               lastAnimTimestamp = performance.now();
+            } else {
+              btnGuideToggle.innerHTML = `背誦中<br><span style="font-size:11px;">${rms.toFixed(3)}</span>`;
             }
           } else {
-            // 超過 2 秒無聲音 -> 停止呼吸，定格靜止
             if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
               isVoiceActive = false;
-              btnGuideToggle.textContent = '靜止';
+              btnGuideToggle.innerHTML = `靜止<br><span style="font-size:11px;">${rms.toFixed(3)}</span>`;
               btnGuideToggle.classList.remove('guide-active');
               btnGuideToggle.classList.add('guide-waiting');
               saveCurrentProgress();
+            } else if (!isVoiceActive) {
+              btnGuideToggle.innerHTML = `靜止<br><span style="font-size:11px;">${rms.toFixed(3)}</span>`;
             }
           }
         }
@@ -1240,13 +1211,18 @@
       isTransitioningLine = false;
     }
 
+    /* ----------------------------------------------------
+       【動畫移動與提前翻頁機制】
+       最後一個字過一半 (progress >= 0.90) 即提前平滑滾動
+    ---------------------------------------------------- */
+    let hasPreScrolled = false;
+
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
 
       const delta = now - lastAnimTimestamp;
       lastAnimTimestamp = now;
 
-      // 無聲音時導引線原地定格
       if (!isVoiceActive) {
         guideAnimId = requestAnimationFrame(stepGuideMovement);
         return;
@@ -1254,6 +1230,21 @@
 
       currentLineProgress += (delta / lineDuration);
 
+      // 【核心亮點】：最後一個字過了一半 (0.90) 時，預先將下一行滾入視野
+      if (currentLineProgress >= 0.90 && !hasPreScrolled) {
+        const nextIndex = currentLineIndex + 1;
+        if (nextIndex < parsedTextLines.length) {
+          const nextLine = parsedTextLines[nextIndex];
+          const screenBottom = centerCore.scrollTop + centerCore.clientHeight;
+          // 若下一行接近或已超出螢幕下緣，提前平滑滾動
+          if (nextLine && nextLine.underLineY > screenBottom - 50) {
+            scrollToAlignTop(nextIndex);
+            hasPreScrolled = true;
+          }
+        }
+      }
+
+      // 整行結束換行
       if (currentLineProgress >= 1.0) {
         currentLineProgress = 1.0;
 
@@ -1286,19 +1277,13 @@
         setTimeout(() => {
           if (!isGuideActive) return;
 
-          const nextLine = parsedTextLines[nextIndex];
-          const screenBottom = centerCore.scrollTop + centerCore.clientHeight;
-
-          if (nextLine && nextLine.underLineY > screenBottom - 8) {
-            scrollToAlignTop(nextIndex);
-          }
-
+          hasPreScrolled = false; // 重設提前滾動標記
           currentLineIndex = nextIndex;
           currentLineProgress = 0.0;
           setupActiveLine(currentLineIndex, 0.0);
           lastAnimTimestamp = performance.now();
           guideAnimId = requestAnimationFrame(stepGuideMovement);
-        }, 180);
+        }, 160);
 
         return;
       }
@@ -1340,6 +1325,7 @@
       setTimeout(() => {
         if (!isGuideActive) return;
 
+        hasPreScrolled = false;
         currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
         currentLineProgress = 0.0;
         scrollToAlignTop(currentLineIndex);
@@ -1562,7 +1548,9 @@
     });
 
     /* ----------------------------------------------------
-       【文字物理幾何提取】：100% 採用原始 v57 算法
+       【文字物理幾何提取】：
+       1. 嚴格過濾純數字與標點（導引線只畫在經文漢字上）
+       2. 導引線下移 7px，不壓到文字底緣
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
@@ -1598,8 +1586,9 @@
 
       items.forEach(it => {
         const str = it.str.trim();
-        if (!str || /^[\d\.\s\(\)\[\]、\-]+\$/.test(str)) return;
-        if (/^[，。、；！？.]\$/.test(str)) return;
+        // 嚴格過濾純數字、純符號、純標點（不畫在頁碼或阿拉伯數字上）
+        if (!str) return;
+        if (/^[\d\.\s\(\)\[\]、\-:：,，。！？]+\$/.test(str)) return;
 
         const tx = it.transform;
         const pdfX = tx[4];
@@ -1663,7 +1652,8 @@
         const totalChars = g.spans.reduce((acc, s) => acc + s.str.length, 0);
         const singleCharW = (lineX1 - lineX0) / Math.max(1, totalChars);
 
-        const underLineY = maxBottom + 3;
+        // 【修改點】：下移 7px，導引線清晰不壓到字底
+        const underLineY = maxBottom + 7;
 
         if ((lineX1 - lineX0) >= 80) {
           parsedTextLines.push({
