@@ -113,20 +113,31 @@
       color: #78350F;
     }
 
+    #btn-reload {
+      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+      border-color: #BAE6FD;
+      font-size: min(15px, 4.8vh);
+    }
+
     #btn-fullscreen {
       background: linear-gradient(135deg, #475569 0%, #334155 100%);
       border-color: #94A3B8;
       font-size: min(15px, 4.8vh);
     }
 
-    #btn-record {
+    #btn-guide-toggle {
       background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%);
       border-color: #FECACA;
     }
-    #btn-record.recording-active {
+    #btn-guide-toggle.guide-active {
       background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
       border-color: #DCFCE7 !important;
       box-shadow: 0 0 16px rgba(34, 197, 94, 0.85) !important;
+    }
+    #btn-guide-toggle.guide-waiting {
+      background: radial-gradient(circle, #EAB308 0%, #CA8A04 100%) !important;
+      border-color: #FEF08A !important;
+      box-shadow: 0 0 16px rgba(234, 179, 8, 0.85) !important;
     }
 
     #btn-speed {
@@ -177,7 +188,6 @@
       display: block;
     }
 
-    /* 導引線：螢光綠，向上貼齊文字正下方 */
     #guide-line {
       position: absolute;
       height: 5px;
@@ -189,7 +199,6 @@
       display: none;
     }
 
-    /* 小紅點：18px，微透明 0.85 */
     #red-dot {
       position: absolute;
       width: min(18px, 5.5vh);
@@ -274,25 +283,34 @@
       height: auto !important;
     }
 
-    #repeat-modal {
+    .popup-modal {
       display: none;
       position: absolute;
       top: 50%;
       right: calc(84px + env(safe-area-inset-right));
       transform: translateY(-50%);
       background: rgba(30, 41, 59, 0.98);
-      border: 2px solid #6366F1;
       border-radius: 18px;
       padding: 12px;
       z-index: 100;
       box-shadow: 0 10px 30px rgba(0,0,0,0.8);
       flex-direction: column;
       gap: 8px;
+      max-height: 85vh;
+      overflow-y: auto;
     }
 
-    .repeat-option {
-      padding: 10px 20px;
-      font-size: 18px;
+    #repeat-modal {
+      border: 2px solid #6366F1;
+    }
+
+    #speed-modal {
+      border: 2px solid #0D9488;
+    }
+
+    .modal-option {
+      padding: 9px 18px;
+      font-size: 16px;
       font-weight: 800;
       color: #FFFFFF;
       background-color: #334155;
@@ -300,11 +318,17 @@
       border-radius: 10px;
       cursor: pointer;
       text-align: center;
+      white-space: nowrap;
     }
 
-    .repeat-option.active {
-      background: #6366F1;
+    .modal-option.active {
       color: #FFFFFF;
+    }
+    #repeat-modal .modal-option.active {
+      background: #6366F1;
+    }
+    #speed-modal .modal-option.active {
+      background: #0D9488;
     }
 
     .gold-coin {
@@ -344,7 +368,9 @@
       <div class="slot">
         <button class="circle-btn" id="btn-offering" aria-label="供養功德">供養</button>
       </div>
-      <div class="slot"></div>
+      <div class="slot">
+        <button class="circle-btn" id="btn-reload" aria-label="重新整理經文檔案">更新</button>
+      </div>
       <div class="slot">
         <button class="circle-btn" id="btn-fullscreen" aria-label="全螢幕切換">全</button>
       </div>
@@ -359,7 +385,7 @@
       </div>
 
       <div id="status-card">
-        <h2 id="status-title">📖 正在檢查經文版本...</h2>
+        <h2 id="status-title">📖 正在載入背誦經文...</h2>
         <p id="status-desc">讀取中，請稍候...</p>
         <button id="btn-manual-pick">📂 點此挑選經文檔案</button>
       </div>
@@ -370,10 +396,10 @@
 
     <div class="side-wing" id="right-wing">
       <div class="slot">
-        <button class="circle-btn" id="btn-record" aria-label="開始或停止錄音">錄音</button>
+        <button class="circle-btn" id="btn-guide-toggle" aria-label="背書導引開關">背書</button>
       </div>
       <div class="slot">
-        <button class="circle-btn" id="btn-speed" aria-label="調節語速">2.5x</button>
+        <button class="circle-btn" id="btn-speed" aria-label="調節語速">4.0x</button>
       </div>
       <div class="slot">
         <button class="circle-btn" id="btn-repeat-count" aria-label="循環次數">1次</button>
@@ -384,12 +410,26 @@
     </div>
   </div>
 
-  <div id="repeat-modal">
-    <button class="repeat-option active" data-count="1">1 次</button>
-    <button class="repeat-option" data-count="3">3 次</button>
-    <button class="repeat-option" data-count="5">5 次</button>
-    <button class="repeat-option" data-count="7">7 次</button>
-    <button class="repeat-option" data-count="10">10 次</button>
+  <div id="repeat-modal" class="popup-modal">
+    <button class="modal-option active" data-count="1">1 次</button>
+    <button class="modal-option" data-count="3">3 次</button>
+    <button class="modal-option" data-count="5">5 次</button>
+    <button class="modal-option" data-count="7">7 次</button>
+    <button class="modal-option" data-count="10">10 次</button>
+  </div>
+
+  <div id="speed-modal" class="popup-modal">
+    <button class="modal-option" data-speed="0.5">0.5x</button>
+    <button class="modal-option" data-speed="0.8">0.8x</button>
+    <button class="modal-option" data-speed="1.0">1.0x</button>
+    <button class="modal-option" data-speed="1.2">1.2x</button>
+    <button class="modal-option" data-speed="1.5">1.5x</button>
+    <button class="modal-option" data-speed="1.8">1.8x</button>
+    <button class="modal-option" data-speed="2.0">2.0x</button>
+    <button class="modal-option" data-speed="2.5">2.5x</button>
+    <button class="modal-option" data-speed="3.0">3.0x</button>
+    <button class="modal-option" data-speed="3.5">3.5x</button>
+    <button class="modal-option active" data-speed="4.0">4.0x</button>
   </div>
 
   <input type="file" id="file-pdf-input" accept=".pdf,.PDF,application/pdf">
@@ -399,9 +439,9 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_CONFIG_KEY = 'happy_recite_settings_v32';
-    const SPEED_LEVELS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2.0, 2.2, 2.5];
-    let currentSpeedIndex = 15; // 預設 2.5x
+    const APP_CONFIG_KEY = 'happy_recite_state_v44';
+    const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
+    let currentSpeed = 4.0;
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -420,26 +460,55 @@
 
     const btnMarkA = document.getElementById('btn-mark-a');
     const btnOffering = document.getElementById('btn-offering');
+    const btnReload = document.getElementById('btn-reload');
     const btnFullscreen = document.getElementById('btn-fullscreen');
-    const btnRecord = document.getElementById('btn-record');
+    const btnGuideToggle = document.getElementById('btn-guide-toggle');
     const btnSpeed = document.getElementById('btn-speed');
     const btnRepeatCount = document.getElementById('btn-repeat-count');
     const btnMarkB = document.getElementById('btn-mark-b');
     const repeatModal = document.getElementById('repeat-modal');
+    const speedModal = document.getElementById('speed-modal');
 
     let currentPdfDoc = null;
+    let cachedRawBuffer = null;
     let pageScale = 1.0;
     let parsedTextLines = [];
-
-    let mediaRecorder = null;
-    let cachedStream = null;
-    let recordedAudioChunks = [];
-    let isRecording = false;
+    let currentActiveFileTag = '';
 
     let markA_Index = -1;
     let markB_Index = -1;
     let totalTargetCycles = 1;
-    let currentRemainingCycles = 1;
+    let completedCycles = 0;
+
+    let guideAnimId = null;
+    let isGuideActive = false;
+    let currentLineIndex = 0;
+    let currentLineProgress = 0.0;
+    let lineDuration = 3200;
+    let lastAnimTimestamp = 0;
+    let isTransitioningLine = false;
+
+    // VAD 聲音活性偵測
+    let audioContext = null;
+    let analyser = null;
+    let micStream = null;
+    let vadCheckTimer = null;
+    let lastVoiceDetectedTime = 0;
+    let isVoiceActive = false;
+    const SILENCE_TIMEOUT_MS = 2000;
+    const VOICE_THRESHOLD = 0.038;
+
+    function speakPrompt(text) {
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'zh-TW';
+          utterance.rate = 1.1;
+          window.speechSynthesis.speak(utterance);
+        }
+      } catch (e) {}
+    }
 
     async function triggerLandscapeLock() {
       try {
@@ -471,7 +540,7 @@
       btnFullscreen.textContent = document.fullscreenElement ? '退' : '全';
     });
 
-    function loadUserSettings() {
+    function loadSavedProgress() {
       try {
         const raw = localStorage.getItem(APP_CONFIG_KEY);
         return raw ? JSON.parse(raw) : {};
@@ -480,115 +549,292 @@
       }
     }
 
-    function saveUserSettings(patch) {
+    function saveCurrentProgress(patch = {}) {
       try {
-        const current = loadUserSettings();
-        const updated = Object.assign({}, current, patch);
+        const current = loadSavedProgress();
+        const updated = Object.assign({}, current, {
+          fileTag: currentActiveFileTag,
+          speed: currentSpeed,
+          targetCycles: totalTargetCycles,
+          completedCycles: completedCycles,
+          markA_Index: markA_Index,
+          markB_Index: markB_Index,
+          currentLineIndex: currentLineIndex,
+          currentLineProgress: currentLineProgress,
+          scrollTop: centerCore.scrollTop
+        }, patch);
         localStorage.setItem(APP_CONFIG_KEY, JSON.stringify(updated));
       } catch (e) {}
     }
 
     function initUserPreferences() {
-      const config = loadUserSettings();
+      const config = loadSavedProgress();
       if (config.speed) {
-        const idx = SPEED_LEVELS.indexOf(parseFloat(config.speed));
-        if (idx !== -1) currentSpeedIndex = idx;
+        const val = parseFloat(config.speed);
+        if (SPEED_LEVELS.includes(val)) currentSpeed = val;
       }
-      btnSpeed.textContent = `${SPEED_LEVELS[currentSpeedIndex].toFixed(1)}x`;
+      btnSpeed.textContent = `${currentSpeed.toFixed(1)}x`;
+      updateSpeedModalUI();
 
-      if (config.repeatCount) {
-        totalTargetCycles = parseInt(config.repeatCount, 10);
-        currentRemainingCycles = totalTargetCycles;
-        btnRepeatCount.textContent = `${totalTargetCycles}次`;
-        document.querySelectorAll('.repeat-option').forEach(btn => {
+      if (config.targetCycles) {
+        totalTargetCycles = parseInt(config.targetCycles, 10);
+        completedCycles = (typeof config.completedCycles === 'number') ? config.completedCycles : 0;
+        const remain = Math.max(0, totalTargetCycles - completedCycles);
+        btnRepeatCount.textContent = `${remain}次`;
+        document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
           btn.classList.toggle('active', btn.dataset.count === String(totalTargetCycles));
         });
       }
     }
 
-    function getLineAtTopSight() {
-      if (parsedTextLines.length === 0) return 0;
-      const sTop = centerCore.scrollTop;
-
-      for (let i = 0; i < parsedTextLines.length; i++) {
-        const line = parsedTextLines[i];
-        if (line.underLineY >= sTop + 10) {
-          return i;
-        }
-      }
-      return 0;
+    function updateSpeedModalUI() {
+      document.querySelectorAll('#speed-modal .modal-option').forEach(b => {
+        b.classList.toggle('active', parseFloat(b.dataset.speed) === currentSpeed);
+      });
     }
 
-    function getLineAtBottomSight() {
-      if (parsedTextLines.length === 0) return 0;
-      const sBottom = centerCore.scrollTop + centerCore.clientHeight;
+    /* ----------------------------------------------------
+       左3【更新】按鈕：嚴格二分法
+       - 有起止線 -> 必定是「再來」
+       - 無起止線 -> 必定是「背書」
+    ---------------------------------------------------- */
+    btnReload.addEventListener('click', async () => {
+      haltGuideRunnerImmediately();
+      statusCard.style.display = 'block';
+      pdfContainerWrap.style.display = 'none';
 
-      for (let i = parsedTextLines.length - 1; i >= 0; i--) {
-        const line = parsedTextLines[i];
-        if (line.topGlobal <= sBottom - 16) {
-          return i;
+      const config = loadSavedProgress();
+      const hasDefinedMarkers = (typeof config.markA_Index === 'number' && config.markA_Index !== -1);
+      const isCyclesCompleted = (typeof config.completedCycles === 'number') && 
+                                (config.completedCycles >= (config.targetCycles || totalTargetCycles));
+
+      // 若未設起止，或遍數已圓滿 -> 判定為全新/歸零（無起止線 + 按鈕「背書」）
+      if (!hasDefinedMarkers || isCyclesCompleted) {
+        statusTitle.textContent = '🔄 清空標線，全新背書就緒...';
+        markA_Index = -1;
+        markB_Index = -1;
+        currentLineIndex = 0;
+        currentLineProgress = 0.0;
+        completedCycles = 0;
+        btnMarkA.classList.remove('active-mark');
+        btnMarkB.classList.remove('active-mark');
+        markALine.style.display = 'none';
+        markBLine.style.display = 'none';
+        btnGuideToggle.textContent = '背書';
+        saveCurrentProgress({
+          markA_Index: -1,
+          markB_Index: -1,
+          currentLineIndex: 0,
+          currentLineProgress: 0.0,
+          completedCycles: 0
+        });
+      } else {
+        // 有起止線且未圓滿 -> 判定為中斷接續（保留起止線 + 按鈕「再來」）
+        statusTitle.textContent = '🔄 恢復中斷進度，準備接續...';
+        btnGuideToggle.textContent = '再來';
+      }
+
+      statusDesc.textContent = '檢查最新經文檔案...';
+
+      try {
+        const res = await fetch('./scripture.pdf?force=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const buffer = await res.arrayBuffer();
+          const newTag = 'manual_refresh_' + Date.now();
+          cachedRawBuffer = buffer;
+          currentActiveFileTag = newTag;
+          await saveRecordToCache(buffer, newTag);
+          await parseAndRenderPdfData(new Uint8Array(buffer));
+          restoreSessionMarkersAndPosition(true);
+          return;
+        }
+      } catch (e) {}
+
+      loadScriptureWithSmartAutoUpdate();
+    });
+
+    /* ----------------------------------------------------
+       恢復進度：徹底解決狀態矛盾
+       - 有起止標線：按鈕必定是「再來」
+       - 無起止標線：標線全隱藏，按鈕必定是「背書」
+    ---------------------------------------------------- */
+    function restoreSessionMarkersAndPosition(isManualReload = false) {
+      const config = loadSavedProgress();
+
+      const hasA = (typeof config.markA_Index === 'number' && config.markA_Index !== -1 && parsedTextLines[config.markA_Index]);
+      const hasB = (typeof config.markB_Index === 'number' && config.markB_Index !== -1 && parsedTextLines[config.markB_Index]);
+
+      completedCycles = (typeof config.completedCycles === 'number') ? config.completedCycles : 0;
+      const isFinishedAll = (completedCycles >= totalTargetCycles);
+
+      if (hasA && !isFinishedAll) {
+        // 【狀態 1】：有起止標線 -> 絕不顯示「背書」，必定顯示「再來」！
+        markA_Index = config.markA_Index;
+        btnMarkA.classList.add('active-mark');
+        renderMarkerLine(markALine, parsedTextLines[markA_Index]);
+
+        if (hasB) {
+          markB_Index = config.markB_Index;
+          btnMarkB.classList.add('active-mark');
+          renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
+        } else {
+          markB_Index = -1;
+          btnMarkB.classList.remove('active-mark');
+          markBLine.style.display = 'none';
+        }
+
+        // 游標嚴格限制在起止區間之內
+        let targetLine = markA_Index;
+        if (typeof config.currentLineIndex === 'number' && parsedTextLines[config.currentLineIndex]) {
+          targetLine = config.currentLineIndex;
+        }
+        if (targetLine < markA_Index) targetLine = markA_Index;
+        if (markB_Index !== -1 && targetLine > markB_Index) targetLine = markA_Index;
+
+        currentLineIndex = targetLine;
+        currentLineProgress = (typeof config.currentLineProgress === 'number' && !isManualReload) ? config.currentLineProgress : 0.0;
+
+        btnGuideToggle.textContent = '再來'; // 強制鎖定為「再來」
+      } else {
+        // 【狀態 2】：全新或已圓滿 -> 絕不出現起止兩線，起止標線全部隱藏清空！
+        markA_Index = -1;
+        markB_Index = -1;
+        btnMarkA.classList.remove('active-mark');
+        btnMarkB.classList.remove('active-mark');
+        markALine.style.display = 'none';
+        markBLine.style.display = 'none';
+
+        currentLineIndex = 0;
+        currentLineProgress = 0.0;
+        completedCycles = 0;
+
+        btnGuideToggle.textContent = '背書'; // 強制鎖定為「背書」
+      }
+
+      const remain = Math.max(0, totalTargetCycles - completedCycles);
+      btnRepeatCount.textContent = `${remain}次`;
+
+      if (typeof config.scrollTop === 'number' && !isManualReload && markA_Index !== -1) {
+        centerCore.scrollTop = config.scrollTop;
+      } else {
+        scrollToAlignTop(currentLineIndex);
+      }
+
+      setupActiveLine(currentLineIndex, currentLineProgress);
+      saveCurrentProgress();
+    }
+
+    /* ----------------------------------------------------
+       起、止判定點（以圓鈕下邊緣為準）
+    ---------------------------------------------------- */
+    function renderMarkerLine(lineElement, lineObj) {
+      if (!lineObj) return;
+      lineElement.style.top = `${lineObj.underLineY}px`;
+      lineElement.style.left = `${lineObj.x0}px`;
+      lineElement.style.width = `${lineObj.x1 - lineObj.x0}px`;
+      lineElement.style.display = 'block';
+    }
+
+    function getLineAtButtonBottom(buttonElement) {
+      if (parsedTextLines.length === 0) return 0;
+
+      const btnRect = buttonElement.getBoundingClientRect();
+      const centerRect = centerCore.getBoundingClientRect();
+      const buttonBottomViewportY = btnRect.bottom - centerRect.top;
+      const targetAbsoluteY = centerCore.scrollTop + buttonBottomViewportY;
+
+      let closestIdx = 0;
+      let minDiff = Infinity;
+
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const lineY = parsedTextLines[i].underLineY;
+        const diff = Math.abs(lineY - targetAbsoluteY);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = i;
         }
       }
-      return parsedTextLines.length - 1;
+      return closestIdx;
     }
 
     btnMarkA.addEventListener('click', () => {
       triggerLandscapeLock();
-      markA_Index = getLineAtTopSight();
+      markA_Index = getLineAtButtonBottom(btnMarkA);
       btnMarkA.classList.add('active-mark');
 
-      const line = parsedTextLines[markA_Index];
-      if (line) {
-        markALine.style.top = `${line.underLineY}px`;
-        markALine.style.left = `${line.x0}px`;
-        markALine.style.width = `${line.x1 - line.x0}px`;
-        markALine.style.display = 'block';
+      renderMarkerLine(markALine, parsedTextLines[markA_Index]);
+
+      if (markB_Index !== -1 && markA_Index > markB_Index) {
+        markB_Index = -1;
+        btnMarkB.classList.remove('active-mark');
+        markBLine.style.display = 'none';
       }
+
+      currentLineIndex = markA_Index;
+      currentLineProgress = 0.0;
+      completedCycles = 0;
+      btnGuideToggle.textContent = '背書';
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+      setupActiveLine(currentLineIndex, 0.0);
+
+      saveCurrentProgress();
+      speakPrompt("請設定終點");
     });
 
     btnMarkB.addEventListener('click', () => {
       triggerLandscapeLock();
-      markB_Index = getLineAtBottomSight();
+      const selectedB = getLineAtButtonBottom(btnMarkB);
 
-      if (markA_Index !== -1 && markB_Index < markA_Index) {
-        const temp = markA_Index;
-        markA_Index = markB_Index;
-        markB_Index = temp;
+      if (markA_Index !== -1 && selectedB < markA_Index) {
+        speakPrompt("終點不能在起點之前，請重新設定");
+        return;
       }
 
+      markB_Index = selectedB;
       btnMarkB.classList.add('active-mark');
 
-      const line = parsedTextLines[markB_Index];
-      if (line) {
-        markBLine.style.top = `${line.underLineY}px`;
-        markBLine.style.left = `${line.x0}px`;
-        markBLine.style.width = `${line.x1 - line.x0}px`;
-        markBLine.style.display = 'block';
-      }
+      renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
+      saveCurrentProgress();
     });
 
     btnOffering.addEventListener('click', () => {});
 
     btnSpeed.addEventListener('click', () => {
-      currentSpeedIndex = (currentSpeedIndex + 1) % SPEED_LEVELS.length;
-      const speedVal = SPEED_LEVELS[currentSpeedIndex];
-      btnSpeed.textContent = `${speedVal.toFixed(1)}x`;
-      saveUserSettings({ speed: speedVal });
+      const isVisible = speedModal.style.display === 'flex';
+      repeatModal.style.display = 'none';
+      speedModal.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentSpeed = parseFloat(btn.dataset.speed);
+        btnSpeed.textContent = `${currentSpeed.toFixed(1)}x`;
+        updateSpeedModalUI();
+        saveCurrentProgress();
+        speedModal.style.display = 'none';
+
+        if (parsedTextLines[currentLineIndex]) {
+          const line = parsedTextLines[currentLineIndex];
+          const lineLen = Math.max(line.x1 - line.x0, 60);
+          lineDuration = (lineLen / (90 * currentSpeed)) * 1000;
+        }
+      });
     });
 
     btnRepeatCount.addEventListener('click', () => {
       const isVisible = repeatModal.style.display === 'flex';
+      speedModal.style.display = 'none';
       repeatModal.style.display = isVisible ? 'none' : 'flex';
     });
 
-    document.querySelectorAll('.repeat-option').forEach(btn => {
+    document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
       btn.addEventListener('click', () => {
         totalTargetCycles = parseInt(btn.dataset.count, 10);
-        currentRemainingCycles = totalTargetCycles;
+        completedCycles = 0;
         btnRepeatCount.textContent = `${totalTargetCycles}次`;
-        document.querySelectorAll('.repeat-option').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        saveUserSettings({ repeatCount: totalTargetCycles });
+        saveCurrentProgress();
         repeatModal.style.display = 'none';
       });
     });
@@ -597,46 +843,153 @@
       if (!btnRepeatCount.contains(e.target) && !repeatModal.contains(e.target)) {
         repeatModal.style.display = 'none';
       }
+      if (!btnSpeed.contains(e.target) && !speedModal.contains(e.target)) {
+        speedModal.style.display = 'none';
+      }
     });
 
-    // 右1：錄音
-    btnRecord.addEventListener('click', () => {
+    /* ----------------------------------------------------
+       右1：背書導引開關（背書噴幣 / 再來不噴幣）
+    ---------------------------------------------------- */
+    btnGuideToggle.addEventListener('click', async () => {
       triggerLandscapeLock();
-      if (!isRecording) {
-        isRecording = true;
-        btnRecord.textContent = '停止';
-        btnRecord.classList.add('recording-active');
+      if (!isGuideActive) {
+        isGuideActive = true;
+        isVoiceActive = false;
 
-        spawnGoldCoinsAt(btnRecord);
+        const isResuming = (btnGuideToggle.textContent === '再來');
 
-        currentRemainingCycles = totalTargetCycles;
-        btnRepeatCount.textContent = `${currentRemainingCycles}次`;
+        if (!isResuming) {
+          spawnGoldCoinsAt(btnGuideToggle);
+          completedCycles = 0;
+          btnRepeatCount.textContent = `${totalTargetCycles}次`;
+          currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
+          currentLineProgress = 0.0;
+        }
 
+        btnGuideToggle.textContent = '背誦中';
+        btnGuideToggle.classList.remove('guide-waiting');
+        btnGuideToggle.classList.add('guide-active');
+
+        await startVoiceActivityDetection();
         startGuideRunner();
-        initiateAudioRecording();
       } else {
         haltGuideRunnerImmediately();
       }
     });
 
-    let guideAnimId = null;
-    let isGuideActive = false;
-    let currentLineIndex = 0;
-    let lineStartTime = 0;
-    let lineDuration = 3200;
-    let isTransitioningLine = false;
+    /* ----------------------------------------------------
+       VAD 聲音偵測
+    ---------------------------------------------------- */
+    async function startVoiceActivityDetection() {
+      try {
+        if (!audioContext) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          audioContext = new AudioContextClass();
+        }
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
 
+        if (!micStream) {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: false
+            }
+          });
+        }
+
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.1;
+        source.connect(analyser);
+
+        lastVoiceDetectedTime = 0;
+        startVadMonitorLoop();
+      } catch (err) {
+        alert("請允許麥克風權限以偵測背誦聲音");
+        haltGuideRunnerImmediately();
+      }
+    }
+
+    function startVadMonitorLoop() {
+      if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
+
+      const bufferLength = analyser ? analyser.frequencyBinCount : 0;
+      const dataArray = new Float32Array(bufferLength);
+
+      function checkVolume() {
+        if (!isGuideActive) return;
+
+        if (analyser) {
+          analyser.getFloatTimeDomainData(dataArray);
+
+          let sumSquares = 0.0;
+          for (let i = 0; i < bufferLength; i++) {
+            const val = dataArray[i];
+            sumSquares += val * val;
+          }
+          const rms = Math.sqrt(sumSquares / bufferLength);
+          const now = performance.now();
+
+          if (rms > VOICE_THRESHOLD) {
+            lastVoiceDetectedTime = now;
+            if (!isVoiceActive) {
+              isVoiceActive = true;
+              btnGuideToggle.textContent = '背誦中';
+              btnGuideToggle.classList.remove('guide-waiting');
+              btnGuideToggle.classList.add('guide-active');
+              lastAnimTimestamp = performance.now();
+            }
+          } else {
+            if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
+              isVoiceActive = false;
+              btnGuideToggle.textContent = '靜止';
+              btnGuideToggle.classList.remove('guide-active');
+              btnGuideToggle.classList.add('guide-waiting');
+              saveCurrentProgress();
+            }
+          }
+        }
+
+        vadCheckTimer = requestAnimationFrame(checkVolume);
+      }
+
+      vadCheckTimer = requestAnimationFrame(checkVolume);
+    }
+
+    function stopVoiceActivityDetection() {
+      if (vadCheckTimer) {
+        cancelAnimationFrame(vadCheckTimer);
+        vadCheckTimer = null;
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+      if (audioContext && audioContext.state !== 'closed') {
+        try { audioContext.close(); } catch(e) {}
+        audioContext = null;
+      }
+      analyser = null;
+      isVoiceActive = false;
+    }
+
+    /* ----------------------------------------------------
+       動畫引擎：確實執行完一次才扣一次
+    ---------------------------------------------------- */
     function startGuideRunner() {
-      isGuideActive = true;
-      isTransitioningLine = false;
       if (parsedTextLines.length === 0) return;
 
       guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
-      currentLineIndex = (markA_Index !== -1) ? markA_Index : getLineAtTopSight();
 
       scrollToAlignTop(currentLineIndex);
-      setupActiveLine(currentLineIndex);
+      setupActiveLine(currentLineIndex, currentLineProgress);
 
+      lastAnimTimestamp = performance.now();
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
@@ -648,18 +1001,17 @@
       }
     }
 
-    function setupActiveLine(idx) {
+    function setupActiveLine(idx, initialProgress = 0.0) {
       if (idx >= parsedTextLines.length) {
         handleCycleCompletion();
         return;
       }
 
       const line = parsedTextLines[idx];
-      const speedVal = SPEED_LEVELS[currentSpeedIndex];
       const lineLen = Math.max(line.x1 - line.x0, 60);
 
-      lineDuration = (lineLen / (90 * speedVal)) * 1000;
-      lineStartTime = performance.now();
+      lineDuration = (lineLen / (90 * currentSpeed)) * 1000;
+      currentLineProgress = initialProgress;
 
       const lineY = line.underLineY;
       guideLine.style.top = `${lineY}px`;
@@ -667,10 +1019,12 @@
       guideLine.style.width = `${lineLen}px`;
       guideLine.style.display = 'block';
 
-      // 紅點起點定在第一個字中心，垂直咬在導引線上
-      const firstCharMidX = line.x0 + (line.singleCharW / 2);
+      const startX = line.x0 + (line.singleCharW / 2);
+      const endX = line.x1 - (line.singleCharW / 2);
+      const curX = startX + (endX - startX) * currentLineProgress;
+
       redDot.style.top = `${lineY}px`;
-      redDot.style.left = `${firstCharMidX}px`;
+      redDot.style.left = `${curX}px`;
       redDot.style.display = 'block';
 
       isTransitioningLine = false;
@@ -679,26 +1033,38 @@
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
 
-      const elapsed = now - lineStartTime;
-      const progress = Math.min(Math.max(elapsed / lineDuration, 0), 1.0);
-      const line = parsedTextLines[currentLineIndex];
+      const delta = now - lastAnimTimestamp;
+      lastAnimTimestamp = now;
 
+      if (!isVoiceActive) {
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+        return;
+      }
+
+      currentLineProgress += (delta / lineDuration);
+      if (currentLineProgress > 1.0) currentLineProgress = 1.0;
+
+      const line = parsedTextLines[currentLineIndex];
       if (line) {
         const startX = line.x0 + (line.singleCharW / 2);
         const endX = line.x1 - (line.singleCharW / 2);
-        const curX = startX + (endX - startX) * progress;
-        
+        const curX = startX + (endX - startX) * currentLineProgress;
+
         redDot.style.left = `${curX}px`;
         redDot.style.top = `${line.underLineY}px`;
       }
 
-      if (progress >= 1.0) {
+      saveCurrentProgress();
+
+      if (currentLineProgress >= 1.0) {
+        // 到達終點「止」
         if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
           handleCycleCompletion();
           return;
         }
 
         const nextIndex = currentLineIndex + 1;
+        // 到達全文末行
         if (nextIndex >= parsedTextLines.length) {
           handleCycleCompletion();
           return;
@@ -718,7 +1084,9 @@
           }
 
           currentLineIndex = nextIndex;
-          setupActiveLine(currentLineIndex);
+          currentLineProgress = 0.0;
+          setupActiveLine(currentLineIndex, 0.0);
+          lastAnimTimestamp = performance.now();
           guideAnimId = requestAnimationFrame(stepGuideMovement);
         }, 180);
 
@@ -728,11 +1096,14 @@
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
+    // 確實跑完整遍才扣減一次
     function handleCycleCompletion() {
-      currentRemainingCycles -= 1;
-      btnRepeatCount.textContent = `${Math.max(0, currentRemainingCycles)}次`;
+      completedCycles += 1;
+      const remain = Math.max(0, totalTargetCycles - completedCycles);
+      btnRepeatCount.textContent = `${remain}次`;
+      saveCurrentProgress();
 
-      if (currentRemainingCycles <= 0) {
+      if (completedCycles >= totalTargetCycles) {
         finishAndStopPermanently();
         return;
       }
@@ -744,41 +1115,55 @@
         if (!isGuideActive) return;
 
         currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
+        currentLineProgress = 0.0;
         scrollToAlignTop(currentLineIndex);
-        setupActiveLine(currentLineIndex);
+        setupActiveLine(currentLineIndex, 0.0);
+        lastAnimTimestamp = performance.now();
         guideAnimId = requestAnimationFrame(stepGuideMovement);
       }, 2000);
     }
 
+    // 全部次數圓滿完成：起止線清除，按鈕回歸「背書」
     function finishAndStopPermanently() {
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
       isGuideActive = false;
       isTransitioningLine = false;
 
-      isRecording = false;
-      btnRecord.textContent = '錄音';
-      btnRecord.classList.remove('recording-active');
-      haltAudioRecording();
+      stopVoiceActivityDetection();
+
+      // 清除標線
+      markA_Index = -1;
+      markB_Index = -1;
+      btnMarkA.classList.remove('active-mark');
+      btnMarkB.classList.remove('active-mark');
+      markALine.style.display = 'none';
+      markBLine.style.display = 'none';
+
+      btnGuideToggle.textContent = '背書';
+      btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
 
       guideLine.style.display = 'none';
+      completedCycles = 0;
       btnRepeatCount.textContent = `${totalTargetCycles}次`;
+      currentLineIndex = 0;
+      currentLineProgress = 0.0;
+      saveCurrentProgress();
     }
 
+    // 中途打斷/暫停：保留起止線，按鈕切換為「再來」
     function haltGuideRunnerImmediately() {
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
       isGuideActive = false;
       isTransitioningLine = false;
-      guideLine.style.display = 'none';
-      redDot.style.display = 'none';
 
-      isRecording = false;
-      btnRecord.textContent = '錄音';
-      btnRecord.classList.remove('recording-active');
-      haltAudioRecording();
+      stopVoiceActivityDetection();
 
-      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+      btnGuideToggle.textContent = '再來';
+      btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
+
+      saveCurrentProgress();
     }
 
     function spawnGoldCoinsAt(targetElement) {
@@ -810,36 +1195,10 @@
       }
     }
 
-    async function initiateAudioRecording() {
-      try {
-        if (!cachedStream || !cachedStream.active) {
-          cachedStream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-          });
-        }
-        if (!isRecording) return;
-
-        recordedAudioChunks = [];
-        let mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
-        mediaRecorder = new MediaRecorder(cachedStream, { mimeType });
-
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) recordedAudioChunks.push(e.data);
-        };
-        mediaRecorder.start(250);
-      } catch (err) {}
-    }
-
-    function haltAudioRecording() {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        try { mediaRecorder.stop(); } catch (e) {}
-      }
-    }
-
     /* ----------------------------------------------------
-       檔案修改日期（Last-Modified）自動比對更新機制
+       快取儲存與版本比對
     ---------------------------------------------------- */
-    const DB_NAME = 'HappyReciteDB_AutoUpdate_v32';
+    const DB_NAME = 'HappyReciteDB_AutoUpdate_v44';
     const STORE_NAME = 'pdf_store';
     const PDF_KEY = 'saved_scripture';
 
@@ -885,7 +1244,6 @@
       } catch (e) {}
     }
 
-    // 透過 HEAD 請求檢測伺服器端檔案的修改日期與標籤（帶時間戳記防止快取）
     function fetchServerFileTag(url) {
       return new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
@@ -912,7 +1270,6 @@
       loadScriptureWithSmartAutoUpdate();
     });
 
-    // 依據檔案日期自動比對更新
     async function loadScriptureWithSmartAutoUpdate() {
       statusTitle.textContent = '📖 正在檢查經文版本...';
       btnManualPick.style.display = 'none';
@@ -923,20 +1280,20 @@
 
       const serverTag = await fetchServerFileTag('./scripture.pdf');
 
-      // 伺服器存在且日期或標記不同，立即下載新版覆蓋
       if (serverTag && localTag && serverTag !== localTag) {
         statusTitle.textContent = '📖 偵測到新經文，更新下載中...';
         await fetchAndSaveNewPdf(serverTag);
         return;
       }
 
-      // 日期相同，直接使用本機快取
       if (localBuffer) {
+        cachedRawBuffer = localBuffer;
+        currentActiveFileTag = localTag || 'local';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
+        restoreSessionMarkersAndPosition(false);
         return;
       }
 
-      // 初次啟動下載
       await fetchAndSaveNewPdf(serverTag || ('initial_' + Date.now()));
     }
 
@@ -945,15 +1302,21 @@
         const res = await fetch('./scripture.pdf?t=' + Date.now(), { cache: 'no-store' });
         if (res.ok) {
           const buffer = await res.arrayBuffer();
+          cachedRawBuffer = buffer;
+          currentActiveFileTag = fileTag;
           await saveRecordToCache(buffer, fileTag);
           await parseAndRenderPdfData(new Uint8Array(buffer));
+          restoreSessionMarkersAndPosition(false);
           return;
         }
       } catch (e) {}
 
       const fallback = await getCachedRecord();
       if (fallback && fallback.buffer) {
+        cachedRawBuffer = fallback.buffer;
+        currentActiveFileTag = fallback.tag || 'fallback';
         await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
+        restoreSessionMarkersAndPosition(false);
       } else {
         statusTitle.textContent = '📖 請挑選經文檔案';
         statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
@@ -975,8 +1338,12 @@
 
       try {
         const arrayBuffer = await file.arrayBuffer();
-        await saveRecordToCache(arrayBuffer, 'manual_' + file.lastModified);
+        cachedRawBuffer = arrayBuffer;
+        const tag = 'manual_' + file.lastModified;
+        currentActiveFileTag = tag;
+        await saveRecordToCache(arrayBuffer, tag);
         await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
+        restoreSessionMarkersAndPosition(false);
       } catch (err) {
         alert('經文解析失敗：' + err.message);
         btnManualPick.style.display = 'inline-block';
@@ -984,7 +1351,7 @@
     });
 
     /* ----------------------------------------------------
-       單頁長卷 PDF 嚴格物理基準解析（v26 基準完整保留）
+       長卷 PDF 解析與渲染
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
@@ -1016,7 +1383,6 @@
       const textContent = await page.getTextContent();
       const items = textContent.items;
 
-      // 步驟 1：字體統計（取 75th 百分位，排除標點與數字）
       const fontSizes = [];
       items.forEach(it => {
         const str = it.str.trim();
@@ -1030,7 +1396,6 @@
       const mainTextSize = fontSizes.length > 0 ? fontSizes[Math.floor(fontSizes.length * 0.75)] : 22;
       const minValidSize = mainTextSize * 0.82;
 
-      // 步驟 2：提取正文有效區塊
       const validSpans = [];
       items.forEach(it => {
         const str = it.str.trim();
@@ -1041,12 +1406,10 @@
         const tx = it.transform;
         const fs = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
 
-        // 自動過濾科判小字
         if (fs < minValidSize) {
           return;
         }
 
-        // 排除單獨標點
         if (/^[，。、；！？.]\$/.test(str)) {
           return;
         }
@@ -1066,7 +1429,6 @@
         });
       });
 
-      // 步驟 3：同一水平行前半句與後半句聚合
       validSpans.sort((a, b) => a.baselineY - b.baselineY);
       const rowGroups = [];
 
@@ -1101,8 +1463,6 @@
         const singleCharW = (lineX1 - lineX0) / Math.max(1, totalChars);
 
         const top = g.baselineY - (maxFs * 0.85);
-        
-        // 向上收納：文字底邊 + 5px，緊貼當前句腳底，絕不壓到下一句上緣
         const underLineY = g.baselineY + (maxFs * 0.20) + 5;
 
         if ((lineX1 - lineX0) >= 80) {
@@ -1112,6 +1472,7 @@
             x1: lineX1,
             singleCharW: singleCharW,
             topGlobal: top,
+            bottomGlobal: g.baselineY + (maxFs * 0.20),
             underLineY: underLineY
           });
         }
@@ -1120,15 +1481,18 @@
       parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
 
       guideStage.style.height = `${viewport.height}px`;
-      centerCore.scrollTop = 0;
     }
 
     let resizeTimer = null;
     window.addEventListener('resize', () => {
+      if (isGuideActive) return;
+
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
-        if (currentPdfDoc) {
-          currentPdfDoc.getData().then(data => parseAndRenderPdfData(data));
+        if (cachedRawBuffer) {
+          parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
+            restoreSessionMarkersAndPosition(false);
+          });
         }
       }, 300);
     });
