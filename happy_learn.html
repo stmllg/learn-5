@@ -497,7 +497,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v69_vad_strict_prompt';
+    const APP_BUILD_VERSION = 'v70_fullscreen_vad_fix';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -560,7 +560,7 @@
     let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
     const SILENCE_TIMEOUT_MS = 2000; // 靜止 2 秒凍結
-    const VOICE_THRESHOLD = 0.040;   // 出聲門檻值 (RMS)
+    const VOICE_THRESHOLD = 0.038;   // 出聲門檻值 (RMS)
 
     function speakPrompt(text) {
       try {
@@ -707,10 +707,10 @@
     }
 
     /* ----------------------------------------------------
-       【主動請求麥克風權限】：支援啟動即詢問
+       【麥克風串流管理】：常駐保持，避免重複彈出權限視窗
     ---------------------------------------------------- */
     async function requestMicrophonePermission(autoSilent = false) {
-      if (micStream) return true;
+      if (micStream && micStream.active) return true;
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           if (!autoSilent) alert("當前環境不支援麥克風，請確認使用 HTTPS 或 localhost 連線");
@@ -734,6 +734,9 @@
         analyser.fftSize = 512;
         analyser.smoothingTimeConstant = 0.1;
         source.connect(analyser);
+
+        // 若彈出系統對話框導致全螢幕中斷，授權完畢後自動恢復全螢幕
+        triggerLandscapeLock();
 
         return true;
       } catch (err) {
@@ -773,7 +776,7 @@
               btnGuideToggle.textContent = '背誦中';
               btnGuideToggle.classList.remove('guide-waiting');
               btnGuideToggle.classList.add('guide-active');
-              lastAnimTimestamp = performance.now(); // 恢復前進時重設時間基準
+              lastAnimTimestamp = performance.now();
             }
           } else {
             // 超過 2 秒無聲音 -> 立即凍結
@@ -802,7 +805,7 @@
     }
 
     /* ----------------------------------------------------
-       【導引動畫引擎】：嚴格遵守「有聲才動」
+       【導引動畫引擎】：零延遲立即顯形
     ---------------------------------------------------- */
     function startGuideRunner() {
       if (parsedTextLines.length === 0) return;
@@ -862,7 +865,7 @@
       const delta = now - lastAnimTimestamp;
       lastAnimTimestamp = now;
 
-      // 【核心控制】：若無聲音活性，完全凍結原地，不累加任何進度
+      // 若未出聲，導引線亮起但保持原地靜止
       if (!isVoiceActive) {
         guideAnimId = requestAnimationFrame(stepGuideMovement);
         return;
@@ -870,7 +873,6 @@
 
       currentLineProgress += (delta / lineDuration);
 
-      // 單行完成
       if (currentLineProgress >= 1.0) {
         currentLineProgress = 1.0;
 
@@ -1014,7 +1016,7 @@
     }
 
     /* ----------------------------------------------------
-       【背書開關按鈕點擊】
+       【背書開關按鈕】：點擊瞬間立即點亮導引線
     ---------------------------------------------------- */
     btnGuideToggle.addEventListener('click', async () => {
       if (!isGuideActive) {
@@ -1023,11 +1025,9 @@
           return;
         }
 
-        const micReady = await requestMicrophonePermission();
-        if (!micReady) return;
-
+        // 1. 立即設定背書狀態
         isGuideActive = true;
-        isVoiceActive = false; // 初始等待發聲
+        isVoiceActive = false; // 初始靜止待命
 
         const isResuming = (btnGuideToggle.textContent === '再來');
 
@@ -1050,9 +1050,17 @@
         btnGuideToggle.classList.remove('guide-active');
         btnGuideToggle.classList.add('guide-waiting');
 
+        // 2.【核心改進】：導引線與小紅點零延遲立即顯形！
         startGuideRunner();
-        startVadMonitorLoop();
+
+        // 3. 確保全螢幕鎖定
         triggerLandscapeLock();
+
+        // 4. 背景啟動或確認麥克風（若已允許則秒連，不阻塞導引線）
+        const micReady = await requestMicrophonePermission();
+        if (micReady) {
+          startVadMonitorLoop();
+        }
       } else {
         haltGuideRunnerImmediately();
       }
@@ -1235,7 +1243,7 @@
       }
     });
 
-    const DB_NAME = 'HappyReciteDB_Clean_v69';
+    const DB_NAME = 'HappyReciteDB_Clean_v70';
     const STORE_NAME = 'pdf_store';
     const PDF_KEY = 'saved_scripture';
 
@@ -1286,7 +1294,7 @@
       initUserPreferences();
       loadScriptureWithSmartAutoUpdate(true);
 
-      // 初次點擊畫面任何位置即嘗試取得麥克風授權（提升相容性）
+      // 初次觸碰畫面即預先請求一次麥克風權限
       document.body.addEventListener('click', () => {
         requestMicrophonePermission(true);
       }, { once: true });
@@ -1494,166 +1502,6 @@
       parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
       guideStage.style.height = `${viewport.height}px`;
     }
-
-    function restoreSessionMarkersAndPosition(canLoadOldData = true) {
-      if (!canLoadOldData) {
-        markA_Index = -1;
-        markB_Index = -1;
-        hasEverStarted = false;
-        completedCycles = 0;
-        currentLineIndex = 0;
-        currentLineProgress = 0.0;
-        updateVisualDisplay();
-        scrollToAlignTop(0);
-        return;
-      }
-
-      const config = loadSavedProgress();
-      completedCycles = (typeof config.completedCycles === 'number') ? config.completedCycles : 0;
-      hasEverStarted = (config.hasEverStarted === true);
-
-      if (completedCycles >= totalTargetCycles && totalTargetCycles > 0) {
-        markA_Index = -1;
-        markB_Index = -1;
-        hasEverStarted = false;
-        completedCycles = 0;
-        currentLineIndex = 0;
-        currentLineProgress = 0.0;
-        try { localStorage.removeItem(APP_CONFIG_KEY); } catch (e) {}
-      } else {
-        markA_Index = (typeof config.markA_Index === 'number') ? config.markA_Index : -1;
-        markB_Index = (typeof config.markB_Index === 'number') ? config.markB_Index : -1;
-
-        const defaultStart = (markA_Index !== -1) ? markA_Index : 0;
-        let targetLine = defaultStart;
-
-        if (typeof config.currentLineIndex === 'number' && parsedTextLines[config.currentLineIndex]) {
-          targetLine = config.currentLineIndex;
-        }
-        if (markA_Index !== -1 && targetLine < markA_Index) targetLine = markA_Index;
-        if (markB_Index !== -1 && targetLine > markB_Index) targetLine = defaultStart;
-
-        currentLineIndex = targetLine;
-        currentLineProgress = (typeof config.currentLineProgress === 'number') ? config.currentLineProgress : 0.0;
-      }
-
-      updateVisualDisplay();
-
-      if (typeof config.scrollTop === 'number' && markA_Index !== -1) {
-        centerCore.scrollTop = config.scrollTop;
-      } else {
-        scrollToAlignTop(currentLineIndex);
-      }
-    }
-
-    function getLineAtButtonBottom(buttonElement) {
-      if (parsedTextLines.length === 0) return 0;
-
-      const btnRect = buttonElement.getBoundingClientRect();
-      const centerRect = centerCore.getBoundingClientRect();
-      const buttonBottomViewportY = btnRect.bottom - centerRect.top;
-      const targetAbsoluteY = centerCore.scrollTop + buttonBottomViewportY;
-
-      let closestIdx = 0;
-      let minDiff = Infinity;
-
-      for (let i = 0; i < parsedTextLines.length; i++) {
-        const lineY = parsedTextLines[i].underLineY;
-        const diff = Math.abs(lineY - targetAbsoluteY);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = i;
-        }
-      }
-      return closestIdx;
-    }
-
-    btnMarkA.addEventListener('click', () => {
-      triggerLandscapeLock();
-      if (parsedTextLines.length === 0) return;
-      markA_Index = getLineAtButtonBottom(btnMarkA);
-
-      if (markB_Index !== -1 && markA_Index > markB_Index) {
-        markB_Index = -1;
-      }
-
-      currentLineIndex = markA_Index;
-      currentLineProgress = 0.0;
-      completedCycles = 0;
-      hasEverStarted = false;
-
-      updateVisualDisplay();
-      saveCurrentProgress();
-      speakPrompt("請設定終點");
-    });
-
-    btnMarkB.addEventListener('click', () => {
-      triggerLandscapeLock();
-      if (parsedTextLines.length === 0) return;
-      const selectedB = getLineAtButtonBottom(btnMarkB);
-
-      if (markA_Index !== -1 && selectedB < markA_Index) {
-        speakPrompt("終點不能在起點之前，請重新設定");
-        return;
-      }
-
-      markB_Index = selectedB;
-      updateVisualDisplay();
-      saveCurrentProgress();
-    });
-
-    btnOffering.addEventListener('click', () => {});
-
-    btnSpeed.addEventListener('click', () => {
-      const isVisible = speedModal.style.display === 'flex';
-      repeatModal.style.display = 'none';
-      speedModal.style.display = isVisible ? 'none' : 'flex';
-    });
-
-    document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentSpeed = parseFloat(btn.dataset.speed);
-        btnSpeed.textContent = `${currentSpeed.toFixed(1)}x`;
-        updateSpeedModalUI();
-        saveCurrentProgress();
-        speedModal.style.display = 'none';
-
-        if (parsedTextLines[currentLineIndex]) {
-          const line = parsedTextLines[currentLineIndex];
-          const lineLen = Math.max(line.x1 - line.x0, 60);
-          lineDuration = (lineLen / (90 * currentSpeed)) * 1000;
-        }
-      });
-    });
-
-    btnRepeatCount.addEventListener('click', () => {
-      const isVisible = repeatModal.style.display === 'flex';
-      speedModal.style.display = 'none';
-      repeatModal.style.display = isVisible ? 'none' : 'flex';
-    });
-
-    document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
-      btn.addEventListener('click', () => {
-        totalTargetCycles = parseInt(btn.dataset.count, 10);
-        completedCycles = 0;
-        hasEverStarted = false;
-        btnRepeatCount.textContent = `${totalTargetCycles}次`;
-        document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        updateVisualDisplay();
-        saveCurrentProgress();
-        repeatModal.style.display = 'none';
-      });
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!btnRepeatCount.contains(e.target) && !repeatModal.contains(e.target)) {
-        repeatModal.style.display = 'none';
-      }
-      if (!btnSpeed.contains(e.target) && !speedModal.contains(e.target)) {
-        speedModal.style.display = 'none';
-      }
-    });
 
     let resizeTimer = null;
     window.addEventListener('resize', () => {
