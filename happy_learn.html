@@ -439,7 +439,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v64_clean_cache_ready';
+    const APP_BUILD_VERSION = 'v65_fix_line_loop_glitch';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -864,7 +864,6 @@
 
         startGuideRunner();
 
-        // 避免非同步呼叫阻斷使用者手勢，優先請求麥克風
         startVoiceActivityDetection();
         triggerLandscapeLock();
       } else {
@@ -875,7 +874,7 @@
     async function startVoiceActivityDetection() {
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("此環境不支援 getUserMedia (請確認是否使用 HTTPS 或 localhost)");
+          throw new Error("此環境不支援 getUserMedia");
         }
 
         if (!micStream) {
@@ -1028,42 +1027,56 @@
       isTransitioningLine = false;
     }
 
+    /* ----------------------------------------------------
+       【核心修正】：徹底杜絕單行後半段重複跑
+    ---------------------------------------------------- */
     function stepGuideMovement(now) {
+      // 若正在換行，完全禁止執行動畫
       if (!isGuideActive || isTransitioningLine) return;
 
       const delta = now - lastAnimTimestamp;
       lastAnimTimestamp = now;
 
+      // 未出聲時停在原地，但導引線保持亮起
       if (!isVoiceActive) {
         guideAnimId = requestAnimationFrame(stepGuideMovement);
         return;
       }
 
       currentLineProgress += (delta / lineDuration);
-      if (currentLineProgress > 1.0) currentLineProgress = 1.0;
 
-      const line = parsedTextLines[currentLineIndex];
-      if (line) {
-        const startX = line.x0 + (line.singleCharW / 2);
-        const endX = line.x1 - (line.singleCharW / 2);
-        const curX = startX + (endX - startX) * currentLineProgress;
-
-        redDot.style.left = `${curX}px`;
-        redDot.style.top = `${line.underLineY}px`;
-      }
-
+      // 【核心防護 1】：一旦進度到達或超過 1.0，直接固定為 1.0，立即進入換行處理
       if (currentLineProgress >= 1.0) {
+        currentLineProgress = 1.0;
+
+        // 立即定格紅點於行尾
+        const curLine = parsedTextLines[currentLineIndex];
+        if (curLine) {
+          const endX = curLine.x1 - (curLine.singleCharW / 2);
+          redDot.style.left = `${endX}px`;
+          redDot.style.top = `${curLine.underLineY}px`;
+        }
+
+        // 【核心防護 2】：立即銷毀當前 requestAnimationFrame，防止任何殘留執行緒
+        if (guideAnimId) {
+          cancelAnimationFrame(guideAnimId);
+          guideAnimId = null;
+        }
+
+        // 檢查是否到達終點標記「止」
         if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
           handleCycleCompletion();
           return;
         }
 
         const nextIndex = currentLineIndex + 1;
+        // 檢查是否到達全文末端
         if (nextIndex >= parsedTextLines.length) {
           handleCycleCompletion();
           return;
         }
 
+        // 鎖定狀態，防止重覆進入
         isTransitioningLine = true;
         guideLine.style.display = 'none';
 
@@ -1073,18 +1086,32 @@
           const nextLine = parsedTextLines[nextIndex];
           const screenBottom = centerCore.scrollTop + centerCore.clientHeight;
 
-          if (nextLine.underLineY > screenBottom - 8) {
+          if (nextLine && nextLine.underLineY > screenBottom - 8) {
             scrollToAlignTop(nextIndex);
           }
 
+          // 清爽切換至下一行
           currentLineIndex = nextIndex;
           currentLineProgress = 0.0;
           setupActiveLine(currentLineIndex, 0.0);
+
+          // 重新校正時間基準，絕不繼承前一行時間差
           lastAnimTimestamp = performance.now();
           guideAnimId = requestAnimationFrame(stepGuideMovement);
         }, 180);
 
         return;
+      }
+
+      // 正常行進中渲染紅點位置
+      const line = parsedTextLines[currentLineIndex];
+      if (line) {
+        const startX = line.x0 + (line.singleCharW / 2);
+        const endX = line.x1 - (line.singleCharW / 2);
+        const curX = startX + (endX - startX) * currentLineProgress;
+
+        redDot.style.left = `${curX}px`;
+        redDot.style.top = `${line.underLineY}px`;
       }
 
       saveCurrentProgress();
@@ -1105,6 +1132,11 @@
 
       isTransitioningLine = true;
       guideLine.style.display = 'none';
+
+      if (guideAnimId) {
+        cancelAnimationFrame(guideAnimId);
+        guideAnimId = null;
+      }
 
       setTimeout(() => {
         if (!isGuideActive) return;
@@ -1193,7 +1225,7 @@
       }
     }
 
-    const DB_NAME = 'HappyReciteDB_Clean_v64';
+    const DB_NAME = 'HappyReciteDB_Clean_v65';
     const STORE_NAME = 'pdf_store';
     const PDF_KEY = 'saved_scripture';
 
