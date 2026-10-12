@@ -234,37 +234,73 @@
       display: none;
     }
 
+    /* 狀態卡片與進度條樣式 */
     #status-card {
       margin: auto;
       padding: 24px;
       text-align: center;
       color: #333333;
-      max-width: 90%;
+      width: 88%;
+      max-width: 520px;
+      background: #FFFFFF;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
     }
 
     #status-card h2 {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 800;
       color: #1A365D;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
-    #status-card p {
-      font-size: 18px;
+    #status-desc {
+      font-size: 15px;
       line-height: 1.6;
       color: #4A5568;
+      margin-bottom: 14px;
+    }
+
+    .progress-box {
+      margin-top: 10px;
+      text-align: left;
+    }
+
+    .progress-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #475569;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background-color: #E2E8F0;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3B82F6, #10B981);
+      transition: width 0.1s ease-out;
     }
 
     #btn-manual-pick {
       display: none;
-      margin-top: 16px;
-      padding: 12px 26px;
-      font-size: 20px;
+      margin-top: 14px;
+      padding: 10px 22px;
+      font-size: 16px;
       font-weight: 800;
       color: #FFFFFF;
       background: linear-gradient(135deg, #F97316 0%, #C2410C 100%);
       border: none;
-      border-radius: 12px;
+      border-radius: 10px;
       cursor: pointer;
     }
 
@@ -385,10 +421,33 @@
       </div>
 
       <div id="status-card">
-        <h2 id="status-title">📖 正在載入背誦經文...</h2>
-        <p id="status-desc">讀取中，請稍候...</p>
-        <button id="btn-manual-pick">📂 點此挑選經文檔案</button>
+        <h2 id="status-title">🔍 檢查 GitHub 更新狀態...</h2>
+        <div id="status-desc">比對伺服器發布時間中...</div>
+
+        <!-- 進度條區域 -->
+        <div class="progress-box" id="app-progress-box">
+          <div class="progress-label">
+            <span>程式本體 (HTML/JS)</span>
+            <span id="app-progress-val">檢查中...</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="app-progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="progress-box" id="pdf-progress-box">
+          <div class="progress-label">
+            <span>經文檔案 (scripture.pdf)</span>
+            <span id="pdf-progress-val">等待中...</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="pdf-progress-fill"></div>
+          </div>
+        </div>
+
+        <button id="btn-manual-pick">📂 手動挑選本機經文檔案</button>
       </div>
+
       <div id="pdf-container-wrap" style="display: none;">
         <canvas id="pdf-canvas"></canvas>
       </div>
@@ -439,7 +498,10 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v65_fix_line_loop_glitch';
+    /* ----------------------------------------------------
+       程式版本與時間校準
+    ---------------------------------------------------- */
+    const APP_BUILD_VERSION = 'v66_sync_progress_monitor';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -454,6 +516,11 @@
     const statusCard = document.getElementById('status-card');
     const statusTitle = document.getElementById('status-title');
     const statusDesc = document.getElementById('status-desc');
+    const appProgressVal = document.getElementById('app-progress-val');
+    const appProgressFill = document.getElementById('app-progress-fill');
+    const pdfProgressVal = document.getElementById('pdf-progress-val');
+    const pdfProgressFill = document.getElementById('pdf-progress-fill');
+
     const btnManualPick = document.getElementById('btn-manual-pick');
     const filePdfInput = document.getElementById('file-pdf-input');
     const pdfContainerWrap = document.getElementById('pdf-container-wrap');
@@ -644,30 +711,115 @@
       lineElement.style.display = 'block';
     }
 
+    /* ----------------------------------------------------
+       【帶有進度條與時間比對的通用下載器】
+    ---------------------------------------------------- */
+    async function fetchWithProgress(url, onProgress) {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+      const lastModified = response.headers.get('last-modified') || '';
+
+      if (!response.body) {
+        const buffer = await response.arrayBuffer();
+        onProgress(100, buffer.byteLength, buffer.byteLength);
+        return { buffer, lastModified };
+      }
+
+      const reader = response.body.getReader();
+      let receivedLength = 0;
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        receivedLength += value.length;
+        if (total > 0) {
+          const percent = Math.min(100, Math.round((receivedLength / total) * 100));
+          onProgress(percent, receivedLength, total);
+        } else {
+          onProgress(50, receivedLength, receivedLength);
+        }
+      }
+
+      const fullBytes = new Uint8Array(receivedLength);
+      let position = 0;
+      for (const chunk of chunks) {
+        fullBytes.set(chunk, position);
+        position += chunk.length;
+      }
+
+      onProgress(100, receivedLength, receivedLength);
+      return { buffer: fullBytes.buffer, lastModified };
+    }
+
+    /* ----------------------------------------------------
+       左3【更新】按鈕：完整雙向比對伺服器發布時間
+    ---------------------------------------------------- */
     btnReload.addEventListener('click', async () => {
       haltGuideRunnerImmediately();
-
       statusCard.style.display = 'block';
       pdfContainerWrap.style.display = 'none';
-      statusTitle.textContent = '🔄 重新整理經文視圖...';
-      statusDesc.textContent = '載入中，請稍候...';
 
+      statusTitle.textContent = '🔄 檢查伺服器部署狀態...';
+      statusDesc.textContent = '正向 GitHub Pages 請求最新發布時間戳...';
+
+      // 1. 比對 HTML 程式本體是否有新版
       try {
-        const res = await fetch('./scripture.pdf?check=' + Date.now(), { cache: 'no-store' });
-        if (res.ok) {
-          const buffer = await res.arrayBuffer();
-          cachedRawBuffer = buffer;
-          await parseAndRenderPdfData(new Uint8Array(buffer));
-          updateVisualDisplay();
-          scrollToAlignTop(currentLineIndex);
-          return;
-        }
-      } catch (e) {}
+        appProgressVal.textContent = '比對版本中...';
+        appProgressFill.style.width = '30%';
 
-      if (cachedRawBuffer) {
-        await parseAndRenderPdfData(new Uint8Array(cachedRawBuffer));
+        const htmlHead = await fetch('./index.html?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+        const remoteHtmlTime = htmlHead.headers.get('last-modified');
+        const localHtmlTime = localStorage.getItem('APP_SERVER_LAST_MODIFIED');
+
+        if (remoteHtmlTime && localHtmlTime && remoteHtmlTime !== localHtmlTime) {
+          appProgressVal.textContent = '偵測到程式更新，即將重新載入...';
+          appProgressFill.style.width = '100%';
+          localStorage.setItem('APP_SERVER_LAST_MODIFIED', remoteHtmlTime);
+          setTimeout(() => location.reload(true), 600);
+          return;
+        } else {
+          if (remoteHtmlTime) localStorage.setItem('APP_SERVER_LAST_MODIFIED', remoteHtmlTime);
+          appProgressVal.textContent = '程式已是最新 (100%)';
+          appProgressFill.style.width = '100%';
+        }
+      } catch (e) {
+        appProgressVal.textContent = '已確認 (離線/最新)';
+        appProgressFill.style.width = '100%';
+      }
+
+      // 2. 串流下載經文 PDF 並即時更新進度條
+      try {
+        pdfProgressVal.textContent = '正在下載...';
+        const res = await fetchWithProgress('./scripture.pdf?check=' + Date.now(), (pct, current, total) => {
+          const curMb = (current / (1024 * 1024)).toFixed(1);
+          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
+          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
+          pdfProgressFill.style.width = `${pct}%`;
+        });
+
+        cachedRawBuffer = res.buffer;
+        currentActiveFileTag = res.lastModified || ('pdf_' + Date.now());
+        await saveRecordToCache(res.buffer, currentActiveFileTag);
+
+        statusTitle.textContent = '✅ 更新成功，正在渲染畫布...';
+        await parseAndRenderPdfData(new Uint8Array(res.buffer));
         updateVisualDisplay();
         scrollToAlignTop(currentLineIndex);
+      } catch (e) {
+        if (cachedRawBuffer) {
+          statusTitle.textContent = '⚠️ 網路連線失敗，使用本地快取重繪';
+          await parseAndRenderPdfData(new Uint8Array(cachedRawBuffer));
+          updateVisualDisplay();
+          scrollToAlignTop(currentLineIndex);
+        } else {
+          statusTitle.textContent = '❌ 更新失敗';
+          statusDesc.textContent = '無法取得經文檔案，請檢查網路連線。';
+        }
       }
     });
 
@@ -1027,17 +1179,12 @@
       isTransitioningLine = false;
     }
 
-    /* ----------------------------------------------------
-       【核心修正】：徹底杜絕單行後半段重複跑
-    ---------------------------------------------------- */
     function stepGuideMovement(now) {
-      // 若正在換行，完全禁止執行動畫
       if (!isGuideActive || isTransitioningLine) return;
 
       const delta = now - lastAnimTimestamp;
       lastAnimTimestamp = now;
 
-      // 未出聲時停在原地，但導引線保持亮起
       if (!isVoiceActive) {
         guideAnimId = requestAnimationFrame(stepGuideMovement);
         return;
@@ -1045,11 +1192,9 @@
 
       currentLineProgress += (delta / lineDuration);
 
-      // 【核心防護 1】：一旦進度到達或超過 1.0，直接固定為 1.0，立即進入換行處理
       if (currentLineProgress >= 1.0) {
         currentLineProgress = 1.0;
 
-        // 立即定格紅點於行尾
         const curLine = parsedTextLines[currentLineIndex];
         if (curLine) {
           const endX = curLine.x1 - (curLine.singleCharW / 2);
@@ -1057,26 +1202,22 @@
           redDot.style.top = `${curLine.underLineY}px`;
         }
 
-        // 【核心防護 2】：立即銷毀當前 requestAnimationFrame，防止任何殘留執行緒
         if (guideAnimId) {
           cancelAnimationFrame(guideAnimId);
           guideAnimId = null;
         }
 
-        // 檢查是否到達終點標記「止」
         if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
           handleCycleCompletion();
           return;
         }
 
         const nextIndex = currentLineIndex + 1;
-        // 檢查是否到達全文末端
         if (nextIndex >= parsedTextLines.length) {
           handleCycleCompletion();
           return;
         }
 
-        // 鎖定狀態，防止重覆進入
         isTransitioningLine = true;
         guideLine.style.display = 'none';
 
@@ -1090,12 +1231,10 @@
             scrollToAlignTop(nextIndex);
           }
 
-          // 清爽切換至下一行
           currentLineIndex = nextIndex;
           currentLineProgress = 0.0;
           setupActiveLine(currentLineIndex, 0.0);
 
-          // 重新校正時間基準，絕不繼承前一行時間差
           lastAnimTimestamp = performance.now();
           guideAnimId = requestAnimationFrame(stepGuideMovement);
         }, 180);
@@ -1103,7 +1242,6 @@
         return;
       }
 
-      // 正常行進中渲染紅點位置
       const line = parsedTextLines[currentLineIndex];
       if (line) {
         const startX = line.x0 + (line.singleCharW / 2);
@@ -1225,7 +1363,7 @@
       }
     }
 
-    const DB_NAME = 'HappyReciteDB_Clean_v65';
+    const DB_NAME = 'HappyReciteDB_Clean_v66';
     const STORE_NAME = 'pdf_store';
     const PDF_KEY = 'saved_scripture';
 
@@ -1278,8 +1416,11 @@
     });
 
     async function loadScriptureWithSmartAutoUpdate(canLoadOldData = true) {
-      statusTitle.textContent = '📖 正在檢查經文版本...';
-      btnManualPick.style.display = 'none';
+      statusCard.style.display = 'block';
+      pdfContainerWrap.style.display = 'none';
+
+      appProgressFill.style.width = '100%';
+      appProgressVal.textContent = '100% (已載入)';
 
       const cached = await getCachedRecord();
       const localBuffer = cached ? (cached.buffer || cached) : null;
@@ -1288,6 +1429,10 @@
       if (localBuffer) {
         cachedRawBuffer = localBuffer;
         currentActiveFileTag = localTag || 'local';
+        pdfProgressFill.style.width = '100%';
+        pdfProgressVal.textContent = '100% (本地快取)';
+        statusTitle.textContent = '📖 正在渲染經文...';
+
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         restoreSessionMarkersAndPosition(canLoadOldData);
         return;
@@ -1297,29 +1442,32 @@
     }
 
     async function fetchAndSaveNewPdf(fileTag, canLoadOldData = true) {
+      statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
       try {
-        const res = await fetch('./scripture.pdf?t=' + Date.now(), { cache: 'no-store' });
-        if (res.ok) {
-          const buffer = await res.arrayBuffer();
-          cachedRawBuffer = buffer;
-          currentActiveFileTag = fileTag;
-          await saveRecordToCache(buffer, fileTag);
-          await parseAndRenderPdfData(new Uint8Array(buffer));
-          restoreSessionMarkersAndPosition(canLoadOldData);
-          return;
-        }
-      } catch (e) {}
+        const res = await fetchWithProgress('./scripture.pdf?t=' + Date.now(), (pct, cur, total) => {
+          const curMb = (cur / (1024 * 1024)).toFixed(1);
+          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
+          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
+          pdfProgressFill.style.width = `${pct}%`;
+        });
 
-      const fallback = await getCachedRecord();
-      if (fallback && fallback.buffer) {
-        cachedRawBuffer = fallback.buffer;
-        currentActiveFileTag = fallback.tag || 'fallback';
-        await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
+        cachedRawBuffer = res.buffer;
+        currentActiveFileTag = res.lastModified || fileTag;
+        await saveRecordToCache(res.buffer, currentActiveFileTag);
+        await parseAndRenderPdfData(new Uint8Array(res.buffer));
         restoreSessionMarkersAndPosition(canLoadOldData);
-      } else {
-        statusTitle.textContent = '📖 請挑選經文檔案';
-        statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
-        btnManualPick.style.display = 'inline-block';
+      } catch (e) {
+        const fallback = await getCachedRecord();
+        if (fallback && fallback.buffer) {
+          cachedRawBuffer = fallback.buffer;
+          currentActiveFileTag = fallback.tag || 'fallback';
+          await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
+          restoreSessionMarkersAndPosition(canLoadOldData);
+        } else {
+          statusTitle.textContent = '📖 請挑選經文檔案';
+          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
+          btnManualPick.style.display = 'inline-block';
+        }
       }
     }
 
