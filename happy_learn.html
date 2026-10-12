@@ -2,13 +2,13 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
-  <title>歡喜背書</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>歡喜背書橫式播放器</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
-  <meta name="theme-color" content="#0F172A">
+  <meta name="theme-color" content="#000000">
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 
@@ -22,88 +22,150 @@
     }
 
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       height: 100dvh;
-      background-color: #0F172A;
+      background-color: #000000;
       color: #FFFFFF;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
     }
 
-    #line-blocker-modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
+    #landscape-container {
       width: 100vw;
       height: 100vh;
-      background-color: rgba(15, 23, 42, 0.75);
-      z-index: 999999;
-      padding: 40px 20px;
-      overflow-y: auto;
-      pointer-events: none;
+      height: 100dvh;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      position: relative;
+      overflow: hidden;
     }
 
-    .guide-card {
-      background-color: #1E293B;
-      border: 4px solid #F59E0B;
-      border-radius: 20px;
-      padding: 22px 18px;
-      margin: auto;
-      max-width: 420px;
+    .side-wing {
+      width: calc(78px + env(safe-area-inset-left));
+      flex-shrink: 0;
+      height: 100%;
+      background-color: #000000;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      z-index: 60;
+    }
+
+    #left-wing {
+      padding-left: max(6px, env(safe-area-inset-left));
+      padding-right: 6px;
+    }
+
+    #right-wing {
+      width: calc(78px + env(safe-area-inset-right));
+      padding-right: max(6px, env(safe-area-inset-right));
+      padding-left: 6px;
+    }
+
+    .slot {
+      width: 100%;
+      height: 25%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .circle-btn {
+      width: min(58px, 19vh);
+      height: min(58px, 19vh);
+      border-radius: 50%;
+      border: 2.5px solid #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: min(16px, 5.2vh);
+      font-weight: 900;
       color: #FFFFFF;
-      box-shadow: 0 12px 35px rgba(0,0,0,0.85);
-      text-align: center;
-      pointer-events: auto;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+      transition: all 0.15s ease-out;
     }
 
-    .guide-card h2 {
-      font-size: 24px;
-      font-weight: 900;
-      color: #FBBF24;
-      margin-bottom: 12px;
+    .circle-btn:active {
+      transform: scale(0.92);
+      opacity: 0.85;
     }
 
-    .guide-card p {
-      font-size: 19px;
-      line-height: 1.6;
-      color: #F8FAFC;
-      margin-bottom: 10px;
-      text-align: left;
+    #btn-mark-a {
+      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+      border-color: #BAE6FD;
+    }
+    #btn-mark-a.active-mark {
+      box-shadow: 0 0 16px #38BDF8, inset 0 0 8px #FFFFFF;
+      border-color: #FFFFFF;
     }
 
-    .guide-arrow {
-      font-size: 28px;
-      font-weight: 900;
-      color: #38BDF8;
-      margin-top: 8px;
-      animation: pulse 1.2s infinite;
+    #btn-offering {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      border-color: #FDE68A;
+      color: #78350F;
     }
 
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.08); opacity: 0.85; }
+    #btn-fullscreen {
+      background: linear-gradient(135deg, #475569 0%, #334155 100%);
+      border-color: #94A3B8;
+      font-size: min(15px, 4.8vh);
     }
 
-    #pdf-section {
-      flex: 1 1 60%;
-      height: 60dvh;
+    #btn-record {
+      background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%);
+      border-color: #FECACA;
+    }
+    #btn-record.recording-active {
+      background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
+      border-color: #DCFCE7 !important;
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.85) !important;
+    }
+
+    #btn-speed {
+      background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+      border-color: #CCFBF1;
+      font-size: min(14px, 4.6vh);
+    }
+
+    #btn-repeat-count {
+      background: linear-gradient(135deg, #6366F1 0%, #4338CA 100%);
+      border-color: #E0E7FF;
+      font-size: min(14px, 4.6vh);
+    }
+
+    #btn-mark-b {
+      background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+      border-color: #FFEDD5;
+    }
+    #btn-mark-b.active-mark {
+      box-shadow: 0 0 16px #FB923C, inset 0 0 8px #FFFFFF;
+      border-color: #FFFFFF;
+    }
+
+    #center-core {
+      flex: 1;
+      height: 100%;
       background-color: #FFFFFF;
       position: relative;
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
       display: flex;
       flex-direction: column;
       align-items: center;
-      transition: filter 0.15s ease-out;
+      border-left: 2px solid #1E293B;
+      border-right: 2px solid #1E293B;
+      scroll-behavior: smooth;
     }
 
-    /* 實體導引層 (貼齊經文區) */
     #guide-stage {
       position: absolute;
       top: 0;
@@ -112,30 +174,55 @@
       height: 100%;
       pointer-events: none;
       z-index: 50;
+      display: block;
+    }
+
+    /* 導引線：螢光綠，向上貼齊文字正下方 */
+    #guide-line {
+      position: absolute;
+      height: 5px;
+      background-color: #00E676;
+      border-radius: 3px;
+      box-shadow: 0 0 8px rgba(0, 230, 118, 0.85);
+      pointer-events: none;
+      z-index: 51;
       display: none;
     }
 
-    #guide-line {
-      position: absolute;
-      height: 8px;
-      background-color: #00E676;
-      border-radius: 4px;
-      box-shadow: 0 0 12px rgba(0, 230, 118, 0.9);
-      pointer-events: none;
-      z-index: 51;
-    }
-
+    /* 小紅點：18px，微透明 0.85 */
     #red-dot {
       position: absolute;
-      width: 32px;
-      height: 32px;
-      background: radial-gradient(circle, #FF5252 20%, #FF1744 100%);
-      border: 3px solid #FFFFFF;
+      width: min(18px, 5.5vh);
+      height: min(18px, 5.5vh);
+      background: radial-gradient(circle, rgba(255, 82, 82, 0.95) 20%, rgba(255, 23, 68, 0.82) 100%);
+      border: 2px solid rgba(255, 255, 255, 0.9);
       border-radius: 50%;
-      box-shadow: 0 0 15px rgba(255, 23, 68, 1), 0 3px 6px rgba(0,0,0,0.4);
+      box-shadow: 0 0 10px rgba(255, 23, 68, 0.7), 0 1px 3px rgba(0,0,0,0.3);
+      opacity: 0.85;
       pointer-events: none;
       transform: translate(-50%, -50%);
       z-index: 52;
+      display: none;
+    }
+
+    #mark-a-line {
+      position: absolute;
+      height: 5px;
+      background-color: #0284C7;
+      border-radius: 3px;
+      box-shadow: 0 0 10px #38BDF8;
+      z-index: 48;
+      display: none;
+    }
+
+    #mark-b-line {
+      position: absolute;
+      height: 5px;
+      background-color: #EA580C;
+      border-radius: 3px;
+      box-shadow: 0 0 10px #FB923C;
+      z-index: 48;
+      display: none;
     }
 
     #status-card {
@@ -144,212 +231,87 @@
       text-align: center;
       color: #333333;
       max-width: 90%;
-      max-height: 90%;
-      overflow-y: auto;
     }
 
     #status-card h2 {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 800;
       color: #1A365D;
       margin-bottom: 12px;
     }
 
     #status-card p {
-      font-size: 20px;
+      font-size: 18px;
       line-height: 1.6;
       color: #4A5568;
     }
 
-    #progress-percent-text {
-      font-size: 32px;
-      font-weight: 900;
-      color: #0284C7;
-      margin: 10px 0;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .download-bar-box {
-      width: 220px;
-      height: 12px;
-      background-color: #E2E8F0;
-      border-radius: 6px;
-      margin: 8px auto;
-      overflow: hidden;
-    }
-
-    .download-bar-fill {
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, #38BDF8, #0284C7);
-      transition: width 0.15s ease-out;
-    }
-
     #btn-manual-pick {
       display: none;
-      margin-top: 18px;
-      padding: 14px 28px;
-      font-size: 22px;
+      margin-top: 16px;
+      padding: 12px 26px;
+      font-size: 20px;
       font-weight: 800;
       color: #FFFFFF;
       background: linear-gradient(135deg, #F97316 0%, #C2410C 100%);
       border: none;
-      border-radius: 14px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      border-radius: 12px;
       cursor: pointer;
     }
 
-    .pdf-page-container {
+    #pdf-container-wrap {
       position: relative;
-      margin: 6px auto;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      width: 100%;
       background-color: #FAFAFA;
       pointer-events: none;
       display: flex;
-      align-items: center;
       justify-content: center;
     }
 
-    .pdf-page-container canvas {
+    #pdf-canvas {
       display: block;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
+      width: 100% !important;
+      height: auto !important;
     }
 
-    .pdf-page-loading {
-      font-size: 20px;
-      font-weight: 700;
-      color: #94A3B8;
-    }
-
-    #bottom-fixed-dock {
-      flex: 0 0 40dvh;
-      height: 40dvh;
-      max-height: 40dvh;
-      background-color: #0F172A;
-      display: flex;
+    #repeat-modal {
+      display: none;
+      position: absolute;
+      top: 50%;
+      right: calc(84px + env(safe-area-inset-right));
+      transform: translateY(-50%);
+      background: rgba(30, 41, 59, 0.98);
+      border: 2px solid #6366F1;
+      border-radius: 18px;
+      padding: 12px;
+      z-index: 100;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
       flex-direction: column;
-      justify-content: space-between;
-      border-top: 2px solid #334155;
-      z-index: 20;
-      position: relative;
-      padding-bottom: max(6px, env(safe-area-inset-bottom));
+      gap: 8px;
     }
 
-    #motto-bar {
-      flex: 0 0 auto;
-      background: linear-gradient(180deg, #1E293B 0%, #151F32 100%);
-      color: #FDE047;
-      text-align: center;
-      font-size: 19px;
+    .repeat-option {
+      padding: 10px 20px;
+      font-size: 18px;
       font-weight: 800;
-      padding: 6px 4px;
-      letter-spacing: 1.5px;
-      border-bottom: 2px solid #334155;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-    }
-
-    #controls-panel {
-      flex: 1 1 auto;
-      padding: 6px 12px 6px 12px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-around;
-      gap: 4px;
-    }
-
-    .control-row-1 {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      position: relative;
-    }
-
-    .info-card {
-      flex: 1;
-      background-color: #1E293B;
-      border: 2px solid #475569;
-      border-radius: 12px;
-      height: 58px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-    }
-
-    .info-card-label {
-      font-size: 13px;
-      font-weight: 700;
-      color: #94A3B8;
-      margin-bottom: 1px;
-    }
-
-    .info-card-value {
-      font-size: 21px;
-      font-weight: 800;
-      color: #38BDF8;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .speed-card select {
-      background: transparent;
-      border: none;
-      color: #38BDF8;
-      font-size: 20px;
-      font-weight: 800;
-      text-align-last: center;
-      outline: none;
-      width: 100%;
-    }
-
-    .record-btn-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    #btn-record {
-      width: 66px;
-      height: 66px;
-      border-radius: 50%;
-      border: 3.5px solid #FFFFFF;
-      background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%);
       color: #FFFFFF;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 17px;
-      font-weight: 800;
-      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45);
+      background-color: #334155;
+      border: none;
+      border-radius: 10px;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 5;
+      text-align: center;
     }
 
-    #btn-record:active {
-      transform: scale(0.95);
-    }
-
-    #btn-record.recording-active {
-      background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
-      box-shadow: 0 0 22px rgba(34, 197, 94, 0.9) !important;
-      border-color: #DCFCE7 !important;
+    .repeat-option.active {
+      background: #6366F1;
+      color: #FFFFFF;
     }
 
     .gold-coin {
       position: absolute;
-      font-size: 24px;
+      font-size: 28px;
       pointer-events: none;
-      z-index: 50;
+      z-index: 999;
       animation: explodeCoin 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards;
     }
 
@@ -367,289 +329,148 @@
       }
     }
 
-    .progress-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0 2px;
-    }
-
-    .time-text {
-      font-size: 16px;
-      font-weight: 700;
-      color: #E2E8F0;
-      min-width: 48px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .time-text.right {
-      text-align: right;
-    }
-
-    .seek-slider {
-      flex: 1;
-      height: 10px;
-      border-radius: 5px;
-      accent-color: #38BDF8;
-      cursor: pointer;
-    }
-
-    .button-row-3 {
-      display: grid;
-      grid-template-columns: 1fr 1.3fr 1fr;
-      gap: 10px;
-    }
-
-    .action-btn {
-      border: none;
-      border-radius: 12px;
-      padding: 9px 4px;
-      font-size: 20px;
-      font-weight: 800;
-      color: #FFFFFF;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-      transition: opacity 0.15s, transform 0.1s;
-    }
-
-    .action-btn:active {
-      transform: scale(0.97);
-      opacity: 0.9;
-    }
-
-    .btn-line {
-      background: linear-gradient(135deg, #06C755 0%, #048C3C 100%);
-      letter-spacing: 1px;
-    }
-
-    .btn-green {
-      background: linear-gradient(135deg, #10B981 0%, #047857 100%);
-    }
-
-    .btn-green.is-playing {
-      background: linear-gradient(135deg, #EAB308 0%, #A16207 100%);
-    }
-
-    .btn-blue {
-      background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%);
-    }
-
     #file-pdf-input {
       display: none;
-    }
-
-    #brightness-modal {
-      display: none;
-      position: absolute;
-      bottom: 80px;
-      right: 14px;
-      background: rgba(30, 41, 59, 0.96);
-      backdrop-filter: blur(10px);
-      padding: 16px;
-      border-radius: 14px;
-      border: 2px solid #475569;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      z-index: 100;
-      width: 230px;
-    }
-
-    #brightness-modal p {
-      font-size: 16px;
-      font-weight: 700;
-      color: #F8FAFC;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    #brightness-slider {
-      width: 100%;
-      height: 10px;
-      accent-color: #38BDF8;
-    }
-
-    #brightness-backdrop {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 99;
     }
   </style>
 </head>
 <body>
 
-  <div id="line-blocker-modal">
-    <div class="guide-card">
-      <h2>⚠️ 請跳出 LINE 視窗</h2>
-      <div id="guide-ios" style="display:none;">
-        <p>因 LINE 限制麥克風功能：<br><br>請看螢幕<b>右下角</b>，點擊<b>「指南針／Safari」</b>圖示，跳出後即可順暢背書！</p>
-        <div class="guide-arrow">↘ 請看右下角指南針圖示</div>
+  <div id="landscape-container">
+    <div class="side-wing" id="left-wing">
+      <div class="slot">
+        <button class="circle-btn" id="btn-mark-a" aria-label="A點起點">起</button>
       </div>
-      <div id="guide-android" style="display:none;">
-        <p>因 LINE 限制麥克風功能：<br><br>請看螢幕<b>右上角或右下角</b>，點擊<b>「三個點 ⋮」</b>選擇<b>「以其他瀏覽器開啟」</b>！</p>
-        <div class="guide-arrow">👉 找邊角三個點「⋮」按鈕</div>
+      <div class="slot">
+        <button class="circle-btn" id="btn-offering" aria-label="供養功德">供養</button>
+      </div>
+      <div class="slot"></div>
+      <div class="slot">
+        <button class="circle-btn" id="btn-fullscreen" aria-label="全螢幕切換">全</button>
+      </div>
+    </div>
+
+    <div id="center-core">
+      <div id="guide-stage">
+        <div id="mark-a-line"></div>
+        <div id="mark-b-line"></div>
+        <div id="guide-line"></div>
+        <div id="red-dot"></div>
+      </div>
+
+      <div id="status-card">
+        <h2 id="status-title">📖 正在檢查經文版本...</h2>
+        <p id="status-desc">讀取中，請稍候...</p>
+        <button id="btn-manual-pick">📂 點此挑選經文檔案</button>
+      </div>
+      <div id="pdf-container-wrap" style="display: none;">
+        <canvas id="pdf-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="side-wing" id="right-wing">
+      <div class="slot">
+        <button class="circle-btn" id="btn-record" aria-label="開始或停止錄音">錄音</button>
+      </div>
+      <div class="slot">
+        <button class="circle-btn" id="btn-speed" aria-label="調節語速">2.5x</button>
+      </div>
+      <div class="slot">
+        <button class="circle-btn" id="btn-repeat-count" aria-label="循環次數">1次</button>
+      </div>
+      <div class="slot">
+        <button class="circle-btn" id="btn-mark-b" aria-label="B點終點">止</button>
       </div>
     </div>
   </div>
 
-  <section id="pdf-section">
-    <div id="guide-stage">
-      <div id="guide-line"></div>
-      <div id="red-dot"></div>
-    </div>
-
-    <div id="status-card">
-      <h2 id="status-title">📖 正在載入背誦經文...</h2>
-      <p id="status-desc">讀取中，請稍候...</p>
-      
-      <div id="progress-box" style="display: none;">
-        <div id="progress-percent-text">0%</div>
-        <div class="download-bar-box">
-          <div class="download-bar-fill" id="download-bar-fill"></div>
-        </div>
-      </div>
-
-      <button id="btn-manual-pick">📂 點此挑選經文檔案</button>
-    </div>
-    <div id="pdf-pages-container" style="display: none; width: 100%;"></div>
-  </section>
-
-  <div id="bottom-fixed-dock">
-    <header id="motto-bar">
-      隨喜自他 歡喜背書供養
-    </header>
-
-    <footer id="controls-panel">
-      <div class="control-row-1">
-        <div class="info-card">
-          <span class="info-card-label">總時間</span>
-          <span class="info-card-value" id="label-total-recorded">00:00</span>
-        </div>
-
-        <div class="record-btn-wrapper" id="record-wrapper">
-          <button id="btn-record" type="button" aria-label="開始或結束錄音">
-            <span id="record-text">錄音</span>
-          </button>
-        </div>
-
-        <div class="info-card speed-card">
-          <label class="info-card-label" for="select-playback-speed">速度/節奏</label>
-          <select id="select-playback-speed">
-            <option value="0.5">0.5x (沉思)</option>
-            <option value="0.6">0.6x (舒緩)</option>
-            <option value="0.7">0.7x (慢板)</option>
-            <option value="0.8">0.8x (微慢)</option>
-            <option value="0.9">0.9x (微調)</option>
-            <option value="1.0" selected>1.0x (標準)</option>
-            <option value="1.1">1.1x</option>
-            <option value="1.2">1.2x</option>
-            <option value="1.3">1.3x</option>
-            <option value="1.4">1.4x</option>
-            <option value="1.5">1.5x</option>
-            <option value="1.6">1.6x</option>
-            <option value="1.8">1.8x</option>
-            <option value="2.0">2.0x</option>
-            <option value="2.2">2.2x</option>
-            <option value="2.5">2.5x (快板)</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="progress-row">
-        <span class="time-text" id="time-current">00:00</span>
-        <input type="range" class="seek-slider" id="progress-bar" min="0" max="100" value="0">
-        <span class="time-text right" id="time-duration">00:00</span>
-      </div>
-
-      <div class="button-row-3">
-        <button class="action-btn btn-line" id="btn-share-line" aria-label="直接開啟 LINE">LINE</button>
-        <button class="action-btn btn-green" id="btn-play-pause">播放</button>
-        <button class="action-btn btn-blue" id="btn-toggle-brightness">亮度</button>
-      </div>
-    </footer>
+  <div id="repeat-modal">
+    <button class="repeat-option active" data-count="1">1 次</button>
+    <button class="repeat-option" data-count="3">3 次</button>
+    <button class="repeat-option" data-count="5">5 次</button>
+    <button class="repeat-option" data-count="7">7 次</button>
+    <button class="repeat-option" data-count="10">10 次</button>
   </div>
 
   <input type="file" id="file-pdf-input" accept=".pdf,.PDF,application/pdf">
-
-  <div id="brightness-backdrop"></div>
-  <div id="brightness-modal">
-    <p><span>閱讀亮度</span><span id="label-brightness-val">100%</span></p>
-    <input type="range" id="brightness-slider" min="30" max="100" value="100">
-  </div>
 
   <script>
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_CONFIG_KEY = 'recite_user_settings_v3';
+    const APP_CONFIG_KEY = 'happy_recite_settings_v32';
+    const SPEED_LEVELS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2.0, 2.2, 2.5];
+    let currentSpeedIndex = 15; // 預設 2.5x
 
-    const lineBlockerModal = document.getElementById('line-blocker-modal');
-    const guideIos = document.getElementById('guide-ios');
-    const guideAndroid = document.getElementById('guide-android');
-
-    const pdfSection = document.getElementById('pdf-section');
+    const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
     const guideLine = document.getElementById('guide-line');
     const redDot = document.getElementById('red-dot');
+    const markALine = document.getElementById('mark-a-line');
+    const markBLine = document.getElementById('mark-b-line');
 
     const statusCard = document.getElementById('status-card');
     const statusTitle = document.getElementById('status-title');
     const statusDesc = document.getElementById('status-desc');
-    const progressBox = document.getElementById('progress-box');
-    const progressPercentText = document.getElementById('progress-percent-text');
-    const downloadBarFill = document.getElementById('download-bar-fill');
     const btnManualPick = document.getElementById('btn-manual-pick');
     const filePdfInput = document.getElementById('file-pdf-input');
-    const pdfPagesContainer = document.getElementById('pdf-pages-container');
+    const pdfContainerWrap = document.getElementById('pdf-container-wrap');
+    const pdfCanvas = document.getElementById('pdf-canvas');
 
-    const recordWrapper = document.getElementById('record-wrapper');
+    const btnMarkA = document.getElementById('btn-mark-a');
+    const btnOffering = document.getElementById('btn-offering');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
     const btnRecord = document.getElementById('btn-record');
-    const recordText = document.getElementById('record-text');
-    const labelTotalRecorded = document.getElementById('label-total-recorded');
-
-    const btnPlayPause = document.getElementById('btn-play-pause');
-    const selectSpeed = document.getElementById('select-playback-speed');
-    const progressBar = document.getElementById('progress-bar');
-    const timeCurrent = document.getElementById('time-current');
-    const timeDuration = document.getElementById('time-duration');
-
-    const btnShareLine = document.getElementById('btn-share-line');
-    const btnToggleBrightness = document.getElementById('btn-toggle-brightness');
-    const brightnessModal = document.getElementById('brightness-modal');
-    const brightnessBackdrop = document.getElementById('brightness-backdrop');
-    const brightnessSlider = document.getElementById('brightness-slider');
-    const labelBrightnessVal = document.getElementById('label-brightness-val');
+    const btnSpeed = document.getElementById('btn-speed');
+    const btnRepeatCount = document.getElementById('btn-repeat-count');
+    const btnMarkB = document.getElementById('btn-mark-b');
+    const repeatModal = document.getElementById('repeat-modal');
 
     let currentPdfDoc = null;
-    let pageContainers = [];
-    let pageRenderStatus = [];
-    let pageScale = 1.25;
-
+    let pageScale = 1.0;
     let parsedTextLines = [];
 
     let mediaRecorder = null;
+    let cachedStream = null;
     let recordedAudioChunks = [];
-    let audioBlob = null;
-    let audioUrl = null;
-    let audioElement = new Audio();
     let isRecording = false;
-    let recordTimerInterval = null;
-    let recordStartTime = 0;
 
-    let audioCtx = null;
-    let analyserNode = null;
-    let vadCheckInterval = null;
+    let markA_Index = -1;
+    let markB_Index = -1;
+    let totalTargetCycles = 1;
+    let currentRemainingCycles = 1;
 
-    /* ----------------------------------------------------
-       設定檔操作
-    ---------------------------------------------------- */
+    async function triggerLandscapeLock() {
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape');
+        }
+      } catch (err) {}
+    }
+
+    btnFullscreen.addEventListener('click', async () => {
+      if (!document.fullscreenElement) {
+        await triggerLandscapeLock();
+        btnFullscreen.textContent = '退';
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+        btnFullscreen.textContent = '全';
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      btnFullscreen.textContent = document.fullscreenElement ? '退' : '全';
+    });
+
     function loadUserSettings() {
       try {
         const raw = localStorage.getItem(APP_CONFIG_KEY);
@@ -667,173 +488,358 @@
       } catch (e) {}
     }
 
-    function initUserSpeedSetting() {
+    function initUserPreferences() {
       const config = loadUserSettings();
       if (config.speed) {
-        selectSpeed.value = config.speed;
+        const idx = SPEED_LEVELS.indexOf(parseFloat(config.speed));
+        if (idx !== -1) currentSpeedIndex = idx;
       }
-      selectSpeed.addEventListener('change', () => {
-        saveUserSettings({ speed: selectSpeed.value });
-        if (audioElement) {
-          audioElement.playbackRate = parseFloat(selectSpeed.value);
-        }
-      });
+      btnSpeed.textContent = `${SPEED_LEVELS[currentSpeedIndex].toFixed(1)}x`;
+
+      if (config.repeatCount) {
+        totalTargetCycles = parseInt(config.repeatCount, 10);
+        currentRemainingCycles = totalTargetCycles;
+        btnRepeatCount.textContent = `${totalTargetCycles}次`;
+        document.querySelectorAll('.repeat-option').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.count === String(totalTargetCycles));
+        });
+      }
     }
 
-    /* ----------------------------------------------------
-       小紅點與綠線實體自走引擎 (解耦獨立執行)
-    ---------------------------------------------------- */
+    function getLineAtTopSight() {
+      if (parsedTextLines.length === 0) return 0;
+      const sTop = centerCore.scrollTop;
+
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const line = parsedTextLines[i];
+        if (line.underLineY >= sTop + 10) {
+          return i;
+        }
+      }
+      return 0;
+    }
+
+    function getLineAtBottomSight() {
+      if (parsedTextLines.length === 0) return 0;
+      const sBottom = centerCore.scrollTop + centerCore.clientHeight;
+
+      for (let i = parsedTextLines.length - 1; i >= 0; i--) {
+        const line = parsedTextLines[i];
+        if (line.topGlobal <= sBottom - 16) {
+          return i;
+        }
+      }
+      return parsedTextLines.length - 1;
+    }
+
+    btnMarkA.addEventListener('click', () => {
+      triggerLandscapeLock();
+      markA_Index = getLineAtTopSight();
+      btnMarkA.classList.add('active-mark');
+
+      const line = parsedTextLines[markA_Index];
+      if (line) {
+        markALine.style.top = `${line.underLineY}px`;
+        markALine.style.left = `${line.x0}px`;
+        markALine.style.width = `${line.x1 - line.x0}px`;
+        markALine.style.display = 'block';
+      }
+    });
+
+    btnMarkB.addEventListener('click', () => {
+      triggerLandscapeLock();
+      markB_Index = getLineAtBottomSight();
+
+      if (markA_Index !== -1 && markB_Index < markA_Index) {
+        const temp = markA_Index;
+        markA_Index = markB_Index;
+        markB_Index = temp;
+      }
+
+      btnMarkB.classList.add('active-mark');
+
+      const line = parsedTextLines[markB_Index];
+      if (line) {
+        markBLine.style.top = `${line.underLineY}px`;
+        markBLine.style.left = `${line.x0}px`;
+        markBLine.style.width = `${line.x1 - line.x0}px`;
+        markBLine.style.display = 'block';
+      }
+    });
+
+    btnOffering.addEventListener('click', () => {});
+
+    btnSpeed.addEventListener('click', () => {
+      currentSpeedIndex = (currentSpeedIndex + 1) % SPEED_LEVELS.length;
+      const speedVal = SPEED_LEVELS[currentSpeedIndex];
+      btnSpeed.textContent = `${speedVal.toFixed(1)}x`;
+      saveUserSettings({ speed: speedVal });
+    });
+
+    btnRepeatCount.addEventListener('click', () => {
+      const isVisible = repeatModal.style.display === 'flex';
+      repeatModal.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    document.querySelectorAll('.repeat-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        totalTargetCycles = parseInt(btn.dataset.count, 10);
+        currentRemainingCycles = totalTargetCycles;
+        btnRepeatCount.textContent = `${totalTargetCycles}次`;
+        document.querySelectorAll('.repeat-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        saveUserSettings({ repeatCount: totalTargetCycles });
+        repeatModal.style.display = 'none';
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!btnRepeatCount.contains(e.target) && !repeatModal.contains(e.target)) {
+        repeatModal.style.display = 'none';
+      }
+    });
+
+    // 右1：錄音
+    btnRecord.addEventListener('click', () => {
+      triggerLandscapeLock();
+      if (!isRecording) {
+        isRecording = true;
+        btnRecord.textContent = '停止';
+        btnRecord.classList.add('recording-active');
+
+        spawnGoldCoinsAt(btnRecord);
+
+        currentRemainingCycles = totalTargetCycles;
+        btnRepeatCount.textContent = `${currentRemainingCycles}次`;
+
+        startGuideRunner();
+        initiateAudioRecording();
+      } else {
+        haltGuideRunnerImmediately();
+      }
+    });
+
     let guideAnimId = null;
     let isGuideActive = false;
     let currentLineIndex = 0;
     let lineStartTime = 0;
     let lineDuration = 3200;
+    let isTransitioningLine = false;
 
     function startGuideRunner() {
       isGuideActive = true;
-      if (parsedTextLines.length === 0) {
-        buildFallbackLines();
-      }
+      isTransitioningLine = false;
+      if (parsedTextLines.length === 0) return;
 
-      guideStage.style.height = `${Math.max(pdfSection.scrollHeight, 2500)}px`;
-      guideStage.style.display = 'block';
+      guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
+      currentLineIndex = (markA_Index !== -1) ? markA_Index : getLineAtTopSight();
 
-      // 找出當前視野中頂部行的索引
-      const sTop = pdfSection.scrollTop;
-      currentLineIndex = 0;
-      for (let i = 0; i < parsedTextLines.length; i++) {
-        if (parsedTextLines[i].bottomGlobal >= sTop + 20) {
-          currentLineIndex = i;
-          break;
-        }
-      }
-
+      scrollToAlignTop(currentLineIndex);
       setupActiveLine(currentLineIndex);
 
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
+    function scrollToAlignTop(idx) {
+      const line = parsedTextLines[idx];
+      if (line) {
+        centerCore.scrollTop = Math.max(0, line.topGlobal - 16);
+      }
+    }
+
     function setupActiveLine(idx) {
       if (idx >= parsedTextLines.length) {
-        stopGuideRunner();
+        handleCycleCompletion();
         return;
       }
 
       const line = parsedTextLines[idx];
-      const speedMultiplier = parseFloat(selectSpeed.value) || 1.0;
-      const lineLen = Math.max(line.x1 - line.x0, 100);
+      const speedVal = SPEED_LEVELS[currentSpeedIndex];
+      const lineLen = Math.max(line.x1 - line.x0, 60);
 
-      // 每秒推進 85px (1.0x 標準)
-      lineDuration = (lineLen / (85 * speedMultiplier)) * 1000;
+      lineDuration = (lineLen / (90 * speedVal)) * 1000;
       lineStartTime = performance.now();
 
-      const lineY = line.bottomGlobal + 6;
+      const lineY = line.underLineY;
       guideLine.style.top = `${lineY}px`;
       guideLine.style.left = `${line.x0}px`;
       guideLine.style.width = `${lineLen}px`;
       guideLine.style.display = 'block';
 
+      // 紅點起點定在第一個字中心，垂直咬在導引線上
+      const firstCharMidX = line.x0 + (line.singleCharW / 2);
       redDot.style.top = `${lineY}px`;
-      redDot.style.left = `${line.x0}px`;
+      redDot.style.left = `${firstCharMidX}px`;
       redDot.style.display = 'block';
 
-      // 視野自動滾動
-      const targetScroll = line.topGlobal - 60;
-      if (Math.abs(pdfSection.scrollTop - targetScroll) > 130) {
-        pdfSection.scrollTop = Math.max(0, targetScroll);
-      }
+      isTransitioningLine = false;
     }
 
     function stepGuideMovement(now) {
-      if (!isGuideActive) return;
+      if (!isGuideActive || isTransitioningLine) return;
 
       const elapsed = now - lineStartTime;
       const progress = Math.min(Math.max(elapsed / lineDuration, 0), 1.0);
       const line = parsedTextLines[currentLineIndex];
 
       if (line) {
-        const curX = line.x0 + (line.x1 - line.x0) * progress;
-        const lineY = line.bottomGlobal + 6;
-
+        const startX = line.x0 + (line.singleCharW / 2);
+        const endX = line.x1 - (line.singleCharW / 2);
+        const curX = startX + (endX - startX) * progress;
+        
         redDot.style.left = `${curX}px`;
-        redDot.style.top = `${lineY}px`;
+        redDot.style.top = `${line.underLineY}px`;
       }
 
       if (progress >= 1.0) {
-        currentLineIndex += 1;
-        if (currentLineIndex < parsedTextLines.length) {
-          setupActiveLine(currentLineIndex);
-        } else {
-          stopGuideRunner();
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
+          handleCycleCompletion();
           return;
         }
+
+        const nextIndex = currentLineIndex + 1;
+        if (nextIndex >= parsedTextLines.length) {
+          handleCycleCompletion();
+          return;
+        }
+
+        isTransitioningLine = true;
+        guideLine.style.display = 'none';
+
+        setTimeout(() => {
+          if (!isGuideActive) return;
+
+          const nextLine = parsedTextLines[nextIndex];
+          const screenBottom = centerCore.scrollTop + centerCore.clientHeight;
+
+          if (nextLine.underLineY > screenBottom - 8) {
+            scrollToAlignTop(nextIndex);
+          }
+
+          currentLineIndex = nextIndex;
+          setupActiveLine(currentLineIndex);
+          guideAnimId = requestAnimationFrame(stepGuideMovement);
+        }, 180);
+
+        return;
       }
 
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
-    function stopGuideRunner() {
-      isGuideActive = false;
+    function handleCycleCompletion() {
+      currentRemainingCycles -= 1;
+      btnRepeatCount.textContent = `${Math.max(0, currentRemainingCycles)}次`;
+
+      if (currentRemainingCycles <= 0) {
+        finishAndStopPermanently();
+        return;
+      }
+
+      isTransitioningLine = true;
+      guideLine.style.display = 'none';
+
+      setTimeout(() => {
+        if (!isGuideActive) return;
+
+        currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
+        scrollToAlignTop(currentLineIndex);
+        setupActiveLine(currentLineIndex);
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+      }, 2000);
+    }
+
+    function finishAndStopPermanently() {
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
-      guideStage.style.display = 'none';
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      isRecording = false;
+      btnRecord.textContent = '錄音';
+      btnRecord.classList.remove('recording-active');
+      haltAudioRecording();
+
+      guideLine.style.display = 'none';
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+    }
+
+    function haltGuideRunnerImmediately() {
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      isGuideActive = false;
+      isTransitioningLine = false;
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
+
+      isRecording = false;
+      btnRecord.textContent = '錄音';
+      btnRecord.classList.remove('recording-active');
+      haltAudioRecording();
+
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
     }
 
-    function buildFallbackLines() {
-      parsedTextLines = [];
-      const cWidth = pdfSection.clientWidth || window.innerWidth;
-      const totalH = Math.max(pdfSection.scrollHeight, 2500);
-      const lineHeight = 52;
-      for (let topY = 60; topY < totalH; topY += lineHeight) {
-        parsedTextLines.push({
-          pageIndex: 1,
-          x0: 24,
-          x1: cWidth - 28,
-          topGlobal: topY,
-          bottomGlobal: topY + 30
-        });
-      }
-    }
+    function spawnGoldCoinsAt(targetElement) {
+      const rect = targetElement.getBoundingClientRect();
+      const originX = rect.left + rect.width / 2;
+      const originY = rect.top + rect.height / 2;
 
-    function formatTime(seconds) {
-      if (!seconds || isNaN(seconds) || seconds < 0) return '00:00';
-      const m = Math.floor(seconds / 60);
-      const s = Math.floor(seconds % 60);
-      return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-    }
-
-    function spawnGoldCoins() {
-      const coinCount = 12;
-      for (let i = 0; i < coinCount; i++) {
+      for (let i = 0; i < 14; i++) {
         const coin = document.createElement('div');
         coin.className = 'gold-coin';
         coin.textContent = '🪙';
+        coin.style.left = `${originX}px`;
+        coin.style.top = `${originY}px`;
 
-        const angle = (i / coinCount) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
-        const distance = 80 + Math.random() * 60;
+        const angle = (i / 14) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
+        const distance = 70 + Math.random() * 60;
         const dx = Math.cos(angle) * distance;
-        const dy = Math.sin(angle) * distance - 20;
+        const dy = Math.sin(angle) * distance - 10;
         const rot = (Math.random() * 360 - 180) + 'deg';
 
         coin.style.setProperty('--dx', `${dx}px`);
         coin.style.setProperty('--dy', `${dy}px`);
         coin.style.setProperty('--rot', rot);
 
-        recordWrapper.appendChild(coin);
-
+        document.body.appendChild(coin);
         setTimeout(() => {
           if (coin.parentNode) coin.parentNode.removeChild(coin);
         }, 900);
       }
     }
 
+    async function initiateAudioRecording() {
+      try {
+        if (!cachedStream || !cachedStream.active) {
+          cachedStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          });
+        }
+        if (!isRecording) return;
+
+        recordedAudioChunks = [];
+        let mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
+        mediaRecorder = new MediaRecorder(cachedStream, { mimeType });
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) recordedAudioChunks.push(e.data);
+        };
+        mediaRecorder.start(250);
+      } catch (err) {}
+    }
+
+    function haltAudioRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        try { mediaRecorder.stop(); } catch (e) {}
+      }
+    }
+
     /* ----------------------------------------------------
-       IndexedDB 永久離線資料庫
+       檔案修改日期（Last-Modified）自動比對更新機制
     ---------------------------------------------------- */
-    const DB_NAME = 'HappyReciteDB_V3';
+    const DB_NAME = 'HappyReciteDB_AutoUpdate_v32';
     const STORE_NAME = 'pdf_store';
     const PDF_KEY = 'saved_scripture';
 
@@ -857,10 +863,7 @@
 
     async function getCachedRecord() {
       try {
-        const db = await Promise.race([
-          openDatabase(),
-          new Promise((_, reject) => setTimeout(() => reject('timeout'), 1000))
-        ]);
+        const db = await openDatabase();
         return new Promise((resolve) => {
           const tx = db.transaction(STORE_NAME, 'readonly');
           const store = tx.objectStore(STORE_NAME);
@@ -873,143 +876,87 @@
       }
     }
 
-    async function saveRecordToCache(arrayBuffer, fileDateTag) {
+    async function saveRecordToCache(arrayBuffer, fileTag) {
       try {
         const db = await openDatabase();
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
-        store.put({ buffer: arrayBuffer, dateTag: fileDateTag }, PDF_KEY);
+        store.put({ buffer: arrayBuffer, tag: fileTag }, PDF_KEY);
       } catch (e) {}
     }
 
-    let saveScrollDebounce = null;
-    pdfSection.addEventListener('scroll', () => {
-      clearTimeout(saveScrollDebounce);
-      saveScrollDebounce = setTimeout(() => {
-        localStorage.setItem('recite_scroll_pos', pdfSection.scrollTop);
-      }, 300);
-
-      checkVisiblePagesAndRender();
-    }, { passive: true });
-
-    function restoreScrollPosition() {
-      const savedPos = localStorage.getItem('recite_scroll_pos');
-      if (savedPos) {
-        setTimeout(() => {
-          pdfSection.scrollTop = parseInt(savedPos, 10);
-          checkVisiblePagesAndRender();
-        }, 150);
-      } else {
-        checkVisiblePagesAndRender();
-      }
-    }
-
-    /* ----------------------------------------------------
-       快取優先載入：本機有存檔 0 秒直接開，不重複下載！
-    ---------------------------------------------------- */
-    window.addEventListener('DOMContentLoaded', () => {
-      initUserSpeedSetting();
-      const isLine = checkAndLockLineBrowser();
-      if (!isLine) {
-        loadScriptureFastCacheFirst();
-      }
-    });
-
-    function checkAndLockLineBrowser() {
-      const ua = navigator.userAgent || navigator.vendor || window.opera;
-      const isLine = ua.indexOf('Line') > -1;
-      const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-      if (isLine) {
-        lineBlockerModal.style.display = 'block';
-        if (isIos) {
-          guideIos.style.display = 'block';
-        } else {
-          guideAndroid.style.display = 'block';
-        }
-        return true;
-      }
-      return false;
-    }
-
-    function downloadWithProgress(url) {
-      return new Promise((resolve, reject) => {
+    // 透過 HEAD 請求檢測伺服器端檔案的修改日期與標籤（帶時間戳記防止快取）
+    function fetchServerFileTag(url) {
+      return new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.responseType = 'arraybuffer';
-
-        xhr.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const percent = Math.round((e.loaded / e.total) * 100);
-            progressPercentText.textContent = `${percent}%`;
-            downloadBarFill.style.width = `${percent}%`;
-          } else {
-            progressPercentText.textContent = '下載中...';
-          }
-        };
-
+        xhr.open('HEAD', url + '?check=' + Date.now(), true);
+        xhr.timeout = 3000;
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(xhr.response);
+            const tag = xhr.getResponseHeader('Last-Modified') || 
+                        xhr.getResponseHeader('ETag') || 
+                        xhr.getResponseHeader('Content-Length');
+            resolve(tag || ('fresh_' + Date.now()));
           } else {
-            reject(new Error(`HTTP ${xhr.status}`));
+            resolve(null);
           }
         };
-
-        xhr.onerror = () => reject(new Error('網路連線失敗'));
-        xhr.ontimeout = () => reject(new Error('下載超時'));
-        xhr.timeout = 25000;
-
+        xhr.onerror = () => resolve(null);
+        xhr.ontimeout = () => resolve(null);
         xhr.send();
       });
     }
 
-    async function loadScriptureFastCacheFirst() {
-      statusTitle.textContent = '📖 正在開啟背誦經文...';
-      statusDesc.textContent = '讀取本機儲存中...';
+    window.addEventListener('DOMContentLoaded', () => {
+      initUserPreferences();
+      loadScriptureWithSmartAutoUpdate();
+    });
+
+    // 依據檔案日期自動比對更新
+    async function loadScriptureWithSmartAutoUpdate() {
+      statusTitle.textContent = '📖 正在檢查經文版本...';
       btnManualPick.style.display = 'none';
-      progressBox.style.display = 'none';
 
-      // 1. 優先檢查本機 IndexedDB 快取：有就直接秒開！
-      const cachedRecord = await getCachedRecord();
-      const localBuffer = cachedRecord ? (cachedRecord.buffer || cachedRecord) : null;
+      const cached = await getCachedRecord();
+      const localBuffer = cached ? (cached.buffer || cached) : null;
+      const localTag = cached ? cached.tag : null;
 
+      const serverTag = await fetchServerFileTag('./scripture.pdf');
+
+      // 伺服器存在且日期或標記不同，立即下載新版覆蓋
+      if (serverTag && localTag && serverTag !== localTag) {
+        statusTitle.textContent = '📖 偵測到新經文，更新下載中...';
+        await fetchAndSaveNewPdf(serverTag);
+        return;
+      }
+
+      // 日期相同，直接使用本機快取
       if (localBuffer) {
-        statusDesc.textContent = '本機秒開！';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         return;
       }
 
-      // 2. 本機沒有時，才進行初次下載
-      statusTitle.textContent = '📖 首次下載經文...';
-      statusDesc.textContent = '首次載入，正自雲端同步經文...';
-      progressBox.style.display = 'block';
-      progressPercentText.textContent = '0%';
-      downloadBarFill.style.width = '0%';
+      // 初次啟動下載
+      await fetchAndSaveNewPdf(serverTag || ('initial_' + Date.now()));
+    }
 
-      let downloadedBuffer = null;
+    async function fetchAndSaveNewPdf(fileTag) {
       try {
-        downloadedBuffer = await downloadWithProgress('./scripture.pdf');
-      } catch (e) {
-        try {
-          downloadedBuffer = await downloadWithProgress('./scripture.PDF');
-        } catch (e2) {}
-      }
+        const res = await fetch('./scripture.pdf?t=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const buffer = await res.arrayBuffer();
+          await saveRecordToCache(buffer, fileTag);
+          await parseAndRenderPdfData(new Uint8Array(buffer));
+          return;
+        }
+      } catch (e) {}
 
-      if (downloadedBuffer) {
-        progressPercentText.textContent = '100%';
-        downloadBarFill.style.width = '100%';
-        statusDesc.textContent = '同步完成，存入本機並開啟...';
-
-        await saveRecordToCache(downloadedBuffer, 'saved_file');
-        saveUserSettings({ hasSavedPdf: true });
-
-        localStorage.removeItem('recite_scroll_pos');
-        await parseAndRenderPdfData(new Uint8Array(downloadedBuffer));
+      const fallback = await getCachedRecord();
+      if (fallback && fallback.buffer) {
+        await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
       } else {
-        progressBox.style.display = 'none';
-        statusTitle.textContent = '📖 經文預備區';
-        statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，<br>請點擊下方橘色大按鈕手動挑選經文：';
+        statusTitle.textContent = '📖 請挑選經文檔案';
+        statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
         btnManualPick.style.display = 'inline-block';
       }
     }
@@ -1023,17 +970,12 @@
       const file = e.target.files[0];
       if (!file) return;
 
-      statusTitle.textContent = '📖 正在儲存並解析經文...';
-      statusDesc.textContent = '處理中，請稍候...';
+      statusTitle.textContent = '📖 正在載入經文...';
       btnManualPick.style.display = 'none';
-      progressBox.style.display = 'none';
 
       try {
         const arrayBuffer = await file.arrayBuffer();
-        await saveRecordToCache(arrayBuffer, 'manual_' + file.name);
-        saveUserSettings({ hasSavedPdf: true });
-
-        localStorage.removeItem('recite_scroll_pos');
+        await saveRecordToCache(arrayBuffer, 'manual_' + file.lastModified);
         await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
       } catch (err) {
         alert('經文解析失敗：' + err.message);
@@ -1042,12 +984,11 @@
     });
 
     /* ----------------------------------------------------
-       2. 高效能渲染與全文字邊界解析
+       單頁長卷 PDF 嚴格物理基準解析（v26 基準完整保留）
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
-      pdfPagesContainer.style.display = 'block';
-      pdfPagesContainer.innerHTML = '';
+      pdfContainerWrap.style.display = 'flex';
 
       const loadingTask = pdfjsLib.getDocument({
         data: typedarray,
@@ -1056,321 +997,140 @@
       });
 
       currentPdfDoc = await loadingTask.promise;
-      await setupPagePlaceholders();
-      await parseAllTextLinesCoordinates();
-      restoreScrollPosition();
-    }
+      const page = await currentPdfDoc.getPage(1);
 
-    async function setupPagePlaceholders() {
-      if (!currentPdfDoc) return;
-      pageContainers = [];
-      pageRenderStatus = new Array(currentPdfDoc.numPages).fill(false);
+      const availableWidth = centerCore.clientWidth || (window.innerWidth - 160);
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+      pageScale = availableWidth / unscaledViewport.width;
+      const viewport = page.getViewport({ scale: pageScale });
 
-      const containerWidth = pdfSection.clientWidth || window.innerWidth;
-      const firstPage = await currentPdfDoc.getPage(1);
-      const unscaledViewport = firstPage.getViewport({ scale: 1.0 });
-      const scale = (containerWidth - 20) / unscaledViewport.width;
-      pageScale = Math.max(scale, 1.25);
-      const sampleViewport = firstPage.getViewport({ scale: pageScale });
+      pdfCanvas.width = viewport.width;
+      pdfCanvas.height = viewport.height;
+      const ctx = pdfCanvas.getContext('2d');
 
-      for (let pageNum = 1; pageNum <= currentPdfDoc.numPages; pageNum++) {
-        const pageContainer = document.createElement('div');
-        pageContainer.className = 'pdf-page-container';
-        pageContainer.style.width = `${sampleViewport.width}px`;
-        pageContainer.style.height = `${sampleViewport.height}px`;
-        pageContainer.dataset.pageNumber = pageNum;
+      await page.render({
+        canvasContext: ctx,
+        viewport: viewport
+      }).promise;
 
-        const placeholderText = document.createElement('div');
-        placeholderText.className = 'pdf-page-loading';
-        placeholderText.textContent = `第 ${pageNum} 頁...`;
-        pageContainer.appendChild(placeholderText);
+      const textContent = await page.getTextContent();
+      const items = textContent.items;
 
-        pdfPagesContainer.appendChild(pageContainer);
-        pageContainers.push(pageContainer);
-      }
-    }
-
-    async function parseAllTextLinesCoordinates() {
-      parsedTextLines = [];
-      if (!currentPdfDoc) return;
-
-      try {
-        for (let pNum = 1; pNum <= currentPdfDoc.numPages; pNum++) {
-          const page = await currentPdfDoc.getPage(pNum);
-          const viewport = page.getViewport({ scale: pageScale });
-          const textContent = await page.getTextContent();
-          const container = pageContainers[pNum - 1];
-          const pageOffsetTop = container ? container.offsetTop : 0;
-          const pageOffsetLeft = container ? container.offsetLeft : 0;
-
-          const items = textContent.items;
-          if (!items || items.length === 0) continue;
-
-          const rowGroups = [];
-          items.forEach(item => {
-            const str = item.str.trim();
-            if (!str) return;
-
-            const tx = item.transform;
-            const x = tx[4] * pageScale;
-            const y = viewport.height - (tx[5] * pageScale);
-            const w = item.width * pageScale;
-            const h = (item.height || 18) * pageScale;
-
-            let matched = false;
-            for (let g of rowGroups) {
-              if (Math.abs(g.y - y) <= (h * 0.75)) {
-                g.items.push({ x, y, w, h, str });
-                matched = true;
-                break;
-              }
-            }
-            if (!matched) {
-              rowGroups.push({ y, items: [{ x, y, w, h, str }] });
-            }
-          });
-
-          rowGroups.sort((a, b) => a.y - b.y);
-
-          rowGroups.forEach(g => {
-            g.items.sort((a, b) => a.x - b.x);
-            const first = g.items[0];
-            const last = g.items[g.items.length - 1];
-
-            const lineX0 = pageOffsetLeft + Math.max(16, first.x);
-            const lineX1 = pageOffsetLeft + Math.min(viewport.width - 16, last.x + last.w);
-            const lineY0 = pageOffsetTop + Math.min(...g.items.map(it => it.y - it.h));
-            const lineY1 = pageOffsetTop + Math.max(...g.items.map(it => it.y));
-
-            if (lineX1 > lineX0 + 20) {
-              parsedTextLines.push({
-                pageIndex: pNum,
-                x0: lineX0,
-                x1: lineX1,
-                topGlobal: lineY0,
-                bottomGlobal: lineY1
-              });
-            }
-          });
+      // 步驟 1：字體統計（取 75th 百分位，排除標點與數字）
+      const fontSizes = [];
+      items.forEach(it => {
+        const str = it.str.trim();
+        if (str && !/^[\d\.\s\(\)\[\]、，。；！？\:\-—]+\$/.test(str)) {
+          const fs = Math.sqrt(it.transform[0] * it.transform[0] + it.transform[1] * it.transform[1]) * pageScale;
+          fontSizes.push(fs);
         }
-      } catch (e) {}
+      });
 
-      if (parsedTextLines.length === 0) {
-        buildFallbackLines();
-      }
-    }
+      fontSizes.sort((a, b) => a - b);
+      const mainTextSize = fontSizes.length > 0 ? fontSizes[Math.floor(fontSizes.length * 0.75)] : 22;
+      const minValidSize = mainTextSize * 0.82;
 
-    async function checkVisiblePagesAndRender() {
-      if (!currentPdfDoc || pageContainers.length === 0) return;
-
-      const sectionTop = pdfSection.scrollTop;
-      const sectionBottom = sectionTop + pdfSection.clientHeight;
-      const buffer = 600;
-
-      for (let i = 0; i < pageContainers.length; i++) {
-        const container = pageContainers[i];
-        const pageNum = i + 1;
-        const cTop = container.offsetTop;
-        const cBottom = cTop + container.offsetHeight;
-
-        const isVisible = (cBottom >= (sectionTop - buffer)) && (cTop <= (sectionBottom + buffer));
-
-        if (isVisible && !pageRenderStatus[i]) {
-          pageRenderStatus[i] = true;
-          renderSpecificPage(pageNum, container);
+      // 步驟 2：提取正文有效區塊
+      const validSpans = [];
+      items.forEach(it => {
+        const str = it.str.trim();
+        if (!str || /^[\d\.\s\(\)\[\]、\-]+\$/.test(str)) {
+          return;
         }
-      }
-    }
 
-    async function renderSpecificPage(pageNum, container) {
-      try {
-        const page = await currentPdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale: pageScale });
+        const tx = it.transform;
+        const fs = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
 
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+        // 自動過濾科判小字
+        if (fs < minValidSize) {
+          return;
+        }
 
-        await page.render({
-          canvasContext: context,
-          viewport: viewport
-        }).promise;
+        // 排除單獨標點
+        if (/^[，。、；！？.]\$/.test(str)) {
+          return;
+        }
 
-        container.innerHTML = '';
-        container.appendChild(canvas);
-      } catch (e) {
-        pageRenderStatus[pageNum - 1] = false;
-      }
-    }
+        const x0 = tx[4] * pageScale;
+        const baselineY = viewport.height - (tx[5] * pageScale);
+        const w = it.width * pageScale;
+        const x1 = x0 + w;
 
-    /* ----------------------------------------------------
-       3. LINE 按鈕
-    ---------------------------------------------------- */
-    btnShareLine.addEventListener('click', () => {
-      const shareText = encodeURIComponent('隨喜自他 歡喜背書供養');
-      window.location.href = `https://line.me/R/share?text=${shareText}`;
-    });
-
-    /* ----------------------------------------------------
-       4. 錄音核心：按下瞬間保證驅動小紅點自走！
-    ---------------------------------------------------- */
-    btnRecord.addEventListener('click', () => {
-      if (!isRecording) {
-        // 1. 噴金幣
-        spawnGoldCoins();
-        // 2. 立即實體啟動小紅點自走 (完全不等待麥克風權限回應)
-        startGuideRunner();
-        // 3. 背景啟動錄音
-        startRecording();
-      } else {
-        stopGuideRunner();
-        stopRecording();
-      }
-    });
-
-    async function startRecording() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        validSpans.push({
+          x0: x0,
+          x1: x1,
+          w: w,
+          baselineY: baselineY,
+          fs: fs,
+          str: str
         });
-        
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContextClass();
-        const source = audioCtx.createMediaStreamSource(stream);
-        analyserNode = audioCtx.createAnalyser();
-        analyserNode.fftSize = 256;
-        source.connect(analyserNode);
+      });
 
-        recordedAudioChunks = [];
-        
-        let mimeType = '';
-        if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          mimeType = 'audio/mp4';
-        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-          mimeType = 'audio/webm';
-        }
+      // 步驟 3：同一水平行前半句與後半句聚合
+      validSpans.sort((a, b) => a.baselineY - b.baselineY);
+      const rowGroups = [];
 
-        mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-        
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) recordedAudioChunks.push(e.data);
-        };
-
-        mediaRecorder.onstop = () => {
-          stream.getTracks().forEach(track => track.stop());
-          if (audioCtx && audioCtx.state !== 'closed') audioCtx.close();
-          finalizeRecording(mimeType);
-        };
-
-        mediaRecorder.start(250);
-        isRecording = true;
-        recordStartTime = Date.now();
-        recordText.textContent = '停止';
-
-        recordTimerInterval = setInterval(() => {
-          const elapsed = (Date.now() - recordStartTime) / 1000;
-          labelTotalRecorded.textContent = formatTime(elapsed);
-        }, 300);
-
-        const pcmData = new Uint8Array(analyserNode.frequencyBinCount);
-        vadCheckInterval = setInterval(() => {
-          analyserNode.getByteFrequencyData(pcmData);
-          let sum = 0;
-          for (let i = 0; i < pcmData.length; i++) sum += pcmData[i];
-          const average = sum / pcmData.length;
-          if (average > 18) {
-            btnRecord.classList.add('recording-active');
-          } else {
-            btnRecord.classList.remove('recording-active');
+      validSpans.forEach(span => {
+        let matched = false;
+        for (let g of rowGroups) {
+          if (Math.abs(g.baselineY - span.baselineY) <= (span.fs * 0.35)) {
+            g.spans.push(span);
+            matched = true;
+            break;
           }
-        }, 100);
+        }
+        if (!matched) {
+          rowGroups.push({ baselineY: span.baselineY, spans: [span] });
+        }
+      });
 
-      } catch (err) {
-        alert('請點選「允許」使用麥克風，即可開始背書錄音。');
-      }
+      parsedTextLines = [];
+      let internalIndex = 0;
+
+      rowGroups.forEach(g => {
+        g.spans.sort((a, b) => a.x0 - b.x0);
+
+        const firstSpan = g.spans[0];
+        const lastSpan = g.spans[g.spans.length - 1];
+
+        const lineX0 = firstSpan.x0;
+        const lineX1 = lastSpan.x1;
+
+        const maxFs = Math.max(...g.spans.map(s => s.fs));
+        const totalChars = g.spans.reduce((acc, s) => acc + s.str.length, 0);
+        const singleCharW = (lineX1 - lineX0) / Math.max(1, totalChars);
+
+        const top = g.baselineY - (maxFs * 0.85);
+        
+        // 向上收納：文字底邊 + 5px，緊貼當前句腳底，絕不壓到下一句上緣
+        const underLineY = g.baselineY + (maxFs * 0.20) + 5;
+
+        if ((lineX1 - lineX0) >= 80) {
+          parsedTextLines.push({
+            lineIndex: internalIndex++,
+            x0: lineX0,
+            x1: lineX1,
+            singleCharW: singleCharW,
+            topGlobal: top,
+            underLineY: underLineY
+          });
+        }
+      });
+
+      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+
+      guideStage.style.height = `${viewport.height}px`;
+      centerCore.scrollTop = 0;
     }
 
-    function stopRecording() {
-      if (!mediaRecorder) return;
-      isRecording = false;
-      clearInterval(recordTimerInterval);
-      clearInterval(vadCheckInterval);
-      btnRecord.classList.remove('recording-active');
-      recordText.textContent = '錄音';
-      mediaRecorder.stop();
-    }
-
-    function finalizeRecording(mimeType) {
-      const type = mimeType || 'audio/mp4';
-      audioBlob = new Blob(recordedAudioChunks, { type });
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
-      audioUrl = URL.createObjectURL(audioBlob);
-
-      audioElement.src = audioUrl;
-      audioElement.playbackRate = parseFloat(selectSpeed.value);
-
-      audioElement.onloadedmetadata = () => {
-        timeDuration.textContent = formatTime(audioElement.duration);
-        labelTotalRecorded.textContent = formatTime(audioElement.duration);
-      };
-    }
-
-    /* ----------------------------------------------------
-       5. 播放、暫停與進度條
-    ---------------------------------------------------- */
-    btnPlayPause.addEventListener('click', () => {
-      if (!audioElement.src) {
-        alert('目前尚無錄音，請先按下紅色圓鈕錄音。');
-        return;
-      }
-      if (audioElement.paused) {
-        audioElement.play();
-        btnPlayPause.textContent = '暫停';
-        btnPlayPause.classList.add('is-playing');
-      } else {
-        audioElement.pause();
-        btnPlayPause.textContent = '播放';
-        btnPlayPause.classList.remove('is-playing');
-      }
-    });
-
-    audioElement.addEventListener('timeupdate', () => {
-      if (!audioElement.duration) return;
-      timeCurrent.textContent = formatTime(audioElement.currentTime);
-      progressBar.value = (audioElement.currentTime / audioElement.duration) * 100;
-    });
-
-    audioElement.addEventListener('ended', () => {
-      btnPlayPause.textContent = '播放';
-      btnPlayPause.classList.remove('is-playing');
-      progressBar.value = 0;
-      timeCurrent.textContent = '00:00';
-    });
-
-    progressBar.addEventListener('input', () => {
-      if (!audioElement.duration) return;
-      audioElement.currentTime = (progressBar.value / 100) * audioElement.duration;
-    });
-
-    /* ----------------------------------------------------
-       6. 亮度調整
-    ---------------------------------------------------- */
-    btnToggleBrightness.addEventListener('click', () => {
-      const isVisible = brightnessModal.style.display === 'block';
-      brightnessModal.style.display = isVisible ? 'none' : 'block';
-      brightnessBackdrop.style.display = isVisible ? 'none' : 'block';
-    });
-
-    brightnessBackdrop.addEventListener('click', () => {
-      brightnessModal.style.display = 'none';
-      brightnessBackdrop.style.display = 'none';
-    });
-
-    brightnessSlider.addEventListener('input', (e) => {
-      const val = e.target.value;
-      labelBrightnessVal.textContent = `${val}%`;
-      pdfSection.style.filter = `brightness(${val}%)`;
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (currentPdfDoc) {
+          currentPdfDoc.getData().then(data => parseAndRenderPdfData(data));
+        }
+      }, 300);
     });
   </script>
 </body>
