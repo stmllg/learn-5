@@ -90,7 +90,7 @@
       color: #FFFFFF;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-      transition: all 0.15s ease-out;
+      transition: all 0.2s ease-out;
     }
 
     .circle-btn:active {
@@ -125,19 +125,36 @@
       font-size: min(15px, 4.8vh);
     }
 
+    /* 背書按鈕樣式與呼吸動態效果 */
     #btn-guide-toggle {
       background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%);
       border-color: #FECACA;
     }
-    #btn-guide-toggle.guide-active {
-      background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
-      border-color: #DCFCE7 !important;
-      box-shadow: 0 0 16px rgba(34, 197, 94, 0.85) !important;
-    }
     #btn-guide-toggle.guide-waiting {
       background: radial-gradient(circle, #EAB308 0%, #CA8A04 100%) !important;
       border-color: #FEF08A !important;
-      box-shadow: 0 0 16px rgba(234, 179, 8, 0.85) !important;
+      box-shadow: 0 0 12px rgba(234, 179, 8, 0.7) !important;
+      animation: none !important;
+    }
+    #btn-guide-toggle.guide-active {
+      background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
+      border-color: #DCFCE7 !important;
+      animation: voiceBreathing 1.25s infinite ease-in-out !important;
+    }
+
+    @keyframes voiceBreathing {
+      0% {
+        transform: scale(1.0);
+        box-shadow: 0 0 10px rgba(34, 197, 94, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.4);
+      }
+      50% {
+        transform: scale(1.09);
+        box-shadow: 0 0 24px rgba(34, 197, 94, 0.95), inset 0 0 10px rgba(255, 255, 255, 0.8);
+      }
+      100% {
+        transform: scale(1.0);
+        box-shadow: 0 0 10px rgba(34, 197, 94, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.4);
+      }
     }
 
     #btn-speed {
@@ -423,7 +440,6 @@
         <h2 id="status-title">🔍 檢查 GitHub 更新狀態...</h2>
         <div id="status-desc">比對伺服器發布時間中...</div>
 
-        <!-- 雙軌下載百分比監視器 -->
         <div class="progress-box" id="app-progress-box">
           <div class="progress-label">
             <span>程式本體 (index.html)</span>
@@ -497,7 +513,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v73_vad_strict_working';
+    const APP_BUILD_VERSION = 'v74_adaptive_vad_breathing';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -552,7 +568,9 @@
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
 
-    // VAD 聲音活性偵測核心參數
+    /* ----------------------------------------------------
+       自適應環境底噪 (Adaptive VAD) 與動態門檻核心
+    ---------------------------------------------------- */
     let audioContext = null;
     let analyser = null;
     let micStream = null;
@@ -560,7 +578,11 @@
     let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
     const SILENCE_TIMEOUT_MS = 2000; // 靜止 2 秒凍結
-    const VOICE_THRESHOLD = 0.020;   // 實測適中門檻值
+
+    let baseNoiseLevel = 0.003;      // 環境底噪基準
+    let dynamicThreshold = 0.008;    // 自適應發聲門檻
+    let calibrationSamples = [];     // 校準取樣緩衝區
+    let isCalibrating = false;
 
     function speakPrompt(text) {
       try {
@@ -803,7 +825,6 @@
         const headRes = await fetch('./scripture.pdf?t=' + Date.now(), { method: 'HEAD', headers: pdfHeaders, cache: 'no-store' });
         const remotePdfTag = headRes.headers.get('etag') || headRes.headers.get('last-modified') || '';
 
-        // 若無變更且本地已有經文，0.2 秒直接恢復視圖！
         if ((headRes.status === 304 || (savedPdfTag && remotePdfTag === savedPdfTag)) && cachedRawBuffer) {
           pdfProgressVal.textContent = '經文無變更，跳過下載 (100%)';
           pdfProgressFill.style.width = '100%';
@@ -819,7 +840,6 @@
           return;
         }
 
-        // 伺服器有更新才真正串流下載
         pdfProgressVal.textContent = '偵測到新經文，下載中...';
         const res = await fetchWithProgress('./scripture.pdf?check=' + Date.now(), (pct, current, total) => {
           const curMb = (current / (1024 * 1024)).toFixed(1);
@@ -906,7 +926,6 @@
       }
     }
 
-    // 依據原始 v57 方式精確定位按鈕下緣文字行
     function getLineAtButtonBottom(buttonElement) {
       if (parsedTextLines.length === 0) return 0;
 
@@ -1017,7 +1036,7 @@
     });
 
     /* ----------------------------------------------------
-       【背書開關按鈕】：點擊瞬間立即喚醒麥克風與導引線
+       【背書開關按鈕】：點擊瞬間立即喚醒並啟動底噪校準
     ---------------------------------------------------- */
     btnGuideToggle.addEventListener('click', async () => {
       triggerLandscapeLock();
@@ -1026,7 +1045,7 @@
         if (parsedTextLines.length === 0) return;
 
         isGuideActive = true;
-        isVoiceActive = false; // 初始嚴格靜止
+        isVoiceActive = false;
 
         const isResuming = (btnGuideToggle.textContent === '再來');
 
@@ -1045,14 +1064,12 @@
 
         hasEverStarted = true;
 
+        // 初始狀態為黃色靜止
         btnGuideToggle.textContent = '靜止';
         btnGuideToggle.classList.remove('guide-active');
         btnGuideToggle.classList.add('guide-waiting');
 
-        // 立即顯示導引線與紅點
         startGuideRunner();
-
-        // 啟動聲音偵測
         await startVoiceActivityDetection();
       } else {
         haltGuideRunnerImmediately();
@@ -1065,7 +1082,6 @@
         if (!audioContext) {
           audioContext = new AudioContextClass();
         }
-        // 使用者點擊時必須直接 resume()
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
         }
@@ -1086,11 +1102,23 @@
         analyser.smoothingTimeConstant = 0.1;
         source.connect(analyser);
 
+        // 啟動 0.4 秒自適應環境底噪校準
+        isCalibrating = true;
+        calibrationSamples = [];
+        setTimeout(() => {
+          if (calibrationSamples.length > 0) {
+            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+            baseNoiseLevel = sum / calibrationSamples.length;
+            // 動態門檻：底噪 1.5 倍 + 固定偏移 0.004
+            dynamicThreshold = Math.max(0.006, baseNoiseLevel * 1.5 + 0.004);
+          }
+          isCalibrating = false;
+        }, 400);
+
         lastVoiceDetectedTime = 0;
         startVadMonitorLoop();
       } catch (err) {
         console.warn("麥克風無法啟動:", err);
-        // 嚴格保持 false，不自動放行
         isVoiceActive = false;
         btnGuideToggle.textContent = '靜止';
         btnGuideToggle.classList.remove('guide-active');
@@ -1118,18 +1146,24 @@
           const rms = Math.sqrt(sumSquares / bufferLength);
           const now = performance.now();
 
-          // 嚴格判定出聲
-          if (rms > VOICE_THRESHOLD) {
+          // 校準期記錄底噪
+          if (isCalibrating) {
+            calibrationSamples.push(rms);
+          }
+
+          // 【自適應判定】：高於動態門檻即判定出聲
+          if (rms > dynamicThreshold) {
             lastVoiceDetectedTime = now;
             if (!isVoiceActive) {
               isVoiceActive = true;
+              // 進入綠色呼吸光暈律動
               btnGuideToggle.textContent = '背誦中';
               btnGuideToggle.classList.remove('guide-waiting');
               btnGuideToggle.classList.add('guide-active');
               lastAnimTimestamp = performance.now();
             }
           } else {
-            // 超過 2 秒無聲音 -> 立即凍結
+            // 超過 2 秒無聲音 -> 停止呼吸，定格靜止
             if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
               isVoiceActive = false;
               btnGuideToggle.textContent = '靜止';
@@ -1212,7 +1246,7 @@
       const delta = now - lastAnimTimestamp;
       lastAnimTimestamp = now;
 
-      // 【核心控制】：若無聲音，導引線亮起但停在原地，不累加任何進度
+      // 無聲音時導引線原地定格
       if (!isVoiceActive) {
         guideAnimId = requestAnimationFrame(stepGuideMovement);
         return;
