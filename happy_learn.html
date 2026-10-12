@@ -234,6 +234,7 @@
       display: none;
     }
 
+    /* 狀態卡片與進度條樣式 */
     #status-card {
       margin: auto;
       padding: 24px;
@@ -444,7 +445,7 @@
           </div>
         </div>
 
-        <button id="btn-manual-pick">📂 手動挑選本機經文檔案</button>
+        <button id="btn-manual-pick">📂 點此挑選經文檔案</button>
       </div>
 
       <div id="pdf-container-wrap" style="display: none;">
@@ -497,7 +498,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v70_fullscreen_vad_fix';
+    const APP_BUILD_VERSION = 'v72_smart_update_v57_stable';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -552,15 +553,15 @@
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
 
-    // VAD 聲音活性偵測核心參數
+    // VAD 聲音活性偵測
     let audioContext = null;
     let analyser = null;
     let micStream = null;
     let vadCheckTimer = null;
     let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
-    const SILENCE_TIMEOUT_MS = 2000; // 靜止 2 秒凍結
-    const VOICE_THRESHOLD = 0.038;   // 出聲門檻值 (RMS)
+    const SILENCE_TIMEOUT_MS = 2000;
+    const VOICE_THRESHOLD = 0.038;
 
     function speakPrompt(text) {
       try {
@@ -590,12 +591,8 @@
         await triggerLandscapeLock();
         btnFullscreen.textContent = '退';
       } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        }
-        if (screen.orientation && screen.orientation.unlock) {
-          screen.orientation.unlock();
-        }
+        if (document.exitFullscreen) await document.exitFullscreen();
+        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
         btnFullscreen.textContent = '全';
       }
     });
@@ -604,6 +601,7 @@
       btnFullscreen.textContent = document.fullscreenElement ? '退' : '全';
     });
 
+    // 只更新版號標籤，保留所有快取設定
     function verifyVersionAndCleanState() {
       const installedVer = localStorage.getItem('APP_INSTALLED_BUILD_VER');
       if (installedVer !== APP_BUILD_VERSION) {
@@ -707,27 +705,374 @@
     }
 
     /* ----------------------------------------------------
-       【麥克風串流管理】：常駐保持，避免重複彈出權限視窗
+       【帶有真實進度百分比的通用串流下載核心】
     ---------------------------------------------------- */
-    async function requestMicrophonePermission(autoSilent = false) {
-      if (micStream && micStream.active) return true;
+    async function fetchWithProgress(url, onProgress) {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+      const tag = response.headers.get('etag') || response.headers.get('last-modified') || '';
+
+      if (!response.body) {
+        const buffer = await response.arrayBuffer();
+        onProgress(100, buffer.byteLength, buffer.byteLength);
+        return { buffer, tag };
+      }
+
+      const reader = response.body.getReader();
+      let receivedLength = 0;
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        receivedLength += value.length;
+        if (total > 0) {
+          const percent = Math.min(100, Math.round((receivedLength / total) * 100));
+          onProgress(percent, receivedLength, total);
+        } else {
+          onProgress(50, receivedLength, receivedLength);
+        }
+      }
+
+      const fullBytes = new Uint8Array(receivedLength);
+      let position = 0;
+      for (const chunk of chunks) {
+        fullBytes.set(chunk, position);
+        position += chunk.length;
+      }
+
+      onProgress(100, receivedLength, receivedLength);
+      return { buffer: fullBytes.buffer, tag };
+    }
+
+    /* ----------------------------------------------------
+       左3【更新】按鈕：雙軌日期比對 + 經文秒級還原 + 下載進度條
+    ---------------------------------------------------- */
+    btnReload.addEventListener('click', async () => {
+      haltGuideRunnerImmediately();
+      statusCard.style.display = 'block';
+      pdfContainerWrap.style.display = 'none';
+
+      statusTitle.textContent = '🔄 檢查伺服器部署狀態...';
+      statusDesc.textContent = '向 GitHub 查詢程式與經文最新標籤...';
+
+      // 1. 比對程式本體 (index.html)
       try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          if (!autoSilent) alert("當前環境不支援麥克風，請確認使用 HTTPS 或 localhost 連線");
-          return false;
+        appProgressVal.textContent = '比對程式版本...';
+        appProgressFill.style.width = '30%';
+
+        const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG') || '';
+        const htmlHeaders = {};
+        if (localHtmlTag) {
+          htmlHeaders['If-None-Match'] = localHtmlTag;
+          htmlHeaders['If-Modified-Since'] = localHtmlTag;
         }
 
-        micStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: false
-          }
+        const htmlRes = await fetch('./index.html?t=' + Date.now(), { method: 'HEAD', headers: htmlHeaders, cache: 'no-store' });
+        const remoteHtmlTag = htmlRes.headers.get('etag') || htmlRes.headers.get('last-modified') || '';
+
+        if (htmlRes.status === 304 || (localHtmlTag && remoteHtmlTag === localHtmlTag)) {
+          appProgressVal.textContent = '程式無變更，跳過下載 (100%)';
+          appProgressFill.style.width = '100%';
+        } else {
+          appProgressVal.textContent = '偵測到程式更新，即將重新載入...';
+          appProgressFill.style.width = '100%';
+          if (remoteHtmlTag) localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
+          setTimeout(() => location.reload(true), 600);
+          return;
+        }
+      } catch (e) {
+        appProgressVal.textContent = '程式已確認 (100%)';
+        appProgressFill.style.width = '100%';
+      }
+
+      // 2. 比對經文檔案 (scripture.pdf)
+      try {
+        pdfProgressVal.textContent = '比對經文修改標籤...';
+        pdfProgressFill.style.width = '30%';
+
+        const savedPdfTag = localStorage.getItem('APP_SAVED_PDF_TAG') || currentActiveFileTag || '';
+        const pdfHeaders = {};
+        if (savedPdfTag) {
+          pdfHeaders['If-None-Match'] = savedPdfTag;
+          pdfHeaders['If-Modified-Since'] = savedPdfTag;
+        }
+
+        const headRes = await fetch('./scripture.pdf?t=' + Date.now(), { method: 'HEAD', headers: pdfHeaders, cache: 'no-store' });
+        const remotePdfTag = headRes.headers.get('etag') || headRes.headers.get('last-modified') || '';
+
+        // 若無變更且本地已有經文，0.2 秒直接恢復視圖！
+        if ((headRes.status === 304 || (savedPdfTag && remotePdfTag === savedPdfTag)) && cachedRawBuffer) {
+          pdfProgressVal.textContent = '經文無變更，跳過下載 (100%)';
+          pdfProgressFill.style.width = '100%';
+          statusTitle.textContent = '⚡ 經文已是最新版本';
+          statusDesc.textContent = '檔案未變更，立即還原畫面！';
+
+          setTimeout(() => {
+            statusCard.style.display = 'none';
+            pdfContainerWrap.style.display = 'flex';
+            updateVisualDisplay();
+            scrollToAlignTop(currentLineIndex);
+          }, 300);
+          return;
+        }
+
+        // 伺服器有更新才真正串流下載
+        pdfProgressVal.textContent = '偵測到新經文，下載中...';
+        const res = await fetchWithProgress('./scripture.pdf?check=' + Date.now(), (pct, current, total) => {
+          const curMb = (current / (1024 * 1024)).toFixed(1);
+          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
+          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
+          pdfProgressFill.style.width = `${pct}%`;
         });
 
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') await audioContext.resume();
+        cachedRawBuffer = res.buffer;
+        const finalTag = remotePdfTag || res.tag || ('tag_' + Date.now());
+        currentActiveFileTag = finalTag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', finalTag);
+        await saveRecordToCache(res.buffer, finalTag);
+
+        statusTitle.textContent = '✅ 新經文下載完成，渲染中...';
+        await parseAndRenderPdfData(new Uint8Array(res.buffer));
+        updateVisualDisplay();
+        scrollToAlignTop(currentLineIndex);
+
+      } catch (e) {
+        if (cachedRawBuffer) {
+          pdfProgressVal.textContent = '使用本地快取 (100%)';
+          pdfProgressFill.style.width = '100%';
+          statusTitle.textContent = '⚡ 已使用本機經文恢復視圖';
+          statusCard.style.display = 'none';
+          pdfContainerWrap.style.display = 'flex';
+          updateVisualDisplay();
+          scrollToAlignTop(currentLineIndex);
+        } else {
+          statusTitle.textContent = '❌ 更新失敗';
+          statusDesc.textContent = '無法連線至伺服器，請檢查網路。';
+        }
+      }
+    });
+
+    function restoreSessionMarkersAndPosition(canLoadOldData = true) {
+      if (!canLoadOldData) {
+        markA_Index = -1;
+        markB_Index = -1;
+        hasEverStarted = false;
+        completedCycles = 0;
+        currentLineIndex = 0;
+        currentLineProgress = 0.0;
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+        return;
+      }
+
+      const config = loadSavedProgress();
+      completedCycles = (typeof config.completedCycles === 'number') ? config.completedCycles : 0;
+      hasEverStarted = (config.hasEverStarted === true);
+
+      if (completedCycles >= totalTargetCycles && totalTargetCycles > 0) {
+        markA_Index = -1;
+        markB_Index = -1;
+        hasEverStarted = false;
+        completedCycles = 0;
+        currentLineIndex = 0;
+        currentLineProgress = 0.0;
+        try { localStorage.removeItem(APP_CONFIG_KEY); } catch (e) {}
+      } else {
+        markA_Index = (typeof config.markA_Index === 'number') ? config.markA_Index : -1;
+        markB_Index = (typeof config.markB_Index === 'number') ? config.markB_Index : -1;
+
+        const defaultStart = (markA_Index !== -1) ? markA_Index : 0;
+        let targetLine = defaultStart;
+
+        if (typeof config.currentLineIndex === 'number' && parsedTextLines[config.currentLineIndex]) {
+          targetLine = config.currentLineIndex;
+        }
+        if (markA_Index !== -1 && targetLine < markA_Index) targetLine = markA_Index;
+        if (markB_Index !== -1 && targetLine > markB_Index) targetLine = defaultStart;
+
+        currentLineIndex = targetLine;
+        currentLineProgress = (typeof config.currentLineProgress === 'number') ? config.currentLineProgress : 0.0;
+      }
+
+      updateVisualDisplay();
+
+      if (typeof config.scrollTop === 'number' && markA_Index !== -1) {
+        centerCore.scrollTop = config.scrollTop;
+      } else {
+        scrollToAlignTop(currentLineIndex);
+      }
+    }
+
+    // 依據原始 v57 方式精確定位按鈕下緣文字行
+    function getLineAtButtonBottom(buttonElement) {
+      if (parsedTextLines.length === 0) return 0;
+
+      const btnRect = buttonElement.getBoundingClientRect();
+      const centerRect = centerCore.getBoundingClientRect();
+      const buttonBottomViewportY = btnRect.bottom - centerRect.top;
+      const targetAbsoluteY = centerCore.scrollTop + buttonBottomViewportY;
+
+      let closestIdx = 0;
+      let minDiff = Infinity;
+
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const lineY = parsedTextLines[i].underLineY;
+        const diff = Math.abs(lineY - targetAbsoluteY);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = i;
+        }
+      }
+      return closestIdx;
+    }
+
+    btnMarkA.addEventListener('click', () => {
+      triggerLandscapeLock();
+      if (parsedTextLines.length === 0) return;
+      markA_Index = getLineAtButtonBottom(btnMarkA);
+
+      if (markB_Index !== -1 && markA_Index > markB_Index) {
+        markB_Index = -1;
+      }
+
+      currentLineIndex = markA_Index;
+      currentLineProgress = 0.0;
+      completedCycles = 0;
+      hasEverStarted = false;
+
+      updateVisualDisplay();
+      saveCurrentProgress();
+      speakPrompt("請設定終點");
+    });
+
+    btnMarkB.addEventListener('click', () => {
+      triggerLandscapeLock();
+      if (parsedTextLines.length === 0) return;
+      const selectedB = getLineAtButtonBottom(btnMarkB);
+
+      if (markA_Index !== -1 && selectedB < markA_Index) {
+        speakPrompt("終點不能在起點之前，請重新設定");
+        return;
+      }
+
+      markB_Index = selectedB;
+      updateVisualDisplay();
+      saveCurrentProgress();
+    });
+
+    btnOffering.addEventListener('click', () => {});
+
+    btnSpeed.addEventListener('click', () => {
+      const isVisible = speedModal.style.display === 'flex';
+      repeatModal.style.display = 'none';
+      speedModal.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentSpeed = parseFloat(btn.dataset.speed);
+        btnSpeed.textContent = `${currentSpeed.toFixed(1)}x`;
+        updateSpeedModalUI();
+        saveCurrentProgress();
+        speedModal.style.display = 'none';
+
+        if (parsedTextLines[currentLineIndex]) {
+          const line = parsedTextLines[currentLineIndex];
+          const lineLen = Math.max(line.x1 - line.x0, 60);
+          lineDuration = (lineLen / (90 * currentSpeed)) * 1000;
+        }
+      });
+    });
+
+    btnRepeatCount.addEventListener('click', () => {
+      const isVisible = repeatModal.style.display === 'flex';
+      speedModal.style.display = 'none';
+      repeatModal.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        totalTargetCycles = parseInt(btn.dataset.count, 10);
+        completedCycles = 0;
+        hasEverStarted = false;
+        btnRepeatCount.textContent = `${totalTargetCycles}次`;
+        document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateVisualDisplay();
+        saveCurrentProgress();
+        repeatModal.style.display = 'none';
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!btnRepeatCount.contains(e.target) && !repeatModal.contains(e.target)) {
+        repeatModal.style.display = 'none';
+      }
+      if (!btnSpeed.contains(e.target) && !speedModal.contains(e.target)) {
+        speedModal.style.display = 'none';
+      }
+    });
+
+    btnGuideToggle.addEventListener('click', async () => {
+      triggerLandscapeLock();
+      if (!isGuideActive) {
+        if (parsedTextLines.length === 0) return;
+
+        isGuideActive = true;
+        isVoiceActive = false;
+
+        const isResuming = (btnGuideToggle.textContent === '再來');
+
+        if (!isResuming) {
+          spawnGoldCoinsAt(btnGuideToggle);
+          completedCycles = 0;
+          btnRepeatCount.textContent = `${totalTargetCycles}次`;
+          currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
+          currentLineProgress = 0.0;
+        } else {
+          if (currentLineIndex < (markA_Index !== -1 ? markA_Index : 0)) {
+            currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
+            currentLineProgress = 0.0;
+          }
+        }
+
+        hasEverStarted = true;
+
+        btnGuideToggle.textContent = '背誦中';
+        btnGuideToggle.classList.remove('guide-waiting');
+        btnGuideToggle.classList.add('guide-active');
+
+        startGuideRunner();
+        await startVoiceActivityDetection();
+      } else {
+        haltGuideRunnerImmediately();
+      }
+    });
+
+    async function startVoiceActivityDetection() {
+      try {
+        if (!audioContext) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          audioContext = new AudioContextClass();
+        }
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        if (!micStream) {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: false
+            }
+          });
+        }
 
         const source = audioContext.createMediaStreamSource(micStream);
         analyser = audioContext.createAnalyser();
@@ -735,19 +1080,16 @@
         analyser.smoothingTimeConstant = 0.1;
         source.connect(analyser);
 
-        // 若彈出系統對話框導致全螢幕中斷，授權完畢後自動恢復全螢幕
-        triggerLandscapeLock();
-
-        return true;
+        lastVoiceDetectedTime = 0;
+        startVadMonitorLoop();
       } catch (err) {
-        if (!autoSilent) alert("請允許麥克風權限以偵測背書聲音");
-        return false;
+        isVoiceActive = true;
+        btnGuideToggle.textContent = '背誦中';
+        btnGuideToggle.classList.remove('guide-waiting');
+        btnGuideToggle.classList.add('guide-active');
       }
     }
 
-    /* ----------------------------------------------------
-       【聲音活性即時監聽回圈】：2 秒無聲凍結
-    ---------------------------------------------------- */
     function startVadMonitorLoop() {
       if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
 
@@ -768,7 +1110,6 @@
           const rms = Math.sqrt(sumSquares / bufferLength);
           const now = performance.now();
 
-          // 判斷是否出聲
           if (rms > VOICE_THRESHOLD) {
             lastVoiceDetectedTime = now;
             if (!isVoiceActive) {
@@ -779,7 +1120,6 @@
               lastAnimTimestamp = performance.now();
             }
           } else {
-            // 超過 2 秒無聲音 -> 立即凍結
             if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
               isVoiceActive = false;
               btnGuideToggle.textContent = '靜止';
@@ -801,12 +1141,18 @@
         cancelAnimationFrame(vadCheckTimer);
         vadCheckTimer = null;
       }
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+      if (audioContext && audioContext.state !== 'closed') {
+        try { audioContext.close(); } catch(e) {}
+        audioContext = null;
+      }
+      analyser = null;
       isVoiceActive = false;
     }
 
-    /* ----------------------------------------------------
-       【導引動畫引擎】：零延遲立即顯形
-    ---------------------------------------------------- */
     function startGuideRunner() {
       if (parsedTextLines.length === 0) return;
 
@@ -865,7 +1211,6 @@
       const delta = now - lastAnimTimestamp;
       lastAnimTimestamp = now;
 
-      // 若未出聲，導引線亮起但保持原地靜止
       if (!isVoiceActive) {
         guideAnimId = requestAnimationFrame(stepGuideMovement);
         return;
@@ -1015,57 +1360,6 @@
       saveCurrentProgress();
     }
 
-    /* ----------------------------------------------------
-       【背書開關按鈕】：點擊瞬間立即點亮導引線
-    ---------------------------------------------------- */
-    btnGuideToggle.addEventListener('click', async () => {
-      if (!isGuideActive) {
-        if (parsedTextLines.length === 0) {
-          alert("經文尚未載入完成，請稍候");
-          return;
-        }
-
-        // 1. 立即設定背書狀態
-        isGuideActive = true;
-        isVoiceActive = false; // 初始靜止待命
-
-        const isResuming = (btnGuideToggle.textContent === '再來');
-
-        if (!isResuming) {
-          spawnGoldCoinsAt(btnGuideToggle);
-          completedCycles = 0;
-          btnRepeatCount.textContent = `${totalTargetCycles}次`;
-          currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
-          currentLineProgress = 0.0;
-        } else {
-          if (currentLineIndex < (markA_Index !== -1 ? markA_Index : 0)) {
-            currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
-            currentLineProgress = 0.0;
-          }
-        }
-
-        hasEverStarted = true;
-
-        btnGuideToggle.textContent = '靜止';
-        btnGuideToggle.classList.remove('guide-active');
-        btnGuideToggle.classList.add('guide-waiting');
-
-        // 2.【核心改進】：導引線與小紅點零延遲立即顯形！
-        startGuideRunner();
-
-        // 3. 確保全螢幕鎖定
-        triggerLandscapeLock();
-
-        // 4. 背景啟動或確認麥克風（若已允許則秒連，不阻塞導引線）
-        const micReady = await requestMicrophonePermission();
-        if (micReady) {
-          startVadMonitorLoop();
-        }
-      } else {
-        haltGuideRunnerImmediately();
-      }
-    });
-
     function spawnGoldCoinsAt(targetElement) {
       const rect = targetElement.getBoundingClientRect();
       const originX = rect.left + rect.width / 2;
@@ -1095,155 +1389,7 @@
       }
     }
 
-    /* ----------------------------------------------------
-       下載與快取持久化核心
-    ---------------------------------------------------- */
-    async function fetchWithProgress(url, onProgress) {
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const contentLength = response.headers.get('content-length');
-      const total = contentLength ? parseInt(contentLength, 10) : 0;
-      const tag = response.headers.get('etag') || response.headers.get('last-modified') || '';
-
-      if (!response.body) {
-        const buffer = await response.arrayBuffer();
-        onProgress(100, buffer.byteLength, buffer.byteLength);
-        return { buffer, tag };
-      }
-
-      const reader = response.body.getReader();
-      let receivedLength = 0;
-      const chunks = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        receivedLength += value.length;
-        if (total > 0) {
-          const percent = Math.min(100, Math.round((receivedLength / total) * 100));
-          onProgress(percent, receivedLength, total);
-        } else {
-          onProgress(50, receivedLength, receivedLength);
-        }
-      }
-
-      const fullBytes = new Uint8Array(receivedLength);
-      let position = 0;
-      for (const chunk of chunks) {
-        fullBytes.set(chunk, position);
-        position += chunk.length;
-      }
-
-      onProgress(100, receivedLength, receivedLength);
-      return { buffer: fullBytes.buffer, tag };
-    }
-
-    btnReload.addEventListener('click', async () => {
-      haltGuideRunnerImmediately();
-      statusCard.style.display = 'block';
-      pdfContainerWrap.style.display = 'none';
-
-      statusTitle.textContent = '🔄 檢查伺服器部署狀態...';
-      statusDesc.textContent = '向 GitHub 查詢檔案標籤中...';
-
-      // 1. 檢查程式
-      try {
-        appProgressVal.textContent = '比對程式版本...';
-        appProgressFill.style.width = '30%';
-
-        const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG') || '';
-        const htmlHeaders = {};
-        if (localHtmlTag) {
-          htmlHeaders['If-None-Match'] = localHtmlTag;
-          htmlHeaders['If-Modified-Since'] = localHtmlTag;
-        }
-
-        const htmlRes = await fetch('./index.html?t=' + Date.now(), { method: 'HEAD', headers: htmlHeaders, cache: 'no-store' });
-        const remoteHtmlTag = htmlRes.headers.get('etag') || htmlRes.headers.get('last-modified') || '';
-
-        if (htmlRes.status === 304 || (localHtmlTag && remoteHtmlTag === localHtmlTag)) {
-          appProgressVal.textContent = '程式無變更，跳過下載 (100%)';
-          appProgressFill.style.width = '100%';
-        } else {
-          appProgressVal.textContent = '偵測到程式更新，即將重新載入...';
-          appProgressFill.style.width = '100%';
-          if (remoteHtmlTag) localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
-          setTimeout(() => location.reload(true), 600);
-          return;
-        }
-      } catch (e) {
-        appProgressVal.textContent = '程式已確認 (100%)';
-        appProgressFill.style.width = '100%';
-      }
-
-      // 2. 檢查經文
-      try {
-        pdfProgressVal.textContent = '比對經文修改標籤...';
-        pdfProgressFill.style.width = '30%';
-
-        const savedPdfTag = localStorage.getItem('APP_SAVED_PDF_TAG') || currentActiveFileTag || '';
-        const pdfHeaders = {};
-        if (savedPdfTag) {
-          pdfHeaders['If-None-Match'] = savedPdfTag;
-          pdfHeaders['If-Modified-Since'] = savedPdfTag;
-        }
-
-        const headRes = await fetch('./scripture.pdf?t=' + Date.now(), { method: 'HEAD', headers: pdfHeaders, cache: 'no-store' });
-        const remotePdfTag = headRes.headers.get('etag') || headRes.headers.get('last-modified') || '';
-
-        if ((headRes.status === 304 || (savedPdfTag && remotePdfTag === savedPdfTag)) && cachedRawBuffer) {
-          pdfProgressVal.textContent = '經文無變更，跳過下載 (100%)';
-          pdfProgressFill.style.width = '100%';
-          statusTitle.textContent = '⚡ 經文已是最新版本';
-          statusDesc.textContent = '未偵測到變更，立即還原畫面！';
-
-          setTimeout(() => {
-            statusCard.style.display = 'none';
-            pdfContainerWrap.style.display = 'flex';
-            updateVisualDisplay();
-            scrollToAlignTop(currentLineIndex);
-          }, 300);
-          return;
-        }
-
-        pdfProgressVal.textContent = '偵測到新經文，下載中...';
-        const res = await fetchWithProgress('./scripture.pdf?check=' + Date.now(), (pct, current, total) => {
-          const curMb = (current / (1024 * 1024)).toFixed(1);
-          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
-          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
-          pdfProgressFill.style.width = `${pct}%`;
-        });
-
-        cachedRawBuffer = res.buffer;
-        const finalTag = remotePdfTag || res.tag || ('tag_' + Date.now());
-        currentActiveFileTag = finalTag;
-        localStorage.setItem('APP_SAVED_PDF_TAG', finalTag);
-        await saveRecordToCache(res.buffer, finalTag);
-
-        statusTitle.textContent = '✅ 新經文下載完成，渲染中...';
-        await parseAndRenderPdfData(new Uint8Array(res.buffer));
-        updateVisualDisplay();
-        scrollToAlignTop(currentLineIndex);
-
-      } catch (e) {
-        if (cachedRawBuffer) {
-          pdfProgressVal.textContent = '使用本地快取 (100%)';
-          pdfProgressFill.style.width = '100%';
-          statusTitle.textContent = '⚡ 已使用本機經文恢復視圖';
-          statusCard.style.display = 'none';
-          pdfContainerWrap.style.display = 'flex';
-          updateVisualDisplay();
-          scrollToAlignTop(currentLineIndex);
-        } else {
-          statusTitle.textContent = '❌ 更新失敗';
-          statusDesc.textContent = '無法連線至伺服器，請檢查網路。';
-        }
-      }
-    });
-
-    const DB_NAME = 'HappyReciteDB_Clean_v70';
+    const DB_NAME = 'HappyReciteDB_BBox_v57';
     const STORE_NAME = 'pdf_store';
     const PDF_KEY = 'saved_scripture';
 
@@ -1290,22 +1436,14 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      verifyVersionAndCleanState();
+      const canLoadOldData = verifyVersionAndCleanState();
       initUserPreferences();
-      loadScriptureWithSmartAutoUpdate(true);
-
-      // 初次觸碰畫面即預先請求一次麥克風權限
-      document.body.addEventListener('click', () => {
-        requestMicrophonePermission(true);
-      }, { once: true });
+      loadScriptureWithSmartAutoUpdate(canLoadOldData);
     });
 
     async function loadScriptureWithSmartAutoUpdate(canLoadOldData = true) {
-      statusCard.style.display = 'block';
-      pdfContainerWrap.style.display = 'none';
-
-      appProgressFill.style.width = '100%';
-      appProgressVal.textContent = '100% (已載入)';
+      statusTitle.textContent = '📖 正在檢查經文版本...';
+      btnManualPick.style.display = 'none';
 
       const cached = await getCachedRecord();
       const localBuffer = cached ? (cached.buffer || cached) : null;
@@ -1314,10 +1452,6 @@
       if (localBuffer) {
         cachedRawBuffer = localBuffer;
         currentActiveFileTag = localTag || 'local';
-        pdfProgressFill.style.width = '100%';
-        pdfProgressVal.textContent = '100% (本地快取)';
-        statusTitle.textContent = '📖 正在渲染經文...';
-
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         restoreSessionMarkersAndPosition(canLoadOldData);
         return;
@@ -1327,7 +1461,6 @@
     }
 
     async function fetchAndSaveNewPdf(fileTag, canLoadOldData = true) {
-      statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
       try {
         const res = await fetchWithProgress('./scripture.pdf?t=' + Date.now(), (pct, cur, total) => {
           const curMb = (cur / (1024 * 1024)).toFixed(1);
@@ -1343,18 +1476,19 @@
         await saveRecordToCache(res.buffer, tag);
         await parseAndRenderPdfData(new Uint8Array(res.buffer));
         restoreSessionMarkersAndPosition(canLoadOldData);
-      } catch (e) {
-        const fallback = await getCachedRecord();
-        if (fallback && fallback.buffer) {
-          cachedRawBuffer = fallback.buffer;
-          currentActiveFileTag = fallback.tag || 'fallback';
-          await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
-          restoreSessionMarkersAndPosition(canLoadOldData);
-        } else {
-          statusTitle.textContent = '📖 請挑選經文檔案';
-          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
-          btnManualPick.style.display = 'inline-block';
-        }
+        return;
+      } catch (e) {}
+
+      const fallback = await getCachedRecord();
+      if (fallback && fallback.buffer) {
+        cachedRawBuffer = fallback.buffer;
+        currentActiveFileTag = fallback.tag || 'fallback';
+        await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
+        restoreSessionMarkersAndPosition(canLoadOldData);
+      } else {
+        statusTitle.textContent = '📖 請挑選經文檔案';
+        statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
+        btnManualPick.style.display = 'inline-block';
       }
     }
 
@@ -1385,6 +1519,9 @@
       }
     });
 
+    /* ----------------------------------------------------
+       【嚴格回歸原始 v57 文字物理幾何提取演算法】
+    ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
       pdfContainerWrap.style.display = 'flex';
