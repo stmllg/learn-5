@@ -794,11 +794,11 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v91_adaptive_tempo_follower';
+    const APP_BUILD_VERSION = 'v92_humanized_viewport_scroll';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let baseSpeed = 4.0;
-    let effectiveSpeedMultiplier = 1.0; // 節奏自適應係數 (0.75 ~ 1.25)
+    let effectiveSpeedMultiplier = 1.0;
 
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
 
@@ -868,9 +868,6 @@
     let pendingScheduleSpeech = "";
     let hasInteractedWithWelcome = false;
 
-    /* ----------------------------------------------------
-       【語音偵測 (VAD) + 音節拍點頻率跟隨 (Tempo Tracker)】
-    ---------------------------------------------------- */
     let audioContext = null;
     let analyser = null;
     let micStream = null;
@@ -885,7 +882,6 @@
     let calibrationSamples = [];
     let isCalibrating = false;
 
-    // 音節起音偵測變數
     let previousRms = 0.0;
     let beatTimestamps = [];
     const MAX_BEAT_HISTORY = 4;
@@ -1702,9 +1698,6 @@
       }
     }
 
-    /* ----------------------------------------------------
-       【VAD 監控 + 音節節奏起音即時運算】
-    ---------------------------------------------------- */
     function startVadMonitorLoop() {
       if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
 
@@ -1741,8 +1734,6 @@
               lastAnimTimestamp = performance.now();
             }
 
-            // --- 音節起音偵測 (Attack Detection) ---
-            // 條件：音量急速上升超過門檻，且距離上個字至少間隔 110ms（避開同字振動）
             const deltaRms = rms - previousRms;
             if (deltaRms > (dynamicThreshold * 0.6) && (now - lastBeatTime > 110)) {
               lastBeatTime = now;
@@ -1751,25 +1742,17 @@
                 beatTimestamps.shift();
               }
 
-              // 累積 3 個字以上拍點即可估算平均字距
               if (beatTimestamps.length >= 3) {
                 let totalDiff = 0;
                 for (let k = 1; k < beatTimestamps.length; k++) {
                   totalDiff += (beatTimestamps[k] - beatTimestamps[k - 1]);
                 }
                 const avgIntervalMs = totalDiff / (beatTimestamps.length - 1);
-
-                // 基準速度 4.0x 約對應 170ms/字；基準速度 2.0x 約對應 340ms/字
                 const targetNominalIntervalMs = 700 / baseSpeed;
                 const ratio = targetNominalIntervalMs / Math.max(100, avgIntervalMs);
-
-                // 將調節係數限制在 ±25% 範圍內 (0.75x ~ 1.25x)，避免失控暴衝
                 const targetMultiplier = Math.max(0.75, Math.min(1.25, ratio));
-                
-                // 平滑緩衝調整 (EMA)，消除突兀感
                 effectiveSpeedMultiplier = effectiveSpeedMultiplier * 0.7 + targetMultiplier * 0.3;
 
-                // 更新當前行的總移動時間
                 if (parsedTextLines[currentLineIndex]) {
                   const line = parsedTextLines[currentLineIndex];
                   const lineLen = Math.max(line.x1 - line.x0, 60);
@@ -1778,7 +1761,6 @@
               }
             }
           } else {
-            // 停頓時自適應係數平滑回歸基準 1.0
             effectiveSpeedMultiplier = effectiveSpeedMultiplier * 0.95 + 1.0 * 0.05;
 
             if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
@@ -1824,10 +1806,36 @@
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
+    /* ----------------------------------------------------
+       【人性化視圖調整】：
+       1. scrollToAlignTop: 只在真正超出畫面時將行拉入合適視線
+       2. ensureLineVisibleInView: 確保行在可見範圍內，若本來就看得到則絕不跳頁！
+    ---------------------------------------------------- */
     function scrollToAlignTop(idx) {
       const line = parsedTextLines[idx];
       if (line) {
-        centerCore.scrollTop = Math.max(0, line.topGlobal - 16);
+        centerCore.scrollTop = Math.max(0, line.topGlobal - 18);
+      }
+    }
+
+    function ensureLineVisibleInView(idx) {
+      const line = parsedTextLines[idx];
+      if (!line) return;
+
+      const viewportTop = centerCore.scrollTop;
+      const viewportBottom = viewportTop + centerCore.clientHeight;
+
+      // 如果該行完全落在目前的螢幕視野內（上下留有安全緩衝），絕對不滾動！
+      if (line.topGlobal >= (viewportTop + 10) && line.underLineY <= (viewportBottom - 15)) {
+        return;
+      }
+
+      // 如果該行被遮在下方，只微幅往下滾動露出該行，絕不猛烈跳到最頂端！
+      if (line.underLineY > (viewportBottom - 15)) {
+        centerCore.scrollTop = (line.underLineY - centerCore.clientHeight) + 36;
+      } else if (line.topGlobal < viewportTop) {
+        // 如果該行在上方，拉到頂端
+        centerCore.scrollTop = Math.max(0, line.topGlobal - 18);
       }
     }
 
@@ -1840,7 +1848,6 @@
       const line = parsedTextLines[idx];
       const lineLen = Math.max(line.x1 - line.x0, 60);
 
-      // 動態結合基準檔位與節奏倍率
       lineDuration = (lineLen / (90 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
       currentLineProgress = initialProgress;
 
@@ -1881,13 +1888,20 @@
 
       currentLineProgress += (delta / lineDuration);
 
+      // --- 人性化預滾判定 ---
+      // 1. 若已經是終點行（B 點），絕不預滾！
+      // 2. 只有在下一行「真的掉在螢幕外看不見」時，才平滑推進，絕不暴力跳頂
       if (currentLineProgress >= 0.90 && !hasPreScrolled) {
+        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
         const nextIndex = currentLineIndex + 1;
-        if (nextIndex < parsedTextLines.length) {
+
+        if (!isCurrentLineAtTargetEnd && nextIndex < parsedTextLines.length) {
           const nextLine = parsedTextLines[nextIndex];
-          const screenBottom = centerCore.scrollTop + centerCore.clientHeight;
-          if (nextLine && nextLine.underLineY > screenBottom - 50) {
-            scrollToAlignTop(nextIndex);
+          const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+
+          // 只有下一行底緣確實被螢幕下邊界切到（即將看不到），才溫和露出
+          if (nextLine && nextLine.underLineY > (viewportBottom - 20)) {
+            ensureLineVisibleInView(nextIndex);
             hasPreScrolled = true;
           }
         }
@@ -1928,6 +1942,10 @@
           hasPreScrolled = false;
           currentLineIndex = nextIndex;
           currentLineProgress = 0.0;
+          
+          // 換行時確保可視即可，不隨意翻頁跳動
+          ensureLineVisibleInView(currentLineIndex);
+
           setupActiveLine(currentLineIndex, 0.0);
           lastAnimTimestamp = performance.now();
           guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -2338,7 +2356,7 @@
         if (cachedRawBuffer) {
           parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
             updateVisualDisplay();
-            scrollToAlignTop(currentLineIndex);
+            ensureLineVisibleInView(currentLineIndex);
           });
         }
       }, 300);
