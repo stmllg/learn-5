@@ -495,6 +495,17 @@
       line-height: 1.2;
     }
 
+    #offering-status-msg {
+      display: none;
+      font-size: 14px;
+      font-weight: 800;
+      color: #DC2626;
+      text-align: center;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: #FEE2E2;
+    }
+
     .offering-actions {
       display: flex;
       gap: 12px;
@@ -671,6 +682,7 @@
         <div class="coins-label">今日累計福慧幣</div>
         <div class="coins-value" id="display-coins-count">0 枚</div>
       </div>
+      <div id="offering-status-msg">⚠️ 未傳送成功，請檢查網路！</div>
       <div class="offering-actions">
         <button id="btn-cancel-offering" class="offering-btn">稍後</button>
         <button id="btn-confirm-offering" class="offering-btn">確認供養</button>
@@ -685,12 +697,12 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v83_new_sheets_synced';
+    const APP_BUILD_VERSION = 'v85_strict_delivery_check';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
 
-    // Google Apps Script 專屬新帳號網址
+    // Google Apps Script 網址
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
 
     const centerCore = document.getElementById('center-core');
@@ -729,6 +741,7 @@
     const inputClassId = document.getElementById('input-class-id');
     const inputUserName = document.getElementById('input-user-name');
     const displayCoinsCount = document.getElementById('display-coins-count');
+    const offeringStatusMsg = document.getElementById('offering-status-msg');
     const btnConfirmOffering = document.getElementById('btn-confirm-offering');
     const btnCancelOffering = document.getElementById('btn-cancel-offering');
 
@@ -854,9 +867,6 @@
       } catch (e) {}
     }
 
-    /* ----------------------------------------------------
-       【福慧幣累計機制】：次數 × 句數
-    ---------------------------------------------------- */
     function getStoredCoins() {
       return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
     }
@@ -1199,11 +1209,14 @@
     });
 
     /* ----------------------------------------------------
-       【供養功德按鈕】：顯示彈跳視窗與新 Google 試算表寫入
+       【供養功德按鈕】：嚴格驗證送出狀態，失敗絕不清空
     ---------------------------------------------------- */
     btnOffering.addEventListener('click', () => {
       triggerLandscapeLock();
       displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
+      offeringStatusMsg.style.display = 'none';
+      btnConfirmOffering.disabled = false;
+      btnConfirmOffering.textContent = '確認供養';
       offeringOverlay.style.display = 'flex';
     });
 
@@ -1230,32 +1243,47 @@
       }
 
       btnConfirmOffering.disabled = true;
-      btnConfirmOffering.textContent = '供養上傳中...';
+      btnConfirmOffering.textContent = '連線供養中...';
+      offeringStatusMsg.style.display = 'none';
 
       try {
-        // 使用 text/plain 避免跨網域預檢被擋
-        await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            classId: classId,
-            userName: userName,
-            coins: coinsToOffer
-          })
+        const params = new URLSearchParams({
+          classId: classId,
+          userName: userName,
+          coins: coinsToOffer
         });
 
-        // 成功回饋
-        spawnGoldCoinsAt(btnOffering);
-        resetCoins();
-        offeringOverlay.style.display = 'none';
-        speakPrompt("供養成功，功德無量");
+        // 設置 12 秒超時限制
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+        const response = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+          method: 'GET',
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        const resultText = await response.text();
+
+        // 必須明確收到 Google 試算表寫入成功的回應
+        if (resultText && resultText.includes('SUCCESS')) {
+          spawnGoldCoinsAt(btnOffering);
+          resetCoins(); // 成功確認後才歸零！
+          displayCoinsCount.textContent = '0 枚';
+          offeringOverlay.style.display = 'none';
+          speakPrompt("供養成功，功德無量");
+        } else {
+          throw new Error("伺服器未回傳成功標記: " + resultText);
+        }
 
       } catch (err) {
-        alert("供養傳送時發生異常，請檢查網路連線！");
-      } finally {
+        // 失敗時：金幣完整保留，明確提示未傳送成功
+        offeringStatusMsg.style.display = 'block';
+        offeringStatusMsg.textContent = '⚠️ 未傳送成功，福慧幣已為您保留！';
         btnConfirmOffering.disabled = false;
-        btnConfirmOffering.textContent = '確認供養';
+        btnConfirmOffering.textContent = '重新傳送';
+        alert("未能成功送入試算表，福慧幣已完整保留！請檢查網路後再次點擊。");
       }
     });
 
@@ -1310,9 +1338,6 @@
       }
     });
 
-    /* ----------------------------------------------------
-       【單指按住中央經文區觸控推進（雙軌並行）】
-    ---------------------------------------------------- */
     centerCore.addEventListener('pointerdown', (e) => {
       if (!isGuideActive) return;
       isTouchingDisplay = true;
@@ -1545,7 +1570,6 @@
       const delta = now - lastAnimTimestamp;
       lastAnimTimestamp = now;
 
-      // 行末最後兩字自動跑完 (進度 >= 0.85)
       const isNearLineEnd = (currentLineProgress >= 0.85);
 
       if (!isVoiceActive && !isNearLineEnd) {
@@ -1555,7 +1579,6 @@
 
       currentLineProgress += (delta / lineDuration);
 
-      // 最後一個字過半 (0.90) 提前將下一行平滑滾入視線
       if (currentLineProgress >= 0.90 && !hasPreScrolled) {
         const nextIndex = currentLineIndex + 1;
         if (nextIndex < parsedTextLines.length) {
@@ -1630,7 +1653,6 @@
       const remain = Math.max(0, totalTargetCycles - completedCycles);
       btnRepeatCount.textContent = `${remain}次`;
 
-      // 完成一個目標循環，累加福慧幣：遍數 × 句數
       if (completedCycles >= totalTargetCycles) {
         const earnedCoins = totalTargetCycles * calculateSentenceCount();
         addCoins(earnedCoins);
