@@ -402,11 +402,136 @@
       background: #0D9488;
     }
 
+    /* 供養功德彈跳視窗 */
+    #offering-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .offering-card {
+      background: #FFFFFF;
+      color: #1E293B;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 420px;
+      padding: 24px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: popIn 0.25s ease-out;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.9); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .offering-header {
+      font-size: 20px;
+      font-weight: 900;
+      color: #D97706;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .offering-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+    }
+
+    .offering-field label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #64748B;
+    }
+
+    .offering-input {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1.5px solid #CBD5E1;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0F172A;
+      outline: none;
+    }
+    .offering-input:focus {
+      border-color: #F59E0B;
+    }
+
+    .coins-display-box {
+      background: #FEF3C7;
+      border: 2px dashed #F59E0B;
+      border-radius: 14px;
+      padding: 14px;
+      text-align: center;
+      margin: 6px 0;
+    }
+
+    .coins-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #92400E;
+    }
+
+    .coins-value {
+      font-size: 32px;
+      font-weight: 900;
+      color: #B45309;
+      line-height: 1.2;
+    }
+
+    .offering-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .offering-btn {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: 800;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.15s ease;
+    }
+    .offering-btn:active {
+      transform: scale(0.96);
+    }
+
+    #btn-confirm-offering {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+    }
+
+    #btn-cancel-offering {
+      background: #F1F5F9;
+      color: #475569;
+    }
+
     .gold-coin {
       position: absolute;
       font-size: 28px;
       pointer-events: none;
-      z-index: 999;
+      z-index: 9999;
       animation: explodeCoin 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards;
     }
 
@@ -528,6 +653,31 @@
     <button class="modal-option active" data-speed="4.0">4.0x</button>
   </div>
 
+  <!-- 供養功德彈跳視窗 -->
+  <div id="offering-modal-overlay">
+    <div class="offering-card">
+      <div class="offering-header">
+        <span>🙏</span> 功德供養
+      </div>
+      <div class="offering-field">
+        <label>班號：</label>
+        <input type="text" id="input-class-id" class="offering-input" placeholder="請輸入班號 (如: 24秋01)">
+      </div>
+      <div class="offering-field">
+        <label>姓名：</label>
+        <input type="text" id="input-user-name" class="offering-input" placeholder="請輸入姓名">
+      </div>
+      <div class="coins-display-box">
+        <div class="coins-label">今日累計福慧幣</div>
+        <div class="coins-value" id="display-coins-count">0 枚</div>
+      </div>
+      <div class="offering-actions">
+        <button id="btn-cancel-offering" class="offering-btn">稍後</button>
+        <button id="btn-confirm-offering" class="offering-btn">確認供養</button>
+      </div>
+    </div>
+  </div>
+
   <input type="file" id="file-pdf-input" accept=".pdf,.PDF,application/pdf">
 
   <script>
@@ -535,10 +685,13 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v81_touch_glide_adaptive';
+    const APP_BUILD_VERSION = 'v82_offering_sheets_sync';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
+
+    // Google Apps Script 網路應用程式網址 (已完成整合)
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_YNvRrxFwZkYFRYbszA0adNfUd-K_QjSDoenoghaEVManti-16LzxSXl4cz2heoMg/exec';
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -571,6 +724,14 @@
     const repeatModal = document.getElementById('repeat-modal');
     const speedModal = document.getElementById('speed-modal');
 
+    // 供養視窗元素
+    const offeringOverlay = document.getElementById('offering-modal-overlay');
+    const inputClassId = document.getElementById('input-class-id');
+    const inputUserName = document.getElementById('input-user-name');
+    const displayCoinsCount = document.getElementById('display-coins-count');
+    const btnConfirmOffering = document.getElementById('btn-confirm-offering');
+    const btnCancelOffering = document.getElementById('btn-cancel-offering');
+
     let currentPdfDoc = null;
     let cachedRawBuffer = null;
     let parsedTextLines = [];
@@ -599,11 +760,11 @@
     let vadCheckTimer = null;
     let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
-    let isTouchingDisplay = false; // 單指按住中央畫面旗標
-    const SILENCE_TIMEOUT_MS = 1000; // 放寬至 1.0 秒換氣容錯
+    let isTouchingDisplay = false;
+    const SILENCE_TIMEOUT_MS = 1000;
 
     let baseNoiseLevel = 0.002;
-    let dynamicThreshold = 0.003; // 親民低門檻
+    let dynamicThreshold = 0.003;
     let calibrationSamples = [];
     let isCalibrating = false;
 
@@ -695,6 +856,30 @@
       } catch (e) {}
     }
 
+    /* ----------------------------------------------------
+       【福慧幣累計機制】：次數 × 句數
+    ---------------------------------------------------- */
+    function getStoredCoins() {
+      return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
+    }
+
+    function addCoins(amount) {
+      const total = getStoredCoins() + amount;
+      localStorage.setItem('user_accumulated_coins', total.toString());
+      return total;
+    }
+
+    function resetCoins() {
+      localStorage.setItem('user_accumulated_coins', '0');
+    }
+
+    function calculateSentenceCount() {
+      if (parsedTextLines.length === 0) return 0;
+      const start = (markA_Index !== -1) ? markA_Index : 0;
+      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
+      return Math.max(1, Math.abs(end - start) + 1);
+    }
+
     function initUserPreferences() {
       const config = loadSavedProgress();
       if (config.speed) {
@@ -713,6 +898,10 @@
           btn.classList.toggle('active', btn.dataset.count === String(totalTargetCycles));
         });
       }
+
+      // 載入預存的班號與姓名
+      inputClassId.value = localStorage.getItem('user_class_id') || '';
+      inputUserName.value = localStorage.getItem('user_profile_name') || '';
     }
 
     function updateSpeedModalUI() {
@@ -1012,7 +1201,66 @@
       speakPrompt("終點設定完畢");
     });
 
-    btnOffering.addEventListener('click', () => {});
+    /* ----------------------------------------------------
+       【供養功德按鈕】：顯示彈跳視窗、累計福慧幣與試算表同步
+    ---------------------------------------------------- */
+    btnOffering.addEventListener('click', () => {
+      triggerLandscapeLock();
+      displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
+      offeringOverlay.style.display = 'flex';
+    });
+
+    btnCancelOffering.addEventListener('click', () => {
+      offeringOverlay.style.display = 'none';
+    });
+
+    btnConfirmOffering.addEventListener('click', async () => {
+      const classId = inputClassId.value.trim();
+      const userName = inputUserName.value.trim();
+
+      if (!classId || !userName) {
+        alert("請輸入您的班號與姓名，以便留存供養記錄！");
+        return;
+      }
+
+      // 儲存班號與姓名於設備上
+      localStorage.setItem('user_class_id', classId);
+      localStorage.setItem('user_profile_name', userName);
+
+      const coinsToOffer = getStoredCoins();
+      if (coinsToOffer <= 0) {
+        alert("目前累積的福慧幣為 0 枚，請先精進背誦後再來供養！");
+        return;
+      }
+
+      btnConfirmOffering.disabled = true;
+      btnConfirmOffering.textContent = '供養上傳中...';
+
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors', // 配合 Google Apps Script Web App
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            classId: classId,
+            userName: userName,
+            coins: coinsToOffer
+          })
+        });
+
+        // 成功回饋
+        spawnGoldCoinsAt(btnOffering);
+        resetCoins();
+        offeringOverlay.style.display = 'none';
+        speakPrompt("供養成功，功德無量");
+
+      } catch (err) {
+        alert("供養傳送時發生異常，請檢查網路連線！");
+      } finally {
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+      }
+    });
 
     btnSpeed.addEventListener('click', () => {
       const isVisible = speedModal.style.display === 'flex';
@@ -1083,7 +1331,6 @@
     const stopTouchDrive = () => {
       if (!isGuideActive) return;
       isTouchingDisplay = false;
-      // 觸控釋放時更新時間戳，交回 1.0 秒靜止判斷
       lastVoiceDetectedTime = performance.now();
     };
 
@@ -1168,7 +1415,6 @@
           if (calibrationSamples.length > 0) {
             const sum = calibrationSamples.reduce((a, b) => a + b, 0);
             baseNoiseLevel = sum / calibrationSamples.length;
-            // 親民自適應公式：底噪 1.15 倍 + 0.001 偏移量，輕念即動
             dynamicThreshold = Math.max(0.0025, baseNoiseLevel * 1.15 + 0.001);
           }
           isCalibrating = false;
@@ -1206,7 +1452,6 @@
             calibrationSamples.push(rms);
           }
 
-          // 雙軌判定：發聲超過親民門檻 或 單指按住畫面
           const hasInput = (rms > dynamicThreshold) || isTouchingDisplay;
 
           if (hasInput) {
@@ -1219,7 +1464,6 @@
               lastAnimTimestamp = performance.now();
             }
           } else {
-            // 超過 1.0 秒無聲音且未觸控 -> 停止前進定格
             if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
               isVoiceActive = false;
               btnGuideToggle.textContent = '靜止';
@@ -1299,19 +1543,15 @@
 
     let hasPreScrolled = false;
 
-    /* ----------------------------------------------------
-       【動畫推進與行尾自動跑完（Auto Glide）】
-    ---------------------------------------------------- */
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
 
       const delta = now - lastAnimTimestamp;
       lastAnimTimestamp = now;
 
-      // 【核心亮點】：念到最後兩個字 (進度 >= 0.85) 時，自動跑完行尾不卡頓
+      // 行末最後兩字自動跑完 (進度 >= 0.85)
       const isNearLineEnd = (currentLineProgress >= 0.85);
 
-      // 若不在行尾且無發聲/無觸控，則定格暫停
       if (!isVoiceActive && !isNearLineEnd) {
         guideAnimId = requestAnimationFrame(stepGuideMovement);
         return;
@@ -1332,7 +1572,7 @@
         }
       }
 
-      // 達到行末，順暢切換至下一行
+      // 整行結束
       if (currentLineProgress >= 1.0) {
         currentLineProgress = 1.0;
 
@@ -1395,7 +1635,10 @@
       const remain = Math.max(0, totalTargetCycles - completedCycles);
       btnRepeatCount.textContent = `${remain}次`;
 
+      // 完成一個完整目標循環，累加福慧幣：遍數 × 句數
       if (completedCycles >= totalTargetCycles) {
+        const earnedCoins = totalTargetCycles * calculateSentenceCount();
+        addCoins(earnedCoins);
         finishAndStopPermanently();
         return;
       }
@@ -1474,17 +1717,17 @@
       const originX = rect.left + rect.width / 2;
       const originY = rect.top + rect.height / 2;
 
-      for (let i = 0; i < 14; i++) {
+      for (let i = 0; i < 18; i++) {
         const coin = document.createElement('div');
         coin.className = 'gold-coin';
         coin.textContent = '🪙';
         coin.style.left = `${originX}px`;
         coin.style.top = `${originY}px`;
 
-        const angle = (i / 14) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
-        const distance = 70 + Math.random() * 60;
+        const angle = (i / 18) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
+        const distance = 80 + Math.random() * 70;
         const dx = Math.cos(angle) * distance;
-        const dy = Math.sin(angle) * distance - 10;
+        const dy = Math.sin(angle) * distance - 12;
         const rot = (Math.random() * 360 - 180) + 'deg';
 
         coin.style.setProperty('--dx', `${dx}px`);
@@ -1740,7 +1983,6 @@
         const totalChars = g.spans.reduce((acc, s) => acc + s.str.length, 0);
         const singleCharW = (lineX1 - lineX0) / Math.max(1, totalChars);
 
-        // 下移 7px，字底清晰
         const underLineY = maxBottom + 7;
 
         if ((lineX1 - lineX0) >= 80) {
