@@ -745,7 +745,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v88_schedule_repeat_sync';
+    const APP_BUILD_VERSION = 'v89_strict_schedule_lock';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -803,6 +803,7 @@
     let totalTargetCycles = 1;
     let completedCycles = 0;
     let hasEverStarted = false;
+    let isScheduleLocked = false; // 是否受今日共同功課鎖定
 
     let guideAnimId = null;
     let isGuideActive = false;
@@ -1024,24 +1025,25 @@
     }
 
     /* ----------------------------------------------------
-       【今日共同進度自動載入 (schedule.json 比對)】
-       同時支援起點、終點與「次數 (repeat)」
+       【今日共同進度極速本機判定 + 鎖定互鎖機制】
     ---------------------------------------------------- */
     async function checkDailySchedule() {
       try {
         let scheduleData = null;
-        try {
-          const res = await fetch('./schedule.json?t=' + Date.now(), { cache: 'no-store' });
-          if (res.ok) {
-            scheduleData = await res.json();
-            localStorage.setItem('LOCAL_SCHEDULE_CACHE', JSON.stringify(scheduleData));
-          }
-        } catch (e) {
-          const localCache = localStorage.getItem('LOCAL_SCHEDULE_CACHE');
-          if (localCache) scheduleData = JSON.parse(localCache);
-        }
+        const localCache = localStorage.getItem('LOCAL_SCHEDULE_CACHE');
+        if (localCache) scheduleData = JSON.parse(localCache);
 
-        if (!scheduleData || !Array.isArray(scheduleData)) return false;
+        // 背景靜默更新 schedule.json，不阻擋開機
+        fetch('./schedule.json?t=' + Date.now(), { cache: 'no-store' })
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data)) localStorage.setItem('LOCAL_SCHEDULE_CACHE', JSON.stringify(data));
+          }).catch(() => {});
+
+        if (!scheduleData || !Array.isArray(scheduleData)) {
+          isScheduleLocked = false;
+          return false;
+        }
 
         const now = new Date();
         const yyyy = now.getFullYear();
@@ -1052,34 +1054,37 @@
         const todayPlan = scheduleData.find(item => item.date === todayStr);
 
         if (todayPlan && typeof todayPlan.start === 'number' && typeof todayPlan.end === 'number') {
-          const targetA = Math.max(0, todayPlan.start - 1);
-          const targetB = Math.min(parsedTextLines.length - 1, todayPlan.end - 1);
+          const completedRecord = localStorage.getItem('SCHEDULE_DONE_' + todayStr);
 
-          markA_Index = targetA;
-          markB_Index = targetB;
-          currentLineIndex = markA_Index;
-          currentLineProgress = 0.0;
-          completedCycles = 0;
-          hasEverStarted = false;
+          // 今日功課尚未完成 -> 強制鎖定共同進度，不給手動改起訖
+          if (completedRecord !== 'true') {
+            isScheduleLocked = true;
+            markA_Index = Math.max(0, todayPlan.start - 1);
+            markB_Index = Math.min(parsedTextLines.length - 1, todayPlan.end - 1);
+            currentLineIndex = markA_Index;
+            currentLineProgress = 0.0;
+            completedCycles = 0;
+            hasEverStarted = false;
 
-          // 若有設定次數，自動同步更新
-          if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
-            setTargetCyclesUI(todayPlan.repeat);
+            if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
+              setTargetCyclesUI(todayPlan.repeat);
+            }
+
+            updateVisualDisplay();
+            scrollToAlignTop(markA_Index);
+            saveCurrentProgress();
+
+            const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
+            scheduleToast.style.display = 'block';
+            scheduleToast.textContent = `🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText} ${todayPlan.title ? '('+todayPlan.title+')' : ''}`;
+            speakPrompt(`今日共同功課，第 ${todayPlan.start} 到 ${todayPlan.end} 句${repeatText}，請先完成`);
+            return true;
           }
-
-          updateVisualDisplay();
-          scrollToAlignTop(markA_Index);
-          saveCurrentProgress();
-
-          const repeatText = todayPlan.repeat ? `，共 ${todayPlan.repeat} 遍` : '';
-          scheduleToast.style.display = 'block';
-          scheduleToast.textContent = `📅 今日共同進度：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText} ${todayPlan.title ? '('+todayPlan.title+')' : ''}`;
-          speakPrompt(`今日共同進度，第 ${todayPlan.start} 到 ${todayPlan.end} 句${repeatText}`);
-          return true;
         }
       } catch (err) {
-        console.warn("排程載入略過:", err);
+        console.warn("排程載入異常:", err);
       }
+      isScheduleLocked = false;
       return false;
     }
 
@@ -1243,6 +1248,7 @@
         return;
       }
 
+      // 開機優先載入今日共同功課
       const hasAppliedSchedule = await checkDailySchedule();
 
       if (!hasAppliedSchedule) {
@@ -1309,6 +1315,10 @@
 
     btnMarkA.addEventListener('click', () => {
       triggerLandscapeLock();
+      if (isScheduleLocked) {
+        speakPrompt("請先完成今日共同功課");
+        return;
+      }
       if (parsedTextLines.length === 0) return;
       markA_Index = getLineAtButtonBottom(btnMarkA);
 
@@ -1328,6 +1338,10 @@
 
     btnMarkB.addEventListener('click', () => {
       triggerLandscapeLock();
+      if (isScheduleLocked) {
+        speakPrompt("請先完成今日共同功課");
+        return;
+      }
       if (parsedTextLines.length === 0) return;
       const selectedB = getLineAtButtonBottom(btnMarkB);
 
@@ -1466,6 +1480,10 @@
     });
 
     btnRepeatCount.addEventListener('click', () => {
+      if (isScheduleLocked) {
+        speakPrompt("請先完成今日排定遍數");
+        return;
+      }
       const isVisible = repeatModal.style.display === 'flex';
       speedModal.style.display = 'none';
       repeatModal.style.display = isVisible ? 'none' : 'flex';
@@ -1815,6 +1833,20 @@
       if (completedCycles >= totalTargetCycles) {
         const earnedCoins = totalTargetCycles * calculateSentenceCount();
         addCoins(earnedCoins);
+
+        // 今日功課完成 -> 標記已完成並解除強制鎖定
+        if (isScheduleLocked) {
+          const now = new Date();
+          const yyyy = now.getFullYear();
+          const mm = String(now.getMonth() + 1).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          const todayStr = `${yyyy}/${mm}/${dd}`;
+
+          localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
+          isScheduleLocked = false;
+          speakPrompt("今日共同功課已圓滿，解鎖自由背誦");
+        }
+
         finishAndStopPermanently();
         return;
       }
