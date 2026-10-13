@@ -685,13 +685,13 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v82_offering_sheets_sync';
+    const APP_BUILD_VERSION = 'v83_new_sheets_synced';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
 
-    // Google Apps Script 網路應用程式網址 (已完成整合)
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_YNvRrxFwZkYFRYbszA0adNfUd-K_QjSDoenoghaEVManti-16LzxSXl4cz2heoMg/exec';
+    // Google Apps Script 專屬新帳號網址
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -768,7 +768,6 @@
     let calibrationSamples = [];
     let isCalibrating = false;
 
-    // 語音提示（音量調小一格 volume = 0.7）
     function speakPrompt(text) {
       try {
         if ('speechSynthesis' in window) {
@@ -782,7 +781,6 @@
       } catch (e) {}
     }
 
-    // LINE 內建瀏覽器環境判定與自動發聲提示
     function checkLineInAppBrowser() {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       if (/Line/i.test(ua)) {
@@ -899,7 +897,6 @@
         });
       }
 
-      // 載入預存的班號與姓名
       inputClassId.value = localStorage.getItem('user_class_id') || '';
       inputUserName.value = localStorage.getItem('user_profile_name') || '';
     }
@@ -1202,7 +1199,7 @@
     });
 
     /* ----------------------------------------------------
-       【供養功德按鈕】：顯示彈跳視窗、累計福慧幣與試算表同步
+       【供養功德按鈕】：顯示彈跳視窗與新 Google 試算表寫入
     ---------------------------------------------------- */
     btnOffering.addEventListener('click', () => {
       triggerLandscapeLock();
@@ -1223,7 +1220,6 @@
         return;
       }
 
-      // 儲存班號與姓名於設備上
       localStorage.setItem('user_class_id', classId);
       localStorage.setItem('user_profile_name', userName);
 
@@ -1237,10 +1233,11 @@
       btnConfirmOffering.textContent = '供養上傳中...';
 
       try {
+        // 使用 text/plain 避免跨網域預檢被擋
         await fetch(APPS_SCRIPT_URL, {
           method: 'POST',
-          mode: 'no-cors', // 配合 Google Apps Script Web App
-          headers: { 'Content-Type': 'application/json' },
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
             classId: classId,
             userName: userName,
@@ -1408,7 +1405,6 @@
         analyser.smoothingTimeConstant = 0.05;
         source.connect(analyser);
 
-        // 啟動 0.4 秒自適應環境底噪校準
         isCalibrating = true;
         calibrationSamples = [];
         setTimeout(() => {
@@ -1572,7 +1568,6 @@
         }
       }
 
-      // 整行結束
       if (currentLineProgress >= 1.0) {
         currentLineProgress = 1.0;
 
@@ -1635,7 +1630,7 @@
       const remain = Math.max(0, totalTargetCycles - completedCycles);
       btnRepeatCount.textContent = `${remain}次`;
 
-      // 完成一個完整目標循環，累加福慧幣：遍數 × 句數
+      // 完成一個目標循環，累加福慧幣：遍數 × 句數
       if (completedCycles >= totalTargetCycles) {
         const earnedCoins = totalTargetCycles * calculateSentenceCount();
         addCoins(earnedCoins);
