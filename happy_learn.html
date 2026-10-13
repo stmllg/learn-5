@@ -42,23 +42,63 @@
       overflow: hidden;
     }
 
+    /* 1. LINE 內建瀏覽器警示遮罩：全屏 100% 覆蓋到最底端 */
     #line-warning-banner {
       display: none;
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      background: linear-gradient(90deg, #DC2626 0%, #B91C1C 50%, #EA580C 100%);
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: radial-gradient(circle at center, #DC2626 0%, #991B1B 100%);
       color: #FFFFFF;
-      font-size: 16px;
-      font-weight: 900;
-      padding: 12px 16px;
+      z-index: 20000;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
       text-align: center;
-      line-height: 1.4;
-      z-index: 10001;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-      border-bottom: 2px solid #FEF08A;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+    }
+
+    .line-warning-card {
+      background: rgba(0, 0, 0, 0.75);
+      border: 2px solid #FEF08A;
+      border-radius: 20px;
+      padding: 24px 20px;
+      max-width: 480px;
+      width: 90%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .line-warning-icon {
+      font-size: 44px;
+      line-height: 1;
+    }
+
+    .line-warning-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #FEF08A;
       letter-spacing: 0.5px;
+    }
+
+    .line-warning-text {
+      font-size: 16px;
+      line-height: 1.6;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+
+    .line-warning-highlight {
+      color: #38BDF8;
+      font-weight: 900;
+      font-size: 18px;
     }
 
     #schedule-toast {
@@ -87,6 +127,7 @@
       100% { opacity: 0; transform: translate(-50%, -10px); }
     }
 
+    /* 2. 開機滿版大按鍵：仿照真實兩側左右各 4 鍵排列 */
     #welcome-start-overlay {
       display: flex;
       position: fixed;
@@ -94,122 +135,126 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(10, 15, 29, 0.98);
+      height: 100dvh;
+      background: rgba(8, 12, 22, 0.98);
       z-index: 10000;
       justify-content: center;
       align-items: center;
-      backdrop-filter: blur(8px);
-      padding: 14px 20px;
-      transition: opacity 0.35s ease-out;
+      padding: 12px;
+      cursor: pointer;
+      transition: opacity 0.3s ease-out;
     }
 
-    .welcome-container {
+    .welcome-board {
       width: 100%;
-      max-width: 860px;
+      max-width: 900px;
       height: 100%;
       max-height: 96vh;
+      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
+      border: 2px solid #F59E0B;
+      border-radius: 20px;
+      padding: 12px 18px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(245, 158, 11, 0.2);
     }
 
-    .welcome-header-title {
-      font-size: 21px;
+    .welcome-board-header {
+      text-align: center;
+    }
+
+    .welcome-board-title {
+      font-size: clamp(16px, 4vw, 21px);
       font-weight: 900;
       color: #FBBF24;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.6);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      letter-spacing: 0.5px;
     }
 
-    .buttons-guide-grid {
+    /* 仿真實左右翼分欄：左 4 鍵、右 4 鍵 */
+    .wings-guide-container {
       width: 100%;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px 14px;
-      background: rgba(30, 41, 59, 0.75);
-      border: 1px solid #334155;
-      border-radius: 14px;
-      padding: 12px 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-around;
+      align-items: center;
+      gap: 12px;
+      margin: 6px 0;
       overflow-y: auto;
     }
 
-    .guide-item {
+    .wing-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .guide-btn-card {
       display: flex;
       align-items: center;
       gap: 10px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 6px 10px;
     }
 
-    .guide-btn-icon {
-      width: 42px;
-      height: 42px;
+    .guide-btn-circle {
+      width: clamp(38px, 6.5vh, 46px);
+      height: clamp(38px, 6.5vh, 46px);
       border-radius: 50%;
       border: 2px solid #FFFFFF;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
+      font-size: clamp(12px, 2.2vh, 15px);
       font-weight: 900;
       color: #FFFFFF;
       flex-shrink: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      text-align: center;
+      line-height: 1.1;
     }
 
-    .guide-item-desc {
+    .guide-btn-info {
       display: flex;
       flex-direction: column;
       text-align: left;
     }
 
-    .guide-item-title {
-      font-size: 13px;
-      font-weight: 800;
+    .guide-btn-name {
+      font-size: clamp(12px, 2.2vh, 14px);
+      font-weight: 900;
       color: #F8FAFC;
     }
 
-    .guide-item-sub {
-      font-size: 11px;
+    .guide-btn-desc {
+      font-size: clamp(10px, 1.8vh, 12px);
       color: #94A3B8;
       line-height: 1.2;
     }
 
-    .welcome-btn {
-      width: 90%;
-      max-width: 460px;
-      padding: 12px 28px;
+    /* 滿版卡片底部的點擊觸發指引 */
+    .welcome-board-footer {
+      width: 100%;
       background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
       color: #FFFFFF;
-      border: 2px solid #FDE68A;
-      border-radius: 28px;
-      font-size: 20px;
+      border-radius: 14px;
+      padding: 10px 16px;
+      text-align: center;
+      font-size: clamp(15px, 2.8vh, 18px);
       font-weight: 900;
-      box-shadow: 0 8px 25px rgba(245, 158, 11, 0.6);
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5);
       animation: pulseBtn 1.8s infinite ease-in-out;
     }
 
-    .welcome-btn:active {
-      transform: scale(0.95);
-    }
-
-    .welcome-subtext {
-      font-size: 12px;
-      color: #FEF3C7;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-
     @keyframes pulseBtn {
-      0% { transform: scale(1); box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5); }
-      50% { transform: scale(1.03); box-shadow: 0 10px 32px rgba(245, 158, 11, 0.85); }
-      100% { transform: scale(1); box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5); }
+      0% { transform: scale(1); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
+      50% { transform: scale(1.02); box-shadow: 0 8px 25px rgba(245, 158, 11, 0.75); }
+      100% { transform: scale(1); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
     }
 
     .side-wing {
@@ -288,7 +333,6 @@
     .btn-color-reload {
       background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
       border-color: #BAE6FD;
-      font-size: min(15px, 4.8vh);
     }
 
     .btn-color-shutdown {
@@ -296,7 +340,6 @@
       border-color: #FECACA;
       color: #FFFFFF;
       font-size: min(14px, 4.4vh);
-      line-height: 1.1;
     }
 
     .btn-color-guide {
@@ -732,84 +775,101 @@
 </head>
 <body>
 
-  <div id="line-warning-banner">⚠️ 偵測到 LINE 瀏覽器：請點選右上角「直線三點 (⋮)」➔ 選擇「以預設瀏覽器開啟」以正常啟用麥克風背誦！</div>
+  <!-- 1. LINE 內建瀏覽器警示遮罩：全屏 100% 覆蓋到最底端 -->
+  <div id="line-warning-banner">
+    <div class="line-warning-card">
+      <div class="line-warning-icon">⚠️</div>
+      <div class="line-warning-title">偵測到 LINE 內建瀏覽器</div>
+      <div class="line-warning-text">
+        請點選螢幕 <span class="line-warning-highlight">上下側邊</span> 的功能選單或直線三點 (⋮)<br><br>
+        選擇 ➔ <span class="line-warning-highlight">「以預設瀏覽器開啟」</span><br><br>
+        即可正常啟用麥克風進行背誦！
+      </div>
+    </div>
+  </div>
 
+  <!-- 2. 開機滿版大按鍵：仿照真實兩側左右各 4 鍵排列，點擊任意處進入 -->
   <div id="welcome-start-overlay">
-    <div class="welcome-container">
-      <div class="welcome-header-title">
-        <span>🙏</span> 歡喜背書橫式播放器 — 操作指引
+    <div class="welcome-board">
+      <div class="welcome-board-header">
+        <div class="welcome-board-title">歡喜背書橫式播放器 — 操作指引</div>
       </div>
 
-      <div class="buttons-guide-grid">
-        <div class="guide-item">
-          <div class="guide-btn-icon btn-color-mark-a">起</div>
-          <div class="guide-item-desc">
-            <span class="guide-item-title">起點設定</span>
-            <span class="guide-item-sub">標定背誦起點位置</span>
+      <div class="wings-guide-container">
+        <!-- 左側 4 鍵 (由上至下) -->
+        <div class="wing-column">
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-mark-a">起</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">起點</span>
+              <span class="guide-btn-desc">標定起點位置</span>
+            </div>
+          </div>
+
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-offering">供養</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">供養</span>
+              <span class="guide-btn-desc">上傳今日福慧幣</span>
+            </div>
+          </div>
+
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-reload">更新</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">更新</span>
+              <span class="guide-btn-desc">同步最新經文排程</span>
+            </div>
+          </div>
+
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-shutdown">關機</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">關機</span>
+              <span class="guide-btn-desc">保存進度並退出</span>
+            </div>
           </div>
         </div>
 
-        <div class="guide-item">
-          <div class="guide-btn-icon btn-color-offering">供養</div>
-          <div class="guide-item-desc">
-            <span class="guide-item-title">功德供養</span>
-            <span class="guide-item-sub">上傳今日累計福慧幣</span>
+        <!-- 右側 4 鍵 (由上至下) -->
+        <div class="wing-column">
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-guide">背書</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">背書</span>
+              <span class="guide-btn-desc">開始/暫停導引</span>
+            </div>
           </div>
-        </div>
 
-        <div class="guide-item">
-          <div class="guide-btn-icon btn-color-reload">更新</div>
-          <div class="guide-item-desc">
-            <span class="guide-item-title">檢查更新</span>
-            <span class="guide-item-sub">同步最新經文與排程</span>
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-speed">1.5x</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">語速</span>
+              <span class="guide-btn-desc">自適應節奏調速</span>
+            </div>
           </div>
-        </div>
 
-        <div class="guide-item">
-          <div class="guide-btn-icon btn-color-shutdown">關機</div>
-          <div class="guide-item-desc">
-            <span class="guide-item-title">存檔關機</span>
-            <span class="guide-item-sub">保存當前參數並退出</span>
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-repeat">1次</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">遍數</span>
+              <span class="guide-btn-desc">設定目標循環次數</span>
+            </div>
           </div>
-        </div>
 
-        <div class="guide-item">
-          <div class="guide-btn-icon btn-color-guide">背書</div>
-          <div class="guide-item-desc">
-            <span class="guide-item-title">開始 / 暫停</span>
-            <span class="guide-item-sub">語音/觸控導引開關</span>
-          </div>
-        </div>
-
-        <div class="guide-item">
-          <div class="guide-btn-icon btn-color-speed">4.0x</div>
-          <div class="guide-item-desc">
-            <span class="guide-item-title">基準語速</span>
-            <span class="guide-item-sub">自適應節奏微調</span>
-          </div>
-        </div>
-
-        <div class="guide-item">
-          <div class="guide-btn-icon btn-color-repeat">1次</div>
-          <div class="guide-item-desc">
-            <span class="guide-item-title">循環遍數</span>
-            <span class="guide-item-sub">設定背誦目標次數</span>
-          </div>
-        </div>
-
-        <div class="guide-item">
-          <div class="guide-btn-icon btn-color-mark-b">止</div>
-          <div class="guide-item-desc">
-            <span class="guide-item-title">終點設定</span>
-            <span class="guide-item-sub">標定背誦結束句</span>
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-mark-b">止</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">終點</span>
+              <span class="guide-btn-desc">標定結束位置</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <button class="welcome-btn" id="btn-welcome-start">
-        <span>🙏 隨喜大家</span>
-        <span class="welcome-subtext">點擊進入全螢幕背誦</span>
-      </button>
+      <div class="welcome-board-footer">
+        🙏 點擊任意處進入背誦
+      </div>
     </div>
   </div>
 
@@ -876,7 +936,7 @@
         <button class="circle-btn btn-color-guide" id="btn-guide-toggle" aria-label="背書導引開關">背書</button>
       </div>
       <div class="slot">
-        <button class="circle-btn btn-color-speed" id="btn-speed" aria-label="調節語速">4.0x</button>
+        <button class="circle-btn btn-color-speed" id="btn-speed" aria-label="調節語速">1.5x</button>
       </div>
       <div class="slot">
         <button class="circle-btn btn-color-repeat" id="btn-repeat-count" aria-label="循環次數">1次</button>
@@ -900,13 +960,13 @@
     <button class="modal-option" data-speed="0.8">0.8x</button>
     <button class="modal-option" data-speed="1.0">1.0x</button>
     <button class="modal-option" data-speed="1.2">1.2x</button>
-    <button class="modal-option" data-speed="1.5">1.5x</button>
+    <button class="modal-option active" data-speed="1.5">1.5x</button>
     <button class="modal-option" data-speed="1.8">1.8x</button>
     <button class="modal-option" data-speed="2.0">2.0x</button>
     <button class="modal-option" data-speed="2.5">2.5x</button>
     <button class="modal-option" data-speed="3.0">3.0x</button>
     <button class="modal-option" data-speed="3.5">3.5x</button>
-    <button class="modal-option active" data-speed="4.0">4.0x</button>
+    <button class="modal-option" data-speed="4.0">4.0x</button>
   </div>
 
   <div id="offering-modal-overlay">
@@ -947,12 +1007,13 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v96_pure_scripture_and_instant_shutdown';
+    const APP_BUILD_VERSION = 'v97_full_cover_line_and_15x_default';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
-    let savedSpeedPref = parseFloat(localStorage.getItem('user_speed_preference') || '4.0');
-    let baseSpeed = SPEED_LEVELS.includes(savedSpeedPref) ? savedSpeedPref : 4.0;
+    // 預設語速直接設為 1.5x (有紀錄則讀取上次自選)
+    let savedSpeedPref = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
+    let baseSpeed = SPEED_LEVELS.includes(savedSpeedPref) ? savedSpeedPref : 1.5;
     let effectiveSpeedMultiplier = 1.0;
 
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
@@ -979,7 +1040,6 @@
     const scheduleToast = document.getElementById('schedule-toast');
 
     const welcomeOverlay = document.getElementById('welcome-start-overlay');
-    const btnWelcomeStart = document.getElementById('btn-welcome-start');
 
     const btnMarkA = document.getElementById('btn-mark-a');
     const btnOffering = document.getElementById('btn-offering');
@@ -1059,9 +1119,9 @@
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       if (/Line/i.test(ua)) {
         const banner = document.getElementById('line-warning-banner');
-        if (banner) banner.style.display = 'block';
+        if (banner) banner.style.display = 'flex';
         setTimeout(() => {
-          speakPrompt("請按右上角直線三點，以預設瀏覽器開啟");
+          speakPrompt("請按上下側邊選單，以預設瀏覽器開啟");
         }, 1200);
       }
     }
@@ -1077,12 +1137,12 @@
       } catch (err) {}
     }
 
-    btnWelcomeStart.addEventListener('click', async () => {
+    welcomeOverlay.addEventListener('click', async () => {
       hasInteractedWithWelcome = true;
       welcomeOverlay.style.opacity = '0';
       setTimeout(() => {
         welcomeOverlay.style.display = 'none';
-      }, 350);
+      }, 300);
 
       await triggerLandscapeLock();
 
@@ -2412,10 +2472,6 @@
       }
     });
 
-    /* ----------------------------------------------------
-       【嚴格純漢字物理幾何提取 + 標點空白快速過濾】
-       徹底剔除行首行尾與行中的數字，只記錄中文字元
-    ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
       pdfContainerWrap.style.display = 'flex';
