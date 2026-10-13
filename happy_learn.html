@@ -86,6 +86,56 @@
       100% { opacity: 0; transform: translate(-50%, -10px); }
     }
 
+    /* 中央「隨喜大家」全螢幕與語音啟動遮罩 */
+    #welcome-start-overlay {
+      display: flex;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.88);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(4px);
+      transition: opacity 0.3s ease-out;
+    }
+
+    .welcome-btn {
+      padding: 16px 36px;
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #FFFFFF;
+      border: 2px solid #FDE68A;
+      border-radius: 30px;
+      font-size: 20px;
+      font-weight: 900;
+      box-shadow: 0 8px 30px rgba(245, 158, 11, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      animation: pulseBtn 1.8s infinite ease-in-out;
+    }
+
+    .welcome-btn:active {
+      transform: scale(0.94);
+    }
+
+    .welcome-subtext {
+      font-size: 12px;
+      color: #FEF3C7;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    @keyframes pulseBtn {
+      0% { transform: scale(1); box-shadow: 0 8px 30px rgba(245, 158, 11, 0.5); }
+      50% { transform: scale(1.05); box-shadow: 0 12px 40px rgba(245, 158, 11, 0.85); }
+      100% { transform: scale(1); box-shadow: 0 8px 30px rgba(245, 158, 11, 0.5); }
+    }
+
     .side-wing {
       width: calc(78px + env(safe-area-inset-left));
       flex-shrink: 0;
@@ -609,6 +659,14 @@
   <!-- LINE 內建瀏覽器警示條 -->
   <div id="line-warning-banner">⚠️ 偵測到 LINE 內建瀏覽器：請點選右上角「直線三點 (⋮)」，選擇「以預設瀏覽器開啟」以正常使用麥克風！</div>
 
+  <!-- 中央「隨喜大家」全螢幕與語音啟動遮罩 -->
+  <div id="welcome-start-overlay">
+    <button class="welcome-btn" id="btn-welcome-start">
+      <span>🙏 隨喜大家</span>
+      <span class="welcome-subtext">點擊進入全螢幕背誦</span>
+    </button>
+  </div>
+
   <!-- 今日進度提示 -->
   <div id="schedule-toast">📅 載入今日進度中...</div>
 
@@ -745,7 +803,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v89_strict_schedule_lock';
+    const APP_BUILD_VERSION = 'v90_welcome_start_and_speech';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -772,6 +830,9 @@
     const pdfContainerWrap = document.getElementById('pdf-container-wrap');
     const pdfCanvas = document.getElementById('pdf-canvas');
     const scheduleToast = document.getElementById('schedule-toast');
+
+    const welcomeOverlay = document.getElementById('welcome-start-overlay');
+    const btnWelcomeStart = document.getElementById('btn-welcome-start');
 
     const btnMarkA = document.getElementById('btn-mark-a');
     const btnOffering = document.getElementById('btn-offering');
@@ -803,7 +864,7 @@
     let totalTargetCycles = 1;
     let completedCycles = 0;
     let hasEverStarted = false;
-    let isScheduleLocked = false; // 是否受今日共同功課鎖定
+    let isScheduleLocked = false;
 
     let guideAnimId = null;
     let isGuideActive = false;
@@ -812,6 +873,10 @@
     let lineDuration = 3200;
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
+
+    // 儲存待播放的排程語音
+    let pendingScheduleSpeech = "";
+    let hasInteractedWithWelcome = false;
 
     /* ----------------------------------------------------
        【語音偵測 (VAD) 與觸控雙軌推進】
@@ -865,13 +930,37 @@
       } catch (err) {}
     }
 
-    let hasUserInteracted = false;
-    document.addEventListener('touchstart', () => {
-      if (!hasUserInteracted) {
-        hasUserInteracted = true;
-        triggerLandscapeLock();
+    /* ----------------------------------------------------
+       【中央「隨喜大家」按鈕點擊事件】
+       1. 解鎖音訊環境與全螢幕
+       2. 立即清晰播報排程語音
+    ---------------------------------------------------- */
+    btnWelcomeStart.addEventListener('click', async () => {
+      hasInteractedWithWelcome = true;
+      welcomeOverlay.style.opacity = '0';
+      setTimeout(() => {
+        welcomeOverlay.style.display = 'none';
+      }, 300);
+
+      // 觸發全螢幕與橫向鎖定
+      await triggerLandscapeLock();
+
+      // 喚醒 Web Audio
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+      } catch (e) {}
+
+      // 播報今日排程進度
+      if (pendingScheduleSpeech) {
+        setTimeout(() => {
+          speakPrompt(pendingScheduleSpeech);
+        }, 250);
+      } else {
+        speakPrompt("隨喜大家，精進背誦");
       }
-    }, { passive: true, once: true });
+    });
 
     btnFullscreen.addEventListener('click', async () => {
       if (!document.fullscreenElement) {
@@ -1033,7 +1122,6 @@
         const localCache = localStorage.getItem('LOCAL_SCHEDULE_CACHE');
         if (localCache) scheduleData = JSON.parse(localCache);
 
-        // 背景靜默更新 schedule.json，不阻擋開機
         fetch('./schedule.json?t=' + Date.now(), { cache: 'no-store' })
           .then(res => res.json())
           .then(data => {
@@ -1056,7 +1144,7 @@
         if (todayPlan && typeof todayPlan.start === 'number' && typeof todayPlan.end === 'number') {
           const completedRecord = localStorage.getItem('SCHEDULE_DONE_' + todayStr);
 
-          // 今日功課尚未完成 -> 強制鎖定共同進度，不給手動改起訖
+          // 今日功課尚未完成 -> 強制鎖定共同進度
           if (completedRecord !== 'true') {
             isScheduleLocked = true;
             markA_Index = Math.max(0, todayPlan.start - 1);
@@ -1077,7 +1165,14 @@
             const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
             scheduleToast.style.display = 'block';
             scheduleToast.textContent = `🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText} ${todayPlan.title ? '('+todayPlan.title+')' : ''}`;
-            speakPrompt(`今日共同功課，第 ${todayPlan.start} 到 ${todayPlan.end} 句${repeatText}，請先完成`);
+            
+            // 存入待播放文字
+            pendingScheduleSpeech = `今日共同功課，第 ${todayPlan.start} 到 ${todayPlan.end} 句${repeatText}，請先完成`;
+
+            // 若使用者已經點過歡迎鈕，立即播放
+            if (hasInteractedWithWelcome) {
+              speakPrompt(pendingScheduleSpeech);
+            }
             return true;
           }
         }
@@ -1248,7 +1343,6 @@
         return;
       }
 
-      // 開機優先載入今日共同功課
       const hasAppliedSchedule = await checkDailySchedule();
 
       if (!hasAppliedSchedule) {
@@ -1834,7 +1928,6 @@
         const earnedCoins = totalTargetCycles * calculateSentenceCount();
         addCoins(earnedCoins);
 
-        // 今日功課完成 -> 標記已完成並解除強制鎖定
         if (isScheduleLocked) {
           const now = new Date();
           const yyyy = now.getFullYear();
