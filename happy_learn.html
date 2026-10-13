@@ -212,8 +212,9 @@
       font-size: min(15px, 4.8vh);
     }
 
-    #btn-fullscreen {
-      background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    /* 左 4 按鍵：改為退出保存按鈕 */
+    #btn-exit-save {
+      background: linear-gradient(135deg, #475569 0%, #1E293B 100%);
       border-color: #94A3B8;
       font-size: min(15px, 4.8vh);
     }
@@ -674,7 +675,7 @@
         <button class="circle-btn" id="btn-reload" aria-label="重新整理經文檔案">更新</button>
       </div>
       <div class="slot">
-        <button class="circle-btn" id="btn-fullscreen" aria-label="全螢幕切換">全</button>
+        <button class="circle-btn" id="btn-exit-save" aria-label="結束並儲存進度">退</button>
       </div>
     </div>
 
@@ -794,10 +795,13 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v92_humanized_viewport_scroll';
+    const APP_BUILD_VERSION = 'v93_paged_scroll_and_exit';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
-    let baseSpeed = 4.0;
+    
+    // 速度檔位持久化：預設讀取上次設定值，若無才使用 4.0
+    let savedSpeedPref = parseFloat(localStorage.getItem('user_speed_preference') || '4.0');
+    let baseSpeed = SPEED_LEVELS.includes(savedSpeedPref) ? savedSpeedPref : 4.0;
     let effectiveSpeedMultiplier = 1.0;
 
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
@@ -829,7 +833,7 @@
     const btnMarkA = document.getElementById('btn-mark-a');
     const btnOffering = document.getElementById('btn-offering');
     const btnReload = document.getElementById('btn-reload');
-    const btnFullscreen = document.getElementById('btn-fullscreen');
+    const btnExitSave = document.getElementById('btn-exit-save');
     const btnGuideToggle = document.getElementById('btn-guide-toggle');
     const btnSpeed = document.getElementById('btn-speed');
     const btnRepeatCount = document.getElementById('btn-repeat-count');
@@ -868,6 +872,9 @@
     let pendingScheduleSpeech = "";
     let hasInteractedWithWelcome = false;
 
+    /* ----------------------------------------------------
+       【微聲靈敏度 VAD + 零延遲起音推進】
+    ---------------------------------------------------- */
     let audioContext = null;
     let analyser = null;
     let micStream = null;
@@ -877,8 +884,8 @@
     let isTouchingDisplay = false;
     const SILENCE_TIMEOUT_MS = 1000;
 
-    let baseNoiseLevel = 0.002;
-    let dynamicThreshold = 0.003;
+    let baseNoiseLevel = 0.0015;
+    let dynamicThreshold = 0.0020;
     let calibrationSamples = [];
     let isCalibrating = false;
 
@@ -946,19 +953,47 @@
       }
     });
 
-    btnFullscreen.addEventListener('click', async () => {
-      if (!document.fullscreenElement) {
-        await triggerLandscapeLock();
-        btnFullscreen.textContent = '退';
-      } else {
-        if (document.exitFullscreen) await document.exitFullscreen();
-        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-        btnFullscreen.textContent = '全';
+    /* ----------------------------------------------------
+       【左 4 按鍵】：標準軟性安全退出流程 (電源退出邏輯)
+    ---------------------------------------------------- */
+    btnExitSave.addEventListener('click', async () => {
+      // 1. 立即終止導引動畫
+      haltGuideRunnerImmediately();
+
+      // 2. 完整儲存當前所有執行參數
+      saveCurrentProgress();
+
+      // 3. 釋放麥克風資源
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
       }
+      if (audioContext && audioContext.state !== 'closed') {
+        try { await audioContext.suspend(); } catch (e) {}
+      }
+
+      // 4. 解除全螢幕狀態
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+      } catch (e) {}
+
+      // 5. 提示並回到待機遮罩畫面
+      speakPrompt("進度已完整儲存");
+      welcomeOverlay.style.display = 'flex';
+      welcomeOverlay.style.opacity = '1';
+      hasInteractedWithWelcome = false;
     });
 
-    document.addEventListener('fullscreenchange', () => {
-      btnFullscreen.textContent = document.fullscreenElement ? '退' : '全';
+    // 系統級保護：頁面隱藏/關閉時自動儲存 (如同按實體電源鍵)
+    window.addEventListener('pagehide', () => saveCurrentProgress());
+    window.addEventListener('beforeunload', () => saveCurrentProgress());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') saveCurrentProgress();
     });
 
     function verifyVersionAndCleanState() {
@@ -1535,6 +1570,9 @@
     document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
       btn.addEventListener('click', () => {
         baseSpeed = parseFloat(btn.dataset.speed);
+        // 持久化儲存使用者喜好的速度
+        localStorage.setItem('user_speed_preference', baseSpeed.toString());
+
         btnSpeed.textContent = `${baseSpeed.toFixed(1)}x`;
         updateSpeedModalUI();
         saveCurrentProgress();
@@ -1673,7 +1711,7 @@
         const source = audioContext.createMediaStreamSource(micStream);
         analyser = audioContext.createAnalyser();
         analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.05;
+        analyser.smoothingTimeConstant = 0.04;
         source.connect(analyser);
 
         isCalibrating = true;
@@ -1682,10 +1720,11 @@
           if (calibrationSamples.length > 0) {
             const sum = calibrationSamples.reduce((a, b) => a + b, 0);
             baseNoiseLevel = sum / calibrationSamples.length;
-            dynamicThreshold = Math.max(0.0025, baseNoiseLevel * 1.15 + 0.001);
+            // 靈敏度門檻再放寬：微聲即可觸發
+            dynamicThreshold = Math.max(0.0018, baseNoiseLevel * 1.08 + 0.0005);
           }
           isCalibrating = false;
-        }, 400);
+        }, 350);
 
         lastVoiceDetectedTime = 0;
         previousRms = 0.0;
@@ -1726,6 +1765,7 @@
 
           if (hasInput) {
             lastVoiceDetectedTime = now;
+            // 零延遲起音推進：狀態切換的第一幀即校準時間軸，消除起步卡頓
             if (!isVoiceActive) {
               isVoiceActive = true;
               btnGuideToggle.textContent = '背誦中';
@@ -1735,7 +1775,7 @@
             }
 
             const deltaRms = rms - previousRms;
-            if (deltaRms > (dynamicThreshold * 0.6) && (now - lastBeatTime > 110)) {
+            if (deltaRms > (dynamicThreshold * 0.5) && (now - lastBeatTime > 110)) {
               lastBeatTime = now;
               beatTimestamps.push(now);
               if (beatTimestamps.length > MAX_BEAT_HISTORY) {
@@ -1806,11 +1846,6 @@
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
-    /* ----------------------------------------------------
-       【人性化視圖調整】：
-       1. scrollToAlignTop: 只在真正超出畫面時將行拉入合適視線
-       2. ensureLineVisibleInView: 確保行在可見範圍內，若本來就看得到則絕不跳頁！
-    ---------------------------------------------------- */
     function scrollToAlignTop(idx) {
       const line = parsedTextLines[idx];
       if (line) {
@@ -1818,24 +1853,32 @@
       }
     }
 
-    function ensureLineVisibleInView(idx) {
-      const line = parsedTextLines[idx];
-      if (!line) return;
+    /* ----------------------------------------------------
+       【整頁換頁翻閱（護眼眼球運動）機制】：
+       1. 同一頁內絕對不翻動，讓眼球由上自然往下走
+       2. 當讀到本頁最後一句最後一字過 1/2 (0.5)，立即翻下一頁回到頂部
+    ---------------------------------------------------- */
+    function checkAndTriggerPageFlip(targetLineIndex) {
+      const curLine = parsedTextLines[currentLineIndex];
+      const nextLine = parsedTextLines[targetLineIndex];
+      if (!curLine || !nextLine) return;
 
       const viewportTop = centerCore.scrollTop;
       const viewportBottom = viewportTop + centerCore.clientHeight;
 
-      // 如果該行完全落在目前的螢幕視野內（上下留有安全緩衝），絕對不滾動！
-      if (line.topGlobal >= (viewportTop + 10) && line.underLineY <= (viewportBottom - 15)) {
-        return;
+      // 檢查是否起止點本來就在同一可視高度內
+      if (markA_Index !== -1 && markB_Index !== -1) {
+        const lineA = parsedTextLines[markA_Index];
+        const lineB = parsedTextLines[markB_Index];
+        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) {
+          return; // 同一頁內完全不需翻頁
+        }
       }
 
-      // 如果該行被遮在下方，只微幅往下滾動露出該行，絕不猛烈跳到最頂端！
-      if (line.underLineY > (viewportBottom - 15)) {
-        centerCore.scrollTop = (line.underLineY - centerCore.clientHeight) + 36;
-      } else if (line.topGlobal < viewportTop) {
-        // 如果該行在上方，拉到頂端
-        centerCore.scrollTop = Math.max(0, line.topGlobal - 18);
+      // 判定下一行是否已落在目前頁面之外（超出螢幕底緣）
+      if (nextLine.underLineY > (viewportBottom - 18)) {
+        // 整頁平滑換頁：直接將下一行作為新頁面頂端開頭！
+        scrollToAlignTop(targetLineIndex);
       }
     }
 
@@ -1871,7 +1914,7 @@
       isTransitioningLine = false;
     }
 
-    let hasPreScrolled = false;
+    let hasPageFlipped = false;
 
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
@@ -1888,22 +1931,14 @@
 
       currentLineProgress += (delta / lineDuration);
 
-      // --- 人性化預滾判定 ---
-      // 1. 若已經是終點行（B 點），絕不預滾！
-      // 2. 只有在下一行「真的掉在螢幕外看不見」時，才平滑推進，絕不暴力跳頂
-      if (currentLineProgress >= 0.90 && !hasPreScrolled) {
+      // --- 本頁最後一句最後一字過 1/2 (進度 >= 0.5) 執行換頁 ---
+      if (currentLineProgress >= 0.50 && !hasPageFlipped) {
         const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
         const nextIndex = currentLineIndex + 1;
 
         if (!isCurrentLineAtTargetEnd && nextIndex < parsedTextLines.length) {
-          const nextLine = parsedTextLines[nextIndex];
-          const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
-
-          // 只有下一行底緣確實被螢幕下邊界切到（即將看不到），才溫和露出
-          if (nextLine && nextLine.underLineY > (viewportBottom - 20)) {
-            ensureLineVisibleInView(nextIndex);
-            hasPreScrolled = true;
-          }
+          checkAndTriggerPageFlip(nextIndex);
+          hasPageFlipped = true;
         }
       }
 
@@ -1939,12 +1974,9 @@
         setTimeout(() => {
           if (!isGuideActive) return;
 
-          hasPreScrolled = false;
+          hasPageFlipped = false;
           currentLineIndex = nextIndex;
           currentLineProgress = 0.0;
-          
-          // 換行時確保可視即可，不隨意翻頁跳動
-          ensureLineVisibleInView(currentLineIndex);
 
           setupActiveLine(currentLineIndex, 0.0);
           lastAnimTimestamp = performance.now();
@@ -2006,7 +2038,7 @@
       setTimeout(() => {
         if (!isGuideActive) return;
 
-        hasPreScrolled = false;
+        hasPageFlipped = false;
         currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
         currentLineProgress = 0.0;
         scrollToAlignTop(currentLineIndex);
@@ -2356,7 +2388,7 @@
         if (cachedRawBuffer) {
           parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
             updateVisualDisplay();
-            ensureLineVisibleInView(currentLineIndex);
+            scrollToAlignTop(currentLineIndex);
           });
         }
       }, 300);
