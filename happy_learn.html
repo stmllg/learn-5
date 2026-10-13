@@ -127,7 +127,7 @@
       100% { opacity: 0; transform: translate(-50%, -10px); }
     }
 
-    /* 開機滿版大按鍵操作引導 */
+    /* 開機滿版大按鍵操作引導：點擊即執行全系統重置與解鎖 */
     #welcome-start-overlay {
       display: flex;
       position: fixed;
@@ -773,7 +773,6 @@
 </head>
 <body>
 
-  <!-- LINE 內建瀏覽器全屏警示遮罩 -->
   <div id="line-warning-banner">
     <div class="line-warning-card">
       <div class="line-warning-icon">⚠️</div>
@@ -786,7 +785,6 @@
     </div>
   </div>
 
-  <!-- 開機滿版大按鍵：仿照真實兩側左右各 4 鍵排列 -->
   <div id="welcome-start-overlay">
     <div class="welcome-board">
       <div class="welcome-board-header">
@@ -794,7 +792,6 @@
       </div>
 
       <div class="wings-guide-container">
-        <!-- 左側 4 鍵 (由上至下) -->
         <div class="wing-column">
           <div class="guide-btn-card">
             <div class="guide-btn-circle btn-color-mark-a">起</div>
@@ -829,13 +826,12 @@
           </div>
         </div>
 
-        <!-- 右側 4 鍵 (由上至下) -->
         <div class="wing-column">
           <div class="guide-btn-card">
             <div class="guide-btn-circle btn-color-guide">背書</div>
             <div class="guide-btn-info">
               <span class="guide-btn-name">背書</span>
-              <span class="guide-btn-desc">開始/暫停導引</span>
+              <span class="guide-btn-desc">開始導引流程</span>
             </div>
           </div>
 
@@ -1005,11 +1001,11 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v100_instant_per_cycle_coins';
+    const APP_BUILD_VERSION = 'v102_entry_reset_architecture';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
-    // 預設語速 1.5x
+    // 預設語速 1.5x (持久化記憶)
     let savedSpeedPref = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
     let baseSpeed = SPEED_LEVELS.includes(savedSpeedPref) ? savedSpeedPref : 1.5;
     let effectiveSpeedMultiplier = 1.0;
@@ -1067,7 +1063,6 @@
     let markB_Index = -1;
     let totalTargetCycles = 1;
     let completedCycles = 0;
-    let hasEverStarted = false;
     let isScheduleLocked = false;
 
     let guideAnimId = null;
@@ -1138,6 +1133,11 @@
       } catch (err) {}
     }
 
+    /* ----------------------------------------------------
+       【文字說明滿版大按鍵：系統總入口】
+       開機進門點擊瞬間，直接徹底清除舊暫存指針，
+       保證每次進入都是全新乾淨狀態，絕不依賴關機儲存
+    ---------------------------------------------------- */
     welcomeOverlay.addEventListener('click', async () => {
       hasInteractedWithWelcome = true;
       welcomeOverlay.style.opacity = '0';
@@ -1147,11 +1147,31 @@
 
       await triggerLandscapeLock();
 
+      // 1. 強制重置所有背誦暫存變數
+      markA_Index = -1;
+      markB_Index = -1;
+      completedCycles = 0;
+      currentLineIndex = 0;
+      currentLineProgress = 0.0;
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      // 2. 清除舊有進度快取，杜絕歷史死鎖
+      try { localStorage.removeItem(APP_CONFIG_KEY); } catch (e) {}
+
+      // 3. 更新畫面：隱藏起止標線，按鈕固定為「背書」
+      updateVisualDisplay();
+      scrollToAlignTop(0);
+
+      // 4. 解鎖音訊硬體
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioContext) audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') await audioContext.resume();
       } catch (e) {}
+
+      // 5. 檢查今日共同功課
+      await checkDailySchedule();
 
       if (pendingScheduleSpeech) {
         setTimeout(() => {
@@ -1163,13 +1183,10 @@
     });
 
     /* ----------------------------------------------------
-       【關機鍵】：清除臨時死鎖進度，保留已結算金幣與語速
+       【關機鍵】：退出全螢幕並回到說明遮罩
     ---------------------------------------------------- */
     btnShutdownExit.addEventListener('click', () => {
       haltGuideRunnerImmediately();
-
-      // 抹除當次未完的臨時進度
-      try { localStorage.removeItem(APP_CONFIG_KEY); } catch (e) {}
 
       if (micStream) {
         try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
@@ -1188,17 +1205,12 @@
         }
       } catch (e) {}
 
+      // 關機直接跳回滿版說明卡片
       welcomeOverlay.style.display = 'flex';
       welcomeOverlay.style.opacity = '1';
       hasInteractedWithWelcome = false;
 
       try { window.close(); } catch (e) {}
-    });
-
-    window.addEventListener('pagehide', () => saveCurrentProgress());
-    window.addEventListener('beforeunload', () => saveCurrentProgress());
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') saveCurrentProgress();
     });
 
     function verifyVersionAndCleanState() {
@@ -1207,34 +1219,6 @@
         localStorage.setItem('APP_INSTALLED_BUILD_VER', APP_BUILD_VERSION);
       }
       return true;
-    }
-
-    function loadSavedProgress() {
-      try {
-        const raw = localStorage.getItem(APP_CONFIG_KEY);
-        return raw ? JSON.parse(raw) : {};
-      } catch (e) {
-        return {};
-      }
-    }
-
-    function saveCurrentProgress() {
-      if (completedCycles >= totalTargetCycles && totalTargetCycles > 0) return;
-      try {
-        const data = {
-          fileTag: currentActiveFileTag,
-          speed: baseSpeed,
-          targetCycles: totalTargetCycles,
-          completedCycles: completedCycles,
-          hasEverStarted: hasEverStarted,
-          markA_Index: markA_Index,
-          markB_Index: markB_Index,
-          currentLineIndex: currentLineIndex,
-          currentLineProgress: currentLineProgress,
-          scrollTop: centerCore.scrollTop
-        };
-        localStorage.setItem(APP_CONFIG_KEY, JSON.stringify(data));
-      } catch (e) {}
     }
 
     function getStoredCoins() {
@@ -1261,7 +1245,6 @@
     function setTargetCyclesUI(cycles) {
       totalTargetCycles = cycles;
       completedCycles = 0;
-      hasEverStarted = false;
       btnRepeatCount.textContent = `${totalTargetCycles}次`;
       document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.count === String(totalTargetCycles));
@@ -1269,23 +1252,9 @@
     }
 
     function initUserPreferences() {
-      const config = loadSavedProgress();
-      if (config.speed) {
-        const val = parseFloat(config.speed);
-        if (SPEED_LEVELS.includes(val)) baseSpeed = val;
-      }
       btnSpeed.textContent = `${baseSpeed.toFixed(1)}x`;
       updateSpeedModalUI();
-
-      if (config.targetCycles) {
-        totalTargetCycles = parseInt(config.targetCycles, 10);
-        completedCycles = (typeof config.completedCycles === 'number') ? config.completedCycles : 0;
-        const remain = Math.max(0, totalTargetCycles - completedCycles);
-        btnRepeatCount.textContent = `${remain}次`;
-        document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.count === String(totalTargetCycles));
-        });
-      }
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
 
       inputClassId.value = localStorage.getItem('user_class_id') || '';
       inputUserName.value = localStorage.getItem('user_profile_name') || '';
@@ -1297,6 +1266,9 @@
       });
     }
 
+    /* ----------------------------------------------------
+       【介面繪製】：按鈕永遠是「背書」，徹底移除「再來」
+    ---------------------------------------------------- */
     function updateVisualDisplay() {
       if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
         btnMarkA.classList.add('active-mark');
@@ -1317,12 +1289,8 @@
       if (!isGuideActive) {
         guideLine.style.display = 'none';
         redDot.style.display = 'none';
-
-        if (!hasEverStarted || completedCycles >= totalTargetCycles) {
-          btnGuideToggle.textContent = '背書';
-        } else {
-          btnGuideToggle.textContent = '再來';
-        }
+        btnGuideToggle.textContent = '背書';
+        btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
       }
 
       const remain = Math.max(0, totalTargetCycles - completedCycles);
@@ -1372,7 +1340,6 @@
             currentLineIndex = markA_Index;
             currentLineProgress = 0.0;
             completedCycles = 0;
-            hasEverStarted = false;
 
             if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
               setTargetCyclesUI(todayPlan.repeat);
@@ -1380,17 +1347,12 @@
 
             updateVisualDisplay();
             scrollToAlignTop(markA_Index);
-            saveCurrentProgress();
 
             const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
             scheduleToast.style.display = 'block';
             scheduleToast.textContent = `🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText} ${todayPlan.title ? '('+todayPlan.title+')' : ''}`;
             
             pendingScheduleSpeech = `今日共同功課，第 ${todayPlan.start} 到 ${todayPlan.end} 句${repeatText}，請先完成`;
-
-            if (hasInteractedWithWelcome) {
-              speakPrompt(pendingScheduleSpeech);
-            }
             return true;
           }
         }
@@ -1528,7 +1490,7 @@
         statusTitle.textContent = '✅ 新經文下載完成，渲染中...';
         await parseAndRenderPdfData(new Uint8Array(res.buffer));
         updateVisualDisplay();
-        scrollToAlignTop(currentLineIndex);
+        scrollToAlignTop(0);
         await checkDailySchedule();
 
       } catch (e) {
@@ -1539,7 +1501,7 @@
           statusCard.style.display = 'none';
           pdfContainerWrap.style.display = 'flex';
           updateVisualDisplay();
-          scrollToAlignTop(currentLineIndex);
+          scrollToAlignTop(0);
           await checkDailySchedule();
         } else {
           statusTitle.textContent = '❌ 更新失敗';
@@ -1547,62 +1509,6 @@
         }
       }
     });
-
-    async function restoreSessionMarkersAndPosition(canLoadOldData = true) {
-      if (!canLoadOldData) {
-        markA_Index = -1;
-        markB_Index = -1;
-        hasEverStarted = false;
-        completedCycles = 0;
-        currentLineIndex = 0;
-        currentLineProgress = 0.0;
-        updateVisualDisplay();
-        scrollToAlignTop(0);
-        await checkDailySchedule();
-        return;
-      }
-
-      const hasAppliedSchedule = await checkDailySchedule();
-
-      if (!hasAppliedSchedule) {
-        const config = loadSavedProgress();
-        completedCycles = (typeof config.completedCycles === 'number') ? config.completedCycles : 0;
-        hasEverStarted = (config.hasEverStarted === true);
-
-        if (completedCycles >= totalTargetCycles && totalTargetCycles > 0) {
-          markA_Index = -1;
-          markB_Index = -1;
-          hasEverStarted = false;
-          completedCycles = 0;
-          currentLineIndex = 0;
-          currentLineProgress = 0.0;
-          try { localStorage.removeItem(APP_CONFIG_KEY); } catch (e) {}
-        } else {
-          markA_Index = (typeof config.markA_Index === 'number') ? config.markA_Index : -1;
-          markB_Index = (typeof config.markB_Index === 'number') ? config.markB_Index : -1;
-
-          const defaultStart = (markA_Index !== -1) ? markA_Index : 0;
-          let targetLine = defaultStart;
-
-          if (typeof config.currentLineIndex === 'number' && parsedTextLines[config.currentLineIndex]) {
-            targetLine = config.currentLineIndex;
-          }
-          if (markA_Index !== -1 && targetLine < markA_Index) targetLine = markA_Index;
-          if (markB_Index !== -1 && targetLine > markB_Index) targetLine = defaultStart;
-
-          currentLineIndex = targetLine;
-          currentLineProgress = (typeof config.currentLineProgress === 'number') ? config.currentLineProgress : 0.0;
-        }
-
-        updateVisualDisplay();
-
-        if (typeof config.scrollTop === 'number' && markA_Index !== -1) {
-          centerCore.scrollTop = config.scrollTop;
-        } else {
-          scrollToAlignTop(currentLineIndex);
-        }
-      }
-    }
 
     function getLineAtButtonBottom(buttonElement) {
       if (parsedTextLines.length === 0) return 0;
@@ -1626,9 +1532,6 @@
       return closestIdx;
     }
 
-    /* ----------------------------------------------------
-       【起點設定】：運行中鎖定，避免篡改區間
-    ---------------------------------------------------- */
     btnMarkA.addEventListener('click', () => {
       triggerLandscapeLock();
       if (isGuideActive) return;
@@ -1647,16 +1550,11 @@
       currentLineIndex = markA_Index;
       currentLineProgress = 0.0;
       completedCycles = 0;
-      hasEverStarted = false;
 
       updateVisualDisplay();
-      saveCurrentProgress();
       speakPrompt("請設定終點");
     });
 
-    /* ----------------------------------------------------
-       【終點設定】：運行中鎖定，避免篡改區間
-    ---------------------------------------------------- */
     btnMarkB.addEventListener('click', () => {
       triggerLandscapeLock();
       if (isGuideActive) return;
@@ -1675,7 +1573,6 @@
 
       markB_Index = selectedB;
       updateVisualDisplay();
-      saveCurrentProgress();
       speakPrompt("終點設定完畢");
     });
 
@@ -1779,9 +1676,6 @@
       form.submit();
     });
 
-    /* ----------------------------------------------------
-       【速度調節】：全時開放，隨時可調，平滑生效
-    ---------------------------------------------------- */
     btnSpeed.addEventListener('click', () => {
       const isVisible = speedModal.style.display === 'flex';
       repeatModal.style.display = 'none';
@@ -1795,7 +1689,6 @@
 
         btnSpeed.textContent = `${baseSpeed.toFixed(1)}x`;
         updateSpeedModalUI();
-        saveCurrentProgress();
         speedModal.style.display = 'none';
         effectiveSpeedMultiplier = 1.0;
 
@@ -1807,9 +1700,6 @@
       });
     });
 
-    /* ----------------------------------------------------
-       【次數設定】：背誦中鎖定，不准隨意篡改
-    ---------------------------------------------------- */
     btnRepeatCount.addEventListener('click', () => {
       if (isGuideActive) return;
 
@@ -1826,12 +1716,10 @@
       btn.addEventListener('click', () => {
         totalTargetCycles = parseInt(btn.dataset.count, 10);
         completedCycles = 0;
-        hasEverStarted = false;
         btnRepeatCount.textContent = `${totalTargetCycles}次`;
         document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         updateVisualDisplay();
-        saveCurrentProgress();
         repeatModal.style.display = 'none';
       });
     });
@@ -1845,9 +1733,6 @@
       }
     });
 
-    /* ----------------------------------------------------
-       【觸控推進】：單指按住經文區
-    ---------------------------------------------------- */
     centerCore.addEventListener('pointerdown', (e) => {
       if (!isGuideActive) return;
       isTouchingDisplay = true;
@@ -1871,13 +1756,11 @@
     centerCore.addEventListener('pointerleave', stopTouchDrive);
 
     /* ----------------------------------------------------
-       【背書導引開關】：
-       第 1 行同步阻斷連點，未設起訖絕不啟動
+       【背書開關】：嚴格檢查起訖點，啟動後同步鎖定
     ---------------------------------------------------- */
     btnGuideToggle.addEventListener('click', async () => {
       triggerLandscapeLock();
 
-      // 防呆檢查：起訖點未設絕不動作
       if (markA_Index === -1 || markB_Index === -1) {
         speakPrompt("請先設定起點與終點");
         btnMarkA.style.transform = 'scale(1.1)';
@@ -1889,12 +1772,9 @@
         return;
       }
 
-      // 運行中嚴格互鎖，防止重複點擊破壞狀態機
-      if (isGuideActive) {
-        return;
-      }
+      if (isGuideActive) return;
 
-      // 同步代碼第一行立即鎖定！
+      // 同步代碼第 1 行直接鎖死，阻斷連點 Race Condition
       isGuideActive = true;
 
       try {
@@ -1918,22 +1798,11 @@
       effectiveSpeedMultiplier = 1.0;
       beatTimestamps = [];
 
-      const isResuming = (btnGuideToggle.textContent.includes('再來'));
-
-      if (!isResuming) {
-        spawnGoldCoinsAt(btnGuideToggle);
-        completedCycles = 0;
-        btnRepeatCount.textContent = `${totalTargetCycles}次`;
-        currentLineIndex = markA_Index;
-        currentLineProgress = 0.0;
-      } else {
-        if (currentLineIndex < markA_Index || currentLineIndex >= markB_Index) {
-          currentLineIndex = markA_Index;
-          currentLineProgress = 0.0;
-        }
-      }
-
-      hasEverStarted = true;
+      spawnGoldCoinsAt(btnGuideToggle);
+      completedCycles = 0;
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+      currentLineIndex = markA_Index;
+      currentLineProgress = 0.0;
 
       btnGuideToggle.textContent = '靜止';
       btnGuideToggle.classList.remove('guide-active');
@@ -2058,7 +1927,6 @@
               btnGuideToggle.classList.remove('guide-active');
               btnGuideToggle.classList.add('guide-waiting');
               beatTimestamps = [];
-              saveCurrentProgress();
             }
           }
 
@@ -2226,7 +2094,6 @@
           guideAnimId = null;
         }
 
-        // 檢查是否完成本次遍數
         if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
           handleCycleCompletion();
           return;
@@ -2263,24 +2130,22 @@
         redDot.style.top = `${curLine.underLineY}px`;
       }
 
-      saveCurrentProgress();
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
     /* ----------------------------------------------------
-       【按遍結算金幣 + 杜絕換遍死鎖】：
-       每完一遍，該遍福慧幣立即結算存檔！
+       【按遍結算與換遍】：
+       每一遍完成立即加幣存檔，時間戳記重新對齊
     ---------------------------------------------------- */
     function handleCycleCompletion() {
       completedCycles += 1;
       const remain = Math.max(0, totalTargetCycles - completedCycles);
       btnRepeatCount.textContent = `${remain}次`;
 
-      // 【即時結算】：每完成 1 遍，當遍福慧幣立即落袋存檔！
+      // 即時結算當遍福慧幣
       const singleCycleCoins = calculateSentenceCount();
       addCoins(singleCycleCoins);
 
-      // 檢查是否所有目標遍數全部圓滿
       if (completedCycles >= totalTargetCycles) {
         if (isScheduleLocked) {
           const now = new Date();
@@ -2298,8 +2163,6 @@
         return;
       }
 
-      saveCurrentProgress();
-
       isTransitioningLine = true;
       guideLine.style.display = 'none';
 
@@ -2308,7 +2171,6 @@
         guideAnimId = null;
       }
 
-      // 換遍：平滑回起點接續下一遍
       if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
       cycleWaitTimer = setTimeout(() => {
         if (!isGuideActive) return;
@@ -2319,8 +2181,8 @@
         scrollToAlignTop(currentLineIndex);
 
         setupActiveLine(currentLineIndex, 0.0);
-        isTransitioningLine = false; // 解鎖換行
-        lastAnimTimestamp = performance.now(); // 校準時間戳記，絕不死鎖
+        isTransitioningLine = false;
+        lastAnimTimestamp = performance.now(); // 杜絕死鎖
         guideAnimId = requestAnimationFrame(stepGuideMovement);
       }, 1500);
     }
@@ -2339,7 +2201,6 @@
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
 
-      hasEverStarted = false;
       completedCycles = 0;
       currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
       currentLineProgress = 0.0;
@@ -2347,10 +2208,6 @@
       btnGuideToggle.textContent = '背書';
       btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
       btnRepeatCount.textContent = `${totalTargetCycles}次`;
-
-      try {
-        localStorage.removeItem(APP_CONFIG_KEY);
-      } catch (e) {}
     }
 
     function haltGuideRunnerImmediately() {
@@ -2368,7 +2225,6 @@
       redDot.style.display = 'none';
 
       updateVisualDisplay();
-      saveCurrentProgress();
     }
 
     function spawnGoldCoinsAt(targetElement) {
@@ -2450,10 +2306,10 @@
       verifyVersionAndCleanState();
       initUserPreferences();
       checkLineInAppBrowser();
-      loadScriptureWithSmartAutoUpdate(true);
+      loadScriptureWithSmartAutoUpdate();
     });
 
-    async function loadScriptureWithSmartAutoUpdate(canLoadOldData = true) {
+    async function loadScriptureWithSmartAutoUpdate() {
       statusCard.style.display = 'block';
       pdfContainerWrap.style.display = 'none';
 
@@ -2472,14 +2328,15 @@
         statusTitle.textContent = '📖 正在渲染經文...';
 
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
-        await restoreSessionMarkersAndPosition(canLoadOldData);
+        updateVisualDisplay();
+        scrollToAlignTop(0);
         return;
       }
 
-      await fetchAndSaveNewPdf('initial_' + Date.now(), canLoadOldData);
+      await fetchAndSaveNewPdf('initial_' + Date.now());
     }
 
-    async function fetchAndSaveNewPdf(fileTag, canLoadOldData = true) {
+    async function fetchAndSaveNewPdf(fileTag) {
       statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
       try {
         const res = await fetchWithProgress('./scripture.pdf?t=' + Date.now(), (pct, cur, total) => {
@@ -2495,14 +2352,16 @@
         localStorage.setItem('APP_SAVED_PDF_TAG', tag);
         await saveRecordToCache(res.buffer, tag);
         await parseAndRenderPdfData(new Uint8Array(res.buffer));
-        await restoreSessionMarkersAndPosition(canLoadOldData);
+        updateVisualDisplay();
+        scrollToAlignTop(0);
       } catch (e) {
         const fallback = await getCachedRecord();
         if (fallback && fallback.buffer) {
           cachedRawBuffer = fallback.buffer;
           currentActiveFileTag = fallback.tag || 'fallback';
           await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
-          await restoreSessionMarkersAndPosition(canLoadOldData);
+          updateVisualDisplay();
+          scrollToAlignTop(0);
         } else {
           statusTitle.textContent = '📖 請挑選經文檔案';
           statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
@@ -2531,17 +2390,14 @@
         localStorage.setItem('APP_SAVED_PDF_TAG', tag);
         await saveRecordToCache(arrayBuffer, tag);
         await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
-        await restoreSessionMarkersAndPosition(false);
+        updateVisualDisplay();
+        scrollToAlignTop(0);
       } catch (err) {
         alert('經文解析失敗：' + err.message);
         btnManualPick.style.display = 'inline-block';
       }
     });
 
-    /* ----------------------------------------------------
-       【純漢字字串幾何提取】：
-       過濾數字與非經文標記，建立精確字符級座標
-    ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
       pdfContainerWrap.style.display = 'flex';
