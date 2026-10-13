@@ -42,7 +42,7 @@
       overflow: hidden;
     }
 
-    /* LINE 內建瀏覽器提醒橫條 */
+    /* LINE 內建瀏覽器警示條 */
     #line-warning-banner {
       display: none;
       position: absolute;
@@ -210,6 +210,7 @@
       border-left: 2px solid #1E293B;
       border-right: 2px solid #1E293B;
       scroll-behavior: smooth;
+      touch-action: pan-y;
     }
 
     #guide-stage {
@@ -534,7 +535,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v80_integrated_release';
+    const APP_BUILD_VERSION = 'v81_touch_glide_adaptive';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     let currentSpeed = 4.0;
@@ -590,7 +591,7 @@
     let isTransitioningLine = false;
 
     /* ----------------------------------------------------
-       【自適應環境底噪演算法（完整保有）】
+       【語音偵測 (VAD) 與觸控雙軌推進】
     ---------------------------------------------------- */
     let audioContext = null;
     let analyser = null;
@@ -598,14 +599,15 @@
     let vadCheckTimer = null;
     let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
-    const SILENCE_TIMEOUT_MS = 800; // 0.8 秒自然換氣停頓
+    let isTouchingDisplay = false; // 單指按住中央畫面旗標
+    const SILENCE_TIMEOUT_MS = 1000; // 放寬至 1.0 秒換氣容錯
 
     let baseNoiseLevel = 0.002;
-    let dynamicThreshold = 0.004;
+    let dynamicThreshold = 0.003; // 親民低門檻
     let calibrationSamples = [];
     let isCalibrating = false;
 
-    // 語音提示控制（音量維持調柔和一格 volume = 0.7）
+    // 語音提示（音量調小一格 volume = 0.7）
     function speakPrompt(text) {
       try {
         if ('speechSynthesis' in window) {
@@ -775,7 +777,7 @@
 
       const reader = response.body.getReader();
       let receivedLength = 0;
-      chunks = [];
+      const chunks = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -1063,6 +1065,32 @@
       }
     });
 
+    /* ----------------------------------------------------
+       【單指按住中央經文區觸控推進（雙軌並行）】
+    ---------------------------------------------------- */
+    centerCore.addEventListener('pointerdown', (e) => {
+      if (!isGuideActive) return;
+      isTouchingDisplay = true;
+      if (!isVoiceActive) {
+        isVoiceActive = true;
+        btnGuideToggle.textContent = '背誦中';
+        btnGuideToggle.classList.remove('guide-waiting');
+        btnGuideToggle.classList.add('guide-active');
+        lastAnimTimestamp = performance.now();
+      }
+    });
+
+    const stopTouchDrive = () => {
+      if (!isGuideActive) return;
+      isTouchingDisplay = false;
+      // 觸控釋放時更新時間戳，交回 1.0 秒靜止判斷
+      lastVoiceDetectedTime = performance.now();
+    };
+
+    centerCore.addEventListener('pointerup', stopTouchDrive);
+    centerCore.addEventListener('pointercancel', stopTouchDrive);
+    centerCore.addEventListener('pointerleave', stopTouchDrive);
+
     btnGuideToggle.addEventListener('click', async () => {
       triggerLandscapeLock();
 
@@ -1081,6 +1109,7 @@
 
         isGuideActive = true;
         isVoiceActive = false;
+        isTouchingDisplay = false;
 
         const isResuming = (btnGuideToggle.textContent.includes('再來'));
 
@@ -1139,8 +1168,8 @@
           if (calibrationSamples.length > 0) {
             const sum = calibrationSamples.reduce((a, b) => a + b, 0);
             baseNoiseLevel = sum / calibrationSamples.length;
-            // 自適應門檻：底噪 1.3 倍 + 0.002 偏移量，保證微聲即動
-            dynamicThreshold = Math.max(0.0035, baseNoiseLevel * 1.3 + 0.002);
+            // 親民自適應公式：底噪 1.15 倍 + 0.001 偏移量，輕念即動
+            dynamicThreshold = Math.max(0.0025, baseNoiseLevel * 1.15 + 0.001);
           }
           isCalibrating = false;
         }, 400);
@@ -1177,8 +1206,10 @@
             calibrationSamples.push(rms);
           }
 
-          // 超過自適應門檻即判定發聲
-          if (rms > dynamicThreshold) {
+          // 雙軌判定：發聲超過親民門檻 或 單指按住畫面
+          const hasInput = (rms > dynamicThreshold) || isTouchingDisplay;
+
+          if (hasInput) {
             lastVoiceDetectedTime = now;
             if (!isVoiceActive) {
               isVoiceActive = true;
@@ -1188,7 +1219,7 @@
               lastAnimTimestamp = performance.now();
             }
           } else {
-            // 超過 0.8 秒無聲 -> 停止前進定格
+            // 超過 1.0 秒無聲音且未觸控 -> 停止前進定格
             if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
               isVoiceActive = false;
               btnGuideToggle.textContent = '靜止';
@@ -1211,6 +1242,7 @@
         vadCheckTimer = null;
       }
       isVoiceActive = false;
+      isTouchingDisplay = false;
     }
 
     function startGuideRunner() {
@@ -1267,20 +1299,27 @@
 
     let hasPreScrolled = false;
 
+    /* ----------------------------------------------------
+       【動畫推進與行尾自動跑完（Auto Glide）】
+    ---------------------------------------------------- */
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
 
       const delta = now - lastAnimTimestamp;
       lastAnimTimestamp = now;
 
-      if (!isVoiceActive) {
+      // 【核心亮點】：念到最後兩個字 (進度 >= 0.85) 時，自動跑完行尾不卡頓
+      const isNearLineEnd = (currentLineProgress >= 0.85);
+
+      // 若不在行尾且無發聲/無觸控，則定格暫停
+      if (!isVoiceActive && !isNearLineEnd) {
         guideAnimId = requestAnimationFrame(stepGuideMovement);
         return;
       }
 
       currentLineProgress += (delta / lineDuration);
 
-      // 最後一個字過半 (0.90) 提前平滑滾入視線
+      // 最後一個字過半 (0.90) 提前將下一行平滑滾入視線
       if (currentLineProgress >= 0.90 && !hasPreScrolled) {
         const nextIndex = currentLineIndex + 1;
         if (nextIndex < parsedTextLines.length) {
@@ -1293,6 +1332,7 @@
         }
       }
 
+      // 達到行末，順暢切換至下一行
       if (currentLineProgress >= 1.0) {
         currentLineProgress = 1.0;
 
@@ -1507,7 +1547,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       verifyVersionAndCleanState();
       initUserPreferences();
-      checkLineInAppBrowser(); // 啟動 LINE 內建瀏覽器偵測
+      checkLineInAppBrowser();
       loadScriptureWithSmartAutoUpdate(true);
     });
 
