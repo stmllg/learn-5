@@ -42,7 +42,7 @@
       overflow: hidden;
     }
 
-    /* 1. LINE 內建瀏覽器警示遮罩：全屏 100% 覆蓋到最底端 */
+    /* LINE 內建瀏覽器全屏警示遮罩 */
     #line-warning-banner {
       display: none;
       position: fixed;
@@ -127,7 +127,7 @@
       100% { opacity: 0; transform: translate(-50%, -10px); }
     }
 
-    /* 2. 開機滿版大按鍵：仿照真實兩側左右各 4 鍵排列 */
+    /* 開機滿版大按鍵操作引導 */
     #welcome-start-overlay {
       display: flex;
       position: fixed;
@@ -172,7 +172,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* 仿真實左右翼分欄：左 4 鍵、右 4 鍵 */
     .wings-guide-container {
       width: 100%;
       flex: 1;
@@ -237,7 +236,6 @@
       line-height: 1.2;
     }
 
-    /* 滿版卡片底部的點擊觸發指引 */
     .welcome-board-footer {
       width: 100%;
       background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
@@ -775,7 +773,7 @@
 </head>
 <body>
 
-  <!-- 1. LINE 內建瀏覽器警示遮罩：全屏 100% 覆蓋到最底端 -->
+  <!-- LINE 內建瀏覽器全屏警示遮罩 -->
   <div id="line-warning-banner">
     <div class="line-warning-card">
       <div class="line-warning-icon">⚠️</div>
@@ -788,7 +786,7 @@
     </div>
   </div>
 
-  <!-- 2. 開機滿版大按鍵：仿照真實兩側左右各 4 鍵排列，點擊任意處進入 -->
+  <!-- 開機滿版大按鍵：仿照真實兩側左右各 4 鍵排列 -->
   <div id="welcome-start-overlay">
     <div class="welcome-board">
       <div class="welcome-board-header">
@@ -1007,11 +1005,11 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v97_full_cover_line_and_15x_default';
+    const APP_BUILD_VERSION = 'v99_strict_lock_and_safe_speed';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
-    // 預設語速直接設為 1.5x (有紀錄則讀取上次自選)
+    // 預設語速 1.5x
     let savedSpeedPref = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
     let baseSpeed = SPEED_LEVELS.includes(savedSpeedPref) ? savedSpeedPref : 1.5;
     let effectiveSpeedMultiplier = 1.0;
@@ -1073,6 +1071,9 @@
     let isScheduleLocked = false;
 
     let guideAnimId = null;
+    let cycleWaitTimer = null;
+    let lineWaitTimer = null;
+
     let isGuideActive = false;
     let currentLineIndex = 0;
     let currentLineProgress = 0.0;
@@ -1438,7 +1439,8 @@
     }
 
     btnReload.addEventListener('click', async () => {
-      haltGuideRunnerImmediately();
+      if (isGuideActive) return; // 運行中保護
+
       statusCard.style.display = 'block';
       pdfContainerWrap.style.display = 'none';
 
@@ -1619,8 +1621,13 @@
       return closestIdx;
     }
 
+    /* ----------------------------------------------------
+       【起點設定】：運行中鎖定，避免篡改區間
+    ---------------------------------------------------- */
     btnMarkA.addEventListener('click', () => {
       triggerLandscapeLock();
+      if (isGuideActive) return; // 運行中鎖定
+
       if (isScheduleLocked) {
         speakPrompt("請先完成今日共同功課");
         return;
@@ -1642,8 +1649,13 @@
       speakPrompt("請設定終點");
     });
 
+    /* ----------------------------------------------------
+       【終點設定】：運行中鎖定，避免篡改區間
+    ---------------------------------------------------- */
     btnMarkB.addEventListener('click', () => {
       triggerLandscapeLock();
+      if (isGuideActive) return; // 運行中鎖定
+
       if (isScheduleLocked) {
         speakPrompt("請先完成今日共同功課");
         return;
@@ -1664,6 +1676,8 @@
 
     btnOffering.addEventListener('click', () => {
       triggerLandscapeLock();
+      if (isGuideActive) return; // 運行中保護
+
       displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
       offeringStatusMsg.style.display = 'none';
       btnConfirmOffering.disabled = false;
@@ -1760,6 +1774,9 @@
       form.submit();
     });
 
+    /* ----------------------------------------------------
+       【速度調節】：全時開放，隨時可調，平滑生效
+    ---------------------------------------------------- */
     btnSpeed.addEventListener('click', () => {
       const isVisible = speedModal.style.display === 'flex';
       repeatModal.style.display = 'none';
@@ -1777,6 +1794,7 @@
         speedModal.style.display = 'none';
         effectiveSpeedMultiplier = 1.0;
 
+        // 若背誦中，即時重新計算當前行剩餘時間
         if (parsedTextLines[currentLineIndex]) {
           const line = parsedTextLines[currentLineIndex];
           const chineseCount = (line.charItems || []).length;
@@ -1785,7 +1803,12 @@
       });
     });
 
+    /* ----------------------------------------------------
+       【次數設定】：背誦中鎖定，不准隨意篡改
+    ---------------------------------------------------- */
     btnRepeatCount.addEventListener('click', () => {
+      if (isGuideActive) return; // 運行中鎖定
+
       if (isScheduleLocked) {
         speakPrompt("請先完成今日排定遍數");
         return;
@@ -1818,6 +1841,9 @@
       }
     });
 
+    /* ----------------------------------------------------
+       【觸控輔助推進】：單指按住經文區前進
+    ---------------------------------------------------- */
     centerCore.addEventListener('pointerdown', (e) => {
       if (!isGuideActive) return;
       isTouchingDisplay = true;
@@ -1840,54 +1866,74 @@
     centerCore.addEventListener('pointercancel', stopTouchDrive);
     centerCore.addEventListener('pointerleave', stopTouchDrive);
 
+    /* ----------------------------------------------------
+       【背書導引開關】：
+       1. 嚴格檢查起訖點，未設絕不動作
+       2. 啟動後強制跑完全程
+    ---------------------------------------------------- */
     btnGuideToggle.addEventListener('click', async () => {
       triggerLandscapeLock();
 
+      // 防呆門檻：未設定起訖點前絕對禁止動作！
+      if (markA_Index === -1 || markB_Index === -1) {
+        speakPrompt("請先設定起點與終點");
+        btnMarkA.style.transform = 'scale(1.1)';
+        btnMarkB.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+          btnMarkA.style.transform = '';
+          btnMarkB.style.transform = '';
+        }, 500);
+        return;
+      }
+
+      // 正在流程中時，禁止重複按背書打亂計次
+      if (isGuideActive) {
+        return;
+      }
+
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) {
-          audioContext = new AudioContextClass();
-        }
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') await audioContext.resume();
       } catch (e) {}
 
-      if (!isGuideActive) {
-        if (parsedTextLines.length === 0) return;
+      if (parsedTextLines.length === 0) return;
 
-        isGuideActive = true;
-        isVoiceActive = false;
-        isTouchingDisplay = false;
-        effectiveSpeedMultiplier = 1.0;
-        beatTimestamps = [];
+      // 清除舊計時器
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (lineWaitTimer) { clearTimeout(lineWaitTimer); lineWaitTimer = null; }
 
-        const isResuming = (btnGuideToggle.textContent.includes('再來'));
+      isGuideActive = true;
+      isVoiceActive = false;
+      isTouchingDisplay = false;
+      isTransitioningLine = false;
+      hasPageFlipped = false;
+      effectiveSpeedMultiplier = 1.0;
+      beatTimestamps = [];
 
-        if (!isResuming) {
-          spawnGoldCoinsAt(btnGuideToggle);
-          completedCycles = 0;
-          btnRepeatCount.textContent = `${totalTargetCycles}次`;
-          currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
-          currentLineProgress = 0.0;
-        } else {
-          if (currentLineIndex < (markA_Index !== -1 ? markA_Index : 0)) {
-            currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
-            currentLineProgress = 0.0;
-          }
-        }
+      const isResuming = (btnGuideToggle.textContent.includes('再來'));
 
-        hasEverStarted = true;
-
-        btnGuideToggle.textContent = '靜止';
-        btnGuideToggle.classList.remove('guide-active');
-        btnGuideToggle.classList.add('guide-waiting');
-
-        startGuideRunner();
-        await startVoiceActivityDetection();
+      if (!isResuming) {
+        spawnGoldCoinsAt(btnGuideToggle);
+        completedCycles = 0;
+        btnRepeatCount.textContent = `${totalTargetCycles}次`;
+        currentLineIndex = markA_Index;
+        currentLineProgress = 0.0;
       } else {
-        haltGuideRunnerImmediately();
+        if (currentLineIndex < markA_Index || currentLineIndex >= markB_Index) {
+          currentLineIndex = markA_Index;
+          currentLineProgress = 0.0;
+        }
       }
+
+      hasEverStarted = true;
+
+      btnGuideToggle.textContent = '靜止';
+      btnGuideToggle.classList.remove('guide-active');
+      btnGuideToggle.classList.add('guide-waiting');
+
+      startGuideRunner();
+      await startVoiceActivityDetection();
     });
 
     async function startVoiceActivityDetection() {
@@ -2084,8 +2130,9 @@
     }
 
     function getLinePhysicalXByProgress(line, progress) {
-      if (!line || !line.charItems || line.charItems.length === 0) {
-        return line ? line.x0 : 0;
+      if (!line) return 0;
+      if (!line.charItems || line.charItems.length === 0) {
+        return line.x0 + (line.x1 - line.x0) * progress;
       }
       const items = line.charItems;
       const N = items.length;
@@ -2104,7 +2151,7 @@
       }
 
       const line = parsedTextLines[idx];
-      const chineseCount = (line.charItems || []).length;
+      const chineseCount = (line && line.charItems) ? line.charItems.length : 10;
 
       lineDuration = (chineseCount / (3.2 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
       currentLineProgress = initialProgress;
@@ -2172,6 +2219,7 @@
           guideAnimId = null;
         }
 
+        // 檢查是否完成本次遍數
         if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
           handleCycleCompletion();
           return;
@@ -2186,7 +2234,8 @@
         isTransitioningLine = true;
         guideLine.style.display = 'none';
 
-        setTimeout(() => {
+        if (lineWaitTimer) clearTimeout(lineWaitTimer);
+        lineWaitTimer = setTimeout(() => {
           if (!isGuideActive) return;
 
           hasPageFlipped = false;
@@ -2211,11 +2260,15 @@
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
+    /* ----------------------------------------------------
+       【遍數推進與完成】：鎖定保護、跑完全程才解鎖
+    ---------------------------------------------------- */
     function handleCycleCompletion() {
       completedCycles += 1;
       const remain = Math.max(0, totalTargetCycles - completedCycles);
       btnRepeatCount.textContent = `${remain}次`;
 
+      // 真正全部跑完時才結算解鎖
       if (completedCycles >= totalTargetCycles) {
         const earnedCoins = totalTargetCycles * calculateSentenceCount();
         addCoins(earnedCoins);
@@ -2229,9 +2282,9 @@
 
           localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
           isScheduleLocked = false;
-          speakPrompt("今日共同功課已圓滿，解鎖自由背誦");
         }
 
+        speakPrompt("背誦圓滿，功德無量");
         finishAndStopPermanently();
         return;
       }
@@ -2246,39 +2299,40 @@
         guideAnimId = null;
       }
 
-      setTimeout(() => {
+      // 換遍：平滑回起點接續下一遍
+      if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
+      cycleWaitTimer = setTimeout(() => {
         if (!isGuideActive) return;
 
         hasPageFlipped = false;
-        currentLineIndex = (markA_Index !== -1) ? markA_Index : 0;
+        currentLineIndex = markA_Index;
         currentLineProgress = 0.0;
         scrollToAlignTop(currentLineIndex);
+
         setupActiveLine(currentLineIndex, 0.0);
+        isTransitioningLine = false;
         lastAnimTimestamp = performance.now();
         guideAnimId = requestAnimationFrame(stepGuideMovement);
-      }, 2000);
+      }, 1500);
     }
 
     function finishAndStopPermanently() {
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (lineWaitTimer) { clearTimeout(lineWaitTimer); lineWaitTimer = null; }
+
       isGuideActive = false;
       isTransitioningLine = false;
 
       stopVoiceActivityDetection();
 
-      markALine.style.display = 'none';
-      markBLine.style.display = 'none';
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
-      btnMarkA.classList.remove('active-mark');
-      btnMarkB.classList.remove('active-mark');
 
-      markA_Index = -1;
-      markB_Index = -1;
       hasEverStarted = false;
       completedCycles = 0;
-      currentLineIndex = 0;
+      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
       currentLineProgress = 0.0;
 
       btnGuideToggle.textContent = '背書';
@@ -2293,6 +2347,9 @@
     function haltGuideRunnerImmediately() {
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (lineWaitTimer) { clearTimeout(lineWaitTimer); lineWaitTimer = null; }
+
       isGuideActive = false;
       isTransitioningLine = false;
 
@@ -2472,6 +2529,10 @@
       }
     });
 
+    /* ----------------------------------------------------
+       【純漢字字串幾何提取】：
+       過濾數字與非經文標記，建立精確字符級座標
+    ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       statusCard.style.display = 'none';
       pdfContainerWrap.style.display = 'flex';
