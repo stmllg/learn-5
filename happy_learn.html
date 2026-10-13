@@ -42,7 +42,6 @@
       overflow: hidden;
     }
 
-    /* LINE 內建瀏覽器警示條 */
     #line-warning-banner {
       display: none;
       position: absolute;
@@ -59,7 +58,6 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
 
-    /* 今日排程提示橫幅 */
     #schedule-toast {
       display: none;
       position: absolute;
@@ -86,7 +84,6 @@
       100% { opacity: 0; transform: translate(-50%, -10px); }
     }
 
-    /* 中央「隨喜大家」全螢幕與語音啟動遮罩 */
     #welcome-start-overlay {
       display: flex;
       position: fixed;
@@ -479,7 +476,6 @@
       background: #0D9488;
     }
 
-    /* 供養功德彈跳視窗（橫式高密度自適應版） */
     #offering-modal-overlay {
       display: none;
       position: fixed;
@@ -526,7 +522,6 @@
       gap: 6px;
     }
 
-    /* 班號與姓名同一行並排 */
     .offering-row {
       display: flex;
       flex-direction: row;
@@ -656,10 +651,8 @@
 </head>
 <body>
 
-  <!-- LINE 內建瀏覽器警示條 -->
   <div id="line-warning-banner">⚠️ 偵測到 LINE 內建瀏覽器：請點選右上角「直線三點 (⋮)」，選擇「以預設瀏覽器開啟」以正常使用麥克風！</div>
 
-  <!-- 中央「隨喜大家」全螢幕與語音啟動遮罩 -->
   <div id="welcome-start-overlay">
     <button class="welcome-btn" id="btn-welcome-start">
       <span>🙏 隨喜大家</span>
@@ -667,7 +660,6 @@
     </button>
   </div>
 
-  <!-- 今日進度提示 -->
   <div id="schedule-toast">📅 載入今日進度中...</div>
 
   <div id="landscape-container">
@@ -764,7 +756,6 @@
     <button class="modal-option active" data-speed="4.0">4.0x</button>
   </div>
 
-  <!-- 供養功德彈跳視窗（班號與姓名同列版） -->
   <div id="offering-modal-overlay">
     <div class="offering-card">
       <div class="offering-header">
@@ -803,10 +794,11 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v90_welcome_start_and_speech';
+    const APP_BUILD_VERSION = 'v91_adaptive_tempo_follower';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
-    let currentSpeed = 4.0;
+    let baseSpeed = 4.0;
+    let effectiveSpeedMultiplier = 1.0; // 節奏自適應係數 (0.75 ~ 1.25)
 
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
 
@@ -845,7 +837,6 @@
     const repeatModal = document.getElementById('repeat-modal');
     const speedModal = document.getElementById('speed-modal');
 
-    // 供養視窗元素
     const offeringOverlay = document.getElementById('offering-modal-overlay');
     const inputClassId = document.getElementById('input-class-id');
     const inputUserName = document.getElementById('input-user-name');
@@ -874,12 +865,11 @@
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
 
-    // 儲存待播放的排程語音
     let pendingScheduleSpeech = "";
     let hasInteractedWithWelcome = false;
 
     /* ----------------------------------------------------
-       【語音偵測 (VAD) 與觸控雙軌推進】
+       【語音偵測 (VAD) + 音節拍點頻率跟隨 (Tempo Tracker)】
     ---------------------------------------------------- */
     let audioContext = null;
     let analyser = null;
@@ -894,6 +884,12 @@
     let dynamicThreshold = 0.003;
     let calibrationSamples = [];
     let isCalibrating = false;
+
+    // 音節起音偵測變數
+    let previousRms = 0.0;
+    let beatTimestamps = [];
+    const MAX_BEAT_HISTORY = 4;
+    let lastBeatTime = 0;
 
     function speakPrompt(text) {
       try {
@@ -930,11 +926,6 @@
       } catch (err) {}
     }
 
-    /* ----------------------------------------------------
-       【中央「隨喜大家」按鈕點擊事件】
-       1. 解鎖音訊環境與全螢幕
-       2. 立即清晰播報排程語音
-    ---------------------------------------------------- */
     btnWelcomeStart.addEventListener('click', async () => {
       hasInteractedWithWelcome = true;
       welcomeOverlay.style.opacity = '0';
@@ -942,17 +933,14 @@
         welcomeOverlay.style.display = 'none';
       }, 300);
 
-      // 觸發全螢幕與橫向鎖定
       await triggerLandscapeLock();
 
-      // 喚醒 Web Audio
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioContext) audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') await audioContext.resume();
       } catch (e) {}
 
-      // 播報今日排程進度
       if (pendingScheduleSpeech) {
         setTimeout(() => {
           speakPrompt(pendingScheduleSpeech);
@@ -999,7 +987,7 @@
       try {
         const data = {
           fileTag: currentActiveFileTag,
-          speed: currentSpeed,
+          speed: baseSpeed,
           targetCycles: totalTargetCycles,
           completedCycles: completedCycles,
           hasEverStarted: hasEverStarted,
@@ -1048,9 +1036,9 @@
       const config = loadSavedProgress();
       if (config.speed) {
         const val = parseFloat(config.speed);
-        if (SPEED_LEVELS.includes(val)) currentSpeed = val;
+        if (SPEED_LEVELS.includes(val)) baseSpeed = val;
       }
-      btnSpeed.textContent = `${currentSpeed.toFixed(1)}x`;
+      btnSpeed.textContent = `${baseSpeed.toFixed(1)}x`;
       updateSpeedModalUI();
 
       if (config.targetCycles) {
@@ -1069,7 +1057,7 @@
 
     function updateSpeedModalUI() {
       document.querySelectorAll('#speed-modal .modal-option').forEach(b => {
-        b.classList.toggle('active', parseFloat(b.dataset.speed) === currentSpeed);
+        b.classList.toggle('active', parseFloat(b.dataset.speed) === baseSpeed);
       });
     }
 
@@ -1113,9 +1101,6 @@
       lineElement.style.display = 'block';
     }
 
-    /* ----------------------------------------------------
-       【今日共同進度極速本機判定 + 鎖定互鎖機制】
-    ---------------------------------------------------- */
     async function checkDailySchedule() {
       try {
         let scheduleData = null;
@@ -1144,7 +1129,6 @@
         if (todayPlan && typeof todayPlan.start === 'number' && typeof todayPlan.end === 'number') {
           const completedRecord = localStorage.getItem('SCHEDULE_DONE_' + todayStr);
 
-          // 今日功課尚未完成 -> 強制鎖定共同進度
           if (completedRecord !== 'true') {
             isScheduleLocked = true;
             markA_Index = Math.max(0, todayPlan.start - 1);
@@ -1166,10 +1150,8 @@
             scheduleToast.style.display = 'block';
             scheduleToast.textContent = `🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText} ${todayPlan.title ? '('+todayPlan.title+')' : ''}`;
             
-            // 存入待播放文字
             pendingScheduleSpeech = `今日共同功課，第 ${todayPlan.start} 到 ${todayPlan.end} 句${repeatText}，請先完成`;
 
-            // 若使用者已經點過歡迎鈕，立即播放
             if (hasInteractedWithWelcome) {
               speakPrompt(pendingScheduleSpeech);
             }
@@ -1450,9 +1432,6 @@
       speakPrompt("終點設定完畢");
     });
 
-    /* ----------------------------------------------------
-       【供養功德按鈕】：隱藏表單 POST (Zero CORS Block)
-    ---------------------------------------------------- */
     btnOffering.addEventListener('click', () => {
       triggerLandscapeLock();
       displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
@@ -1559,16 +1538,17 @@
 
     document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
       btn.addEventListener('click', () => {
-        currentSpeed = parseFloat(btn.dataset.speed);
-        btnSpeed.textContent = `${currentSpeed.toFixed(1)}x`;
+        baseSpeed = parseFloat(btn.dataset.speed);
+        btnSpeed.textContent = `${baseSpeed.toFixed(1)}x`;
         updateSpeedModalUI();
         saveCurrentProgress();
         speedModal.style.display = 'none';
+        effectiveSpeedMultiplier = 1.0;
 
         if (parsedTextLines[currentLineIndex]) {
           const line = parsedTextLines[currentLineIndex];
           const lineLen = Math.max(line.x1 - line.x0, 60);
-          lineDuration = (lineLen / (90 * currentSpeed)) * 1000;
+          lineDuration = (lineLen / (90 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
         }
       });
     });
@@ -1606,9 +1586,6 @@
       }
     });
 
-    /* ----------------------------------------------------
-       【單指按住中央經文區觸控推進（雙軌並行）】
-    ---------------------------------------------------- */
     centerCore.addEventListener('pointerdown', (e) => {
       if (!isGuideActive) return;
       isTouchingDisplay = true;
@@ -1650,6 +1627,8 @@
         isGuideActive = true;
         isVoiceActive = false;
         isTouchingDisplay = false;
+        effectiveSpeedMultiplier = 1.0;
+        beatTimestamps = [];
 
         const isResuming = (btnGuideToggle.textContent.includes('再來'));
 
@@ -1713,6 +1692,9 @@
         }, 400);
 
         lastVoiceDetectedTime = 0;
+        previousRms = 0.0;
+        beatTimestamps = [];
+        lastBeatTime = performance.now();
         startVadMonitorLoop();
       } catch (err) {
         console.warn("麥克風無法啟動:", err);
@@ -1720,6 +1702,9 @@
       }
     }
 
+    /* ----------------------------------------------------
+       【VAD 監控 + 音節節奏起音即時運算】
+    ---------------------------------------------------- */
     function startVadMonitorLoop() {
       if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
 
@@ -1755,15 +1740,58 @@
               btnGuideToggle.classList.add('guide-active');
               lastAnimTimestamp = performance.now();
             }
+
+            // --- 音節起音偵測 (Attack Detection) ---
+            // 條件：音量急速上升超過門檻，且距離上個字至少間隔 110ms（避開同字振動）
+            const deltaRms = rms - previousRms;
+            if (deltaRms > (dynamicThreshold * 0.6) && (now - lastBeatTime > 110)) {
+              lastBeatTime = now;
+              beatTimestamps.push(now);
+              if (beatTimestamps.length > MAX_BEAT_HISTORY) {
+                beatTimestamps.shift();
+              }
+
+              // 累積 3 個字以上拍點即可估算平均字距
+              if (beatTimestamps.length >= 3) {
+                let totalDiff = 0;
+                for (let k = 1; k < beatTimestamps.length; k++) {
+                  totalDiff += (beatTimestamps[k] - beatTimestamps[k - 1]);
+                }
+                const avgIntervalMs = totalDiff / (beatTimestamps.length - 1);
+
+                // 基準速度 4.0x 約對應 170ms/字；基準速度 2.0x 約對應 340ms/字
+                const targetNominalIntervalMs = 700 / baseSpeed;
+                const ratio = targetNominalIntervalMs / Math.max(100, avgIntervalMs);
+
+                // 將調節係數限制在 ±25% 範圍內 (0.75x ~ 1.25x)，避免失控暴衝
+                const targetMultiplier = Math.max(0.75, Math.min(1.25, ratio));
+                
+                // 平滑緩衝調整 (EMA)，消除突兀感
+                effectiveSpeedMultiplier = effectiveSpeedMultiplier * 0.7 + targetMultiplier * 0.3;
+
+                // 更新當前行的總移動時間
+                if (parsedTextLines[currentLineIndex]) {
+                  const line = parsedTextLines[currentLineIndex];
+                  const lineLen = Math.max(line.x1 - line.x0, 60);
+                  lineDuration = (lineLen / (90 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
+                }
+              }
+            }
           } else {
+            // 停頓時自適應係數平滑回歸基準 1.0
+            effectiveSpeedMultiplier = effectiveSpeedMultiplier * 0.95 + 1.0 * 0.05;
+
             if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
               isVoiceActive = false;
               btnGuideToggle.textContent = '靜止';
               btnGuideToggle.classList.remove('guide-active');
               btnGuideToggle.classList.add('guide-waiting');
+              beatTimestamps = [];
               saveCurrentProgress();
             }
           }
+
+          previousRms = rms;
         }
 
         vadCheckTimer = requestAnimationFrame(checkVolume);
@@ -1779,6 +1807,8 @@
       }
       isVoiceActive = false;
       isTouchingDisplay = false;
+      effectiveSpeedMultiplier = 1.0;
+      beatTimestamps = [];
     }
 
     function startGuideRunner() {
@@ -1810,7 +1840,8 @@
       const line = parsedTextLines[idx];
       const lineLen = Math.max(line.x1 - line.x0, 60);
 
-      lineDuration = (lineLen / (90 * currentSpeed)) * 1000;
+      // 動態結合基準檔位與節奏倍率
+      lineDuration = (lineLen / (90 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
       currentLineProgress = initialProgress;
 
       const lineY = line.underLineY;
