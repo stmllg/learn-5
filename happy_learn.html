@@ -1005,7 +1005,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v99_strict_lock_and_safe_speed';
+    const APP_BUILD_VERSION = 'v100_instant_per_cycle_coins';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
@@ -1162,9 +1162,14 @@
       }
     });
 
+    /* ----------------------------------------------------
+       【關機鍵】：清除臨時死鎖進度，保留已結算金幣與語速
+    ---------------------------------------------------- */
     btnShutdownExit.addEventListener('click', () => {
       haltGuideRunnerImmediately();
-      saveCurrentProgress();
+
+      // 抹除當次未完的臨時進度
+      try { localStorage.removeItem(APP_CONFIG_KEY); } catch (e) {}
 
       if (micStream) {
         try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
@@ -1439,7 +1444,7 @@
     }
 
     btnReload.addEventListener('click', async () => {
-      if (isGuideActive) return; // 運行中保護
+      if (isGuideActive) return;
 
       statusCard.style.display = 'block';
       pdfContainerWrap.style.display = 'none';
@@ -1626,7 +1631,7 @@
     ---------------------------------------------------- */
     btnMarkA.addEventListener('click', () => {
       triggerLandscapeLock();
-      if (isGuideActive) return; // 運行中鎖定
+      if (isGuideActive) return;
 
       if (isScheduleLocked) {
         speakPrompt("請先完成今日共同功課");
@@ -1654,7 +1659,7 @@
     ---------------------------------------------------- */
     btnMarkB.addEventListener('click', () => {
       triggerLandscapeLock();
-      if (isGuideActive) return; // 運行中鎖定
+      if (isGuideActive) return;
 
       if (isScheduleLocked) {
         speakPrompt("請先完成今日共同功課");
@@ -1676,7 +1681,7 @@
 
     btnOffering.addEventListener('click', () => {
       triggerLandscapeLock();
-      if (isGuideActive) return; // 運行中保護
+      if (isGuideActive) return;
 
       displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
       offeringStatusMsg.style.display = 'none';
@@ -1794,7 +1799,6 @@
         speedModal.style.display = 'none';
         effectiveSpeedMultiplier = 1.0;
 
-        // 若背誦中，即時重新計算當前行剩餘時間
         if (parsedTextLines[currentLineIndex]) {
           const line = parsedTextLines[currentLineIndex];
           const chineseCount = (line.charItems || []).length;
@@ -1807,7 +1811,7 @@
        【次數設定】：背誦中鎖定，不准隨意篡改
     ---------------------------------------------------- */
     btnRepeatCount.addEventListener('click', () => {
-      if (isGuideActive) return; // 運行中鎖定
+      if (isGuideActive) return;
 
       if (isScheduleLocked) {
         speakPrompt("請先完成今日排定遍數");
@@ -1842,7 +1846,7 @@
     });
 
     /* ----------------------------------------------------
-       【觸控輔助推進】：單指按住經文區前進
+       【觸控推進】：單指按住經文區
     ---------------------------------------------------- */
     centerCore.addEventListener('pointerdown', (e) => {
       if (!isGuideActive) return;
@@ -1868,13 +1872,12 @@
 
     /* ----------------------------------------------------
        【背書導引開關】：
-       1. 嚴格檢查起訖點，未設絕不動作
-       2. 啟動後強制跑完全程
+       第 1 行同步阻斷連點，未設起訖絕不啟動
     ---------------------------------------------------- */
     btnGuideToggle.addEventListener('click', async () => {
       triggerLandscapeLock();
 
-      // 防呆門檻：未設定起訖點前絕對禁止動作！
+      // 防呆檢查：起訖點未設絕不動作
       if (markA_Index === -1 || markB_Index === -1) {
         speakPrompt("請先設定起點與終點");
         btnMarkA.style.transform = 'scale(1.1)';
@@ -1886,10 +1889,13 @@
         return;
       }
 
-      // 正在流程中時，禁止重複按背書打亂計次
+      // 運行中嚴格互鎖，防止重複點擊破壞狀態機
       if (isGuideActive) {
         return;
       }
+
+      // 同步代碼第一行立即鎖定！
+      isGuideActive = true;
 
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -1897,13 +1903,14 @@
         if (audioContext.state === 'suspended') await audioContext.resume();
       } catch (e) {}
 
-      if (parsedTextLines.length === 0) return;
+      if (parsedTextLines.length === 0) {
+        isGuideActive = false;
+        return;
+      }
 
-      // 清除舊計時器
       if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
       if (lineWaitTimer) { clearTimeout(lineWaitTimer); lineWaitTimer = null; }
 
-      isGuideActive = true;
       isVoiceActive = false;
       isTouchingDisplay = false;
       isTransitioningLine = false;
@@ -2261,18 +2268,20 @@
     }
 
     /* ----------------------------------------------------
-       【遍數推進與完成】：鎖定保護、跑完全程才解鎖
+       【按遍結算金幣 + 杜絕換遍死鎖】：
+       每完一遍，該遍福慧幣立即結算存檔！
     ---------------------------------------------------- */
     function handleCycleCompletion() {
       completedCycles += 1;
       const remain = Math.max(0, totalTargetCycles - completedCycles);
       btnRepeatCount.textContent = `${remain}次`;
 
-      // 真正全部跑完時才結算解鎖
-      if (completedCycles >= totalTargetCycles) {
-        const earnedCoins = totalTargetCycles * calculateSentenceCount();
-        addCoins(earnedCoins);
+      // 【即時結算】：每完成 1 遍，當遍福慧幣立即落袋存檔！
+      const singleCycleCoins = calculateSentenceCount();
+      addCoins(singleCycleCoins);
 
+      // 檢查是否所有目標遍數全部圓滿
+      if (completedCycles >= totalTargetCycles) {
         if (isScheduleLocked) {
           const now = new Date();
           const yyyy = now.getFullYear();
@@ -2310,8 +2319,8 @@
         scrollToAlignTop(currentLineIndex);
 
         setupActiveLine(currentLineIndex, 0.0);
-        isTransitioningLine = false;
-        lastAnimTimestamp = performance.now();
+        isTransitioningLine = false; // 解鎖換行
+        lastAnimTimestamp = performance.now(); // 校準時間戳記，絕不死鎖
         guideAnimId = requestAnimationFrame(stepGuideMovement);
       }, 1500);
     }
