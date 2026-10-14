@@ -120,7 +120,7 @@
     }
 
     /* ----------------------------------------------------
-       【更新確認彈窗】：大字、需點擊確認才消失
+       【更新確認彈窗】：最高 z-index 99999，大字居中，點確定才消失
     ---------------------------------------------------- */
     #update-modal-overlay {
       display: none;
@@ -130,12 +130,12 @@
       width: 100vw;
       height: 100vh;
       height: 100dvh;
-      background: rgba(10, 15, 29, 0.88);
-      z-index: 15000;
+      background: rgba(5, 10, 20, 0.92);
+      z-index: 99999;
       justify-content: center;
       align-items: center;
       padding: 16px;
-      backdrop-filter: blur(5px);
+      backdrop-filter: blur(6px);
     }
 
     .update-notice-card {
@@ -146,12 +146,17 @@
       width: 90%;
       max-width: 480px;
       padding: 20px 24px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.3);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.4);
       display: flex;
       flex-direction: column;
       gap: 14px;
       animation: popIn 0.25s ease-out;
       text-align: center;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
     }
 
     .update-notice-header {
@@ -168,7 +173,7 @@
       background: rgba(15, 23, 42, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
-      padding: 12px 16px;
+      padding: 14px 18px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -357,6 +362,7 @@
       padding-left: 6px;
     }
 
+    /* 左側 3 顆按鈕 (起、供養、關機)，高度均分 */
     #left-wing .slot {
       width: 100%;
       height: 33.33%;
@@ -366,6 +372,7 @@
       position: relative;
     }
 
+    /* 右側 4 顆按鈕 (背書、語速、遍數、止)，高度均分 */
     #right-wing .slot {
       width: 100%;
       height: 25%;
@@ -707,11 +714,6 @@
       flex-direction: column;
       gap: 8px;
       animation: popIn 0.2s ease-out;
-    }
-
-    @keyframes popIn {
-      0% { transform: scale(0.92); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
     }
 
     .offering-header {
@@ -1132,7 +1134,6 @@
   </div>
 
   <div id="landscape-container">
-    <!-- 左側面板：純淨 3 鍵配置 (起、供養、關機) -->
     <div class="side-wing" id="left-wing">
       <div class="slot">
         <button class="circle-btn btn-color-mark-a" id="btn-mark-a" aria-label="A點起點">起</button>
@@ -1185,7 +1186,6 @@
       </div>
     </div>
 
-    <!-- 右側面板：4 鍵配置 (背書、語速、遍數、止) -->
     <div class="side-wing" id="right-wing">
       <div class="slot">
         <button class="circle-btn btn-color-guide" id="btn-guide-toggle" aria-label="背書導引開關">背書</button>
@@ -1288,7 +1288,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v118_precise_diff_no_speech';
+    const APP_BUILD_VERSION = 'v119_clean_orientation_reliable_sync';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
@@ -1416,7 +1416,7 @@
       return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
     }
 
-    // 顯示更新確認彈窗（無語音）
+    // 彈出確認大字視窗（無語音）
     function showUpdateConfirmModal(itemsUpdated, updateTimeStr, isReloadNeeded = false) {
       const timeDisplay = updateTimeStr || formatDateTime(new Date());
       let itemsHtml = itemsUpdated.map(item => `• ${item}`).join('<br>');
@@ -1515,6 +1515,9 @@
       } catch (e) {}
 
       await checkDailySchedule();
+
+      // 在進入畫面後，執行一次精確背景同步
+      runTripleBackgroundSync(currentActiveFileTag);
 
       if (pendingScheduleSpeech) {
         setTimeout(() => {
@@ -2664,7 +2667,7 @@
     });
 
     /* ----------------------------------------------------
-       【三合一啟動機制】：本地秒開 + 背景穿透同步 + 離線提示
+       【智慧雙軌啟動】：本地秒開 + 延後同步
     ---------------------------------------------------- */
     async function loadScriptureWithSmartAutoUpdate() {
       appProgressFill.style.width = '100%';
@@ -2685,11 +2688,7 @@
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         updateVisualDisplay();
         scrollToAlignTop(0);
-        
         await checkDailySchedule();
-
-        // 背景啟動三合一穿透更新
-        runTripleBackgroundSync(localTag);
       } else {
         statusCard.style.display = 'block';
         pdfContainerWrap.style.display = 'none';
@@ -2698,7 +2697,7 @@
     }
 
     /* ----------------------------------------------------
-       【三合一背景自動同步核心】：精確比對各項內容，無語音
+       【三合一背景自動同步核心】：無語音，精確比對並彈窗
     ---------------------------------------------------- */
     async function runTripleBackgroundSync(currentPdfTag) {
       if (!navigator.onLine) {
@@ -2757,7 +2756,7 @@
         }
       } catch (e) {}
 
-      // 3. 同步程式 index.html (避免誤觸，初始化時先建立基準)
+      // 3. 同步程式 index.html
       try {
         const headHtml = await fetch('./index.html?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
         if (headHtml.ok) {
@@ -2803,7 +2802,6 @@
         updateVisualDisplay();
         scrollToAlignTop(0);
         await checkDailySchedule();
-        runTripleBackgroundSync(tag);
       } catch (e) {
         const fallback = await getCachedRecord();
         if (fallback && fallback.buffer) {
@@ -2850,11 +2848,12 @@
     });
 
     /* ----------------------------------------------------
-       【PDF 渲染與科判小字自動過濾】：強制 rotation: 0
+       【PDF 渲染與轉向防護】：徹底銷毀舊緩衝區，動態取得旋轉角度
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
+      // 確保真正進入橫向佈局 (寬大於高)
       if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
-        setTimeout(() => parseAndRenderPdfData(typedarray), 250);
+        setTimeout(() => parseAndRenderPdfData(typedarray), 350);
         return;
       }
 
@@ -2870,10 +2869,15 @@
       currentPdfDoc = await loadingTask.promise;
       const page = await currentPdfDoc.getPage(1);
 
+      // 強制清空重置 Canvas 像素緩衝區，杜絕 GPU 殘留顛倒紋理
+      pdfCanvas.width = 0;
+      pdfCanvas.height = 0;
+
       const availableWidth = centerCore.clientWidth || (window.innerWidth - 160);
-      const unscaledViewport = page.getViewport({ scale: 1.0, rotation: 0 });
+      const pageRotation = page.rotate || 0; // 吃 PDF 本身正向旋轉
+      const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
       const pageScale = availableWidth / unscaledViewport.width;
-      const viewport = page.getViewport({ scale: pageScale, rotation: 0 });
+      const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
 
       pdfCanvas.width = viewport.width;
       pdfCanvas.height = viewport.height;
@@ -2996,7 +3000,7 @@
     }
 
     /* ----------------------------------------------------
-       【轉向去抖動穩定器】：防止 1/4 迷你縮小與比例錯亂
+       【轉向防抖動穩定器】：徹底防止 1/4 迷你縮小與比例錯亂
     ---------------------------------------------------- */
     let reRenderDebounceTimer = null;
     function handleScreenDimensionStabilize() {
@@ -3004,13 +3008,13 @@
 
       clearTimeout(reRenderDebounceTimer);
       reRenderDebounceTimer = setTimeout(() => {
-        if (cachedRawBuffer) {
+        if (cachedRawBuffer && centerCore.clientWidth > centerCore.clientHeight) {
           parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
             updateVisualDisplay();
             scrollToAlignTop(currentLineIndex);
           });
         }
-      }, 350);
+      }, 400);
     }
 
     window.addEventListener('resize', handleScreenDimensionStabilize);
