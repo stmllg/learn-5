@@ -1205,7 +1205,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v113_auto_sync_orientation_safe';
+    const APP_BUILD_VERSION = 'v114_font_filter_skip_outline';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
@@ -2650,7 +2650,6 @@
         pdfProgressFill.style.width = '100%';
         pdfProgressVal.textContent = '100% (本地快取)';
 
-        // 1. 本地有快取，立即渲染，零等待進入背誦
         statusCard.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
@@ -2658,7 +2657,6 @@
         scrollToAlignTop(0);
         await checkDailySchedule();
 
-        // 2. 背景穿透 CDN 比對 GitHub 是否有新經文
         checkRemoteScriptureUpdateInBackground(localTag);
       } else {
         statusCard.style.display = 'block';
@@ -2688,7 +2686,6 @@
           localStorage.setItem('APP_SAVED_PDF_TAG', newTag);
           await saveRecordToCache(res.buffer, newTag);
 
-          // 非背誦狀態下平滑更新畫面
           if (!isGuideActive) {
             await parseAndRenderPdfData(new Uint8Array(res.buffer));
             updateVisualDisplay();
@@ -2768,10 +2765,9 @@
     });
 
     /* ----------------------------------------------------
-       【PDF 渲染與轉向防護】：保證橫式比例正確
+       【PDF 渲染與科判小字自動過濾】：只收錄經文正文與標題
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
-      // 螢幕轉向過渡防護：若寬度小於高度，代表瀏覽器尚未完成橫向佈局，延遲等待
       if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
         setTimeout(() => parseAndRenderPdfData(typedarray), 250);
         return;
@@ -2864,33 +2860,52 @@
         }
       });
 
+      // 1. 計算每一行的平均字級大小
+      const analyzedRows = rowGroups.map(g => {
+        g.spans.sort((a, b) => a.x0 - b.x0);
+        const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
+        const minTop = Math.min(...g.spans.map(s => s.topY));
+        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
+        const lineX0 = g.spans[0].x0;
+        const lineX1 = g.spans[g.spans.length - 1].x1;
+
+        return {
+          spans: g.spans,
+          chineseCount: g.spans.length,
+          avgFs: avgFs,
+          minTop: minTop,
+          maxBottom: maxBottom,
+          lineX0: lineX0,
+          lineX1: lineX1,
+          underLineY: maxBottom + 7
+        };
+      });
+
+      // 2. 判定正文標準字級基準（取有效長行中較大的字體）
+      const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
+      let mainTextFontSize = 0;
+      if (candidateLargeRows.length > 0) {
+        const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
+        // 取前段較大字的平均或代表值
+        mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
+      }
+
       parsedTextLines = [];
       let internalIndex = 0;
 
-      rowGroups.forEach(g => {
-        g.spans.sort((a, b) => a.x0 - b.x0);
+      // 3. 嚴格過濾：字級必須達到正文基準的 80% 以上（直接排除科判小字）
+      analyzedRows.forEach(r => {
+        const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
 
-        const firstSpan = g.spans[0];
-        const lastSpan = g.spans[g.spans.length - 1];
-
-        const lineX0 = firstSpan.x0;
-        const lineX1 = lastSpan.x1;
-
-        const minTop = Math.min(...g.spans.map(s => s.topY));
-        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
-
-        const chineseCount = g.spans.length;
-        const underLineY = maxBottom + 7;
-
-        if (chineseCount >= 4 && (lineX1 - lineX0) >= 80) {
+        if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
           parsedTextLines.push({
             lineIndex: internalIndex++,
-            x0: lineX0,
-            x1: lineX1,
-            topGlobal: minTop,
-            bottomGlobal: maxBottom,
-            underLineY: underLineY,
-            charItems: g.spans
+            x0: r.lineX0,
+            x1: r.lineX1,
+            topGlobal: r.minTop,
+            bottomGlobal: r.maxBottom,
+            underLineY: r.underLineY,
+            charItems: r.spans
           });
         }
       });
@@ -2900,7 +2915,7 @@
     }
 
     /* ----------------------------------------------------
-       【轉向去抖動穩定器】：徹底防止 1/4 迷你倒縮與比例錯亂
+       【轉向去抖動穩定器】：防止 1/4 迷你縮小與比例錯亂
     ---------------------------------------------------- */
     let reRenderDebounceTimer = null;
     function handleScreenDimensionStabilize() {
@@ -2908,7 +2923,6 @@
 
       clearTimeout(reRenderDebounceTimer);
       reRenderDebounceTimer = setTimeout(() => {
-        // 等候硬體真正完成橫向變形後才重繪
         if (cachedRawBuffer) {
           parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
             updateVisualDisplay();
