@@ -1001,7 +1001,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v102_entry_reset_architecture';
+    const APP_BUILD_VERSION = 'v103_vad_cycle_fix_and_schedule_sync';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
@@ -1133,11 +1133,14 @@
       } catch (err) {}
     }
 
-    /* ----------------------------------------------------
-       【文字說明滿版大按鍵：系統總入口】
-       開機進門點擊瞬間，直接徹底清除舊暫存指針，
-       保證每次進入都是全新乾淨狀態，絕不依賴關機儲存
-    ---------------------------------------------------- */
+    function getNormalizedDateStr() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      return `${yyyy}/${mm}/${dd}`;
+    }
+
     welcomeOverlay.addEventListener('click', async () => {
       hasInteractedWithWelcome = true;
       welcomeOverlay.style.opacity = '0';
@@ -1182,9 +1185,6 @@
       }
     });
 
-    /* ----------------------------------------------------
-       【關機鍵】：退出全螢幕並回到說明遮罩
-    ---------------------------------------------------- */
     btnShutdownExit.addEventListener('click', () => {
       haltGuideRunnerImmediately();
 
@@ -1205,7 +1205,6 @@
         }
       } catch (e) {}
 
-      // 關機直接跳回滿版說明卡片
       welcomeOverlay.style.display = 'flex';
       welcomeOverlay.style.opacity = '1';
       hasInteractedWithWelcome = false;
@@ -1266,9 +1265,6 @@
       });
     }
 
-    /* ----------------------------------------------------
-       【介面繪製】：按鈕永遠是「背書」，徹底移除「再來」
-    ---------------------------------------------------- */
     function updateVisualDisplay() {
       if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
         btnMarkA.classList.add('active-mark');
@@ -1305,6 +1301,9 @@
       lineElement.style.display = 'block';
     }
 
+    /* ----------------------------------------------------
+       【問題 1 修復】：排程比對與完成標記格式一致化
+    ---------------------------------------------------- */
     async function checkDailySchedule() {
       try {
         let scheduleData = null;
@@ -1319,47 +1318,51 @@
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           isScheduleLocked = false;
+          pendingScheduleSpeech = "";
           return false;
         }
 
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const todayStr = `${yyyy}/${mm}/${dd}`;
-
+        const todayStr = getNormalizedDateStr();
         const todayPlan = scheduleData.find(item => item.date === todayStr);
 
         if (todayPlan && typeof todayPlan.start === 'number' && typeof todayPlan.end === 'number') {
           const completedRecord = localStorage.getItem('SCHEDULE_DONE_' + todayStr);
 
-          if (completedRecord !== 'true') {
-            isScheduleLocked = true;
-            markA_Index = Math.max(0, todayPlan.start - 1);
-            markB_Index = Math.min(parsedTextLines.length - 1, todayPlan.end - 1);
-            currentLineIndex = markA_Index;
-            currentLineProgress = 0.0;
-            completedCycles = 0;
-
-            if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
-              setTargetCyclesUI(todayPlan.repeat);
-            }
-
-            updateVisualDisplay();
-            scrollToAlignTop(markA_Index);
-
-            const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
-            scheduleToast.style.display = 'block';
-            scheduleToast.textContent = `🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText} ${todayPlan.title ? '('+todayPlan.title+')' : ''}`;
-            
-            pendingScheduleSpeech = `今日共同功課，第 ${todayPlan.start} 到 ${todayPlan.end} 句${repeatText}，請先完成`;
-            return true;
+          // 已完成功課：絕不鎖定，清空今日語音
+          if (completedRecord === 'true') {
+            isScheduleLocked = false;
+            pendingScheduleSpeech = "";
+            scheduleToast.style.display = 'none';
+            return false;
           }
+
+          // 未完成：鎖定今日進度並準備播報
+          isScheduleLocked = true;
+          markA_Index = Math.max(0, todayPlan.start - 1);
+          markB_Index = Math.min(parsedTextLines.length - 1, todayPlan.end - 1);
+          currentLineIndex = markA_Index;
+          currentLineProgress = 0.0;
+          completedCycles = 0;
+
+          if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
+            setTargetCyclesUI(todayPlan.repeat);
+          }
+
+          updateVisualDisplay();
+          scrollToAlignTop(markA_Index);
+
+          const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
+          scheduleToast.style.display = 'block';
+          scheduleToast.textContent = `🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText} ${todayPlan.title ? '('+todayPlan.title+')' : ''}`;
+          
+          pendingScheduleSpeech = `今日共同功課，第 ${todayPlan.start} 到 ${todayPlan.end} 句${repeatText}，請先完成`;
+          return true;
         }
       } catch (err) {
         console.warn("排程載入異常:", err);
       }
       isScheduleLocked = false;
+      pendingScheduleSpeech = "";
       return false;
     }
 
@@ -1755,9 +1758,6 @@
     centerCore.addEventListener('pointercancel', stopTouchDrive);
     centerCore.addEventListener('pointerleave', stopTouchDrive);
 
-    /* ----------------------------------------------------
-       【背書開關】：嚴格檢查起訖點，啟動後同步鎖定
-    ---------------------------------------------------- */
     btnGuideToggle.addEventListener('click', async () => {
       triggerLandscapeLock();
 
@@ -1774,7 +1774,6 @@
 
       if (isGuideActive) return;
 
-      // 同步代碼第 1 行直接鎖死，阻斷連點 Race Condition
       isGuideActive = true;
 
       try {
@@ -1797,6 +1796,7 @@
       hasPageFlipped = false;
       effectiveSpeedMultiplier = 1.0;
       beatTimestamps = [];
+      lastVoiceDetectedTime = performance.now();
 
       spawnGoldCoinsAt(btnGuideToggle);
       completedCycles = 0;
@@ -1845,7 +1845,7 @@
           isCalibrating = false;
         }, 350);
 
-        lastVoiceDetectedTime = 0;
+        lastVoiceDetectedTime = performance.now();
         previousRms = 0.0;
         beatTimestamps = [];
         lastBeatTime = performance.now();
@@ -2094,6 +2094,7 @@
           guideAnimId = null;
         }
 
+        // 檢查是否完成本次遍數
         if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
           handleCycleCompletion();
           return;
@@ -2134,8 +2135,7 @@
     }
 
     /* ----------------------------------------------------
-       【按遍結算與換遍】：
-       每一遍完成立即加幣存檔，時間戳記重新對齊
+       【問題 2 修復】：換遍時完全重置 VAD 時間戳記與狀態
     ---------------------------------------------------- */
     function handleCycleCompletion() {
       completedCycles += 1;
@@ -2148,14 +2148,11 @@
 
       if (completedCycles >= totalTargetCycles) {
         if (isScheduleLocked) {
-          const now = new Date();
-          const yyyy = now.getFullYear();
-          const mm = String(now.getMonth() + 1).padStart(2, '0');
-          const dd = String(now.getDate()).padStart(2, '0');
-          const todayStr = `${yyyy}/${mm}/${dd}`;
-
+          const todayStr = getNormalizedDateStr();
           localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
           isScheduleLocked = false;
+          pendingScheduleSpeech = "";
+          scheduleToast.style.display = 'none';
         }
 
         speakPrompt("背誦圓滿，功德無量");
@@ -2182,7 +2179,18 @@
 
         setupActiveLine(currentLineIndex, 0.0);
         isTransitioningLine = false;
-        lastAnimTimestamp = performance.now(); // 杜絕死鎖
+
+        // 重置 VAD 關鍵指標，避免第 2 遍被判定逾時靜止而卡死
+        lastAnimTimestamp = performance.now();
+        lastVoiceDetectedTime = performance.now();
+        isVoiceActive = false;
+        beatTimestamps = [];
+        previousRms = 0.0;
+
+        btnGuideToggle.textContent = '靜止';
+        btnGuideToggle.classList.remove('guide-active');
+        btnGuideToggle.classList.add('guide-waiting');
+
         guideAnimId = requestAnimationFrame(stepGuideMovement);
       }, 1500);
     }
@@ -2354,6 +2362,7 @@
         await parseAndRenderPdfData(new Uint8Array(res.buffer));
         updateVisualDisplay();
         scrollToAlignTop(0);
+        await checkDailySchedule();
       } catch (e) {
         const fallback = await getCachedRecord();
         if (fallback && fallback.buffer) {
@@ -2362,6 +2371,7 @@
           await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
           updateVisualDisplay();
           scrollToAlignTop(0);
+          await checkDailySchedule();
         } else {
           statusTitle.textContent = '📖 請挑選經文檔案';
           statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
