@@ -743,7 +743,7 @@
     }
 
     /* ----------------------------------------------------
-       【真正滿版擴展】：橫式自適應雙欄 3:4 比例隨喜雙榜卡片
+       【自適應滿版 + 支援兩指縮放】雙榜視窗
     ---------------------------------------------------- */
     #leaderboard-modal-overlay {
       display: none;
@@ -759,6 +759,7 @@
       align-items: center;
       padding: 6px 12px;
       backdrop-filter: blur(4px);
+      touch-action: none; /* 讓兩指縮放完全交給 JavaScript 接管 */
     }
 
     .leaderboard-card {
@@ -766,8 +767,8 @@
       border: 2px solid #F59E0B;
       color: #FFFFFF;
       border-radius: 18px;
-      width: 95vw;
-      width: 95dvw;
+      width: 96vw;
+      width: 96dvw;
       height: 94vh;
       height: 94dvh;
       padding: 8px 16px 10px 16px;
@@ -777,6 +778,8 @@
       justify-content: space-between;
       gap: 6px;
       animation: popIn 0.25s ease-out;
+      overflow: hidden;
+      position: relative;
     }
 
     .leaderboard-header {
@@ -791,7 +794,8 @@
       flex-shrink: 0;
     }
 
-    .dual-boards-row {
+    /* 可被兩指縮放的手勢區域 */
+    #zoomable-board-content {
       display: flex;
       flex-direction: row;
       gap: 12px;
@@ -799,6 +803,9 @@
       flex: 1;
       align-items: stretch;
       min-height: 0;
+      transform-origin: center center;
+      transition: transform 0.05s ease-out;
+      touch-action: none;
     }
 
     /* 今日榜：佔 3 份比例 */
@@ -814,7 +821,7 @@
       min-height: 0;
     }
 
-    /* 總累積榜：佔 4 份比例 (預留較大幣數空間) */
+    /* 總累積榜：佔 4 份比例 */
     .rank-section-total {
       flex: 4;
       background: rgba(30, 41, 59, 0.65);
@@ -889,7 +896,7 @@
       font-style: italic;
     }
 
-    /* 隨喜讚嘆按鈕：鎖定 42px 精緻高度，不膨脹 */
+    /* 隨喜讚嘆按鈕：鎖定 42px 精緻高度，不放大變形 */
     .btn-rejoice {
       width: 100%;
       height: 42px;
@@ -1159,21 +1166,22 @@
     </div>
   </div>
 
-  <!-- 真正滿版橫式雙欄 3:4 比例隨喜雙榜卡片 -->
+  <!-- 滿版雙欄 + 兩指縮放隨喜雙榜卡片 -->
   <div id="leaderboard-modal-overlay">
     <div class="leaderboard-card">
       <div class="leaderboard-header">
         <span>🏆</span> 功德圓滿・隨喜大眾
       </div>
 
-      <div class="dual-boards-row">
+      <!-- 支援兩指縮放的內容容器 -->
+      <div id="zoomable-board-content">
         <!-- 左側：今日榜 (佔 3 份) -->
         <div class="rank-section-today">
           <div class="rank-section-title">📅 今日精進榜 (前三名)</div>
           <div class="rank-list" id="today-rank-list"></div>
         </div>
 
-        <!-- 右側：總累積榜 (佔 4 份，預留大額數字空間) -->
+        <!-- 右側：總累積榜 (佔 4 份) -->
         <div class="rank-section-total">
           <div class="rank-section-title">🌟 總累積功德榜 (前三名)</div>
           <div class="rank-list" id="total-rank-list"></div>
@@ -1191,7 +1199,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v110_full_width_height_strong_date_match';
+    const APP_BUILD_VERSION = 'v111_pinch_zoom_date_integer_match';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
@@ -1244,6 +1252,7 @@
     const btnCancelOffering = document.getElementById('btn-cancel-offering');
 
     const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
+    const zoomableContent = document.getElementById('zoomable-board-content');
     const todayRankList = document.getElementById('today-rank-list');
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
@@ -1787,7 +1796,7 @@
     }
 
     /* ----------------------------------------------------
-       【供養送出】：強韌 JSONP 回呼，正確接收今日榜與總榜
+       【供養送出】：強韌 JSONP 回呼，接收今日榜與總榜
     ---------------------------------------------------- */
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
@@ -1829,7 +1838,11 @@
         btnConfirmOffering.disabled = false;
         btnConfirmOffering.textContent = '確認供養';
 
-        // 渲染真正滿版 3:4 雙榜卡片
+        // 重置縮放比為 1.0
+        currentScale = 1.0;
+        zoomableContent.style.transform = `scale(1.0)`;
+
+        // 渲染榜單
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
         speakPrompt("供養成功，功德無量，隨喜大眾精進");
@@ -1853,6 +1866,42 @@
         }
       };
       document.body.appendChild(scriptTag);
+    });
+
+    /* ----------------------------------------------------
+       【兩指縮放 (Pinch-to-Zoom) 手勢實作】
+    ---------------------------------------------------- */
+    let currentScale = 1.0;
+    let initialPinchDistance = null;
+    let initialScale = 1.0;
+
+    function getTouchesDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    leaderboardOverlay.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        initialPinchDistance = getTouchesDistance(e.touches);
+        initialScale = currentScale;
+      }
+    }, { passive: false });
+
+    leaderboardOverlay.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && initialPinchDistance !== null) {
+        e.preventDefault();
+        const dist = getTouchesDistance(e.touches);
+        const factor = dist / initialPinchDistance;
+        currentScale = Math.min(2.2, Math.max(0.85, initialScale * factor));
+        zoomableContent.style.transform = `scale(${currentScale})`;
+      }
+    }, { passive: false });
+
+    leaderboardOverlay.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        initialPinchDistance = null;
+      }
     });
 
     /* ----------------------------------------------------
