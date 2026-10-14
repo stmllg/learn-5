@@ -742,9 +742,7 @@
       color: #475569;
     }
 
-    /* ----------------------------------------------------
-       【改良】：橫式左右雙欄 3:4 比例隨喜雙榜卡片
-    ---------------------------------------------------- */
+    /* 橫式雙欄 3:4 比例隨喜榜視窗 */
     #leaderboard-modal-overlay {
       display: none;
       position: fixed;
@@ -787,7 +785,6 @@
       gap: 6px;
     }
 
-    /* 左右雙欄容器 (3:4 比例) */
     .dual-boards-row {
       display: flex;
       flex-direction: row;
@@ -796,7 +793,7 @@
       align-items: stretch;
     }
 
-    /* 今日榜：佔 3 份比例 */
+    /* 今日榜：比例 3 */
     .rank-section-today {
       flex: 3;
       background: rgba(30, 41, 59, 0.65);
@@ -807,7 +804,7 @@
       flex-direction: column;
     }
 
-    /* 總累積榜：佔 4 份比例 (更寬，容納較大幣數) */
+    /* 總榜：比例 4 (預留大額數字空間) */
     .rank-section-total {
       flex: 4;
       background: rgba(30, 41, 59, 0.65);
@@ -1143,7 +1140,7 @@
     </div>
   </div>
 
-  <!-- 供養後一次性隨喜雙榜卡片 (橫式左右 3:4 比例) -->
+  <!-- 橫式雙欄 3:4 比例隨喜雙榜卡片 -->
   <div id="leaderboard-modal-overlay">
     <div class="leaderboard-card">
       <div class="leaderboard-header">
@@ -1157,7 +1154,7 @@
           <div class="rank-list" id="today-rank-list"></div>
         </div>
 
-        <!-- 右側：總累積榜 (佔 4 份，更寬闊容納大數字) -->
+        <!-- 右側：總累積榜 (佔 4 份，預留大額數字空間) -->
         <div class="rank-section-total">
           <div class="rank-section-title">🌟 總累積功德榜 (前三名)</div>
           <div class="rank-list" id="total-rank-list"></div>
@@ -1175,7 +1172,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v107_fetch_redirect_dual_board_3_4';
+    const APP_BUILD_VERSION = 'v108_jsonp_pure_dual_board_3_4';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
@@ -1771,9 +1768,9 @@
     }
 
     /* ----------------------------------------------------
-       【供養送出升級】：使用 Fetch API 解決 Google 轉址吃資料問題
+       【供養送出】：採用穩固的 JSONP 回呼接收真實統計
     ---------------------------------------------------- */
-    btnConfirmOffering.addEventListener('click', async () => {
+    btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
 
@@ -1795,20 +1792,17 @@
       btnConfirmOffering.textContent = '連線供養中...';
       offeringStatusMsg.style.display = 'none';
 
-      const requestUrl = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&t=${Date.now()}`;
+      // 產生唯一回呼名稱
+      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
+      let isDone = false;
 
-      try {
-        const response = await fetch(requestUrl, {
-          method: 'GET',
-          mode: 'cors',
-          redirect: 'follow',
-          cache: 'no-store'
-        });
+      function handleSuccess(data) {
+        if (isDone) return;
+        isDone = true;
+        clearTimeout(timeoutTimer);
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-
-        // 供養成功
         spawnGoldCoinsAt(btnOffering);
         resetCoins();
         displayCoinsCount.textContent = '0 枚';
@@ -1817,30 +1811,38 @@
         btnConfirmOffering.disabled = false;
         btnConfirmOffering.textContent = '確認供養';
 
-        // 渲染 3:4 雙榜卡片
+        // 渲染橫式 3:4 雙榜
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
         speakPrompt("供養成功，功德無量，隨喜大眾精進");
-
-      } catch (err) {
-        console.warn("Fetch 讀取失敗，改用備援：", err);
-        // 備援方案：送出資料並彈出卡片
-        spawnGoldCoinsAt(btnOffering);
-        resetCoins();
-        displayCoinsCount.textContent = '0 枚';
-        offeringOverlay.style.display = 'none';
-
-        btnConfirmOffering.disabled = false;
-        btnConfirmOffering.textContent = '確認供養';
-
-        renderLeaderboards(null, classId, userName, coinsToOffer);
-        leaderboardOverlay.style.display = 'flex';
-        speakPrompt("供養成功，功德無量");
       }
+
+      const timeoutTimer = setTimeout(() => {
+        if (!isDone) {
+          handleSuccess({
+            status: 'timeout_fallback',
+            todayTop3: [{ classId: classId, maskName: maskUserName(userName), coins: coinsToOffer }],
+            totalTop3: [{ classId: classId, maskName: maskUserName(userName), coins: coinsToOffer }]
+          });
+        }
+      }, 12000);
+
+      window[callbackName] = function(res) {
+        handleSuccess(res);
+      };
+
+      const scriptTag = document.createElement('script');
+      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&callback=${callbackName}&t=${Date.now()}`;
+      scriptTag.onerror = function() {
+        if (!isDone) {
+          handleSuccess(null);
+        }
+      };
+      document.body.appendChild(scriptTag);
     });
 
     /* ----------------------------------------------------
-       【渲染榜單】：3:4 比例，不足 3 人顯示虛位以待
+       【渲染榜單】：橫式 3:4 雙欄，不足 3 人顯示虛位以待
     ---------------------------------------------------- */
     function renderLeaderboards(data, curClass, curName, curCoins) {
       const medals = ['🥇', '🥈', '🥉'];
