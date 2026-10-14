@@ -743,7 +743,7 @@
     }
 
     /* ----------------------------------------------------
-       【當日榜（上）與總榜（下）一次性隨喜雙榜卡片】
+       【改良】：橫式左右雙欄 3:4 比例隨喜雙榜卡片
     ---------------------------------------------------- */
     #leaderboard-modal-overlay {
       display: none;
@@ -756,7 +756,7 @@
       z-index: 1000;
       justify-content: center;
       align-items: center;
-      padding: 10px;
+      padding: 10px 16px;
       backdrop-filter: blur(4px);
     }
 
@@ -764,60 +764,88 @@
       background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
       border: 2px solid #F59E0B;
       color: #FFFFFF;
-      border-radius: 20px;
-      width: 95%;
-      max-width: 480px;
-      max-height: 92vh;
-      overflow-y: auto;
-      padding: 16px 20px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      border-radius: 18px;
+      width: 96%;
+      max-width: 720px;
+      max-height: 96vh;
+      padding: 10px 16px 12px 16px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
       animation: popIn 0.25s ease-out;
     }
 
     .leaderboard-header {
       text-align: center;
-      font-size: 19px;
+      font-size: clamp(16px, 3.8vh, 19px);
       font-weight: 900;
       color: #FBBF24;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
     }
 
-    .rank-section {
+    /* 左右雙欄容器 (3:4 比例) */
+    .dual-boards-row {
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+      width: 100%;
+      align-items: stretch;
+    }
+
+    /* 今日榜：佔 3 份比例 */
+    .rank-section-today {
+      flex: 3;
       background: rgba(30, 41, 59, 0.65);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 12px;
-      padding: 8px 12px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 總累積榜：佔 4 份比例 (更寬，容納較大幣數) */
+    .rank-section-total {
+      flex: 4;
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 12px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
     }
 
     .rank-section-title {
-      font-size: 13px;
+      font-size: clamp(12px, 2.6vh, 14px);
       font-weight: 900;
       color: #38BDF8;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
+    }
+    .rank-section-total .rank-section-title {
+      color: #FBBF24;
     }
 
     .rank-list {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 3px;
+      flex: 1;
+      justify-content: space-around;
     }
 
     .rank-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 13px;
+      font-size: clamp(11px, 2.4vh, 13px);
       font-weight: 700;
-      padding: 4px 0;
+      padding: 2px 0;
       border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
     }
     .rank-item:last-child {
@@ -827,16 +855,21 @@
     .rank-user {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .rank-badge {
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .rank-coins {
       color: #F59E0B;
       font-weight: 900;
+      white-space: nowrap;
+      margin-left: 6px;
     }
 
     .rank-placeholder {
@@ -846,17 +879,17 @@
 
     .btn-rejoice {
       width: 100%;
-      padding: 10px 16px;
+      padding: 8px 14px;
       background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
       color: #FFFFFF;
-      font-size: 17px;
+      font-size: clamp(14px, 3vh, 17px);
       font-weight: 900;
       border: none;
-      border-radius: 14px;
+      border-radius: 12px;
       cursor: pointer;
       box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5);
       animation: pulseBtn 1.8s infinite ease-in-out;
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .gold-coin {
@@ -1088,7 +1121,7 @@
       <div class="offering-row">
         <div class="offering-field">
           <label>班號：</label>
-          <input type="text" id="input-class-id" class="offering-input" placeholder="例: 24秋01">
+          <input type="text" id="input-class-id" class="offering-input" placeholder="例: 22宗009">
         </div>
         <div class="offering-field">
           <label>姓名：</label>
@@ -1110,23 +1143,25 @@
     </div>
   </div>
 
-  <!-- 供養後一次性隨喜雙榜卡片 -->
+  <!-- 供養後一次性隨喜雙榜卡片 (橫式左右 3:4 比例) -->
   <div id="leaderboard-modal-overlay">
     <div class="leaderboard-card">
       <div class="leaderboard-header">
         <span>🏆</span> 功德圓滿・隨喜大眾
       </div>
 
-      <!-- 上半部：當日精進榜 -->
-      <div class="rank-section">
-        <div class="rank-section-title">📅 今日精進榜 (前三名)</div>
-        <div class="rank-list" id="today-rank-list"></div>
-      </div>
+      <div class="dual-boards-row">
+        <!-- 左側：今日榜 (佔 3 份) -->
+        <div class="rank-section-today">
+          <div class="rank-section-title">📅 今日精進榜 (前三名)</div>
+          <div class="rank-list" id="today-rank-list"></div>
+        </div>
 
-      <!-- 下半部：總累積功德榜 -->
-      <div class="rank-section">
-        <div class="rank-section-title">🌟 總累積功德榜 (前三名)</div>
-        <div class="rank-list" id="total-rank-list"></div>
+        <!-- 右側：總累積榜 (佔 4 份，更寬闊容納大數字) -->
+        <div class="rank-section-total">
+          <div class="rank-section-title">🌟 總累積功德榜 (前三名)</div>
+          <div class="rank-list" id="total-rank-list"></div>
+        </div>
       </div>
 
       <button class="btn-rejoice" id="btn-rejoice-close">🙏 隨喜讚嘆</button>
@@ -1140,7 +1175,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v106_dual_leaderboard_solid';
+    const APP_BUILD_VERSION = 'v107_fetch_redirect_dual_board_3_4';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
@@ -1736,7 +1771,7 @@
     }
 
     /* ----------------------------------------------------
-       【供養確認】：雙軌保證 100% 開啟雙榜卡片
+       【供養送出升級】：使用 Fetch API 解決 Google 轉址吃資料問題
     ---------------------------------------------------- */
     btnConfirmOffering.addEventListener('click', async () => {
       const classId = inputClassId.value.trim();
@@ -1760,15 +1795,20 @@
       btnConfirmOffering.textContent = '連線供養中...';
       offeringStatusMsg.style.display = 'none';
 
-      const callbackName = 'onLeaderboardReceived_' + Date.now();
-      let isCompleted = false;
+      const requestUrl = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&t=${Date.now()}`;
 
-      function onOfferingSuccess(data) {
-        if (isCompleted) return;
-        isCompleted = true;
-        clearTimeout(timeoutTimer);
-        delete window[callbackName];
+      try {
+        const response = await fetch(requestUrl, {
+          method: 'GET',
+          mode: 'cors',
+          redirect: 'follow',
+          cache: 'no-store'
+        });
 
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        // 供養成功
         spawnGoldCoinsAt(btnOffering);
         resetCoins();
         displayCoinsCount.textContent = '0 枚';
@@ -1777,45 +1817,30 @@
         btnConfirmOffering.disabled = false;
         btnConfirmOffering.textContent = '確認供養';
 
-        // 渲染雙榜卡片（人數不足自動填入虛位以待）
+        // 渲染 3:4 雙榜卡片
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
         speakPrompt("供養成功，功德無量，隨喜大眾精進");
+
+      } catch (err) {
+        console.warn("Fetch 讀取失敗，改用備援：", err);
+        // 備援方案：送出資料並彈出卡片
+        spawnGoldCoinsAt(btnOffering);
+        resetCoins();
+        displayCoinsCount.textContent = '0 枚';
+        offeringOverlay.style.display = 'none';
+
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+
+        renderLeaderboards(null, classId, userName, coinsToOffer);
+        leaderboardOverlay.style.display = 'flex';
+        speakPrompt("供養成功，功德無量");
       }
-
-      const timeoutTimer = setTimeout(() => {
-        if (!isCompleted) {
-          // 逾時保底：依然開啟隨喜視窗，不讓使用者卡住
-          onOfferingSuccess({
-            status: 'fallback',
-            todayTop3: [{ classId: classId, maskName: maskUserName(userName), coins: coinsToOffer }],
-            totalTop3: [{ classId: classId, maskName: maskUserName(userName), coins: coinsToOffer }]
-          });
-        }
-      }, 7000);
-
-      window[callbackName] = function(data) {
-        onOfferingSuccess(data);
-      };
-
-      // 動態發起 JSONP 請求
-      const scriptTag = document.createElement('script');
-      const queryUrl = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&callback=${callbackName}&t=${Date.now()}`;
-      scriptTag.src = queryUrl;
-      scriptTag.onerror = () => {
-        if (!isCompleted) {
-          onOfferingSuccess({
-            status: 'offline_fallback',
-            todayTop3: [{ classId: classId, maskName: maskUserName(userName), coins: coinsToOffer }],
-            totalTop3: [{ classId: classId, maskName: maskUserName(userName), coins: coinsToOffer }]
-          });
-        }
-      };
-      document.body.appendChild(scriptTag);
     });
 
     /* ----------------------------------------------------
-       【渲染榜單】：人數不足自動顯示「虛位以待」
+       【渲染榜單】：3:4 比例，不足 3 人顯示虛位以待
     ---------------------------------------------------- */
     function renderLeaderboards(data, curClass, curName, curCoins) {
       const medals = ['🥇', '🥈', '🥉'];
@@ -1823,7 +1848,7 @@
       function buildListHtml(list) {
         const fullList = (list && Array.isArray(list)) ? [...list] : [];
 
-        // 若資料庫內名單不足 3 人，補足「虛位以待」
+        // 若資料庫內不足 3 人，補足「虛位以待」
         while (fullList.length < 3) {
           fullList.push({ isPlaceholder: true });
         }
@@ -1836,7 +1861,7 @@
               <div class="rank-item">
                 <span class="rank-user">
                   <span class="rank-badge">${medal}</span>
-                  <span class="rank-placeholder">虛位以待（精進背誦）</span>
+                  <span class="rank-placeholder">虛位以待 (精進背誦)</span>
                 </span>
                 <span class="rank-coins rank-placeholder">--</span>
               </div>
