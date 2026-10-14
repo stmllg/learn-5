@@ -100,7 +100,6 @@
       font-size: 18px;
     }
 
-    /* 頂部輕量通知 */
     #schedule-toast {
       display: none;
       position: absolute;
@@ -358,7 +357,6 @@
       padding-left: 6px;
     }
 
-    /* 左側 3 顆按鈕 (起、供養、關機)，高度均分 */
     #left-wing .slot {
       width: 100%;
       height: 33.33%;
@@ -368,7 +366,6 @@
       position: relative;
     }
 
-    /* 右側 4 顆按鈕 (背書、語速、遍數、止)，高度均分 */
     #right-wing .slot {
       width: 100%;
       height: 25%;
@@ -1123,17 +1120,13 @@
 
   <div id="schedule-toast">📅 載入進度中...</div>
 
-  <!-- ----------------------------------------------------
-       【更新確認彈窗】：清晰大字，點確定才離開
-  ---------------------------------------------------- -->
+  <!-- 【更新確認彈窗】：大字，點確認才離開，無語音 -->
   <div id="update-modal-overlay">
     <div class="update-notice-card">
       <div class="update-notice-header">
         <span>🔄</span> 最新版本同步通知
       </div>
-      <div class="update-notice-body" id="update-modal-body">
-        <!-- 動態填入更新日期與細節 -->
-      </div>
+      <div class="update-notice-body" id="update-modal-body"></div>
       <button class="btn-update-confirm" id="btn-update-confirm">確認，開始精進背誦</button>
     </div>
   </div>
@@ -1272,13 +1265,11 @@
 
       <div class="viewport-zoom-wrapper" id="zoom-viewport">
         <div id="zoomable-board-content">
-          <!-- 左側：今日榜 (佔 3 份) -->
           <div class="rank-section-today">
             <div class="rank-section-title">📅 今日精進榜 (前三名)</div>
             <div class="rank-list" id="today-rank-list"></div>
           </div>
 
-          <!-- 右側：總累積榜 (佔 4 份) -->
           <div class="rank-section-total">
             <div class="rank-section-title">🌟 總累積功德榜 (前三名)</div>
             <div class="rank-list" id="total-rank-list"></div>
@@ -1297,7 +1288,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v117_update_modal_date_display';
+    const APP_BUILD_VERSION = 'v118_precise_diff_no_speech';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
@@ -1415,7 +1406,6 @@
       }, duration);
     }
 
-    // 格式化日期時間為 YYYY/MM/DD HH:mm
     function formatDateTime(dateObj) {
       const d = dateObj || new Date();
       const yyyy = d.getFullYear();
@@ -1426,8 +1416,8 @@
       return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
     }
 
-    // 顯示更新確認彈窗（大字、使用者點確認才關閉）
-    function showUpdateConfirmModal(itemsUpdated, updateTimeStr) {
+    // 顯示更新確認彈窗（無語音）
+    function showUpdateConfirmModal(itemsUpdated, updateTimeStr, isReloadNeeded = false) {
       const timeDisplay = updateTimeStr || formatDateTime(new Date());
       let itemsHtml = itemsUpdated.map(item => `• ${item}`).join('<br>');
 
@@ -1435,7 +1425,7 @@
         <div class="update-detail-row">
           發布日期版本：<span class="update-detail-highlight">${timeDisplay}</span>
         </div>
-        <div class="update-detail-row" style="margin-top: 4px;">
+        <div class="update-detail-row" style="margin-top: 6px;">
           更新內容項目：<br>
           <span class="update-detail-highlight" style="line-height: 1.8;">${itemsHtml}</span>
         </div>
@@ -1444,12 +1434,14 @@
         </div>
       `;
       updateModalOverlay.style.display = 'flex';
-      speakPrompt("經文進度已同步更新");
-    }
 
-    btnUpdateConfirm.addEventListener('click', () => {
-      updateModalOverlay.style.display = 'none';
-    });
+      btnUpdateConfirm.onclick = () => {
+        updateModalOverlay.style.display = 'none';
+        if (isReloadNeeded) {
+          location.reload(true);
+        }
+      };
+    }
 
     function speakPrompt(text) {
       try {
@@ -1837,9 +1829,6 @@
       return str[0] + '*'.repeat(str.length - 2) + str[str.length - 1];
     }
 
-    /* ----------------------------------------------------
-       【供養送出】：強韌 JSONP 回呼
-    ---------------------------------------------------- */
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
@@ -2691,17 +2680,15 @@
         pdfProgressFill.style.width = '100%';
         pdfProgressVal.textContent = '100% (本地快取)';
 
-        // 1. 本地秒開經文
         statusCard.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         updateVisualDisplay();
         scrollToAlignTop(0);
         
-        // 2. 載入本地快取排程
         await checkDailySchedule();
 
-        // 3. 背景自動執行三合一穿透更新 (經文、排程、程式)
+        // 背景啟動三合一穿透更新
         runTripleBackgroundSync(localTag);
       } else {
         statusCard.style.display = 'block';
@@ -2711,7 +2698,7 @@
     }
 
     /* ----------------------------------------------------
-       【三合一背景自動同步核心】：偵測到更新即跳出彈窗提示
+       【三合一背景自動同步核心】：精確比對各項內容，無語音
     ---------------------------------------------------- */
     async function runTripleBackgroundSync(currentPdfTag) {
       if (!navigator.onLine) {
@@ -2723,6 +2710,7 @@
 
       const updatedItemsList = [];
       let latestServerTimeStr = "";
+      let needAppReload = false;
 
       // 1. 同步排程 schedule.json
       try {
@@ -2751,7 +2739,7 @@
           const serverMod = headPdf.headers.get('last-modified');
           if (serverMod && !latestServerTimeStr) latestServerTimeStr = formatDateTime(new Date(serverMod));
 
-          if (remoteTag && remoteTag !== currentPdfTag) {
+          if (remoteTag && currentPdfTag && remoteTag !== currentPdfTag) {
             const res = await fetchWithProgress('./scripture.pdf?nocache=' + Date.now(), null);
             cachedRawBuffer = res.buffer;
             currentActiveFileTag = remoteTag;
@@ -2763,31 +2751,32 @@
               updateVisualDisplay();
             }
             updatedItemsList.push("經文檔案 (scripture.pdf)");
+          } else if (remoteTag && !currentPdfTag) {
+            localStorage.setItem('APP_SAVED_PDF_TAG', remoteTag);
           }
         }
       } catch (e) {}
 
-      // 3. 同步程式 index.html
+      // 3. 同步程式 index.html (避免誤觸，初始化時先建立基準)
       try {
         const headHtml = await fetch('./index.html?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
         if (headHtml.ok) {
           const remoteHtmlTag = headHtml.headers.get('etag') || headHtml.headers.get('last-modified') || '';
-          const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG') || '';
+          const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG');
 
-          if (remoteHtmlTag && localHtmlTag && remoteHtmlTag !== localHtmlTag) {
+          if (!localHtmlTag) {
+            if (remoteHtmlTag) localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
+          } else if (remoteHtmlTag && remoteHtmlTag !== localHtmlTag) {
             localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
-            showUpdateConfirmModal(["播放器核心程式 (index.html)"], formatDateTime(new Date()));
-            btnUpdateConfirm.onclick = () => location.reload(true);
-            return;
-          } else if (remoteHtmlTag) {
-            localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
+            updatedItemsList.push("播放器核心程式 (index.html)");
+            needAppReload = true;
           }
         }
       } catch (e) {}
 
-      // 若經文或排程有更新，立即彈出大字確認視窗
+      // 若有更新，彈出大字確認視窗（無語音）
       if (updatedItemsList.length > 0) {
-        showUpdateConfirmModal(updatedItemsList, latestServerTimeStr);
+        showUpdateConfirmModal(updatedItemsList, latestServerTimeStr, needAppReload);
       } else {
         setTimeout(() => {
           showToast("✅ 經文與排程已是最新進度", 1800);
@@ -2861,7 +2850,7 @@
     });
 
     /* ----------------------------------------------------
-       【PDF 渲染與科判小字自動過濾】：強制 rotation: 0 杜絕顛倒
+       【PDF 渲染與科判小字自動過濾】：強制 rotation: 0
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
       if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
@@ -2882,7 +2871,6 @@
       const page = await currentPdfDoc.getPage(1);
 
       const availableWidth = centerCore.clientWidth || (window.innerWidth - 160);
-      // 強制鎖定 rotation: 0，避免旋轉過渡期吃進硬體顛倒角度
       const unscaledViewport = page.getViewport({ scale: 1.0, rotation: 0 });
       const pageScale = availableWidth / unscaledViewport.width;
       const viewport = page.getViewport({ scale: pageScale, rotation: 0 });
@@ -2987,7 +2975,6 @@
       parsedTextLines = [];
       let internalIndex = 0;
 
-      // 嚴格過濾：字級需達正文 80% 以上，自動跳過科判小字
       analyzedRows.forEach(r => {
         const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
 
