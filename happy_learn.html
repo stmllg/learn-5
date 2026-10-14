@@ -364,7 +364,7 @@
       background-color: #000000;
       display: flex;
       flex-direction: column;
-      justify-content: space-evenly; /* 確保 4 顆按鈕垂直等距排列，絕不擠壓 */
+      justify-content: space-evenly;
       align-items: center;
       padding-top: 4px;
       padding-bottom: 4px;
@@ -1152,7 +1152,7 @@
   </div>
 
   <div id="landscape-container">
-    <!-- 左側面板：定位與設定區 (起點、終點、次數、關機)[cite: 1, 2] -->
+    <!-- 左側面板：定位與設定區 (起點、終點、次數、關機) -->
     <div class="side-wing" id="left-wing">
       <div class="slot">
         <button class="circle-btn btn-color-mark-a" id="btn-mark-a" aria-label="設定起點">起點</button>
@@ -1208,7 +1208,7 @@
       </div>
     </div>
 
-    <!-- 右側面板：主控與即時調速區 (背書、供養、語快、語慢)[cite: 1, 2] -->
+    <!-- 右側面板：主控與即時調速區 (背書、供養、語快、語慢) -->
     <div class="side-wing" id="right-wing">
       <div class="slot">
         <button class="circle-btn btn-color-guide" id="btn-guide-toggle" aria-label="背書導引開關">背書</button>
@@ -1295,7 +1295,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v122_bulletproof_release';
+    const APP_BUILD_VERSION = 'v123_pure_geometric_alignment';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
     let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
@@ -1773,20 +1773,25 @@
       return { buffer: fullBytes.buffer, tag };
     }
 
+    /* ----------------------------------------------------
+       【純幾何畫布相對投影算法】：徹底解決 iPhone 安全區座標偏移
+       直接量測按鈕下緣相對於 PDF 畫布頂部的真實物理像素位置
+    ---------------------------------------------------- */
     function getLineAtButtonBottom(buttonElement) {
       if (parsedTextLines.length === 0) return 0;
 
       const btnRect = buttonElement.getBoundingClientRect();
-      const centerRect = centerCore.getBoundingClientRect();
-      const buttonBottomViewportY = btnRect.bottom - centerRect.top;
-      const targetAbsoluteY = centerCore.scrollTop + buttonBottomViewportY;
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+
+      // 純視口幾何投影：按鈕下緣在畫布內的相對 Y 軸像素位置
+      const targetCanvasY = btnRect.bottom - canvasRect.top;
 
       let closestIdx = 0;
       let minDiff = Infinity;
 
       for (let i = 0; i < parsedTextLines.length; i++) {
         const lineY = parsedTextLines[i].underLineY;
-        const diff = Math.abs(lineY - targetAbsoluteY);
+        const diff = Math.abs(lineY - targetCanvasY);
         if (diff < minDiff) {
           minDiff = diff;
           closestIdx = i;
@@ -2829,7 +2834,7 @@
       }
     });
 
-    /* PDF 渲染與轉向防護：徹底鎖定非直向寬度計算 */
+    /* PDF 渲染與轉向防護：清空緩衝區，動態取得旋轉角度 */
     async function parseAndRenderPdfData(typedarray) {
       if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
         setTimeout(() => parseAndRenderPdfData(typedarray), 350);
@@ -2851,7 +2856,6 @@
       pdfCanvas.width = 0;
       pdfCanvas.height = 0;
 
-      // 嚴防讀到未完成渲染的 0 寬度
       const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
       const pageRotation = page.rotate || 0;
       const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
