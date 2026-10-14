@@ -119,18 +119,18 @@
       transition: opacity 0.3s ease;
     }
 
-    /* 語速動態提示標籤 */
+    /* 語速提示標籤 */
     #speed-toast-badge {
       display: none;
       position: absolute;
       top: 14px;
-      right: calc(88px + env(safe-area-inset-right));
+      right: calc(74px + env(safe-area-inset-right, 0px));
       background: rgba(15, 23, 42, 0.96);
       color: #34D399;
       border: 2px solid #10B981;
-      padding: 6px 16px;
+      padding: 6px 14px;
       border-radius: 20px;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 900;
       z-index: 120;
       box-shadow: 0 4px 16px rgba(16, 185, 129, 0.5);
@@ -138,7 +138,7 @@
       transition: opacity 0.3s ease;
     }
 
-    /* 更新確認彈窗 */
+    /* 更新確認視窗 */
     #update-modal-overlay {
       display: none;
       position: fixed;
@@ -227,7 +227,7 @@
       transform: scale(0.96);
     }
 
-    /* 開機說明指引看板 */
+    /* 開機指引看板 */
     #welcome-start-overlay {
       display: flex;
       position: fixed;
@@ -302,14 +302,14 @@
     }
 
     .guide-btn-circle {
-      width: clamp(38px, 6.2vh, 44px);
-      height: clamp(38px, 6.2vh, 44px);
+      width: clamp(36px, 6vh, 42px);
+      height: clamp(36px, 6vh, 42px);
       border-radius: 50%;
       border: 2px solid #FFFFFF;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(11px, 2.0vh, 13px);
+      font-size: clamp(11px, 1.9vh, 12.5px);
       font-weight: 900;
       color: #FFFFFF;
       flex-shrink: 0;
@@ -355,32 +355,35 @@
       100% { transform: scale(1); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
     }
 
+    /* ----------------------------------------------------
+       【兩翼側邊欄】：iPhone / Android 全域自適應無縫容錯
+    ---------------------------------------------------- */
     .side-wing {
-      width: calc(78px + env(safe-area-inset-left));
       flex-shrink: 0;
       height: 100%;
       background-color: #000000;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: space-evenly; /* 確保 4 顆按鈕垂直等距排列，絕不擠壓 */
       align-items: center;
-      padding-top: 8px;
-      padding-bottom: 8px;
+      padding-top: 4px;
+      padding-bottom: 4px;
       z-index: 60;
+      box-sizing: border-box;
     }
 
     #left-wing {
-      padding-left: max(6px, env(safe-area-inset-left));
-      padding-right: 6px;
+      width: calc(56px + env(safe-area-inset-left, 0px));
+      padding-left: env(safe-area-inset-left, 4px);
+      padding-right: 4px;
     }
 
     #right-wing {
-      width: calc(78px + env(safe-area-inset-right));
-      padding-right: max(6px, env(safe-area-inset-right));
-      padding-left: 6px;
+      width: calc(56px + env(safe-area-inset-right, 0px));
+      padding-right: env(safe-area-inset-right, 4px);
+      padding-left: 4px;
     }
 
-    /* 左右兩側各 4 顆按鈕，高度均分 25% */
     .slot {
       width: 100%;
       height: 25%;
@@ -390,23 +393,29 @@
       position: relative;
     }
 
+    /* 48px 實心大圓鈕：全機種完全居中、絕不切邊 */
     .circle-btn {
-      width: min(58px, 19vh);
-      height: min(58px, 19vh);
+      width: 48px !important;
+      height: 48px !important;
+      min-width: 48px !important;
+      min-height: 48px !important;
       border-radius: 50%;
-      border: 2.5px solid #FFFFFF;
+      border: 2px solid #FFFFFF;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: min(13.5px, 4.3vh);
+      font-size: 12.5px !important;
       font-weight: 900;
       color: #FFFFFF;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-      transition: all 0.2s ease-out;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.7);
+      transition: transform 0.15s ease-out;
       text-align: center;
       line-height: 1.1;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      touch-action: manipulation;
     }
 
     .circle-btn:active {
@@ -414,7 +423,7 @@
       opacity: 0.85;
     }
 
-    /* 左側 4 鍵配色 */
+    /* 左側 4 鍵樣式 */
     .btn-color-mark-a {
       background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
       border-color: #BAE6FD;
@@ -436,17 +445,16 @@
     .btn-color-repeat {
       background: linear-gradient(135deg, #6366F1 0%, #4338CA 100%);
       border-color: #E0E7FF;
-      font-size: min(14px, 4.5vh);
+      font-size: 13px !important;
     }
 
     .btn-color-shutdown {
       background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
       border-color: #FECACA;
       color: #FFFFFF;
-      font-size: min(13.5px, 4.3vh);
     }
 
-    /* 右側 4 鍵配色 */
+    /* 右側 4 鍵樣式 */
     .btn-color-guide {
       background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%);
       border-color: #FECACA;
@@ -488,14 +496,12 @@
       background: linear-gradient(135deg, #10B981 0%, #059669 100%);
       border-color: #A7F3D0;
       color: #FFFFFF;
-      font-size: min(13.5px, 4.3vh);
     }
 
     .btn-color-speed-down {
       background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
       border-color: #CCFBF1;
       color: #FFFFFF;
-      font-size: min(13.5px, 4.3vh);
     }
 
     #center-core {
@@ -660,7 +666,7 @@
       display: none;
       position: absolute;
       top: 50%;
-      left: calc(84px + env(safe-area-inset-left));
+      left: calc(74px + env(safe-area-inset-left, 0px));
       transform: translateY(-50%);
       background: rgba(30, 41, 59, 0.98);
       border-radius: 18px;
@@ -833,7 +839,7 @@
       color: #475569;
     }
 
-    /* 支援兩指縮放 + 單指平移滿版雙榜視窗 */
+    /* 支援兩指縮放 + 平移滿版雙榜 */
     #leaderboard-modal-overlay {
       display: none;
       position: fixed;
@@ -1050,7 +1056,6 @@
     </div>
   </div>
 
-  <!-- 開機指引看板：完整對應全新名稱與配色 -->
   <div id="welcome-start-overlay">
     <div class="welcome-board">
       <div class="welcome-board-header">
@@ -1058,7 +1063,6 @@
       </div>
 
       <div class="wings-guide-container">
-        <!-- 左翼 4 鍵說明 -->
         <div class="wing-column">
           <div class="guide-btn-card">
             <div class="guide-btn-circle btn-color-mark-a">起點</div>
@@ -1093,7 +1097,6 @@
           </div>
         </div>
 
-        <!-- 右翼 4 鍵說明 -->
         <div class="wing-column">
           <div class="guide-btn-card">
             <div class="guide-btn-circle btn-color-guide">背書</div>
@@ -1138,7 +1141,6 @@
   <div id="schedule-toast">📅 載入進度中...</div>
   <div id="speed-toast-badge">【語速 1.5x】</div>
 
-  <!-- 更新確認彈窗：大字，點確認才離開，無語音 -->
   <div id="update-modal-overlay">
     <div class="update-notice-card">
       <div class="update-notice-header">
@@ -1150,7 +1152,7 @@
   </div>
 
   <div id="landscape-container">
-    <!-- 左側面板：定位與設定區 (起點、終點、次數、關機) -->
+    <!-- 左側面板：定位與設定區 (起點、終點、次數、關機)[cite: 1, 2] -->
     <div class="side-wing" id="left-wing">
       <div class="slot">
         <button class="circle-btn btn-color-mark-a" id="btn-mark-a" aria-label="設定起點">起點</button>
@@ -1206,7 +1208,7 @@
       </div>
     </div>
 
-    <!-- 右側面板：主控與即時調速區 (背書、供養、語快、語慢) -->
+    <!-- 右側面板：主控與即時調速區 (背書、供養、語快、語慢)[cite: 1, 2] -->
     <div class="side-wing" id="right-wing">
       <div class="slot">
         <button class="circle-btn btn-color-guide" id="btn-guide-toggle" aria-label="背書導引開關">背書</button>
@@ -1223,7 +1225,6 @@
     </div>
   </div>
 
-  <!-- 遍數彈窗選單 (定位在左側) -->
   <div id="repeat-modal" class="popup-modal">
     <button class="modal-option active" data-count="1">1 次</button>
     <button class="modal-option" data-count="3">3 次</button>
@@ -1232,7 +1233,6 @@
     <button class="modal-option" data-count="10">10 次</button>
   </div>
 
-  <!-- 供養表單視窗 -->
   <div id="offering-modal-overlay">
     <div class="offering-card">
       <div class="offering-header">
@@ -1264,7 +1264,6 @@
     </div>
   </div>
 
-  <!-- 滿版雙欄雙榜視窗 -->
   <div id="leaderboard-modal-overlay">
     <div class="leaderboard-card">
       <div class="leaderboard-header">
@@ -1296,10 +1295,9 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v120_redesigned_wings_instant_speed';
+    const APP_BUILD_VERSION = 'v122_bulletproof_release';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
-    // 語速初值設定 1.5x，並自動自 localStorage 讀取
     let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
     if (isNaN(baseSpeed) || baseSpeed < 0.5 || baseSpeed > 4.0) {
       baseSpeed = 1.5;
@@ -1336,14 +1334,12 @@
 
     const welcomeOverlay = document.getElementById('welcome-start-overlay');
 
-    // 左側面板按鈕
     const btnMarkA = document.getElementById('btn-mark-a');
     const btnMarkB = document.getElementById('btn-mark-b');
     const btnRepeatCount = document.getElementById('btn-repeat-count');
     const btnShutdownExit = document.getElementById('btn-shutdown-exit');
     const repeatModal = document.getElementById('repeat-modal');
 
-    // 右側面板按鈕
     const btnGuideToggle = document.getElementById('btn-guide-toggle');
     const btnOffering = document.getElementById('btn-offering');
     const btnSpeedUp = document.getElementById('btn-speed-up');
@@ -1422,21 +1418,18 @@
       }, duration);
     }
 
-    // 語速變更動態回饋 (3 秒後自動消失)
     function triggerSpeedChange(delta) {
       let newSpeed = Math.round((baseSpeed + delta) * 10) / 10;
       newSpeed = Math.max(0.5, Math.min(4.0, newSpeed));
       baseSpeed = newSpeed;
       localStorage.setItem('user_speed_preference', baseSpeed.toFixed(1));
 
-      // 即時重新計算當前行剩餘時間
       if (parsedTextLines[currentLineIndex]) {
         const line = parsedTextLines[currentLineIndex];
         const chineseCount = (line.charItems || []).length;
         lineDuration = (chineseCount / (3.2 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
       }
 
-      // 顯示專屬浮水印標籤
       speedToastBadge.textContent = `【語速 ${baseSpeed.toFixed(1)}x】`;
       speedToastBadge.style.display = 'block';
       speedToastBadge.style.opacity = '1';
@@ -1468,7 +1461,6 @@
       return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
     }
 
-    // 顯示更新確認彈窗（無語音）
     function showUpdateConfirmModal(itemsUpdated, updateTimeStr, isReloadNeeded = false) {
       const timeDisplay = updateTimeStr || formatDateTime(new Date());
       let itemsHtml = itemsUpdated.map(item => `• ${item}`).join('<br>');
@@ -1899,7 +1891,6 @@
       return str[0] + '*'.repeat(str.length - 2) + str[str.length - 1];
     }
 
-    // 供養送出：完全靜音
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
@@ -1943,7 +1934,6 @@
         resetTransform();
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
-        // 完全不朗讀語音
       }
 
       const timeoutTimer = setTimeout(() => {
@@ -1966,7 +1956,7 @@
       document.body.appendChild(scriptTag);
     });
 
-    /* 支援兩指縮放 + 單指平移拖曳手勢 */
+    /* 支援兩指縮放 + 平移手勢 */
     let currentScale = 1.0;
     let translateX = 0;
     let translateY = 0;
@@ -2095,7 +2085,6 @@
     btnRejoiceClose.addEventListener('click', () => {
       spawnGoldCoinsAt(btnRejoiceClose);
       leaderboardOverlay.style.display = 'none';
-      // 完全不播報語音
     });
 
     centerCore.addEventListener('pointerdown', () => {
@@ -2702,7 +2691,6 @@
       }
     }
 
-    /* 三合一背景自動同步核心：無語音，精確比對並彈窗 */
     async function runTripleBackgroundSync(currentPdfTag) {
       if (!navigator.onLine) {
         showToast("📶 離線模式：已載入本機經文與排程", 3000);
@@ -2713,7 +2701,6 @@
       let latestServerTimeStr = "";
       let needAppReload = false;
 
-      // 1. 同步排程 schedule.json
       try {
         const schedRes = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
         if (schedRes.ok) {
@@ -2732,7 +2719,6 @@
         }
       } catch (e) {}
 
-      // 2. 同步經文 scripture.pdf
       try {
         const headPdf = await fetch('./scripture.pdf?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
         if (headPdf.ok) {
@@ -2758,7 +2744,6 @@
         }
       } catch (e) {}
 
-      // 3. 同步程式 index.html
       try {
         const headHtml = await fetch('./index.html?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
         if (headHtml.ok) {
@@ -2775,7 +2760,6 @@
         }
       } catch (e) {}
 
-      // 若有更新，彈出大字確認視窗（無語音）
       if (updatedItemsList.length > 0) {
         showUpdateConfirmModal(updatedItemsList, latestServerTimeStr, needAppReload);
       }
@@ -2845,7 +2829,7 @@
       }
     });
 
-    /* PDF 渲染與轉向防護：徹底銷毀舊緩衝區，動態取得旋轉角度 */
+    /* PDF 渲染與轉向防護：徹底鎖定非直向寬度計算 */
     async function parseAndRenderPdfData(typedarray) {
       if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
         setTimeout(() => parseAndRenderPdfData(typedarray), 350);
@@ -2864,11 +2848,11 @@
       currentPdfDoc = await loadingTask.promise;
       const page = await currentPdfDoc.getPage(1);
 
-      // 強制清空重置 Canvas 像素緩衝區
       pdfCanvas.width = 0;
       pdfCanvas.height = 0;
 
-      const availableWidth = centerCore.clientWidth || (window.innerWidth - 160);
+      // 嚴防讀到未完成渲染的 0 寬度
+      const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
       const pageRotation = page.rotate || 0;
       const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
       const pageScale = availableWidth / unscaledViewport.width;
@@ -2974,7 +2958,6 @@
       parsedTextLines = [];
       let internalIndex = 0;
 
-      // 嚴格字級過濾：大於等於 80% 判定為正文與標題，自動跳過科判
       analyzedRows.forEach(r => {
         const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
 
@@ -2995,7 +2978,6 @@
       guideStage.style.height = `${viewport.height}px`;
     }
 
-    /* 轉向防抖動穩定器 */
     let reRenderDebounceTimer = null;
     function handleScreenDimensionStabilize() {
       if (isGuideActive) return;
