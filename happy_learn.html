@@ -1,125 +1,2777 @@
-function doGet(e) {
-  return processOffering(e);
-}
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>歡喜背書橫式播放器</title>
 
-function doPost(e) {
-  return processOffering(e);
-}
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="歡喜背書">
+  <meta name="theme-color" content="#000000">
 
-function processOffering(e) {
-  try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    var params = (e && e.parameter) ? e.parameter : {};
-    
-    var classId = params.classId ? String(params.classId).trim() : '';
-    var userName = params.userName ? String(params.userName).trim() : '';
-    var coins = parseInt(params.coins, 10) || 0;
-    var callback = params.callback || '';
-    
-    var now = new Date();
-    // 使用台北時區格式化今天的日期字串 YYYY/MM/DD
-    var todayStr = Utilities.formatDate(now, "Asia/Taipei", "yyyy/MM/dd");
-    
-    // 寫入本次供養 (A時間戳記, B班號, C姓名, D供養福慧幣)
-    if (userName && coins > 0) {
-      sheet.appendRow([now, classId, userName, coins]);
-      SpreadsheetApp.flush();
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+      user-select: none;
     }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background-color: #000000;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      overflow: hidden;
+    }
+
+    #landscape-container {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #line-warning-banner {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: radial-gradient(circle at center, #DC2626 0%, #991B1B 100%);
+      color: #FFFFFF;
+      z-index: 20000;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      text-align: center;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+    }
+
+    .line-warning-card {
+      background: rgba(0, 0, 0, 0.75);
+      border: 2px solid #FEF08A;
+      border-radius: 20px;
+      padding: 24px 20px;
+      max-width: 480px;
+      width: 90%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .line-warning-icon {
+      font-size: 44px;
+      line-height: 1;
+    }
+
+    .line-warning-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #FEF08A;
+      letter-spacing: 0.5px;
+    }
+
+    .line-warning-text {
+      font-size: 16px;
+      line-height: 1.6;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+
+    .line-warning-highlight {
+      color: #38BDF8;
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    #schedule-toast {
+      display: none;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.94);
+      color: #38BDF8;
+      border: 1.5px solid #38BDF8;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 800;
+      z-index: 900;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+      pointer-events: none;
+      animation: fadeInOut 4.5s forwards;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, -10px); }
+      12% { opacity: 1; transform: translate(-50%, 0); }
+      82% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -10px); }
+    }
+
+    #welcome-start-overlay {
+      display: flex;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: rgba(8, 12, 22, 0.98);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+      padding: 12px;
+      cursor: pointer;
+      transition: opacity 0.3s ease-out;
+    }
+
+    .welcome-board {
+      width: 100%;
+      max-width: 900px;
+      height: 100%;
+      max-height: 96vh;
+      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
+      border: 2px solid #F59E0B;
+      border-radius: 20px;
+      padding: 12px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(245, 158, 11, 0.2);
+    }
+
+    .welcome-board-header {
+      text-align: center;
+    }
+
+    .welcome-board-title {
+      font-size: clamp(16px, 4vw, 21px);
+      font-weight: 900;
+      color: #FBBF24;
+      letter-spacing: 0.5px;
+    }
+
+    .wings-guide-container {
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-around;
+      align-items: center;
+      gap: 12px;
+      margin: 6px 0;
+      overflow-y: auto;
+    }
+
+    .wing-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .guide-btn-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 6px 10px;
+    }
+
+    .guide-btn-circle {
+      width: clamp(38px, 6.5vh, 46px);
+      height: clamp(38px, 6.5vh, 46px);
+      border-radius: 50%;
+      border: 2px solid #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(12px, 2.2vh, 15px);
+      font-weight: 900;
+      color: #FFFFFF;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .guide-btn-info {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .guide-btn-name {
+      font-size: clamp(12px, 2.2vh, 14px);
+      font-weight: 900;
+      color: #F8FAFC;
+    }
+
+    .guide-btn-desc {
+      font-size: clamp(10px, 1.8vh, 12px);
+      color: #94A3B8;
+      line-height: 1.2;
+    }
+
+    .welcome-board-footer {
+      width: 100%;
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #FFFFFF;
+      border-radius: 14px;
+      padding: 10px 16px;
+      text-align: center;
+      font-size: clamp(15px, 2.8vh, 18px);
+      font-weight: 900;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5);
+      animation: pulseBtn 1.8s infinite ease-in-out;
+    }
+
+    @keyframes pulseBtn {
+      0% { transform: scale(1); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
+      50% { transform: scale(1.02); box-shadow: 0 8px 25px rgba(245, 158, 11, 0.75); }
+      100% { transform: scale(1); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
+    }
+
+    .side-wing {
+      width: calc(78px + env(safe-area-inset-left));
+      flex-shrink: 0;
+      height: 100%;
+      background-color: #000000;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      z-index: 60;
+    }
+
+    #left-wing {
+      padding-left: max(6px, env(safe-area-inset-left));
+      padding-right: 6px;
+    }
+
+    #right-wing {
+      width: calc(78px + env(safe-area-inset-right));
+      padding-right: max(6px, env(safe-area-inset-right));
+      padding-left: 6px;
+    }
+
+    .slot {
+      width: 100%;
+      height: 25%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .circle-btn {
+      width: min(58px, 19vh);
+      height: min(58px, 19vh);
+      border-radius: 50%;
+      border: 2.5px solid #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: min(15px, 4.8vh);
+      font-weight: 900;
+      color: #FFFFFF;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+      transition: all 0.2s ease-out;
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .circle-btn:active {
+      transform: scale(0.92);
+      opacity: 0.85;
+    }
+
+    .btn-color-mark-a {
+      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+      border-color: #BAE6FD;
+    }
+    #btn-mark-a.active-mark {
+      box-shadow: 0 0 16px #38BDF8, inset 0 0 8px #FFFFFF;
+      border-color: #FFFFFF;
+    }
+
+    .btn-color-offering {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      border-color: #FDE68A;
+      color: #78350F;
+    }
+
+    .btn-color-reload {
+      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+      border-color: #BAE6FD;
+    }
+
+    .btn-color-shutdown {
+      background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
+      border-color: #FECACA;
+      color: #FFFFFF;
+      font-size: min(14px, 4.4vh);
+    }
+
+    .btn-color-guide {
+      background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%);
+      border-color: #FECACA;
+    }
+    #btn-guide-toggle.guide-waiting {
+      background: radial-gradient(circle, #EAB308 0%, #CA8A04 100%) !important;
+      border-color: #FEF08A !important;
+      box-shadow: 0 0 12px rgba(234, 179, 8, 0.7) !important;
+      animation: none !important;
+    }
+    #btn-guide-toggle.guide-active {
+      background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
+      border-color: #DCFCE7 !important;
+      animation: voiceBreathing 1.25s infinite ease-in-out !important;
+    }
+
+    @keyframes voiceBreathing {
+      0% {
+        transform: scale(1.0);
+        box-shadow: 0 0 10px rgba(34, 197, 94, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.4);
+      }
+      50% {
+        transform: scale(1.08);
+        box-shadow: 0 0 22px rgba(34, 197, 94, 0.95), inset 0 0 10px rgba(255, 255, 255, 0.8);
+      }
+      100% {
+        transform: scale(1.0);
+        box-shadow: 0 0 10px rgba(34, 197, 94, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.4);
+      }
+    }
+
+    .btn-color-speed {
+      background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%);
+      border-color: #CCFBF1;
+      font-size: min(14px, 4.6vh);
+    }
+
+    .btn-color-repeat {
+      background: linear-gradient(135deg, #6366F1 0%, #4338CA 100%);
+      border-color: #E0E7FF;
+      font-size: min(14px, 4.6vh);
+    }
+
+    .btn-color-mark-b {
+      background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+      border-color: #FFEDD5;
+    }
+    #btn-mark-b.active-mark {
+      box-shadow: 0 0 16px #FB923C, inset 0 0 8px #FFFFFF;
+      border-color: #FFFFFF;
+    }
+
+    #center-core {
+      flex: 1;
+      height: 100%;
+      background-color: #FFFFFF;
+      position: relative;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-left: 2px solid #1E293B;
+      border-right: 2px solid #1E293B;
+      scroll-behavior: smooth;
+      touch-action: pan-y;
+    }
+
+    #guide-stage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 50;
+      display: block;
+    }
+
+    #guide-line {
+      position: absolute;
+      height: 5px;
+      background-color: #00E676;
+      border-radius: 3px;
+      box-shadow: 0 0 8px rgba(0, 230, 118, 0.85);
+      pointer-events: none;
+      z-index: 51;
+      display: none;
+    }
+
+    #red-dot {
+      position: absolute;
+      width: min(18px, 5.5vh);
+      height: min(18px, 5.5vh);
+      background: radial-gradient(circle, rgba(255, 82, 82, 0.95) 20%, rgba(255, 23, 68, 0.82) 100%);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(255, 23, 68, 0.7), 0 1px 3px rgba(0,0,0,0.3);
+      opacity: 0.85;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 52;
+      display: none;
+    }
+
+    #mark-a-line {
+      position: absolute;
+      height: 5px;
+      background-color: #0284C7;
+      border-radius: 3px;
+      box-shadow: 0 0 10px #38BDF8;
+      z-index: 48;
+      display: none;
+    }
+
+    #mark-b-line {
+      position: absolute;
+      height: 5px;
+      background-color: #EA580C;
+      border-radius: 3px;
+      box-shadow: 0 0 10px #FB923C;
+      z-index: 48;
+      display: none;
+    }
+
+    #status-card {
+      margin: auto;
+      padding: 24px;
+      text-align: center;
+      color: #333333;
+      width: 88%;
+      max-width: 520px;
+      background: #FFFFFF;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+
+    #status-card h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1A365D;
+      margin-bottom: 10px;
+    }
+
+    #status-desc {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #4A5568;
+      margin-bottom: 14px;
+    }
+
+    .progress-box {
+      margin-top: 10px;
+      text-align: left;
+    }
+
+    .progress-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #475569;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background-color: #E2E8F0;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3B82F6, #10B981);
+      transition: width 0.1s ease-out;
+    }
+
+    #btn-manual-pick {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 22px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #F97316 0%, #C2410C 100%);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    #pdf-container-wrap {
+      position: relative;
+      width: 100%;
+      background-color: #FAFAFA;
+      pointer-events: none;
+      display: flex;
+      justify-content: center;
+    }
+
+    #pdf-canvas {
+      display: block;
+      width: 100% !important;
+      height: auto !important;
+    }
+
+    .popup-modal {
+      display: none;
+      position: absolute;
+      top: 50%;
+      right: calc(84px + env(safe-area-inset-right));
+      transform: translateY(-50%);
+      background: rgba(30, 41, 59, 0.98);
+      border-radius: 18px;
+      padding: 12px;
+      z-index: 100;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      flex-direction: column;
+      gap: 8px;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    #repeat-modal {
+      border: 2px solid #6366F1;
+    }
+
+    #speed-modal {
+      border: 2px solid #0D9488;
+    }
+
+    .modal-option {
+      padding: 9px 18px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #FFFFFF;
+      background-color: #334155;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .modal-option.active {
+      color: #FFFFFF;
+    }
+    #repeat-modal .modal-option.active {
+      background: #6366F1;
+    }
+    #speed-modal .modal-option.active {
+      background: #0D9488;
+    }
+
+    #offering-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.78);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+      padding: 8px;
+    }
+
+    .offering-card {
+      background: #FFFFFF;
+      color: #1E293B;
+      border-radius: 16px;
+      width: 92%;
+      max-width: 440px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 14px 18px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      animation: popIn 0.2s ease-out;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .offering-header {
+      font-size: 17px;
+      font-weight: 900;
+      color: #D97706;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .offering-row {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .offering-field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-align: left;
+    }
+
+    .offering-field label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #64748B;
+    }
+
+    .offering-input {
+      width: 100%;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1.5px solid #CBD5E1;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0F172A;
+      outline: none;
+    }
+    .offering-input:focus {
+      border-color: #F59E0B;
+    }
+
+    .coins-display-box {
+      background: #FEF3C7;
+      border: 1.5px dashed #F59E0B;
+      border-radius: 10px;
+      padding: 6px;
+      text-align: center;
+      margin: 2px 0;
+    }
+
+    .coins-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #92400E;
+    }
+
+    .coins-value {
+      font-size: 24px;
+      font-weight: 900;
+      color: #B45309;
+      line-height: 1.1;
+    }
+
+    #offering-status-msg {
+      display: none;
+      font-size: 12px;
+      font-weight: 800;
+      color: #DC2626;
+      text-align: center;
+      padding: 3px 6px;
+      border-radius: 6px;
+      background: #FEE2E2;
+    }
+
+    .offering-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .offering-btn {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 15px;
+      font-weight: 800;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.15s ease;
+    }
+    .offering-btn:active {
+      transform: scale(0.96);
+    }
+
+    #btn-confirm-offering {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #FFFFFF;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+    }
+
+    #btn-cancel-offering {
+      background: #F1F5F9;
+      color: #475569;
+    }
+
+    /* ----------------------------------------------------
+       【自適應最大化】橫式左右 3:4 比例隨喜雙榜卡片
+    ---------------------------------------------------- */
+    #leaderboard-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(10, 15, 29, 0.88);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 8px 16px;
+      backdrop-filter: blur(4px);
+    }
+
+    .leaderboard-card {
+      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
+      border: 2px solid #F59E0B;
+      color: #FFFFFF;
+      border-radius: 18px;
+      width: 98%;
+      max-width: 820px;
+      height: 94vh;
+      height: 94dvh;
+      padding: 10px 18px 12px 18px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      animation: popIn 0.25s ease-out;
+    }
+
+    .leaderboard-header {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 900;
+      color: #FBBF24;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    /* 左右雙欄容器 (自適應撐滿剩餘高度) */
+    .dual-boards-row {
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+      width: 100%;
+      flex: 1;
+      align-items: stretch;
+      min-height: 0;
+    }
+
+    /* 今日榜：佔 3 份比例 */
+    .rank-section-today {
+      flex: 3;
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 0;
+    }
+
+    /* 總累積榜：佔 4 份比例 (預留大額數字空間) */
+    .rank-section-total {
+      flex: 4;
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 12px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 0;
+    }
+
+    .rank-section-title {
+      font-size: 14px;
+      font-weight: 900;
+      color: #38BDF8;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .rank-section-total .rank-section-title {
+      color: #FBBF24;
+    }
+
+    .rank-list {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      justify-content: space-around;
+      margin-top: 4px;
+    }
+
+    .rank-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+    }
+    .rank-item:last-child {
+      border-bottom: none;
+    }
+
+    .rank-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rank-badge {
+      font-size: 15px;
+    }
+
+    .rank-coins {
+      color: #F59E0B;
+      font-weight: 900;
+      white-space: nowrap;
+      margin-left: 6px;
+    }
+
+    .rank-placeholder {
+      color: #94A3B8;
+      font-style: italic;
+    }
+
+    /* 隨喜讚嘆按鈕：鎖定固定高度 44px，精緻不膨脹 */
+    .btn-rejoice {
+      width: 100%;
+      height: 44px;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #FFFFFF;
+      font-size: 16px;
+      font-weight: 900;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5);
+      animation: pulseBtn 1.8s infinite ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gold-coin {
+      position: absolute;
+      font-size: 28px;
+      pointer-events: none;
+      z-index: 9999;
+      animation: explodeCoin 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+
+    @keyframes explodeCoin {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(0.6) rotate(0deg);
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) scale(1.3) rotate(var(--rot));
+      }
+    }
+
+    #file-pdf-input {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="line-warning-banner">
+    <div class="line-warning-card">
+      <div class="line-warning-icon">⚠️</div>
+      <div class="line-warning-title">偵測到 LINE 內建瀏覽器</div>
+      <div class="line-warning-text">
+        請點選螢幕 <span class="line-warning-highlight">上下側邊</span> 的功能選單或直線三點 (⋮)<br><br>
+        選擇 ➔ <span class="line-warning-highlight">「以預設瀏覽器開啟」</span><br><br>
+        即可正常啟用麥克風進行背誦！
+      </div>
+    </div>
+  </div>
+
+  <div id="welcome-start-overlay">
+    <div class="welcome-board">
+      <div class="welcome-board-header">
+        <div class="welcome-board-title">歡喜背書橫式播放器 — 操作指引</div>
+      </div>
+
+      <div class="wings-guide-container">
+        <div class="wing-column">
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-mark-a">起</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">起點</span>
+              <span class="guide-btn-desc">標定起點位置</span>
+            </div>
+          </div>
+
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-offering">供養</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">供養</span>
+              <span class="guide-btn-desc">上傳今日福慧幣</span>
+            </div>
+          </div>
+
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-reload">更新</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">更新</span>
+              <span class="guide-btn-desc">同步最新經文排程</span>
+            </div>
+          </div>
+
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-shutdown">關機</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">關機</span>
+              <span class="guide-btn-desc">保存進度並退出</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="wing-column">
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-guide">背書</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">背書</span>
+              <span class="guide-btn-desc">開始導引流程</span>
+            </div>
+          </div>
+
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-speed">1.5x</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">語速</span>
+              <span class="guide-btn-desc">自適應節奏調速</span>
+            </div>
+          </div>
+
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-repeat">1次</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">遍數</span>
+              <span class="guide-btn-desc">設定目標循環次數</span>
+            </div>
+          </div>
+
+          <div class="guide-btn-card">
+            <div class="guide-btn-circle btn-color-mark-b">止</div>
+            <div class="guide-btn-info">
+              <span class="guide-btn-name">終點</span>
+              <span class="guide-btn-desc">標定結束位置</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="welcome-board-footer">
+        🙏 點擊任意處進入背誦
+      </div>
+    </div>
+  </div>
+
+  <div id="schedule-toast">📅 載入今日進度中...</div>
+
+  <div id="landscape-container">
+    <div class="side-wing" id="left-wing">
+      <div class="slot">
+        <button class="circle-btn btn-color-mark-a" id="btn-mark-a" aria-label="A點起點">起</button>
+      </div>
+      <div class="slot">
+        <button class="circle-btn btn-color-offering" id="btn-offering" aria-label="供養功德">供養</button>
+      </div>
+      <div class="slot">
+        <button class="circle-btn btn-color-reload" id="btn-reload" aria-label="重新整理經文檔案">更新</button>
+      </div>
+      <div class="slot">
+        <button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit" aria-label="存檔關機退出">關機</button>
+      </div>
+    </div>
+
+    <div id="center-core">
+      <div id="guide-stage">
+        <div id="mark-a-line"></div>
+        <div id="mark-b-line"></div>
+        <div id="guide-line"></div>
+        <div id="red-dot"></div>
+      </div>
+
+      <div id="status-card">
+        <h2 id="status-title">🔍 檢查 GitHub 更新狀態...</h2>
+        <div id="status-desc">比對伺服器發布時間中...</div>
+
+        <div class="progress-box" id="app-progress-box">
+          <div class="progress-label">
+            <span>程式本體 (index.html)</span>
+            <span id="app-progress-val">等待中...</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="app-progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="progress-box" id="pdf-progress-box">
+          <div class="progress-label">
+            <span>經文檔案 (scripture.pdf)</span>
+            <span id="pdf-progress-val">等待中...</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="pdf-progress-fill"></div>
+          </div>
+        </div>
+
+        <button id="btn-manual-pick">📂 點此挑選經文檔案</button>
+      </div>
+
+      <div id="pdf-container-wrap" style="display: none;">
+        <canvas id="pdf-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="side-wing" id="right-wing">
+      <div class="slot">
+        <button class="circle-btn btn-color-guide" id="btn-guide-toggle" aria-label="背書導引開關">背書</button>
+      </div>
+      <div class="slot">
+        <button class="circle-btn btn-color-speed" id="btn-speed" aria-label="調節語速">1.5x</button>
+      </div>
+      <div class="slot">
+        <button class="circle-btn btn-color-repeat" id="btn-repeat-count" aria-label="循環次數">1次</button>
+      </div>
+      <div class="slot">
+        <button class="circle-btn btn-color-mark-b" id="btn-mark-b" aria-label="B點終點">止</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="repeat-modal" class="popup-modal">
+    <button class="modal-option active" data-count="1">1 次</button>
+    <button class="modal-option" data-count="3">3 次</button>
+    <button class="modal-option" data-count="5">5 次</button>
+    <button class="modal-option" data-count="7">7 次</button>
+    <button class="modal-option" data-count="10">10 次</button>
+  </div>
+
+  <div id="speed-modal" class="popup-modal">
+    <button class="modal-option" data-speed="0.5">0.5x</button>
+    <button class="modal-option" data-speed="0.8">0.8x</button>
+    <button class="modal-option" data-speed="1.0">1.0x</button>
+    <button class="modal-option" data-speed="1.2">1.2x</button>
+    <button class="modal-option active" data-speed="1.5">1.5x</button>
+    <button class="modal-option" data-speed="1.8">1.8x</button>
+    <button class="modal-option" data-speed="2.0">2.0x</button>
+    <button class="modal-option" data-speed="2.5">2.5x</button>
+    <button class="modal-option" data-speed="3.0">3.0x</button>
+    <button class="modal-option" data-speed="3.5">3.5x</button>
+    <button class="modal-option" data-speed="4.0">4.0x</button>
+  </div>
+
+  <!-- 供養表單視窗 -->
+  <div id="offering-modal-overlay">
+    <div class="offering-card">
+      <div class="offering-header">
+        <span>🙏</span> 功德供養
+      </div>
+
+      <div class="offering-row">
+        <div class="offering-field">
+          <label>班號：</label>
+          <input type="text" id="input-class-id" class="offering-input" placeholder="例: 22宗009">
+        </div>
+        <div class="offering-field">
+          <label>姓名：</label>
+          <input type="text" id="input-user-name" class="offering-input" placeholder="請輸入姓名">
+        </div>
+      </div>
+
+      <div class="coins-display-box">
+        <div class="coins-label">今日累計福慧幣</div>
+        <div class="coins-value" id="display-coins-count">0 枚</div>
+      </div>
+
+      <div id="offering-status-msg">⚠️ 未傳送成功，請檢查網路！</div>
+
+      <div class="offering-actions">
+        <button id="btn-cancel-offering" class="offering-btn">稍後</button>
+        <button id="btn-confirm-offering" class="offering-btn">確認供養</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 橫式自適應雙欄 3:4 比例隨喜雙榜卡片 -->
+  <div id="leaderboard-modal-overlay">
+    <div class="leaderboard-card">
+      <div class="leaderboard-header">
+        <span>🏆</span> 功德圓滿・隨喜大眾
+      </div>
+
+      <div class="dual-boards-row">
+        <!-- 左側：今日榜 (佔 3 份) -->
+        <div class="rank-section-today">
+          <div class="rank-section-title">📅 今日精進榜 (前三名)</div>
+          <div class="rank-list" id="today-rank-list"></div>
+        </div>
+
+        <!-- 右側：總累積榜 (佔 4 份，預留大額數字空間) -->
+        <div class="rank-section-total">
+          <div class="rank-section-title">🌟 總累積功德榜 (前三名)</div>
+          <div class="rank-list" id="total-rank-list"></div>
+        </div>
+      </div>
+
+      <button class="btn-rejoice" id="btn-rejoice-close">🙏 隨喜讚嘆</button>
+    </div>
+  </div>
+
+  <input type="file" id="file-pdf-input" accept=".pdf,.PDF,application/pdf">
+
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    }
+
+    const APP_BUILD_VERSION = 'v109_perfect_fit_dual_board_fixed_button';
+    const APP_CONFIG_KEY = 'happy_recite_user_state';
+    const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
-    // 讀取試算表資料進行加總
-    var data = sheet.getDataRange().getValues();
-    var todayMap = {};
-    var totalMap = {};
-    
-    for (var i = 1; i < data.length; i++) {
-      var row = data[i];
-      if (!row || row.length < 4) continue;
-      
-      var rawTime = row[0]; // A 欄：時間戳記
-      var rClass  = row[1] ? String(row[1]).trim() : ''; // B 欄：班號
-      var rName   = row[2] ? String(row[2]).trim() : ''; // C 欄：姓名
-      var rCoins  = Number(row[3]) || 0;                // D 欄：福慧幣
-      
-      if (!rName || rCoins <= 0) continue;
-      
-      // 解析該列的日期字串 (轉為 yyyy/MM/dd)
-      var rowDateStr = "";
-      if (rawTime instanceof Date) {
-        rowDateStr = Utilities.formatDate(rawTime, "Asia/Taipei", "yyyy/MM/dd");
+    let savedSpeedPref = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
+    let baseSpeed = SPEED_LEVELS.includes(savedSpeedPref) ? savedSpeedPref : 1.5;
+    let effectiveSpeedMultiplier = 1.0;
+
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
+
+    const centerCore = document.getElementById('center-core');
+    const guideStage = document.getElementById('guide-stage');
+    const guideLine = document.getElementById('guide-line');
+    const redDot = document.getElementById('red-dot');
+    const markALine = document.getElementById('mark-a-line');
+    const markBLine = document.getElementById('mark-b-line');
+
+    const statusCard = document.getElementById('status-card');
+    const statusTitle = document.getElementById('status-title');
+    const statusDesc = document.getElementById('status-desc');
+    const appProgressVal = document.getElementById('app-progress-val');
+    const appProgressFill = document.getElementById('app-progress-fill');
+    const pdfProgressVal = document.getElementById('pdf-progress-val');
+    const pdfProgressFill = document.getElementById('pdf-progress-fill');
+
+    const btnManualPick = document.getElementById('btn-manual-pick');
+    const filePdfInput = document.getElementById('file-pdf-input');
+    const pdfContainerWrap = document.getElementById('pdf-container-wrap');
+    const pdfCanvas = document.getElementById('pdf-canvas');
+    const scheduleToast = document.getElementById('schedule-toast');
+
+    const welcomeOverlay = document.getElementById('welcome-start-overlay');
+
+    const btnMarkA = document.getElementById('btn-mark-a');
+    const btnOffering = document.getElementById('btn-offering');
+    const btnReload = document.getElementById('btn-reload');
+    const btnShutdownExit = document.getElementById('btn-shutdown-exit');
+    const btnGuideToggle = document.getElementById('btn-guide-toggle');
+    const btnSpeed = document.getElementById('btn-speed');
+    const btnRepeatCount = document.getElementById('btn-repeat-count');
+    const btnMarkB = document.getElementById('btn-mark-b');
+    const repeatModal = document.getElementById('repeat-modal');
+    const speedModal = document.getElementById('speed-modal');
+
+    const offeringOverlay = document.getElementById('offering-modal-overlay');
+    const inputClassId = document.getElementById('input-class-id');
+    const inputUserName = document.getElementById('input-user-name');
+    const displayCoinsCount = document.getElementById('display-coins-count');
+    const offeringStatusMsg = document.getElementById('offering-status-msg');
+    const btnConfirmOffering = document.getElementById('btn-confirm-offering');
+    const btnCancelOffering = document.getElementById('btn-cancel-offering');
+
+    const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
+    const todayRankList = document.getElementById('today-rank-list');
+    const totalRankList = document.getElementById('total-rank-list');
+    const btnRejoiceClose = document.getElementById('btn-rejoice-close');
+
+    let currentPdfDoc = null;
+    let cachedRawBuffer = null;
+    let parsedTextLines = [];
+    let currentActiveFileTag = '';
+
+    let markA_Index = -1;
+    let markB_Index = -1;
+    let totalTargetCycles = 1;
+    let completedCycles = 0;
+    let isScheduleLocked = false;
+
+    let guideAnimId = null;
+    let cycleWaitTimer = null;
+    let lineWaitTimer = null;
+
+    let isGuideActive = false;
+    let currentLineIndex = 0;
+    let currentLineProgress = 0.0;
+    let lineDuration = 3200;
+    let lastAnimTimestamp = 0;
+    let isTransitioningLine = false;
+
+    let pendingScheduleSpeech = "";
+    let hasInteractedWithWelcome = false;
+
+    let audioContext = null;
+    let analyser = null;
+    let micStream = null;
+    let vadCheckTimer = null;
+    let lastVoiceDetectedTime = 0;
+    let isVoiceActive = false;
+    let isTouchingDisplay = false;
+    const SILENCE_TIMEOUT_MS = 1000;
+
+    let baseNoiseLevel = 0.0015;
+    let dynamicThreshold = 0.0020;
+    let calibrationSamples = [];
+    let isCalibrating = false;
+
+    let previousRms = 0.0;
+    let beatTimestamps = [];
+    const MAX_BEAT_HISTORY = 4;
+    let lastBeatTime = 0;
+
+    function speakPrompt(text) {
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'zh-TW';
+          utterance.rate = 1.1;
+          utterance.volume = 0.7;
+          window.speechSynthesis.speak(utterance);
+        }
+      } catch (e) {}
+    }
+
+    function checkLineInAppBrowser() {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      if (/Line/i.test(ua)) {
+        const banner = document.getElementById('line-warning-banner');
+        if (banner) banner.style.display = 'flex';
+        setTimeout(() => {
+          speakPrompt("請按上下側邊選單，以預設瀏覽器開啟");
+        }, 1200);
+      }
+    }
+
+    async function triggerLandscapeLock() {
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape');
+        }
+      } catch (err) {}
+    }
+
+    function getNormalizedDateStr() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      return `${yyyy}/${mm}/${dd}`;
+    }
+
+    welcomeOverlay.addEventListener('click', async () => {
+      hasInteractedWithWelcome = true;
+      welcomeOverlay.style.opacity = '0';
+      setTimeout(() => {
+        welcomeOverlay.style.display = 'none';
+      }, 300);
+
+      await triggerLandscapeLock();
+
+      markA_Index = -1;
+      markB_Index = -1;
+      completedCycles = 0;
+      currentLineIndex = 0;
+      currentLineProgress = 0.0;
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      try { localStorage.removeItem(APP_CONFIG_KEY); } catch (e) {}
+
+      updateVisualDisplay();
+      scrollToAlignTop(0);
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+      } catch (e) {}
+
+      await checkDailySchedule();
+
+      if (pendingScheduleSpeech) {
+        setTimeout(() => {
+          speakPrompt(pendingScheduleSpeech);
+        }, 250);
       } else {
-        var str = String(rawTime);
-        var match = str.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-        if (match) {
-          var y = match[1];
-          var m = String(match[2]).padStart(2, '0');
-          var d = String(match[3]).padStart(2, '0');
-          rowDateStr = y + '/' + m + '/' + d;
+        speakPrompt("隨喜大家，精進背誦");
+      }
+    });
+
+    btnShutdownExit.addEventListener('click', () => {
+      haltGuideRunnerImmediately();
+
+      if (micStream) {
+        try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
+        micStream = null;
+      }
+      if (audioContext && audioContext.state !== 'closed') {
+        try { audioContext.suspend(); } catch (e) {}
+      }
+
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen();
         }
-      }
-      
-      var key = rClass ? (rClass + '_' + rName) : rName;
-      
-      // 1. 總榜累計
-      if (!totalMap[key]) {
-        totalMap[key] = { classId: rClass, name: rName, coins: 0 };
-      }
-      totalMap[key].coins += rCoins;
-      
-      // 2. 當日榜累計
-      if (rowDateStr === todayStr) {
-        if (!todayMap[key]) {
-          todayMap[key] = { classId: rClass, name: rName, coins: 0 };
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
         }
-        todayMap[key].coins += rCoins;
+      } catch (e) {}
+
+      welcomeOverlay.style.display = 'flex';
+      welcomeOverlay.style.opacity = '1';
+      hasInteractedWithWelcome = false;
+
+      try { window.close(); } catch (e) {}
+    });
+
+    function verifyVersionAndCleanState() {
+      const installedVer = localStorage.getItem('APP_INSTALLED_BUILD_VER');
+      if (installedVer !== APP_BUILD_VERSION) {
+        localStorage.setItem('APP_INSTALLED_BUILD_VER', APP_BUILD_VERSION);
       }
+      return true;
     }
-    
-    // 姓名去識別化
+
+    function getStoredCoins() {
+      return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
+    }
+
+    function addCoins(amount) {
+      const total = getStoredCoins() + amount;
+      localStorage.setItem('user_accumulated_coins', total.toString());
+      return total;
+    }
+
+    function resetCoins() {
+      localStorage.setItem('user_accumulated_coins', '0');
+    }
+
+    function calculateSentenceCount() {
+      if (parsedTextLines.length === 0) return 0;
+      const start = (markA_Index !== -1) ? markA_Index : 0;
+      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
+      return Math.max(1, Math.abs(end - start) + 1);
+    }
+
+    function setTargetCyclesUI(cycles) {
+      totalTargetCycles = cycles;
+      completedCycles = 0;
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+      document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.count === String(totalTargetCycles));
+      });
+    }
+
+    function initUserPreferences() {
+      btnSpeed.textContent = `${baseSpeed.toFixed(1)}x`;
+      updateSpeedModalUI();
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+
+      inputClassId.value = localStorage.getItem('user_class_id') || '';
+      inputUserName.value = localStorage.getItem('user_profile_name') || '';
+    }
+
+    function updateSpeedModalUI() {
+      document.querySelectorAll('#speed-modal .modal-option').forEach(b => {
+        b.classList.toggle('active', parseFloat(b.dataset.speed) === baseSpeed);
+      });
+    }
+
+    function updateVisualDisplay() {
+      if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
+        btnMarkA.classList.add('active-mark');
+        renderMarkerLine(markALine, parsedTextLines[markA_Index]);
+      } else {
+        btnMarkA.classList.remove('active-mark');
+        markALine.style.display = 'none';
+      }
+
+      if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
+        btnMarkB.classList.add('active-mark');
+        renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
+      } else {
+        btnMarkB.classList.remove('active-mark');
+        markBLine.style.display = 'none';
+      }
+
+      if (!isGuideActive) {
+        guideLine.style.display = 'none';
+        redDot.style.display = 'none';
+        btnGuideToggle.textContent = '背書';
+        btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
+      }
+
+      const remain = Math.max(0, totalTargetCycles - completedCycles);
+      btnRepeatCount.textContent = `${remain}次`;
+    }
+
+    function renderMarkerLine(lineElement, lineObj) {
+      if (!lineObj) return;
+      lineElement.style.top = `${lineObj.underLineY}px`;
+      lineElement.style.left = `${lineObj.x0}px`;
+      lineElement.style.width = `${lineObj.x1 - lineObj.x0}px`;
+      lineElement.style.display = 'block';
+    }
+
+    async function checkDailySchedule() {
+      try {
+        let scheduleData = null;
+        const localCache = localStorage.getItem('LOCAL_SCHEDULE_CACHE');
+        if (localCache) scheduleData = JSON.parse(localCache);
+
+        fetch('./schedule.json?t=' + Date.now(), { cache: 'no-store' })
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data)) localStorage.setItem('LOCAL_SCHEDULE_CACHE', JSON.stringify(data));
+          }).catch(() => {});
+
+        if (!scheduleData || !Array.isArray(scheduleData)) {
+          isScheduleLocked = false;
+          pendingScheduleSpeech = "";
+          return false;
+        }
+
+        const todayStr = getNormalizedDateStr();
+        const todayPlan = scheduleData.find(item => item.date === todayStr);
+
+        if (todayPlan && typeof todayPlan.start === 'number' && typeof todayPlan.end === 'number') {
+          const completedRecord = localStorage.getItem('SCHEDULE_DONE_' + todayStr);
+
+          if (completedRecord === 'true') {
+            isScheduleLocked = false;
+            pendingScheduleSpeech = "";
+            scheduleToast.style.display = 'none';
+            return false;
+          }
+
+          isScheduleLocked = true;
+          markA_Index = Math.max(0, todayPlan.start - 1);
+          markB_Index = Math.min(parsedTextLines.length - 1, todayPlan.end - 1);
+          currentLineIndex = markA_Index;
+          currentLineProgress = 0.0;
+          completedCycles = 0;
+
+          if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
+            setTargetCyclesUI(todayPlan.repeat);
+          }
+
+          updateVisualDisplay();
+          scrollToAlignTop(markA_Index);
+
+          const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
+          scheduleToast.style.display = 'block';
+          scheduleToast.textContent = `🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText} ${todayPlan.title ? '('+todayPlan.title+')' : ''}`;
+          
+          pendingScheduleSpeech = `今日共同功課，第 ${todayPlan.start} 到 ${todayPlan.end} 句${repeatText}，請先完成`;
+          return true;
+        }
+      } catch (err) {
+        console.warn("排程載入異常:", err);
+      }
+      isScheduleLocked = false;
+      pendingScheduleSpeech = "";
+      return false;
+    }
+
+    async function fetchWithProgress(url, onProgress) {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+      const tag = response.headers.get('etag') || response.headers.get('last-modified') || '';
+
+      if (!response.body) {
+        const buffer = await response.arrayBuffer();
+        onProgress(100, buffer.byteLength, buffer.byteLength);
+        return { buffer, tag };
+      }
+
+      const reader = response.body.getReader();
+      let receivedLength = 0;
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        receivedLength += value.length;
+        if (total > 0) {
+          const percent = Math.min(100, Math.round((receivedLength / total) * 100));
+          onProgress(percent, receivedLength, total);
+        } else {
+          onProgress(50, receivedLength, receivedLength);
+        }
+      }
+
+      const fullBytes = new Uint8Array(receivedLength);
+      let position = 0;
+      for (const chunk of chunks) {
+        fullBytes.set(chunk, position);
+        position += chunk.length;
+      }
+
+      onProgress(100, receivedLength, receivedLength);
+      return { buffer: fullBytes.buffer, tag };
+    }
+
+    btnReload.addEventListener('click', async () => {
+      if (isGuideActive) return;
+
+      statusCard.style.display = 'block';
+      pdfContainerWrap.style.display = 'none';
+
+      statusTitle.textContent = '🔄 檢查伺服器部署狀態...';
+      statusDesc.textContent = '向 GitHub 查詢程式與經文最新標籤...';
+
+      try {
+        appProgressVal.textContent = '比對程式版本...';
+        appProgressFill.style.width = '30%';
+
+        const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG') || '';
+        const htmlHeaders = {};
+        if (localHtmlTag) {
+          htmlHeaders['If-None-Match'] = localHtmlTag;
+          htmlHeaders['If-Modified-Since'] = localHtmlTag;
+        }
+
+        const htmlRes = await fetch('./index.html?t=' + Date.now(), { method: 'HEAD', headers: htmlHeaders, cache: 'no-store' });
+        const remoteHtmlTag = htmlRes.headers.get('etag') || htmlRes.headers.get('last-modified') || '';
+
+        if (htmlRes.status === 304 || (localHtmlTag && remoteHtmlTag === localHtmlTag)) {
+          appProgressVal.textContent = '程式無變更，跳過下載 (100%)';
+          appProgressFill.style.width = '100%';
+        } else {
+          appProgressVal.textContent = '偵測到程式更新，即將重新載入...';
+          appProgressFill.style.width = '100%';
+          if (remoteHtmlTag) localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
+          setTimeout(() => location.reload(true), 600);
+          return;
+        }
+      } catch (e) {
+        appProgressVal.textContent = '程式已確認 (100%)';
+        appProgressFill.style.width = '100%';
+      }
+
+      try {
+        pdfProgressVal.textContent = '比對經文修改標籤...';
+        pdfProgressFill.style.width = '30%';
+
+        const savedPdfTag = localStorage.getItem('APP_SAVED_PDF_TAG') || currentActiveFileTag || '';
+        const pdfHeaders = {};
+        if (savedPdfTag) {
+          pdfHeaders['If-None-Match'] = savedPdfTag;
+          pdfHeaders['If-Modified-Since'] = savedPdfTag;
+        }
+
+        const headRes = await fetch('./scripture.pdf?t=' + Date.now(), { method: 'HEAD', headers: pdfHeaders, cache: 'no-store' });
+        const remotePdfTag = headRes.headers.get('etag') || headRes.headers.get('last-modified') || '';
+
+        if ((headRes.status === 304 || (savedPdfTag && remotePdfTag === savedPdfTag)) && cachedRawBuffer) {
+          pdfProgressVal.textContent = '經文無變更，跳過下載 (100%)';
+          pdfProgressFill.style.width = '100%';
+          statusTitle.textContent = '⚡ 經文已是最新版本';
+          statusDesc.textContent = '檔案未變更，立即還原畫面！';
+
+          setTimeout(async () => {
+            statusCard.style.display = 'none';
+            pdfContainerWrap.style.display = 'flex';
+            updateVisualDisplay();
+            scrollToAlignTop(currentLineIndex);
+            await checkDailySchedule();
+          }, 300);
+          return;
+        }
+
+        pdfProgressVal.textContent = '偵測到新經文，下載中...';
+        const res = await fetchWithProgress('./scripture.pdf?check=' + Date.now(), (pct, current, total) => {
+          const curMb = (current / (1024 * 1024)).toFixed(1);
+          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
+          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
+          pdfProgressFill.style.width = `${pct}%`;
+        });
+
+        cachedRawBuffer = res.buffer;
+        const finalTag = remotePdfTag || res.tag || ('tag_' + Date.now());
+        currentActiveFileTag = finalTag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', finalTag);
+        await saveRecordToCache(res.buffer, finalTag);
+
+        statusTitle.textContent = '✅ 新經文下載完成，渲染中...';
+        await parseAndRenderPdfData(new Uint8Array(res.buffer));
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+        await checkDailySchedule();
+
+      } catch (e) {
+        if (cachedRawBuffer) {
+          pdfProgressVal.textContent = '使用本地快取 (100%)';
+          pdfProgressFill.style.width = '100%';
+          statusTitle.textContent = '⚡ 已使用本機經文恢復視圖';
+          statusCard.style.display = 'none';
+          pdfContainerWrap.style.display = 'flex';
+          updateVisualDisplay();
+          scrollToAlignTop(0);
+          await checkDailySchedule();
+        } else {
+          statusTitle.textContent = '❌ 更新失敗';
+          statusDesc.textContent = '無法連線至伺服器，請檢查網路。';
+        }
+      }
+    });
+
+    function getLineAtButtonBottom(buttonElement) {
+      if (parsedTextLines.length === 0) return 0;
+
+      const btnRect = buttonElement.getBoundingClientRect();
+      const centerRect = centerCore.getBoundingClientRect();
+      const buttonBottomViewportY = btnRect.bottom - centerRect.top;
+      const targetAbsoluteY = centerCore.scrollTop + buttonBottomViewportY;
+
+      let closestIdx = 0;
+      let minDiff = Infinity;
+
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const lineY = parsedTextLines[i].underLineY;
+        const diff = Math.abs(lineY - targetAbsoluteY);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = i;
+        }
+      }
+      return closestIdx;
+    }
+
+    btnMarkA.addEventListener('click', () => {
+      triggerLandscapeLock();
+      if (isGuideActive) return;
+
+      if (isScheduleLocked) {
+        speakPrompt("請先完成今日共同功課");
+        return;
+      }
+      if (parsedTextLines.length === 0) return;
+      markA_Index = getLineAtButtonBottom(btnMarkA);
+
+      if (markB_Index !== -1 && markA_Index > markB_Index) {
+        markB_Index = -1;
+      }
+
+      currentLineIndex = markA_Index;
+      currentLineProgress = 0.0;
+      completedCycles = 0;
+
+      updateVisualDisplay();
+      speakPrompt("請設定終點");
+    });
+
+    btnMarkB.addEventListener('click', () => {
+      triggerLandscapeLock();
+      if (isGuideActive) return;
+
+      if (isScheduleLocked) {
+        speakPrompt("請先完成今日共同功課");
+        return;
+      }
+      if (parsedTextLines.length === 0) return;
+      const selectedB = getLineAtButtonBottom(btnMarkB);
+
+      if (markA_Index !== -1 && selectedB < markA_Index) {
+        speakPrompt("終點不能在起點之前，請重新設定");
+        return;
+      }
+
+      markB_Index = selectedB;
+      updateVisualDisplay();
+      speakPrompt("終點設定完畢");
+    });
+
+    btnOffering.addEventListener('click', () => {
+      triggerLandscapeLock();
+      if (isGuideActive) return;
+
+      displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
+      offeringStatusMsg.style.display = 'none';
+      btnConfirmOffering.disabled = false;
+      btnConfirmOffering.textContent = '確認供養';
+      offeringOverlay.style.display = 'flex';
+    });
+
+    btnCancelOffering.addEventListener('click', () => {
+      offeringOverlay.style.display = 'none';
+    });
+
     function maskUserName(name) {
       if (!name) return '';
-      var str = String(name).trim();
+      const str = String(name).trim();
       if (str.length <= 1) return str;
       if (str.length === 2) return str[0] + '*';
       return str[0] + '*'.repeat(str.length - 2) + str[str.length - 1];
     }
-    
-    function extractTop3(mapObj) {
-      var list = [];
-      for (var k in mapObj) {
-        list.push(mapObj[k]);
+
+    /* ----------------------------------------------------
+       【供養確認】：JSONP 穩定呼叫，取得台灣時區最新雙榜
+    ---------------------------------------------------- */
+    btnConfirmOffering.addEventListener('click', () => {
+      const classId = inputClassId.value.trim();
+      const userName = inputUserName.value.trim();
+
+      if (!classId || !userName) {
+        alert("請輸入您的班號與姓名，以便留存供養記錄！");
+        return;
       }
-      list.sort(function(a, b) { return b.coins - a.coins; });
-      return list.slice(0, 3).map(function(item) {
-        return {
-          classId: item.classId,
-          maskName: maskUserName(item.name),
-          coins: item.coins
-        };
+
+      localStorage.setItem('user_class_id', classId);
+      localStorage.setItem('user_profile_name', userName);
+
+      const coinsToOffer = getStoredCoins();
+      if (coinsToOffer <= 0) {
+        alert("目前累積的福慧幣為 0 枚，請先精進背誦後再來供養！");
+        return;
+      }
+
+      btnConfirmOffering.disabled = true;
+      btnConfirmOffering.textContent = '連線供養中...';
+      offeringStatusMsg.style.display = 'none';
+
+      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
+      let isDone = false;
+
+      function handleSuccess(data) {
+        if (isDone) return;
+        isDone = true;
+        clearTimeout(timeoutTimer);
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+
+        spawnGoldCoinsAt(btnOffering);
+        resetCoins();
+        displayCoinsCount.textContent = '0 枚';
+        offeringOverlay.style.display = 'none';
+
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+
+        // 渲染自適應 3:4 雙榜卡片
+        renderLeaderboards(data, classId, userName, coinsToOffer);
+        leaderboardOverlay.style.display = 'flex';
+        speakPrompt("供養成功，功德無量，隨喜大眾精進");
+      }
+
+      const timeoutTimer = setTimeout(() => {
+        if (!isDone) {
+          handleSuccess(null);
+        }
+      }, 10000);
+
+      window[callbackName] = function(res) {
+        handleSuccess(res);
+      };
+
+      const scriptTag = document.createElement('script');
+      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&callback=${callbackName}&t=${Date.now()}`;
+      scriptTag.onerror = function() {
+        if (!isDone) {
+          handleSuccess(null);
+        }
+      };
+      document.body.appendChild(scriptTag);
+    });
+
+    /* ----------------------------------------------------
+       【渲染榜單】：橫式 3:4 雙欄，自適應最大高度，不足 3 人顯示虛位以待
+    ---------------------------------------------------- */
+    function renderLeaderboards(data, curClass, curName, curCoins) {
+      const medals = ['🥇', '🥈', '🥉'];
+
+      function buildListHtml(list) {
+        const fullList = (list && Array.isArray(list)) ? [...list] : [];
+
+        // 若資料庫內不足 3 人，補足「虛位以待」
+        while (fullList.length < 3) {
+          fullList.push({ isPlaceholder: true });
+        }
+
+        return fullList.slice(0, 3).map((item, idx) => {
+          const medal = medals[idx] || `第${idx + 1}名`;
+
+          if (item.isPlaceholder) {
+            return `
+              <div class="rank-item">
+                <span class="rank-user">
+                  <span class="rank-badge">${medal}</span>
+                  <span class="rank-placeholder">虛位以待 (精進背誦)</span>
+                </span>
+                <span class="rank-coins rank-placeholder">--</span>
+              </div>
+            `;
+          }
+
+          const displayName = item.maskName || maskUserName(item.name || curName);
+          const displayClass = item.classId ? `(${item.classId})` : '';
+          const coinsVal = (typeof item.coins === 'number') ? item.coins : curCoins;
+
+          return `
+            <div class="rank-item">
+              <span class="rank-user">
+                <span class="rank-badge">${medal}</span>
+                <span>${displayName} <small style="color:#94A3B8;">${displayClass}</small></span>
+              </span>
+              <span class="rank-coins">${coinsVal} 枚</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
+      totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
+    }
+
+    btnRejoiceClose.addEventListener('click', () => {
+      spawnGoldCoinsAt(btnRejoiceClose);
+      leaderboardOverlay.style.display = 'none';
+      speakPrompt("隨喜讚嘆，功德圓滿");
+    });
+
+    btnSpeed.addEventListener('click', () => {
+      const isVisible = speedModal.style.display === 'flex';
+      repeatModal.style.display = 'none';
+      speedModal.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        baseSpeed = parseFloat(btn.dataset.speed);
+        localStorage.setItem('user_speed_preference', baseSpeed.toString());
+
+        btnSpeed.textContent = `${baseSpeed.toFixed(1)}x`;
+        updateSpeedModalUI();
+        speedModal.style.display = 'none';
+        effectiveSpeedMultiplier = 1.0;
+
+        if (parsedTextLines[currentLineIndex]) {
+          const line = parsedTextLines[currentLineIndex];
+          const chineseCount = (line.charItems || []).length;
+          lineDuration = (chineseCount / (3.2 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
+        }
+      });
+    });
+
+    btnRepeatCount.addEventListener('click', () => {
+      if (isGuideActive) return;
+
+      if (isScheduleLocked) {
+        speakPrompt("請先完成今日排定遍數");
+        return;
+      }
+      const isVisible = repeatModal.style.display === 'flex';
+      speedModal.style.display = 'none';
+      repeatModal.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        totalTargetCycles = parseInt(btn.dataset.count, 10);
+        completedCycles = 0;
+        btnRepeatCount.textContent = `${totalTargetCycles}次`;
+        document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateVisualDisplay();
+        repeatModal.style.display = 'none';
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!btnRepeatCount.contains(e.target) && !repeatModal.contains(e.target)) {
+        repeatModal.style.display = 'none';
+      }
+      if (!btnSpeed.contains(e.target) && !speedModal.contains(e.target)) {
+        speedModal.style.display = 'none';
+      }
+    });
+
+    centerCore.addEventListener('pointerdown', (e) => {
+      if (!isGuideActive) return;
+      isTouchingDisplay = true;
+      if (!isVoiceActive) {
+        isVoiceActive = true;
+        btnGuideToggle.textContent = '背誦中';
+        btnGuideToggle.classList.remove('guide-waiting');
+        btnGuideToggle.classList.add('guide-active');
+        lastAnimTimestamp = performance.now();
+      }
+    });
+
+    const stopTouchDrive = () => {
+      if (!isGuideActive) return;
+      isTouchingDisplay = false;
+      lastVoiceDetectedTime = performance.now();
+    };
+
+    centerCore.addEventListener('pointerup', stopTouchDrive);
+    centerCore.addEventListener('pointercancel', stopTouchDrive);
+    centerCore.addEventListener('pointerleave', stopTouchDrive);
+
+    btnGuideToggle.addEventListener('click', async () => {
+      triggerLandscapeLock();
+
+      if (markA_Index === -1 || markB_Index === -1) {
+        speakPrompt("請先設定起點與終點");
+        btnMarkA.style.transform = 'scale(1.1)';
+        btnMarkB.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+          btnMarkA.style.transform = '';
+          btnMarkB.style.transform = '';
+        }, 500);
+        return;
+      }
+
+      if (isGuideActive) return;
+
+      isGuideActive = true;
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+      } catch (e) {}
+
+      if (parsedTextLines.length === 0) {
+        isGuideActive = false;
+        return;
+      }
+
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (lineWaitTimer) { clearTimeout(lineWaitTimer); lineWaitTimer = null; }
+
+      isVoiceActive = false;
+      isTouchingDisplay = false;
+      isTransitioningLine = false;
+      hasPageFlipped = false;
+      effectiveSpeedMultiplier = 1.0;
+      beatTimestamps = [];
+      lastVoiceDetectedTime = performance.now();
+
+      spawnGoldCoinsAt(btnGuideToggle);
+      completedCycles = 0;
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+      currentLineIndex = markA_Index;
+      currentLineProgress = 0.0;
+
+      btnGuideToggle.textContent = '靜止';
+      btnGuideToggle.classList.remove('guide-active');
+      btnGuideToggle.classList.add('guide-waiting');
+
+      startGuideRunner();
+      await startVoiceActivityDetection();
+    });
+
+    async function startVoiceActivityDetection() {
+      try {
+        if (!micStream) {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: true
+            }
+          });
+        }
+
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.04;
+        source.connect(analyser);
+
+        isCalibrating = true;
+        calibrationSamples = [];
+        setTimeout(() => {
+          if (calibrationSamples.length > 0) {
+            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+            baseNoiseLevel = sum / calibrationSamples.length;
+            dynamicThreshold = Math.max(0.0018, baseNoiseLevel * 1.08 + 0.0005);
+          }
+          isCalibrating = false;
+        }, 350);
+
+        lastVoiceDetectedTime = performance.now();
+        previousRms = 0.0;
+        beatTimestamps = [];
+        lastBeatTime = performance.now();
+        startVadMonitorLoop();
+      } catch (err) {
+        console.warn("麥克風無法啟動:", err);
+        btnGuideToggle.textContent = '靜止';
+      }
+    }
+
+    function startVadMonitorLoop() {
+      if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
+
+      const bufferLength = analyser ? analyser.frequencyBinCount : 0;
+      const dataArray = new Float32Array(bufferLength);
+
+      function checkVolume() {
+        if (!isGuideActive) return;
+
+        if (analyser) {
+          analyser.getFloatTimeDomainData(dataArray);
+
+          let sumSquares = 0.0;
+          for (let i = 0; i < bufferLength; i++) {
+            const val = dataArray[i];
+            sumSquares += val * val;
+          }
+          const rms = Math.sqrt(sumSquares / bufferLength);
+          const now = performance.now();
+
+          if (isCalibrating) {
+            calibrationSamples.push(rms);
+          }
+
+          const hasInput = (rms > dynamicThreshold) || isTouchingDisplay;
+
+          if (hasInput) {
+            lastVoiceDetectedTime = now;
+            if (!isVoiceActive) {
+              isVoiceActive = true;
+              btnGuideToggle.textContent = '背誦中';
+              btnGuideToggle.classList.remove('guide-waiting');
+              btnGuideToggle.classList.add('guide-active');
+              lastAnimTimestamp = performance.now();
+            }
+
+            const deltaRms = rms - previousRms;
+            if (deltaRms > (dynamicThreshold * 0.5) && (now - lastBeatTime > 110)) {
+              lastBeatTime = now;
+              beatTimestamps.push(now);
+              if (beatTimestamps.length > MAX_BEAT_HISTORY) {
+                beatTimestamps.shift();
+              }
+
+              if (beatTimestamps.length >= 3) {
+                let totalDiff = 0;
+                for (let k = 1; k < beatTimestamps.length; k++) {
+                  totalDiff += (beatTimestamps[k] - beatTimestamps[k - 1]);
+                }
+                const avgIntervalMs = totalDiff / (beatTimestamps.length - 1);
+                const targetNominalIntervalMs = 700 / baseSpeed;
+                const ratio = targetNominalIntervalMs / Math.max(100, avgIntervalMs);
+                const targetMultiplier = Math.max(0.75, Math.min(1.25, ratio));
+                effectiveSpeedMultiplier = effectiveSpeedMultiplier * 0.7 + targetMultiplier * 0.3;
+
+                if (parsedTextLines[currentLineIndex]) {
+                  const line = parsedTextLines[currentLineIndex];
+                  const chineseCount = (line.charItems || []).length;
+                  lineDuration = (chineseCount / (3.2 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
+                }
+              }
+            }
+          } else {
+            effectiveSpeedMultiplier = effectiveSpeedMultiplier * 0.95 + 1.0 * 0.05;
+
+            if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
+              isVoiceActive = false;
+              btnGuideToggle.textContent = '靜止';
+              btnGuideToggle.classList.remove('guide-active');
+              btnGuideToggle.classList.add('guide-waiting');
+              beatTimestamps = [];
+            }
+          }
+
+          previousRms = rms;
+        }
+
+        vadCheckTimer = requestAnimationFrame(checkVolume);
+      }
+
+      vadCheckTimer = requestAnimationFrame(checkVolume);
+    }
+
+    function stopVoiceActivityDetection() {
+      if (vadCheckTimer) {
+        cancelAnimationFrame(vadCheckTimer);
+        vadCheckTimer = null;
+      }
+      isVoiceActive = false;
+      isTouchingDisplay = false;
+      effectiveSpeedMultiplier = 1.0;
+      beatTimestamps = [];
+    }
+
+    function startGuideRunner() {
+      if (parsedTextLines.length === 0) return;
+
+      guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
+
+      scrollToAlignTop(currentLineIndex);
+      setupActiveLine(currentLineIndex, currentLineProgress);
+
+      lastAnimTimestamp = performance.now();
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function scrollToAlignTop(idx) {
+      const line = parsedTextLines[idx];
+      if (line) {
+        centerCore.scrollTop = Math.max(0, line.topGlobal - 18);
+      }
+    }
+
+    function getVisibleBottomLineIndex() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      let lastVisibleIdx = currentLineIndex;
+
+      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
+        if (parsedTextLines[i].underLineY <= viewportBottom - 16) {
+          lastVisibleIdx = i;
+        } else {
+          break;
+        }
+      }
+      return lastVisibleIdx;
+    }
+
+    function checkAndTriggerPageFlip() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+
+      if (markA_Index !== -1 && markB_Index !== -1) {
+        const lineA = parsedTextLines[markA_Index];
+        const lineB = parsedTextLines[markB_Index];
+        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) {
+          return;
+        }
+      }
+
+      const nextIndex = currentLineIndex + 1;
+      if (nextIndex < parsedTextLines.length) {
+        const nextLine = parsedTextLines[nextIndex];
+        if (nextLine.underLineY > (viewportBottom - 18)) {
+          scrollToAlignTop(nextIndex);
+        }
+      }
+    }
+
+    function getLinePhysicalXByProgress(line, progress) {
+      if (!line) return 0;
+      if (!line.charItems || line.charItems.length === 0) {
+        return line.x0 + (line.x1 - line.x0) * progress;
+      }
+      const items = line.charItems;
+      const N = items.length;
+      const scaledProgress = progress * N;
+      const charIndex = Math.min(N - 1, Math.floor(scaledProgress));
+      const charFraction = scaledProgress - charIndex;
+
+      const item = items[charIndex];
+      return item.x0 + (item.x1 - item.x0) * charFraction;
+    }
+
+    function setupActiveLine(idx, initialProgress = 0.0) {
+      if (idx >= parsedTextLines.length) {
+        handleCycleCompletion();
+        return;
+      }
+
+      const line = parsedTextLines[idx];
+      const chineseCount = (line && line.charItems) ? line.charItems.length : 10;
+
+      lineDuration = (chineseCount / (3.2 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
+      currentLineProgress = initialProgress;
+
+      const lineY = line.underLineY;
+
+      if (isGuideActive) {
+        guideLine.style.top = `${lineY}px`;
+        guideLine.style.left = `${line.x0}px`;
+        guideLine.style.width = `${line.x1 - line.x0}px`;
+        guideLine.style.display = 'block';
+
+        const curX = getLinePhysicalXByProgress(line, currentLineProgress);
+        redDot.style.top = `${lineY}px`;
+        redDot.style.left = `${curX}px`;
+        redDot.style.display = 'block';
+      }
+
+      isTransitioningLine = false;
+    }
+
+    let hasPageFlipped = false;
+
+    function stepGuideMovement(now) {
+      if (!isGuideActive || isTransitioningLine) return;
+
+      let delta = now - lastAnimTimestamp;
+      if (delta <= 0 || delta > 120) {
+        delta = 16.6;
+      }
+      lastAnimTimestamp = now;
+
+      const isNearLineEnd = (currentLineProgress >= 0.88);
+
+      if (!isVoiceActive && !isNearLineEnd) {
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+        return;
+      }
+
+      currentLineProgress += (delta / lineDuration);
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const lastCharHalfThreshold = Math.max(0.5, 1.0 - (0.5 / totalChars));
+
+      if (currentLineProgress >= lastCharHalfThreshold && !hasPageFlipped) {
+        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
+        
+        if (!isCurrentLineAtTargetEnd) {
+          const visibleBottomIdx = getVisibleBottomLineIndex();
+          if (currentLineIndex === visibleBottomIdx) {
+            checkAndTriggerPageFlip();
+            hasPageFlipped = true;
+          }
+        }
+      }
+
+      if (currentLineProgress >= 1.0) {
+        currentLineProgress = 1.0;
+
+        if (curLine) {
+          redDot.style.left = `${curLine.x1}px`;
+          redDot.style.top = `${curLine.underLineY}px`;
+        }
+
+        if (guideAnimId) {
+          cancelAnimationFrame(guideAnimId);
+          guideAnimId = null;
+        }
+
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
+          handleCycleCompletion();
+          return;
+        }
+
+        const nextIndex = currentLineIndex + 1;
+        if (nextIndex >= parsedTextLines.length) {
+          handleCycleCompletion();
+          return;
+        }
+
+        isTransitioningLine = true;
+        guideLine.style.display = 'none';
+
+        if (lineWaitTimer) clearTimeout(lineWaitTimer);
+        lineWaitTimer = setTimeout(() => {
+          if (!isGuideActive) return;
+
+          hasPageFlipped = false;
+          currentLineIndex = nextIndex;
+          currentLineProgress = 0.0;
+
+          setupActiveLine(currentLineIndex, 0.0);
+          lastAnimTimestamp = performance.now();
+          guideAnimId = requestAnimationFrame(stepGuideMovement);
+        }, 160);
+
+        return;
+      }
+
+      if (curLine) {
+        const curX = getLinePhysicalXByProgress(curLine, currentLineProgress);
+        redDot.style.left = `${curX}px`;
+        redDot.style.top = `${curLine.underLineY}px`;
+      }
+
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function handleCycleCompletion() {
+      if (guideAnimId) {
+        cancelAnimationFrame(guideAnimId);
+        guideAnimId = null;
+      }
+
+      completedCycles += 1;
+      const remain = Math.max(0, totalTargetCycles - completedCycles);
+      btnRepeatCount.textContent = `${remain}次`;
+
+      const singleCycleCoins = calculateSentenceCount();
+      addCoins(singleCycleCoins);
+
+      if (completedCycles >= totalTargetCycles) {
+        if (isScheduleLocked) {
+          const todayStr = getNormalizedDateStr();
+          localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
+          isScheduleLocked = false;
+          pendingScheduleSpeech = "";
+          scheduleToast.style.display = 'none';
+        }
+
+        speakPrompt("背誦圓滿，功德無量");
+        finishAndStopPermanently();
+        return;
+      }
+
+      isTransitioningLine = true;
+      guideLine.style.display = 'none';
+
+      if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
+      cycleWaitTimer = setTimeout(() => {
+        if (!isGuideActive) return;
+
+        hasPageFlipped = false;
+        currentLineIndex = markA_Index;
+        currentLineProgress = 0.0;
+        scrollToAlignTop(currentLineIndex);
+
+        setupActiveLine(currentLineIndex, 0.0);
+        isTransitioningLine = false;
+
+        lastAnimTimestamp = performance.now();
+        lastVoiceDetectedTime = performance.now();
+        isVoiceActive = false;
+        beatTimestamps = [];
+        previousRms = 0.0;
+
+        btnGuideToggle.textContent = '靜止';
+        btnGuideToggle.classList.remove('guide-active');
+        btnGuideToggle.classList.add('guide-waiting');
+
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+      }, 1500);
+    }
+
+    function finishAndStopPermanently() {
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (lineWaitTimer) { clearTimeout(lineWaitTimer); lineWaitTimer = null; }
+
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      stopVoiceActivityDetection();
+
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+
+      completedCycles = 0;
+      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
+      currentLineProgress = 0.0;
+
+      btnGuideToggle.textContent = '背書';
+      btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+    }
+
+    function haltGuideRunnerImmediately() {
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (lineWaitTimer) { clearTimeout(lineWaitTimer); lineWaitTimer = null; }
+
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      stopVoiceActivityDetection();
+
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+
+      updateVisualDisplay();
+    }
+
+    function spawnGoldCoinsAt(targetElement) {
+      const rect = targetElement.getBoundingClientRect();
+      const originX = rect.left + rect.width / 2;
+      const originY = rect.top + rect.height / 2;
+
+      for (let i = 0; i < 18; i++) {
+        const coin = document.createElement('div');
+        coin.className = 'gold-coin';
+        coin.textContent = '🪙';
+        coin.style.left = `${originX}px`;
+        coin.style.top = `${originY}px`;
+
+        const angle = (i / 18) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
+        const distance = 80 + Math.random() * 70;
+        const dx = Math.cos(angle) * distance;
+        const dy = Math.sin(angle) * distance - 12;
+        const rot = (Math.random() * 360 - 180) + 'deg';
+
+        coin.style.setProperty('--dx', `${dx}px`);
+        coin.style.setProperty('--dy', `${dy}px`);
+        coin.style.setProperty('--rot', rot);
+
+        document.body.appendChild(coin);
+        setTimeout(() => {
+          if (coin.parentNode) coin.parentNode.removeChild(coin);
+        }, 900);
+      }
+    }
+
+    const DB_NAME = 'HappyReciteDB_BBox_v57';
+    const STORE_NAME = 'pdf_store';
+    const PDF_KEY = 'saved_scripture';
+
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        try {
+          const req = indexedDB.open(DB_NAME, 1);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+              db.createObjectStore(STORE_NAME);
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        } catch (e) {
+          reject(e);
+        }
       });
     }
-    
-    var result = {
-      status: 'success',
-      todayTop3: extractTop3(todayMap),
-      totalTop3: extractTop3(totalMap)
-    };
-    
-    var jsonText = JSON.stringify(result);
-    
-    if (callback) {
-      return ContentService.createTextOutput(callback + '(' + jsonText + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
-    } else {
-      return ContentService.createTextOutput(jsonText)
-        .setMimeType(ContentService.MimeType.JSON);
+
+    async function getCachedRecord() {
+      try {
+        const db = await openDatabase();
+        return new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get(PDF_KEY);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) {
+        return null;
+      }
     }
-    
-  } catch (err) {
-    var errObj = JSON.stringify({ status: 'error', message: err.toString() });
-    if (callback) {
-      return ContentService.createTextOutput(callback + '(' + errObj + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+
+    async function saveRecordToCache(arrayBuffer, fileTag) {
+      try {
+        const db = await openDatabase();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.put({ buffer: arrayBuffer, tag: fileTag }, PDF_KEY);
+      } catch (e) {}
     }
-    return ContentService.createTextOutput(errObj).setMimeType(ContentService.MimeType.JSON);
-  }
-}
+
+    window.addEventListener('DOMContentLoaded', () => {
+      verifyVersionAndCleanState();
+      initUserPreferences();
+      checkLineInAppBrowser();
+      loadScriptureWithSmartAutoUpdate();
+    });
+
+    async function loadScriptureWithSmartAutoUpdate() {
+      statusCard.style.display = 'block';
+      pdfContainerWrap.style.display = 'none';
+
+      appProgressFill.style.width = '100%';
+      appProgressVal.textContent = '100% (已載入)';
+
+      const cached = await getCachedRecord();
+      const localBuffer = cached ? (cached.buffer || cached) : null;
+      const localTag = (cached && cached.tag) ? cached.tag : localStorage.getItem('APP_SAVED_PDF_TAG');
+
+      if (localBuffer) {
+        cachedRawBuffer = localBuffer;
+        currentActiveFileTag = localTag || 'local';
+        pdfProgressFill.style.width = '100%';
+        pdfProgressVal.textContent = '100% (本地快取)';
+        statusTitle.textContent = '📖 正在渲染經文...';
+
+        await parseAndRenderPdfData(new Uint8Array(localBuffer));
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+        return;
+      }
+
+      await fetchAndSaveNewPdf('initial_' + Date.now());
+    }
+
+    async function fetchAndSaveNewPdf(fileTag) {
+      statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
+      try {
+        const res = await fetchWithProgress('./scripture.pdf?t=' + Date.now(), (pct, cur, total) => {
+          const curMb = (cur / (1024 * 1024)).toFixed(1);
+          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
+          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
+          pdfProgressFill.style.width = `${pct}%`;
+        });
+
+        cachedRawBuffer = res.buffer;
+        const tag = res.tag || fileTag;
+        currentActiveFileTag = tag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
+        await saveRecordToCache(res.buffer, tag);
+        await parseAndRenderPdfData(new Uint8Array(res.buffer));
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+        await checkDailySchedule();
+      } catch (e) {
+        const fallback = await getCachedRecord();
+        if (fallback && fallback.buffer) {
+          cachedRawBuffer = fallback.buffer;
+          currentActiveFileTag = fallback.tag || 'fallback';
+          await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
+          updateVisualDisplay();
+          scrollToAlignTop(0);
+          await checkDailySchedule();
+        } else {
+          statusTitle.textContent = '📖 請挑選經文檔案';
+          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
+          btnManualPick.style.display = 'inline-block';
+        }
+      }
+    }
+
+    btnManualPick.addEventListener('click', () => {
+      filePdfInput.value = '';
+      filePdfInput.click();
+    });
+
+    filePdfInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      statusTitle.textContent = '📖 正在載入經文...';
+      btnManualPick.style.display = 'none';
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        cachedRawBuffer = arrayBuffer;
+        const tag = 'manual_' + file.lastModified;
+        currentActiveFileTag = tag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
+        await saveRecordToCache(arrayBuffer, tag);
+        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+      } catch (err) {
+        alert('經文解析失敗：' + err.message);
+        btnManualPick.style.display = 'inline-block';
+      }
+    });
+
+    async function parseAndRenderPdfData(typedarray) {
+      statusCard.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
+
+      const loadingTask = pdfjsLib.getDocument({
+        data: typedarray,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+        cMapPacked: true
+      });
+
+      currentPdfDoc = await loadingTask.promise;
+      const page = await currentPdfDoc.getPage(1);
+
+      const availableWidth = centerCore.clientWidth || (window.innerWidth - 160);
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+      const pageScale = availableWidth / unscaledViewport.width;
+      const viewport = page.getViewport({ scale: pageScale });
+
+      pdfCanvas.width = viewport.width;
+      pdfCanvas.height = viewport.height;
+      const ctx = pdfCanvas.getContext('2d');
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: viewport
+      }).promise;
+
+      const textContent = await page.getTextContent();
+      const items = textContent.items;
+
+      const validSpans = [];
+      const chineseCharRegex = /[\u4e00-\u9fa5]/;
+
+      items.forEach(it => {
+        const str = it.str || '';
+        if (!str.trim()) return;
+
+        const tx = it.transform;
+        const pdfX = tx[4];
+        const pdfY = tx[5];
+
+        const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
+        const fontWidth = it.width * pageScale;
+
+        const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
+        const screenX0 = p0[0];
+
+        const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
+        const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+
+        const realTop = Math.min(p0[1], pTop[1]);
+        const realBottom = Math.max(p0[1], pTop[1]);
+
+        const charWidth = fontWidth / Math.max(1, str.length);
+        for (let c = 0; c < str.length; c++) {
+          const char = str[c];
+          if (chineseCharRegex.test(char)) {
+            const charX0 = screenX0 + (c * charWidth);
+            const charX1 = charX0 + charWidth;
+            validSpans.push({
+              x0: charX0,
+              x1: charX1,
+              topY: realTop,
+              bottomY: realBottom,
+              fs: fontScale,
+              char: char
+            });
+          }
+        }
+      });
+
+      validSpans.sort((a, b) => a.topY - b.topY);
+      const rowGroups = [];
+
+      validSpans.forEach(span => {
+        let matched = false;
+        for (let g of rowGroups) {
+          if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
+            g.spans.push(span);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          rowGroups.push({ topY: span.topY, spans: [span] });
+        }
+      });
+
+      parsedTextLines = [];
+      let internalIndex = 0;
+
+      rowGroups.forEach(g => {
+        g.spans.sort((a, b) => a.x0 - b.x0);
+
+        const firstSpan = g.spans[0];
+        const lastSpan = g.spans[g.spans.length - 1];
+
+        const lineX0 = firstSpan.x0;
+        const lineX1 = lastSpan.x1;
+
+        const minTop = Math.min(...g.spans.map(s => s.topY));
+        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
+
+        const chineseCount = g.spans.length;
+        const underLineY = maxBottom + 7;
+
+        if (chineseCount >= 4 && (lineX1 - lineX0) >= 80) {
+          parsedTextLines.push({
+            lineIndex: internalIndex++,
+            x0: lineX0,
+            x1: lineX1,
+            topGlobal: minTop,
+            bottomGlobal: maxBottom,
+            underLineY: underLineY,
+            charItems: g.spans
+          });
+        }
+      });
+
+      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+      guideStage.style.height = `${viewport.height}px`;
+    }
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      if (isGuideActive) return;
+
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (cachedRawBuffer) {
+          parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
+            updateVisualDisplay();
+            scrollToAlignTop(currentLineIndex);
+          });
+        }
+      }, 300);
+    });
+  </script>
+</body>
+</html>
