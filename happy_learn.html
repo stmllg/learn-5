@@ -793,7 +793,6 @@
       flex-shrink: 0;
     }
 
-    /* 縮放平移容器窗口 */
     .viewport-zoom-wrapper {
       width: 100%;
       flex: 1;
@@ -805,7 +804,6 @@
       min-height: 0;
     }
 
-    /* 可縮放與拖曳平移的實體內容 */
     #zoomable-board-content {
       display: flex;
       flex-direction: row;
@@ -818,7 +816,6 @@
       user-select: none;
     }
 
-    /* 今日榜：佔 3 份比例 */
     .rank-section-today {
       flex: 3;
       background: rgba(30, 41, 59, 0.65);
@@ -831,7 +828,6 @@
       min-height: 0;
     }
 
-    /* 總累積榜：佔 4 份比例 */
     .rank-section-total {
       flex: 4;
       background: rgba(30, 41, 59, 0.65);
@@ -906,7 +902,6 @@
       font-style: italic;
     }
 
-    /* 隨喜讚嘆按鈕：鎖定 42px 精緻高度，不放大變形 */
     .btn-rejoice {
       width: 100%;
       height: 42px;
@@ -1075,8 +1070,8 @@
       </div>
 
       <div id="status-card">
-        <h2 id="status-title">🔍 檢查 GitHub 更新狀態...</h2>
-        <div id="status-desc">比對伺服器發布時間中...</div>
+        <h2 id="status-title">🔍 正在啟動經文核心...</h2>
+        <div id="status-desc">讀取本機快取與伺服器版本中...</div>
 
         <div class="progress-box" id="app-progress-box">
           <div class="progress-label">
@@ -1183,9 +1178,7 @@
         <span>🏆</span> 功德圓滿・隨喜大眾
       </div>
 
-      <!-- 視口容器 -->
       <div class="viewport-zoom-wrapper" id="zoom-viewport">
-        <!-- 縮放與平移內容 -->
         <div id="zoomable-board-content">
           <!-- 左側：今日榜 (佔 3 份) -->
           <div class="rank-section-today">
@@ -1212,7 +1205,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v112_zoom_and_pan_drag_dual_board';
+    const APP_BUILD_VERSION = 'v113_auto_sync_orientation_safe';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
@@ -1519,7 +1512,7 @@
         const localCache = localStorage.getItem('LOCAL_SCHEDULE_CACHE');
         if (localCache) scheduleData = JSON.parse(localCache);
 
-        fetch('./schedule.json?t=' + Date.now(), { cache: 'no-store' })
+        fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' })
           .then(res => res.json())
           .then(data => {
             if (Array.isArray(data)) localStorage.setItem('LOCAL_SCHEDULE_CACHE', JSON.stringify(data));
@@ -1583,7 +1576,7 @@
 
       if (!response.body) {
         const buffer = await response.arrayBuffer();
-        onProgress(100, buffer.byteLength, buffer.byteLength);
+        if (onProgress) onProgress(100, buffer.byteLength, buffer.byteLength);
         return { buffer, tag };
       }
 
@@ -1596,11 +1589,13 @@
         if (done) break;
         chunks.push(value);
         receivedLength += value.length;
-        if (total > 0) {
-          const percent = Math.min(100, Math.round((receivedLength / total) * 100));
-          onProgress(percent, receivedLength, total);
-        } else {
-          onProgress(50, receivedLength, receivedLength);
+        if (onProgress) {
+          if (total > 0) {
+            const percent = Math.min(100, Math.round((receivedLength / total) * 100));
+            onProgress(percent, receivedLength, total);
+          } else {
+            onProgress(50, receivedLength, receivedLength);
+          }
         }
       }
 
@@ -1611,67 +1606,58 @@
         position += chunk.length;
       }
 
-      onProgress(100, receivedLength, receivedLength);
+      if (onProgress) onProgress(100, receivedLength, receivedLength);
       return { buffer: fullBytes.buffer, tag };
     }
 
+    /* ----------------------------------------------------
+       【手動更新鍵】：強制穿透 CDN 比對最新版本
+    ---------------------------------------------------- */
     btnReload.addEventListener('click', async () => {
       if (isGuideActive) return;
 
       statusCard.style.display = 'block';
       pdfContainerWrap.style.display = 'none';
 
-      statusTitle.textContent = '🔄 檢查伺服器部署狀態...';
-      statusDesc.textContent = '向 GitHub 查詢程式與經文最新標籤...';
+      statusTitle.textContent = '🔄 檢查伺服器更新...';
+      statusDesc.textContent = '正穿透 CDN 查詢 GitHub 最新經文與程式...';
 
       try {
         appProgressVal.textContent = '比對程式版本...';
-        appProgressFill.style.width = '30%';
+        appProgressFill.style.width = '40%';
 
-        const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG') || '';
-        const htmlHeaders = {};
-        if (localHtmlTag) {
-          htmlHeaders['If-None-Match'] = localHtmlTag;
-          htmlHeaders['If-Modified-Since'] = localHtmlTag;
-        }
-
-        const htmlRes = await fetch('./index.html?t=' + Date.now(), { method: 'HEAD', headers: htmlHeaders, cache: 'no-store' });
+        const htmlRes = await fetch('./index.html?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
         const remoteHtmlTag = htmlRes.headers.get('etag') || htmlRes.headers.get('last-modified') || '';
+        const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG') || '';
 
-        if (htmlRes.status === 304 || (localHtmlTag && remoteHtmlTag === localHtmlTag)) {
-          appProgressVal.textContent = '程式無變更，跳過下載 (100%)';
+        if (localHtmlTag && remoteHtmlTag && remoteHtmlTag !== localHtmlTag) {
+          appProgressVal.textContent = '發現新程式，重新載入中...';
           appProgressFill.style.width = '100%';
+          localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
+          setTimeout(() => location.reload(true), 500);
+          return;
         } else {
-          appProgressVal.textContent = '偵測到程式更新，即將重新載入...';
+          appProgressVal.textContent = '程式為最新 (100%)';
           appProgressFill.style.width = '100%';
           if (remoteHtmlTag) localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
-          setTimeout(() => location.reload(true), 600);
-          return;
         }
       } catch (e) {
-        appProgressVal.textContent = '程式已確認 (100%)';
+        appProgressVal.textContent = '已就緒 (100%)';
         appProgressFill.style.width = '100%';
       }
 
       try {
-        pdfProgressVal.textContent = '比對經文修改標籤...';
+        pdfProgressVal.textContent = '穿透快取查詢經文標籤...';
         pdfProgressFill.style.width = '30%';
 
+        const headRes = await fetch('./scripture.pdf?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+        const remotePdfTag = headRes.headers.get('etag') || headRes.headers.get('last-modified') || headRes.headers.get('content-length') || '';
         const savedPdfTag = localStorage.getItem('APP_SAVED_PDF_TAG') || currentActiveFileTag || '';
-        const pdfHeaders = {};
-        if (savedPdfTag) {
-          pdfHeaders['If-None-Match'] = savedPdfTag;
-          pdfHeaders['If-Modified-Since'] = savedPdfTag;
-        }
 
-        const headRes = await fetch('./scripture.pdf?t=' + Date.now(), { method: 'HEAD', headers: pdfHeaders, cache: 'no-store' });
-        const remotePdfTag = headRes.headers.get('etag') || headRes.headers.get('last-modified') || '';
-
-        if ((headRes.status === 304 || (savedPdfTag && remotePdfTag === savedPdfTag)) && cachedRawBuffer) {
+        if (remotePdfTag && savedPdfTag && remotePdfTag === savedPdfTag && cachedRawBuffer) {
           pdfProgressVal.textContent = '經文無變更，跳過下載 (100%)';
           pdfProgressFill.style.width = '100%';
           statusTitle.textContent = '⚡ 經文已是最新版本';
-          statusDesc.textContent = '檔案未變更，立即還原畫面！';
 
           setTimeout(async () => {
             statusCard.style.display = 'none';
@@ -1684,7 +1670,7 @@
         }
 
         pdfProgressVal.textContent = '偵測到新經文，下載中...';
-        const res = await fetchWithProgress('./scripture.pdf?check=' + Date.now(), (pct, current, total) => {
+        const res = await fetchWithProgress('./scripture.pdf?nocache=' + Date.now(), (pct, current, total) => {
           const curMb = (current / (1024 * 1024)).toFixed(1);
           const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
           pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
@@ -1852,10 +1838,7 @@
         btnConfirmOffering.disabled = false;
         btnConfirmOffering.textContent = '確認供養';
 
-        // 重置手勢位移與縮放
         resetTransform();
-
-        // 渲染雙榜
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
         speakPrompt("供養成功，功德無量，隨喜大眾精進");
@@ -1882,7 +1865,7 @@
     });
 
     /* ----------------------------------------------------
-       【完整支援：兩指縮放 + 單指平移拖曳手勢】
+       【支援兩指縮放 + 單指平移拖曳手勢】
     ---------------------------------------------------- */
     let currentScale = 1.0;
     let translateX = 0;
@@ -1913,12 +1896,10 @@
 
     zoomViewport.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
-        // 單指開始拖曳移動
         isDragging = true;
         startX = e.touches[0].clientX - translateX;
         startY = e.touches[0].clientY - translateY;
       } else if (e.touches.length === 2) {
-        // 兩指開始縮放
         isDragging = false;
         initialPinchDist = getTouchDistance(e.touches[0], e.touches[1]);
         initialScaleAtPinch = currentScale;
@@ -1929,11 +1910,9 @@
       e.preventDefault();
 
       if (e.touches.length === 1 && isDragging) {
-        // 單指平移
         translateX = e.touches[0].clientX - startX;
         translateY = e.touches[0].clientY - startY;
 
-        // 邊界防跑出畫面太多
         const maxPanX = window.innerWidth * (currentScale - 0.7);
         const maxPanY = window.innerHeight * (currentScale - 0.7);
         translateX = Math.max(-maxPanX, Math.min(maxPanX, translateX));
@@ -1941,7 +1920,6 @@
 
         applyTransform();
       } else if (e.touches.length === 2 && initialPinchDist !== null) {
-        // 兩指縮放
         const newDist = getTouchDistance(e.touches[0], e.touches[1]);
         const factor = newDist / initialPinchDist;
         currentScale = Math.min(2.5, Math.max(0.9, initialScaleAtPinch * factor));
@@ -1958,7 +1936,6 @@
       }
     });
 
-    // 雙擊快速重設
     let lastTapTime = 0;
     zoomViewport.addEventListener('click', (e) => {
       const currentTime = new Date().getTime();
@@ -1970,9 +1947,6 @@
       lastTapTime = currentTime;
     });
 
-    /* ----------------------------------------------------
-       【渲染榜單】
-    ---------------------------------------------------- */
     function renderLeaderboards(data, curClass, curName, curCoins) {
       const medals = ['🥇', '🥈', '🥉'];
 
@@ -2659,12 +2633,12 @@
       loadScriptureWithSmartAutoUpdate();
     });
 
+    /* ----------------------------------------------------
+       【智慧雙軌啟動】：本地秒開 + 背景自動穿透 CDN 比對
+    ---------------------------------------------------- */
     async function loadScriptureWithSmartAutoUpdate() {
-      statusCard.style.display = 'block';
-      pdfContainerWrap.style.display = 'none';
-
       appProgressFill.style.width = '100%';
-      appProgressVal.textContent = '100% (已載入)';
+      appProgressVal.textContent = '100% (就緒)';
 
       const cached = await getCachedRecord();
       const localBuffer = cached ? (cached.buffer || cached) : null;
@@ -2675,21 +2649,64 @@
         currentActiveFileTag = localTag || 'local';
         pdfProgressFill.style.width = '100%';
         pdfProgressVal.textContent = '100% (本地快取)';
-        statusTitle.textContent = '📖 正在渲染經文...';
 
+        // 1. 本地有快取，立即渲染，零等待進入背誦
+        statusCard.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
         await parseAndRenderPdfData(new Uint8Array(localBuffer));
         updateVisualDisplay();
         scrollToAlignTop(0);
-        return;
-      }
+        await checkDailySchedule();
 
-      await fetchAndSaveNewPdf('initial_' + Date.now());
+        // 2. 背景穿透 CDN 比對 GitHub 是否有新經文
+        checkRemoteScriptureUpdateInBackground(localTag);
+      } else {
+        statusCard.style.display = 'block';
+        pdfContainerWrap.style.display = 'none';
+        await fetchAndSaveNewPdf('initial_' + Date.now());
+      }
+    }
+
+    /* ----------------------------------------------------
+       【背景自動更新】：穿透 GitHub 邊緣 CDN 快取
+    ---------------------------------------------------- */
+    async function checkRemoteScriptureUpdateInBackground(currentTag) {
+      try {
+        const headRes = await fetch('./scripture.pdf?nocache=' + Date.now(), { 
+          method: 'HEAD',
+          cache: 'no-store'
+        });
+
+        if (!headRes.ok) return;
+
+        const newTag = headRes.headers.get('etag') || headRes.headers.get('last-modified') || headRes.headers.get('content-length') || '';
+
+        if (newTag && newTag !== currentTag) {
+          const res = await fetchWithProgress('./scripture.pdf?nocache=' + Date.now(), null);
+          cachedRawBuffer = res.buffer;
+          currentActiveFileTag = newTag;
+          localStorage.setItem('APP_SAVED_PDF_TAG', newTag);
+          await saveRecordToCache(res.buffer, newTag);
+
+          // 非背誦狀態下平滑更新畫面
+          if (!isGuideActive) {
+            await parseAndRenderPdfData(new Uint8Array(res.buffer));
+            updateVisualDisplay();
+
+            scheduleToast.textContent = "📖 經文已自動同步至最新版本！";
+            scheduleToast.style.display = 'block';
+            setTimeout(() => { scheduleToast.style.display = 'none'; }, 3200);
+          }
+        }
+      } catch (err) {
+        console.warn("背景比對略過，繼續使用本機經文:", err);
+      }
     }
 
     async function fetchAndSaveNewPdf(fileTag) {
       statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
       try {
-        const res = await fetchWithProgress('./scripture.pdf?t=' + Date.now(), (pct, cur, total) => {
+        const res = await fetchWithProgress('./scripture.pdf?nocache=' + Date.now(), (pct, cur, total) => {
           const curMb = (cur / (1024 * 1024)).toFixed(1);
           const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
           pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
@@ -2750,7 +2767,16 @@
       }
     });
 
+    /* ----------------------------------------------------
+       【PDF 渲染與轉向防護】：保證橫式比例正確
+    ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
+      // 螢幕轉向過渡防護：若寬度小於高度，代表瀏覽器尚未完成橫向佈局，延遲等待
+      if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
+        setTimeout(() => parseAndRenderPdfData(typedarray), 250);
+        return;
+      }
+
       statusCard.style.display = 'none';
       pdfContainerWrap.style.display = 'flex';
 
@@ -2873,20 +2899,29 @@
       guideStage.style.height = `${viewport.height}px`;
     }
 
-    let resizeTimer = null;
-    window.addEventListener('resize', () => {
+    /* ----------------------------------------------------
+       【轉向去抖動穩定器】：徹底防止 1/4 迷你倒縮與比例錯亂
+    ---------------------------------------------------- */
+    let reRenderDebounceTimer = null;
+    function handleScreenDimensionStabilize() {
       if (isGuideActive) return;
 
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
+      clearTimeout(reRenderDebounceTimer);
+      reRenderDebounceTimer = setTimeout(() => {
+        // 等候硬體真正完成橫向變形後才重繪
         if (cachedRawBuffer) {
           parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
             updateVisualDisplay();
             scrollToAlignTop(currentLineIndex);
           });
         }
-      }, 300);
-    });
+      }, 350);
+    }
+
+    window.addEventListener('resize', handleScreenDimensionStabilize);
+    if (screen.orientation) {
+      screen.orientation.addEventListener('change', handleScreenDimensionStabilize);
+    }
   </script>
 </body>
 </html>
