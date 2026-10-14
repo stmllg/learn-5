@@ -1001,7 +1001,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v103_vad_cycle_fix_and_schedule_sync';
+    const APP_BUILD_VERSION = 'v104_rock_solid_loop_engine';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     const SPEED_LEVELS = [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0];
     
@@ -1301,9 +1301,6 @@
       lineElement.style.display = 'block';
     }
 
-    /* ----------------------------------------------------
-       【問題 1 修復】：排程比對與完成標記格式一致化
-    ---------------------------------------------------- */
     async function checkDailySchedule() {
       try {
         let scheduleData = null;
@@ -2050,10 +2047,18 @@
 
     let hasPageFlipped = false;
 
+    /* ----------------------------------------------------
+       【核心修復】：時間差強制防呆（Safety Delta Clamp）
+       徹底杜絕 delta 歸零引發的停滯現象
+    ---------------------------------------------------- */
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
 
-      const delta = now - lastAnimTimestamp;
+      // 關鍵時間差校正防呆：保證每一幀都能平穩步進，不因多重計時器搶奪而停擺
+      let delta = now - lastAnimTimestamp;
+      if (delta <= 0 || delta > 120) {
+        delta = 16.6;
+      }
       lastAnimTimestamp = now;
 
       const isNearLineEnd = (currentLineProgress >= 0.88);
@@ -2135,9 +2140,15 @@
     }
 
     /* ----------------------------------------------------
-       【問題 2 修復】：換遍時完全重置 VAD 時間戳記與狀態
+       【核心修復】：換遍徹底終止舊迴圈，重啟乾淨時間軸
     ---------------------------------------------------- */
     function handleCycleCompletion() {
+      // 1. 強制終止任何既有動畫迴圈，消滅幽靈迴圈
+      if (guideAnimId) {
+        cancelAnimationFrame(guideAnimId);
+        guideAnimId = null;
+      }
+
       completedCycles += 1;
       const remain = Math.max(0, totalTargetCycles - completedCycles);
       btnRepeatCount.textContent = `${remain}次`;
@@ -2163,11 +2174,6 @@
       isTransitioningLine = true;
       guideLine.style.display = 'none';
 
-      if (guideAnimId) {
-        cancelAnimationFrame(guideAnimId);
-        guideAnimId = null;
-      }
-
       if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
       cycleWaitTimer = setTimeout(() => {
         if (!isGuideActive) return;
@@ -2180,7 +2186,7 @@
         setupActiveLine(currentLineIndex, 0.0);
         isTransitioningLine = false;
 
-        // 重置 VAD 關鍵指標，避免第 2 遍被判定逾時靜止而卡死
+        // 徹底重置時間戳記與 VAD 狀態
         lastAnimTimestamp = performance.now();
         lastVoiceDetectedTime = performance.now();
         isVoiceActive = false;
@@ -2191,6 +2197,7 @@
         btnGuideToggle.classList.remove('guide-active');
         btnGuideToggle.classList.add('guide-waiting');
 
+        // 啟動全新的唯一動畫迴圈
         guideAnimId = requestAnimationFrame(stepGuideMovement);
       }, 1500);
     }
