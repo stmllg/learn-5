@@ -42,7 +42,9 @@
       overflow: hidden;
     }
 
-    /* LINE 內建瀏覽器大字警示層：優先提醒打橫 */
+    /* ----------------------------------------------------
+       【LINE 警示層】：拉至最高圖層 (z-index: 99999)，絕不被開機板遮擋
+    ---------------------------------------------------- */
     #line-warning-banner {
       display: none;
       position: fixed;
@@ -53,7 +55,7 @@
       height: 100dvh;
       background: radial-gradient(circle at center, #DC2626 0%, #991B1B 100%);
       color: #FFFFFF;
-      z-index: 20000;
+      z-index: 99999 !important;
       flex-direction: column;
       justify-content: center;
       align-items: center;
@@ -63,7 +65,7 @@
     }
 
     .line-warning-card {
-      background: rgba(0, 0, 0, 0.82);
+      background: rgba(0, 0, 0, 0.85);
       border: 2.5px solid #FEF08A;
       border-radius: 20px;
       padding: 24px 20px;
@@ -149,7 +151,7 @@
       height: 100vh;
       height: 100dvh;
       background: rgba(5, 10, 20, 0.92);
-      z-index: 99999;
+      z-index: 99990;
       justify-content: center;
       align-items: center;
       padding: 16px;
@@ -1037,15 +1039,15 @@
 </head>
 <body>
 
-  <!-- LINE 內建瀏覽器大字警示層 -->
+  <!-- LINE 內建瀏覽器大字警示層：最高圖層 -->
   <div id="line-warning-banner">
     <div class="line-warning-card">
       <div class="line-warning-icon">📱 ➔ 🔄</div>
       <div class="line-warning-title">請先將手機「橫向擺放」</div>
       <div class="line-warning-text">
         1. 請先把手機 <span class="line-warning-highlight">橫著拿</span><br><br>
-        2. 再點選螢幕邊緣的 <span class="line-warning-highlight">直線三點 (⋮) 或分享圖示</span><br><br>
-        3. 選擇 ➔ <span class="line-warning-highlight">「以預設瀏覽器開啟」</span>（或以 Safari 開啟）<br><br>
+        2. 請看螢幕邊緣或最下方的 <span class="line-warning-highlight">分享鍵 (⎋ 或 ⠇)</span><br><br>
+        3. 點選 ➔ <span class="line-warning-highlight">「以預設瀏覽器開啟」</span>（或 Safari）<br><br>
         即可正常啟用麥克風進行全螢幕背誦！
       </div>
     </div>
@@ -1288,20 +1290,17 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v128_fully_isolated_multiplatform_engine';
+    const APP_BUILD_VERSION = 'v129_isolated_dual_engine_fixed';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
     // =========================================================================
-    // 【系統環境與硬體精確判定】
-    // 嚴格識別 iOS（iPhone / iPad）與 Android，以確保各平台走獨立分流保護
+    // 【精確硬體與系統判定】
     // =========================================================================
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     // =========================================================================
     // 【分流模組 1】：Apple 專用畫布尺度幾何轉換器
-    // 解決 iOS PWA / Safari 在全螢幕拉伸時，螢幕 CSS 像素與 Canvas 渲染解析度的落差
-    // Android 環境直接回傳 1.0 原生等比，保證 0 運算干擾
     // =========================================================================
     function getAppleCanvasScale() {
       if (!isAppleDevice) {
@@ -1520,15 +1519,26 @@
       } catch (e) {}
     }
 
+    /* ----------------------------------------------------
+       【LINE 偵測】：強制關閉開機板，純顯示紅底警告層
+    ---------------------------------------------------- */
     function checkLineInAppBrowser() {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       if (/Line/i.test(ua)) {
+        if (welcomeOverlay) {
+          welcomeOverlay.style.display = 'none';
+          welcomeOverlay.style.opacity = '0';
+        }
         const banner = document.getElementById('line-warning-banner');
-        if (banner) banner.style.display = 'flex';
+        if (banner) {
+          banner.style.display = 'flex';
+        }
         setTimeout(() => {
-          speakPrompt("請先將手機橫放，再點選邊緣三點，以預設瀏覽器開啟");
-        }, 1000);
+          speakPrompt("請先將手機橫放，並點選分享按鈕，以預設瀏覽器開啟");
+        }, 800);
+        return true;
       }
+      return false;
     }
 
     async function triggerLandscapeLock() {
@@ -1594,9 +1604,9 @@
     });
 
     // =========================================================================
-    // 【分流模組 4-A】：存檔退出與關機處理
-    // - Android：呼叫原生 exitFullscreen 與 orientation.unlock
-    // - Apple：嚴禁呼叫 exitFullscreen 與 window.close，避免 WebKit 重繪死結與高速閃爍
+    // 【分流模組 4-A】：關機與釋放
+    // - Android：標準調用 exitFullscreen 與 unlock
+    // - Apple：嚴禁呼叫 exitFullscreen 與 close，避免 WebKit 畫面狂閃
     // =========================================================================
     btnShutdownExit.addEventListener('click', () => {
       haltGuideRunnerImmediately();
@@ -1610,13 +1620,10 @@
       }
 
       if (!isAppleDevice) {
-        // [Android 專屬：標準釋放全螢幕與旋轉鎖定]
         try {
           if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
           if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
         } catch (e) {}
-      } else {
-        // [Apple 專屬：靜態隱藏播放器回到首頁，絕不觸發全螢幕視圖銷毀]
       }
 
       welcomeOverlay.style.display = 'flex';
@@ -1701,15 +1708,13 @@
     }
 
     // =========================================================================
-    // 【分流模組 2-A】：起點與終點標記線渲染 (renderMarkerLine)
-    // - Android：100% 保持原生 CSS absolute 頂部對位
-    // - Apple：透過 getAppleCanvasScale 計算縮放後的真實頂部與寬度
+    // 【分流模組 2-A】：起點與終點標記線渲染
     // =========================================================================
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
 
       if (!isAppleDevice) {
-        // [Android 專屬原生代碼 - 保持原樣]
+        // [Android 原生代碼]
         lineElement.style.top = `${lineObj.underLineY}px`;
         lineElement.style.left = `${lineObj.x0}px`;
         lineElement.style.width = `${lineObj.x1 - lineObj.x0}px`;
@@ -1717,7 +1722,7 @@
         return;
       }
 
-      // [Apple 專屬：按實際顯示尺度縮放對齊]
+      // [Apple 尺度校準]
       const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
       lineElement.style.top = `${offsetTop + (lineObj.underLineY * scaleY)}px`;
       lineElement.style.left = `${offsetLeft + (lineObj.x0 * scaleX)}px`;
@@ -1726,15 +1731,13 @@
     }
 
     // =========================================================================
-    // 【分流模組 2-B】：按鈕點選經文行抓取 (getLineAtButtonBottom)
-    // - Android：以容器捲動位移計算（centerCore.scrollTop + buttonBottomViewportY）
-    // - Apple：以按鈕底緣直接相減 Canvas 頂端並除以 scaleY 還原內部座標
+    // 【分流模組 2-B】：按鈕點選行抓取
     // =========================================================================
     function getLineAtButtonBottom(buttonElement) {
       if (parsedTextLines.length === 0) return 0;
 
       if (!isAppleDevice) {
-        // [Android 專屬原生代碼 - 保持原樣]
+        // [Android 原生算法]
         const btnRect = buttonElement.getBoundingClientRect();
         const centerRect = centerCore.getBoundingClientRect();
         const buttonBottomViewportY = btnRect.bottom - centerRect.top;
@@ -1754,7 +1757,7 @@
         return closestIdx;
       }
 
-      // [Apple 專屬：純幾何投影與尺度還原]
+      // [Apple 尺度還原]
       const btnRect = buttonElement.getBoundingClientRect();
       const canvasRect = pdfCanvas.getBoundingClientRect();
       const { scaleY } = getAppleCanvasScale();
@@ -2457,9 +2460,7 @@
     }
 
     // =========================================================================
-    // 【分流模組 3-A】：當前朗讀行綠線與紅點初始化 (setupActiveLine)
-    // - Android：使用原生未縮放座標（underLineY、x0、curX）
-    // - Apple：將 Y 軸與 X 軸全部乘上 scaleY 與 scaleX，解決導引線偏下的問題
+    // 【分流模組 3-A】：導引線與紅點初始化
     // =========================================================================
     function setupActiveLine(idx, initialProgress = 0.0) {
       if (idx >= parsedTextLines.length) {
@@ -2475,7 +2476,7 @@
 
       if (isGuideActive) {
         if (!isAppleDevice) {
-          // [Android 專屬原生代碼 - 保持原樣]
+          // [Android 原生代碼]
           const lineY = line.underLineY;
           guideLine.style.top = `${lineY}px`;
           guideLine.style.left = `${line.x0}px`;
@@ -2485,7 +2486,7 @@
           redDot.style.top = `${lineY}px`;
           redDot.style.left = `${curX}px`;
         } else {
-          // [Apple 專屬：幾何尺度換算，緊貼文字底緣]
+          // [Apple 幾何尺度校準]
           const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
           const targetY = offsetTop + (line.underLineY * scaleY);
           const targetLeft = offsetLeft + (line.x0 * scaleX);
@@ -2510,9 +2511,7 @@
     let hasPageFlipped = false;
 
     // =========================================================================
-    // 【分流模組 3-B】：導引紅點逐幀位移動畫 (stepGuideMovement)
-    // - Android：直接走原始像素位移
-    // - Apple：紅點 X 與 Y 乘上 scaleX 與 scaleY，確保在全螢幕下精確指引每個中文字
+    // 【分流模組 3-B】：導引紅點逐幀位移
     // =========================================================================
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
@@ -2613,8 +2612,7 @@
     }
 
     // =========================================================================
-    // 【分流模組 4-B】：循環完成與第二遍換遍處理 (handleCycleCompletion)
-    // 解決 iOS 在第一遍結束滾動重置時，因時序未校準導致第二遍卡死不動的死穴
+    // 【分流模組 4-B】：換遍校準防卡死
     // =========================================================================
     function handleCycleCompletion() {
       if (guideAnimId) {
@@ -2657,7 +2655,7 @@
         setupActiveLine(currentLineIndex, 0.0);
         isTransitioningLine = false;
 
-        // 【iOS 換遍防卡死關鍵】：重設高精度時間戳與聲音偵測狀態
+        // 重置時間戳與語音門檻，防止 iOS 第二遍卡死
         lastAnimTimestamp = performance.now();
         lastVoiceDetectedTime = performance.now();
         isVoiceActive = false;
@@ -2789,9 +2787,11 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      // 優先檢查 LINE 內建視窗，若是則亮起紅底提示卡，絕不讓開機指引板覆蓋
+      if (checkLineInAppBrowser()) return;
+
       verifyVersionAndCleanState();
       initUserPreferences();
-      checkLineInAppBrowser();
       loadScriptureWithSmartAutoUpdate();
     });
 
@@ -2874,3 +2874,265 @@
           }
         }
       } catch (e) {}
+
+      try {
+        const headHtml = await fetch('./index.html?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+        if (headHtml.ok) {
+          const remoteHtmlTag = headHtml.headers.get('etag') || headHtml.headers.get('last-modified') || '';
+          const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG');
+
+          if (!localHtmlTag) {
+            if (remoteHtmlTag) localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
+          } else if (remoteHtmlTag && remoteHtmlTag !== localHtmlTag) {
+            localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
+            updatedItemsList.push("播放器核心程式 (index.html)");
+            needAppReload = true;
+          }
+        }
+      } catch (e) {}
+
+      if (updatedItemsList.length > 0) {
+        showUpdateConfirmModal(updatedItemsList, latestServerTimeStr, needAppReload);
+      }
+    }
+
+    async function fetchAndSaveNewPdf(fileTag) {
+      statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
+      try {
+        const res = await fetchWithProgress('./scripture.pdf?nocache=' + Date.now(), (pct, cur, total) => {
+          const curMb = (cur / (1024 * 1024)).toFixed(1);
+          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
+          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
+          pdfProgressFill.style.width = `${pct}%`;
+        });
+
+        cachedRawBuffer = res.buffer;
+        const tag = res.tag || fileTag;
+        currentActiveFileTag = tag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
+        await saveRecordToCache(res.buffer, tag);
+        await parseAndRenderPdfData(new Uint8Array(res.buffer));
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+        await checkDailySchedule();
+      } catch (e) {
+        const fallback = await getCachedRecord();
+        if (fallback && fallback.buffer) {
+          cachedRawBuffer = fallback.buffer;
+          currentActiveFileTag = fallback.tag || 'fallback';
+          await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
+          updateVisualDisplay();
+          scrollToAlignTop(0);
+          await checkDailySchedule();
+        } else {
+          statusTitle.textContent = '📖 請挑選經文檔案';
+          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
+          btnManualPick.style.display = 'inline-block';
+        }
+      }
+    }
+
+    btnManualPick.addEventListener('click', () => {
+      filePdfInput.value = '';
+      filePdfInput.click();
+    });
+
+    filePdfInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      statusTitle.textContent = '📖 正在載入經文...';
+      btnManualPick.style.display = 'none';
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        cachedRawBuffer = arrayBuffer;
+        const tag = 'manual_' + file.lastModified;
+        currentActiveFileTag = tag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
+        await saveRecordToCache(arrayBuffer, tag);
+        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+      } catch (err) {
+        alert('經文解析失敗：' + err.message);
+        btnManualPick.style.display = 'inline-block';
+      }
+    });
+
+    // =========================================================================
+    // 【分流模組 5】：渲染方向與邊界
+    // - Android：保留寬小於高等待旋轉，保證原生流暢
+    // - Apple：下載完成直接繪製，徹底解除 PWA 直向無限迴圈
+    // =========================================================================
+    async function parseAndRenderPdfData(typedarray) {
+      if (!isAppleDevice) {
+        if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
+          setTimeout(() => parseAndRenderPdfData(typedarray), 350);
+          return;
+        }
+      }
+
+      statusCard.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
+
+      const loadingTask = pdfjsLib.getDocument({
+        data: typedarray,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+        cMapPacked: true
+      });
+
+      currentPdfDoc = await loadingTask.promise;
+      const page = await currentPdfDoc.getPage(1);
+
+      pdfCanvas.width = 0;
+      pdfCanvas.height = 0;
+
+      const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
+      const pageRotation = page.rotate || 0;
+      const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
+      const pageScale = availableWidth / unscaledViewport.width;
+      const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
+
+      pdfCanvas.width = viewport.width;
+      pdfCanvas.height = viewport.height;
+      const ctx = pdfCanvas.getContext('2d');
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: viewport
+      }).promise;
+
+      const textContent = await page.getTextContent();
+      const items = textContent.items;
+
+      const validSpans = [];
+      const chineseCharRegex = /[\u4e00-\u9fa5]/;
+
+      items.forEach(it => {
+        const str = it.str || '';
+        if (!str.trim()) return;
+
+        const tx = it.transform;
+        const pdfX = tx[4];
+        const pdfY = tx[5];
+
+        const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
+        const fontWidth = it.width * pageScale;
+
+        const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
+        const screenX0 = p0[0];
+
+        const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
+        const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+
+        const realTop = Math.min(p0[1], pTop[1]);
+        const realBottom = Math.max(p0[1], pTop[1]);
+
+        const charWidth = fontWidth / Math.max(1, str.length);
+        for (let c = 0; c < str.length; c++) {
+          const char = str[c];
+          if (chineseCharRegex.test(char)) {
+            const charX0 = screenX0 + (c * charWidth);
+            const charX1 = charX0 + charWidth;
+            validSpans.push({
+              x0: charX0,
+              x1: charX1,
+              topY: realTop,
+              bottomY: realBottom,
+              fs: fontScale,
+              char: char
+            });
+          }
+        }
+      });
+
+      validSpans.sort((a, b) => a.topY - b.topY);
+      const rowGroups = [];
+
+      validSpans.forEach(span => {
+        let matched = false;
+        for (let g of rowGroups) {
+          if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
+            g.spans.push(span);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          rowGroups.push({ topY: span.topY, spans: [span] });
+        }
+      });
+
+      const analyzedRows = rowGroups.map(g => {
+        g.spans.sort((a, b) => a.x0 - b.x0);
+        const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
+        const minTop = Math.min(...g.spans.map(s => s.topY));
+        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
+        const lineX0 = g.spans[0].x0;
+        const lineX1 = g.spans[g.spans.length - 1].x1;
+
+        return {
+          spans: g.spans,
+          chineseCount: g.spans.length,
+          avgFs: avgFs,
+          minTop: minTop,
+          maxBottom: maxBottom,
+          lineX0: lineX0,
+          lineX1: lineX1,
+          underLineY: maxBottom + 7
+        };
+      });
+
+      const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
+      let mainTextFontSize = 0;
+      if (candidateLargeRows.length > 0) {
+        const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
+        mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
+      }
+
+      parsedTextLines = [];
+      let internalIndex = 0;
+
+      analyzedRows.forEach(r => {
+        const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
+
+        if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
+          parsedTextLines.push({
+            lineIndex: internalIndex++,
+            x0: r.lineX0,
+            x1: r.lineX1,
+            topGlobal: r.minTop,
+            bottomGlobal: r.maxBottom,
+            underLineY: r.underLineY,
+            charItems: r.spans
+          });
+        }
+      });
+
+      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+      guideStage.style.height = `${viewport.height}px`;
+    }
+
+    let reRenderDebounceTimer = null;
+    function handleScreenDimensionStabilize() {
+      if (isGuideActive) return;
+
+      clearTimeout(reRenderDebounceTimer);
+      reRenderDebounceTimer = setTimeout(() => {
+        if (cachedRawBuffer && centerCore.clientWidth > centerCore.clientHeight) {
+          parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
+            updateVisualDisplay();
+            scrollToAlignTop(currentLineIndex);
+          });
+        }
+      }, 400);
+    }
+
+    window.addEventListener('resize', handleScreenDimensionStabilize);
+    if (screen.orientation) {
+      screen.orientation.addEventListener('change', handleScreenDimensionStabilize);
+    }
+  </script>
+</body>
+</html>
