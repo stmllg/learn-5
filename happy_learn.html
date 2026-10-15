@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式播放器</title>
+  <title>歡喜背書橫式播放器 v134 (Python動態流速靈活換句版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1316,7 +1316,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v133_python_flow_engine_locked';
+    const APP_BUILD_VERSION = 'v134_python_flow_engine_locked';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
     // =========================================================================
@@ -1418,7 +1418,6 @@
 
     let guideAnimId = null;
     let cycleWaitTimer = null;
-    let lineWaitTimer = null;
 
     let isGuideActive = false;
     let currentLineIndex = 0;
@@ -1431,6 +1430,14 @@
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
 
+    // 起句鎖定旗標：新句必須等第一個明確起音才放行超過 0.5 字
+    let isLineHeadLocked = true;
+
+    // 換行靈活監聽狀態機變數 (200ms 保底 ＋ 雙逃脫)
+    let lineEndTime = 0;
+    let peakRmsAtLineEnd = 0.0;
+    let prevRms = 0.0;
+
     let pendingScheduleSpeech = "";
     let hasInteractedWithWelcome = false;
 
@@ -1438,10 +1445,8 @@
     let analyser = null;
     let micStream = null;
     let vadCheckTimer = null;
-    let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
     let isTouchingDisplay = false;
-    const SILENCE_TIMEOUT_MS = 380; // 靜音靈敏釋放：換氣停頓立即煞車等待
 
     let baseNoiseLevel = 0.0015;
     let dynamicThreshold = 0.0020;
@@ -1588,6 +1593,7 @@
       }
       completedCycles = 0;
       currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
       isGuideActive = false;
       isTransitioningLine = false;
 
@@ -1825,6 +1831,7 @@
           markB_Index = Math.min(parsedTextLines.length - 1, todayPlan.end - 1);
           currentLineIndex = markA_Index;
           currentCharIndexFloat = 0.0;
+          isLineHeadLocked = true;
           completedCycles = 0;
 
           if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
@@ -1909,6 +1916,7 @@
 
       currentLineIndex = markA_Index;
       currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
       completedCycles = 0;
 
       updateVisualDisplay();
@@ -2187,6 +2195,7 @@
     centerCore.addEventListener('pointerdown', () => {
       if (!isGuideActive) return;
       isTouchingDisplay = true;
+      isLineHeadLocked = false;
       if (!isVoiceActive) {
         isVoiceActive = true;
         btnGuideToggle.textContent = '背誦中';
@@ -2199,7 +2208,6 @@
     const stopTouchDrive = () => {
       if (!isGuideActive) return;
       isTouchingDisplay = false;
-      lastVoiceDetectedTime = performance.now();
     };
 
     centerCore.addEventListener('pointerup', stopTouchDrive);
@@ -2236,13 +2244,12 @@
       }
 
       if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-      if (lineWaitTimer) { clearTimeout(lineWaitTimer); lineWaitTimer = null; }
 
       isVoiceActive = false;
       isTouchingDisplay = false;
       isTransitioningLine = false;
       hasPageFlipped = false;
-      lastVoiceDetectedTime = performance.now();
+      isLineHeadLocked = true;
 
       spawnGoldCoinsAt(btnGuideToggle);
       completedCycles = 0;
@@ -2291,7 +2298,6 @@
           isCalibrating = false;
         }, 350);
 
-        lastVoiceDetectedTime = performance.now();
         startVadMonitorLoop();
       } catch (err) {
         console.warn("麥克風無法啟動:", err);
@@ -2300,8 +2306,10 @@
     }
 
     // =========================================================================
-    // 【平滑語音活動監測】：持續發聲維持前進向量，換氣短暫停頓即刻煞車
+    // 【Python 式 Chunk 即時監測】：取消 380ms 延遲，嘴停即刻煞車
     // =========================================================================
+    let silentFrameCount = 0;
+
     function startVadMonitorLoop() {
       if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
 
@@ -2320,16 +2328,40 @@
             sumSquares += val * val;
           }
           const rms = Math.sqrt(sumSquares / bufferLength);
-          const now = performance.now();
 
           if (isCalibrating) {
             calibrationSamples.push(rms);
           }
 
+          const deltaRms = rms - prevRms;
           const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
 
+          // 1. 起句解鎖：若處於起跑鎖定中，捕捉到明顯起音波峰（Attack Peak）立即解鎖
+          if (isLineHeadLocked && deltaRms > (dynamicThreshold * 0.4)) {
+            isLineHeadLocked = false;
+          }
+
+          // 2. 換行靈活監聽狀態機 (200ms 保底 ＋ 雙逃脫通道)
+          if (isTransitioningLine) {
+            const elapsed = performance.now() - lineEndTime;
+            
+            // 逃脫通道 1：新句開口（新波峰），秒切下一句
+            if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.45)) {
+              proceedToNextLineImmediately();
+            }
+            // 逃脫通道 2：能量相對下墜超過 30%，提早於 80~100ms 順暢滑入
+            else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
+              proceedToNextLineImmediately();
+            }
+            // 保底通道 3：200ms 硬上限強制換行
+            else if (elapsed >= 200) {
+              proceedToNextLineImmediately();
+            }
+          }
+
+          // 3. 即時聲音狀態切換 (比照 Python：低於門檻只給 2~3 個 Frame 約 40ms 緩衝立即煞車)
           if (hasVoiceEnergy) {
-            lastVoiceDetectedTime = now;
+            silentFrameCount = 0;
             if (!isVoiceActive) {
               isVoiceActive = true;
               btnGuideToggle.textContent = '背誦中';
@@ -2338,14 +2370,18 @@
               lastAnimTimestamp = performance.now();
             }
           } else {
-            // 靜音釋放門檻：背誦者思考、卡詞或換氣時，紅點立刻停在當前字等候
-            if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
-              isVoiceActive = false;
-              btnGuideToggle.textContent = '靜止';
-              btnGuideToggle.classList.remove('guide-active');
-              btnGuideToggle.classList.add('guide-waiting');
+            silentFrameCount++;
+            if (silentFrameCount >= 3) { // 約 30~50 毫秒極速煞車
+              if (isVoiceActive) {
+                isVoiceActive = false;
+                btnGuideToggle.textContent = '靜止';
+                btnGuideToggle.classList.remove('guide-active');
+                btnGuideToggle.classList.add('guide-waiting');
+              }
             }
           }
+
+          prevRms = rms;
         }
 
         vadCheckTimer = requestAnimationFrame(checkVolume);
@@ -2486,10 +2522,10 @@
 
     // =========================================================================
     // 【分流模組 3-B】：Python 式連續流速動畫核心 (stepGuideMovement)
-    // - 實體漢字陣列步進，發聲即恆速流動，無頓挫
-    // - 「語快／語慢」（baseSpeed）即基準流速
-    // - 倒數 2 字等速平穩收尾，絕不暴衝
-    // - 末字過半 (N - 0.5) 提前平順換頁
+    // - 起句 0.5 字軟鎖定
+    // - 倒數 2 字等速滑行
+    // - 末字物理封頂釘死
+    // - 末字過半平順滾動翻頁
     // =========================================================================
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
@@ -2505,11 +2541,24 @@
       const inertiaStartIndex = Math.max(1, totalChars - 2);
       const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
 
-      // 前進條件：發聲中，或已踏入倒數 2 字過渡區
+      // 前進動力判斷：發聲中，或已踏入倒數 2 字過渡區
       if (isVoiceActive || isInTailZone) {
-        // Python 基準漢字流速 (字/毫秒)：基準 2.8 字/秒乘上語速倍率
+        // Python 基準漢字流速 (字/毫秒)
         const charPerMs = (2.8 * baseSpeed) / 1000;
-        currentCharIndexFloat += charPerMs * delta;
+        
+        // 起句防偷跑軟鎖定：未開口爆發前，進度最多只准滑到 0.5 字寬
+        if (isLineHeadLocked) {
+          if (currentCharIndexFloat < 0.5) {
+            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
+          }
+        } else {
+          currentCharIndexFloat += charPerMs * delta;
+        }
+
+        // 物理封頂釘死：絕對不准溢出總字數
+        if (currentCharIndexFloat > totalChars) {
+          currentCharIndexFloat = totalChars;
+        }
       }
 
       // 【視覺平順換頁】：踩過最後一個漢字的 50% 物理中心，立即平順滾動
@@ -2524,7 +2573,7 @@
         }
       }
 
-      // 當整句漢字朗讀完畢
+      // 當進度觸及行尾上限端點：啟動 200ms 保底 ＋ 雙逃脫換行監聽
       if (currentCharIndexFloat >= totalChars) {
         currentCharIndexFloat = totalChars;
 
@@ -2544,6 +2593,7 @@
           guideAnimId = null;
         }
 
+        // 若整遍結束
         if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
           handleCycleCompletion();
           return;
@@ -2555,25 +2605,15 @@
           return;
         }
 
+        // 進入換行過渡期：釘住紅點，記錄時間與能量
         isTransitioningLine = true;
+        lineEndTime = performance.now();
+        peakRmsAtLineEnd = prevRms;
         guideLine.style.display = 'none';
-
-        if (lineWaitTimer) clearTimeout(lineWaitTimer);
-        lineWaitTimer = setTimeout(() => {
-          if (!isGuideActive) return;
-
-          hasPageFlipped = false;
-          currentLineIndex = nextIndex;
-          currentCharIndexFloat = 0.0;
-
-          setupActiveLine(currentLineIndex, 0.0);
-          lastAnimTimestamp = performance.now();
-          guideAnimId = requestAnimationFrame(stepGuideMovement);
-        }, 160);
-
         return;
       }
 
+      // 即時渲染紅點於當前漢字物理座標
       if (curLine) {
         const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
         if (!isAppleDevice) {
@@ -2586,6 +2626,23 @@
         }
       }
 
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    // =========================================================================
+    // 【切換至下一行】：雙逃脫或 200ms 保底觸發時呼叫
+    // =========================================================================
+    function proceedToNextLineImmediately() {
+      if (!isTransitioningLine || !isGuideActive) return;
+
+      const nextIndex = currentLineIndex + 1;
+      hasPageFlipped = false;
+      currentLineIndex = nextIndex;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true; // 新句重新啟動起句鎖定
+
+      setupActiveLine(currentLineIndex, 0.0);
+      lastAnimTimestamp = performance.now();
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
@@ -2628,13 +2685,13 @@
         hasPageFlipped = false;
         currentLineIndex = markA_Index;
         currentCharIndexFloat = 0.0;
+        isLineHeadLocked = true;
         scrollToAlignTop(currentLineIndex);
 
         setupActiveLine(currentLineIndex, 0.0);
         isTransitioningLine = false;
 
         lastAnimTimestamp = performance.now();
-        lastVoiceDetectedTime = performance.now();
         isVoiceActive = false;
 
         btnGuideToggle.textContent = '靜止';
@@ -2650,7 +2707,6 @@
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
       if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-      if (lineWaitTimer) { clearTimeout(lineWaitTimer); lineWaitTimer = null; }
 
       isGuideActive = false;
       isTransitioningLine = false;
@@ -2663,6 +2719,7 @@
       completedCycles = 0;
       currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
       currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
 
       btnGuideToggle.textContent = '背書';
       btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
@@ -2673,7 +2730,6 @@
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
       if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-      if (lineWaitTimer) { clearTimeout(lineWaitTimer); lineWaitTimer = null; }
 
       isGuideActive = false;
       isTransitioningLine = false;
@@ -2765,346 +2821,3 @@
       if (checkLineInAppBrowser()) return;
 
       verifyVersionAndCleanState();
-      initUserPreferences();
-      loadScriptureWithSmartAutoUpdate();
-    });
-
-    async function loadScriptureWithSmartAutoUpdate() {
-      appProgressFill.style.width = '100%';
-      appProgressVal.textContent = '100% (就緒)';
-
-      const cached = await getCachedRecord();
-      const localBuffer = cached ? (cached.buffer || cached) : null;
-      const localTag = (cached && cached.tag) ? cached.tag : localStorage.getItem('APP_SAVED_PDF_TAG');
-
-      if (localBuffer) {
-        cachedRawBuffer = localBuffer;
-        currentActiveFileTag = localTag || 'local';
-        pdfProgressFill.style.width = '100%';
-        pdfProgressVal.textContent = '100% (本地快取)';
-
-        statusCard.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-        await parseAndRenderPdfData(new Uint8Array(localBuffer));
-        updateVisualDisplay();
-        scrollToAlignTop(0);
-        await checkDailySchedule();
-      } else {
-        statusCard.style.display = 'block';
-        pdfContainerWrap.style.display = 'none';
-        await fetchAndSaveNewPdf('initial_' + Date.now());
-      }
-    }
-
-    async function runTripleBackgroundSync(currentPdfTag) {
-      if (!navigator.onLine) {
-        showToast("📶 離線模式：已載入本機經文與排程", 3000);
-        return;
-      }
-
-      const updatedItemsList = [];
-      let latestServerTimeStr = "";
-      let needAppReload = false;
-
-      try {
-        const schedRes = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
-        if (schedRes.ok) {
-          const freshSchedule = await schedRes.json();
-          const serverMod = schedRes.headers.get('last-modified');
-          if (serverMod) latestServerTimeStr = formatDateTime(new Date(serverMod));
-
-          if (Array.isArray(freshSchedule)) {
-            const oldSched = localStorage.getItem('LOCAL_SCHEDULE_CACHE');
-            if (JSON.stringify(freshSchedule) !== oldSched) {
-              localStorage.setItem('LOCAL_SCHEDULE_CACHE', JSON.stringify(freshSchedule));
-              updatedItemsList.push("每日進度排程 (schedule.json)");
-              if (!isGuideActive) await checkDailySchedule();
-            }
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const headPdf = await fetch('./scripture.pdf?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-        if (headPdf.ok) {
-          const remoteTag = headPdf.headers.get('etag') || headPdf.headers.get('last-modified') || headPdf.headers.get('content-length') || '';
-          const serverMod = headPdf.headers.get('last-modified');
-          if (serverMod && !latestServerTimeStr) latestServerTimeStr = formatDateTime(new Date(serverMod));
-
-          if (remoteTag && currentPdfTag && remoteTag !== currentPdfTag) {
-            const res = await fetchWithProgress('./scripture.pdf?nocache=' + Date.now(), null);
-            cachedRawBuffer = res.buffer;
-            currentActiveFileTag = remoteTag;
-            localStorage.setItem('APP_SAVED_PDF_TAG', remoteTag);
-            await saveRecordToCache(res.buffer, remoteTag);
-
-            if (!isGuideActive) {
-              await parseAndRenderPdfData(new Uint8Array(res.buffer));
-              updateVisualDisplay();
-            }
-            updatedItemsList.push("經文檔案 (scripture.pdf)");
-          } else if (remoteTag && !currentPdfTag) {
-            localStorage.setItem('APP_SAVED_PDF_TAG', remoteTag);
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const headHtml = await fetch('./index.html?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-        if (headHtml.ok) {
-          const remoteHtmlTag = headHtml.headers.get('etag') || headHtml.headers.get('last-modified') || '';
-          const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG');
-
-          if (!localHtmlTag) {
-            if (remoteHtmlTag) localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
-          } else if (remoteHtmlTag && remoteHtmlTag !== localHtmlTag) {
-            localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
-            updatedItemsList.push("播放器核心程式 (index.html)");
-            needAppReload = true;
-          }
-        }
-      } catch (e) {}
-
-      if (updatedItemsList.length > 0) {
-        showUpdateConfirmModal(updatedItemsList, latestServerTimeStr, needAppReload);
-      }
-    }
-
-    async function fetchAndSaveNewPdf(fileTag) {
-      statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
-      try {
-        const res = await fetchWithProgress('./scripture.pdf?nocache=' + Date.now(), (pct, cur, total) => {
-          const curMb = (cur / (1024 * 1024)).toFixed(1);
-          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
-          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
-          pdfProgressFill.style.width = `${pct}%`;
-        });
-
-        cachedRawBuffer = res.buffer;
-        const tag = res.tag || fileTag;
-        currentActiveFileTag = tag;
-        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
-        await saveRecordToCache(res.buffer, tag);
-        await parseAndRenderPdfData(new Uint8Array(res.buffer));
-        updateVisualDisplay();
-        scrollToAlignTop(0);
-        await checkDailySchedule();
-      } catch (e) {
-        const fallback = await getCachedRecord();
-        if (fallback && fallback.buffer) {
-          cachedRawBuffer = fallback.buffer;
-          currentActiveFileTag = fallback.tag || 'fallback';
-          await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
-          updateVisualDisplay();
-          scrollToAlignTop(0);
-          await checkDailySchedule();
-        } else {
-          statusTitle.textContent = '📖 請挑選經文檔案';
-          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
-          btnManualPick.style.display = 'inline-block';
-        }
-      }
-    }
-
-    btnManualPick.addEventListener('click', () => {
-      filePdfInput.value = '';
-      filePdfInput.click();
-    });
-
-    filePdfInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      statusTitle.textContent = '📖 正在載入經文...';
-      btnManualPick.style.display = 'none';
-
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        cachedRawBuffer = arrayBuffer;
-        const tag = 'manual_' + file.lastModified;
-        currentActiveFileTag = tag;
-        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
-        await saveRecordToCache(arrayBuffer, tag);
-        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
-        updateVisualDisplay();
-        scrollToAlignTop(0);
-      } catch (err) {
-        alert('經文解析失敗：' + err.message);
-        btnManualPick.style.display = 'inline-block';
-      }
-    });
-
-    // =========================================================================
-    // 【分流模組 5】：渲染方向與純漢字抽取（嚴禁更動）
-    // =========================================================================
-    async function parseAndRenderPdfData(typedarray) {
-      if (!isAppleDevice) {
-        if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
-          setTimeout(() => parseAndRenderPdfData(typedarray), 350);
-          return;
-        }
-      }
-
-      statusCard.style.display = 'none';
-      pdfContainerWrap.style.display = 'flex';
-
-      const loadingTask = pdfjsLib.getDocument({
-        data: typedarray,
-        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
-        cMapPacked: true
-      });
-
-      currentPdfDoc = await loadingTask.promise;
-      const page = await currentPdfDoc.getPage(1);
-
-      pdfCanvas.width = 0;
-      pdfCanvas.height = 0;
-
-      const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
-      const pageRotation = page.rotate || 0;
-      const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
-      const pageScale = availableWidth / unscaledViewport.width;
-      const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
-
-      pdfCanvas.width = viewport.width;
-      pdfCanvas.height = viewport.height;
-      const ctx = pdfCanvas.getContext('2d');
-
-      await page.render({
-        canvasContext: ctx,
-        viewport: viewport
-      }).promise;
-
-      const textContent = await page.getTextContent();
-      const items = textContent.items;
-
-      const validSpans = [];
-      const chineseCharRegex = /[\u4e00-\u9fa5]/;
-
-      items.forEach(it => {
-        const str = it.str || '';
-        if (!str.trim()) return;
-
-        const tx = it.transform;
-        const pdfX = tx[4];
-        const pdfY = tx[5];
-
-        const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
-        const fontWidth = it.width * pageScale;
-
-        const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
-        const screenX0 = p0[0];
-
-        const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
-        const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
-
-        const realTop = Math.min(p0[1], pTop[1]);
-        const realBottom = Math.max(p0[1], pTop[1]);
-
-        const charWidth = fontWidth / Math.max(1, str.length);
-        for (let c = 0; c < str.length; c++) {
-          const char = str[c];
-          if (chineseCharRegex.test(char)) {
-            const charX0 = screenX0 + (c * charWidth);
-            const charX1 = charX0 + charWidth;
-            validSpans.push({
-              x0: charX0,
-              x1: charX1,
-              topY: realTop,
-              bottomY: realBottom,
-              fs: fontScale,
-              char: char
-            });
-          }
-        }
-      });
-
-      validSpans.sort((a, b) => a.topY - b.topY);
-      const rowGroups = [];
-
-      validSpans.forEach(span => {
-        let matched = false;
-        for (let g of rowGroups) {
-          if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
-            g.spans.push(span);
-            matched = true;
-            break;
-          }
-        }
-        if (!matched) {
-          rowGroups.push({ topY: span.topY, spans: [span] });
-        }
-      });
-
-      const analyzedRows = rowGroups.map(g => {
-        g.spans.sort((a, b) => a.x0 - b.x0);
-        const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
-        const minTop = Math.min(...g.spans.map(s => s.topY));
-        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
-        const lineX0 = g.spans[0].x0;
-        const lineX1 = g.spans[g.spans.length - 1].x1;
-
-        return {
-          spans: g.spans,
-          chineseCount: g.spans.length,
-          avgFs: avgFs,
-          minTop: minTop,
-          maxBottom: maxBottom,
-          lineX0: lineX0,
-          lineX1: lineX1,
-          underLineY: maxBottom + 7
-        };
-      });
-
-      const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
-      let mainTextFontSize = 0;
-      if (candidateLargeRows.length > 0) {
-        const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
-        mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
-      }
-
-      parsedTextLines = [];
-      let internalIndex = 0;
-
-      analyzedRows.forEach(r => {
-        const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
-
-        if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
-          parsedTextLines.push({
-            lineIndex: internalIndex++,
-            x0: r.lineX0,
-            x1: r.lineX1,
-            topGlobal: r.minTop,
-            bottomGlobal: r.maxBottom,
-            underLineY: r.underLineY,
-            charItems: r.spans
-          });
-        }
-      });
-
-      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
-      guideStage.style.height = `${viewport.height}px`;
-    }
-
-    let reRenderDebounceTimer = null;
-    function handleScreenDimensionStabilize() {
-      if (isGuideActive) return;
-
-      clearTimeout(reRenderDebounceTimer);
-      reRenderDebounceTimer = setTimeout(() => {
-        if (cachedRawBuffer && centerCore.clientWidth > centerCore.clientHeight) {
-          parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
-            updateVisualDisplay();
-            scrollToAlignTop(currentLineIndex);
-          });
-        }
-      }, 400);
-    }
-
-    window.addEventListener('resize', handleScreenDimensionStabilize);
-    if (screen.orientation) {
-      screen.orientation.addEventListener('change', handleScreenDimensionStabilize);
-    }
-  </script>
-</body>
-</html>
