@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式播放器 v134 (Python動態流速靈活換句版)</title>
+  <title>歡喜背書橫式播放器 v135 (看板點擊修復暨動態流速版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1316,7 +1316,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v134_python_flow_engine_locked';
+    const APP_BUILD_VERSION = 'v135_python_flow_engine_locked';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
     // =========================================================================
@@ -1559,17 +1559,6 @@
       return false;
     }
 
-    async function triggerLandscapeLock() {
-      try {
-        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen();
-        }
-        if (screen.orientation && screen.orientation.lock) {
-          await screen.orientation.lock('landscape');
-        }
-      } catch (err) {}
-    }
-
     function getNormalizedDateStr() {
       const now = new Date();
       const yyyy = now.getFullYear();
@@ -1578,15 +1567,28 @@
       return `${yyyy}/${mm}/${dd}`;
     }
 
-    welcomeOverlay.addEventListener('click', async () => {
+    // =========================================================================
+    // 【開機操作指引看板點擊】：優先淡出關閉，防全螢幕阻塞卡死
+    // =========================================================================
+    welcomeOverlay.addEventListener('click', () => {
+      // 1. 第一優先：立即將看板淡出並隱藏，保證點擊絕對有反應
       hasInteractedWithWelcome = true;
       welcomeOverlay.style.opacity = '0';
       setTimeout(() => {
         welcomeOverlay.style.display = 'none';
       }, 300);
 
-      await triggerLandscapeLock();
+      // 2. 螢幕旋轉與全螢幕放在背景嘗試，不使用 await 阻塞後續初始化
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      } catch (e) {}
 
+      // 3. 正常執行排程與經文定位
       if (!isScheduleLocked) {
         markA_Index = -1;
         markB_Index = -1;
@@ -1604,13 +1606,14 @@
         scrollToAlignTop(0);
       }
 
+      // 4. 音訊環境喚醒
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') await audioContext.resume();
+        if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
       } catch (e) {}
 
-      await checkDailySchedule();
+      checkDailySchedule();
       runTripleBackgroundSync(currentActiveFileTag);
 
       if (pendingScheduleSpeech) {
@@ -1900,7 +1903,6 @@
     }
 
     btnMarkA.addEventListener('click', () => {
-      triggerLandscapeLock();
       if (isGuideActive) return;
 
       if (isScheduleLocked) {
@@ -1924,7 +1926,6 @@
     });
 
     btnMarkB.addEventListener('click', () => {
-      triggerLandscapeLock();
       if (isGuideActive) return;
 
       if (isScheduleLocked) {
@@ -1974,7 +1975,6 @@
     });
 
     btnOffering.addEventListener('click', () => {
-      triggerLandscapeLock();
       if (isGuideActive) return;
 
       displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
@@ -2215,8 +2215,6 @@
     centerCore.addEventListener('pointerleave', stopTouchDrive);
 
     btnGuideToggle.addEventListener('click', async () => {
-      triggerLandscapeLock();
-
       if (markA_Index === -1 || markB_Index === -1) {
         speakPrompt("請先設定起點與終點");
         btnMarkA.style.transform = 'scale(1.1)';
@@ -2821,3 +2819,265 @@
       if (checkLineInAppBrowser()) return;
 
       verifyVersionAndCleanState();
+      initUserPreferences();
+      loadScriptureWithSmartAutoUpdate();
+    });
+
+    async function loadScriptureWithSmartAutoUpdate() {
+      appProgressFill.style.width = '100%';
+      appProgressVal.textContent = '100% (就緒)';
+
+      const cached = await getCachedRecord();
+      const localBuffer = cached ? (cached.buffer || cached) : null;
+      const localTag = (cached && cached.tag) ? cached.tag : localStorage.getItem('APP_SAVED_PDF_TAG');
+
+      if (localBuffer) {
+        cachedRawBuffer = localBuffer;
+        currentActiveFileTag = localTag || 'local';
+        pdfProgressFill.style.width = '100%';
+        pdfProgressVal.textContent = '100% (本地快取)';
+
+        statusCard.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+        await parseAndRenderPdfData(new Uint8Array(localBuffer));
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+        await checkDailySchedule();
+      } else {
+        statusCard.style.display = 'block';
+        pdfContainerWrap.style.display = 'none';
+        await fetchAndSaveNewPdf('initial_' + Date.now());
+      }
+    }
+
+    async function runTripleBackgroundSync(currentPdfTag) {
+      if (!navigator.onLine) {
+        showToast("📶 離線模式：已載入本機經文與排程", 3000);
+        return;
+      }
+
+      const updatedItemsList = [];
+      let latestServerTimeStr = "";
+      let needAppReload = false;
+
+      try {
+        const schedRes = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (schedRes.ok) {
+          const freshSchedule = await schedRes.json();
+          const serverMod = schedRes.headers.get('last-modified');
+          if (serverMod) latestServerTimeStr = formatDateTime(new Date(serverMod));
+
+          if (Array.isArray(freshSchedule)) {
+            const oldSched = localStorage.getItem('LOCAL_SCHEDULE_CACHE');
+            if (JSON.stringify(freshSchedule) !== oldSched) {
+              localStorage.setItem('LOCAL_SCHEDULE_CACHE', JSON.stringify(freshSchedule));
+              updatedItemsList.push("每日進度排程 (schedule.json)");
+              if (!isGuideActive) await checkDailySchedule();
+            }
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const headPdf = await fetch('./scripture.pdf?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+        if (headPdf.ok) {
+          const remoteTag = headPdf.headers.get('etag') || headPdf.headers.get('last-modified') || headPdf.headers.get('content-length') || '';
+          const serverMod = headPdf.headers.get('last-modified');
+          if (serverMod && !latestServerTimeStr) latestServerTimeStr = formatDateTime(new Date(serverMod));
+
+          if (remoteTag && currentPdfTag && remoteTag !== currentPdfTag) {
+            const res = await fetchWithProgress('./scripture.pdf?nocache=' + Date.now(), null);
+            cachedRawBuffer = res.buffer;
+            currentActiveFileTag = remoteTag;
+            localStorage.setItem('APP_SAVED_PDF_TAG', remoteTag);
+            await saveRecordToCache(res.buffer, remoteTag);
+
+            if (!isGuideActive) {
+              await parseAndRenderPdfData(new Uint8Array(res.buffer));
+              updateVisualDisplay();
+            }
+            updatedItemsList.push("經文檔案 (scripture.pdf)");
+          } else if (remoteTag && !currentPdfTag) {
+            localStorage.setItem('APP_SAVED_PDF_TAG', remoteTag);
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const headHtml = await fetch('./index.html?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+        if (headHtml.ok) {
+          const remoteHtmlTag = headHtml.headers.get('etag') || headHtml.headers.get('last-modified') || '';
+          const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG');
+
+          if (!localHtmlTag) {
+            if (remoteHtmlTag) localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
+          } else if (remoteHtmlTag && remoteHtmlTag !== localHtmlTag) {
+            localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
+            updatedItemsList.push("播放器核心程式 (index.html)");
+            needAppReload = true;
+          }
+        }
+      } catch (e) {}
+
+      if (updatedItemsList.length > 0) {
+        showUpdateConfirmModal(updatedItemsList, latestServerTimeStr, needAppReload);
+      }
+    }
+
+    async function fetchAndSaveNewPdf(fileTag) {
+      statusTitle.textContent = '📖 正在自 GitHub 下載經文...';
+      try {
+        const res = await fetchWithProgress('./scripture.pdf?nocache=' + Date.now(), (pct, cur, total) => {
+          const curMb = (cur / (1024 * 1024)).toFixed(1);
+          const totalMb = total > 0 ? (total / (1024 * 1024)).toFixed(1) : curMb;
+          pdfProgressVal.textContent = `${pct}% (${curMb}MB / ${totalMb}MB)`;
+          pdfProgressFill.style.width = `${pct}%`;
+        });
+
+        cachedRawBuffer = res.buffer;
+        const tag = res.tag || fileTag;
+        currentActiveFileTag = tag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
+        await saveRecordToCache(res.buffer, tag);
+        await parseAndRenderPdfData(new Uint8Array(res.buffer));
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+        await checkDailySchedule();
+      } catch (e) {
+        const fallback = await getCachedRecord();
+        if (fallback && fallback.buffer) {
+          cachedRawBuffer = fallback.buffer;
+          currentActiveFileTag = fallback.tag || 'fallback';
+          await parseAndRenderPdfData(new Uint8Array(fallback.buffer));
+          updateVisualDisplay();
+          scrollToAlignTop(0);
+          await checkDailySchedule();
+        } else {
+          statusTitle.textContent = '📖 請挑選經文檔案';
+          statusDesc.innerHTML = '未偵測到 <b>scripture.pdf</b>，請點擊下方按鈕選取：';
+          btnManualPick.style.display = 'inline-block';
+        }
+      }
+    }
+
+    btnManualPick.addEventListener('click', () => {
+      filePdfInput.value = '';
+      filePdfInput.click();
+    });
+
+    filePdfInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      statusTitle.textContent = '📖 正在載入經文...';
+      btnManualPick.style.display = 'none';
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        cachedRawBuffer = arrayBuffer;
+        const tag = 'manual_' + file.lastModified;
+        currentActiveFileTag = tag;
+        localStorage.setItem('APP_SAVED_PDF_TAG', tag);
+        await saveRecordToCache(arrayBuffer, tag);
+        await parseAndRenderPdfData(new Uint8Array(arrayBuffer));
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+      } catch (err) {
+        alert('經文解析失敗：' + err.message);
+        btnManualPick.style.display = 'inline-block';
+      }
+    });
+
+    // =========================================================================
+    // 【分流模組 5】：渲染方向與純漢字抽取（嚴禁更動）
+    // =========================================================================
+    async function parseAndRenderPdfData(typedarray) {
+      if (!isAppleDevice) {
+        if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
+          setTimeout(() => parseAndRenderPdfData(typedarray), 350);
+          return;
+        }
+      }
+
+      statusCard.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
+
+      const loadingTask = pdfjsLib.getDocument({
+        data: typedarray,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+        cMapPacked: true
+      });
+
+      currentPdfDoc = await loadingTask.promise;
+      const page = await currentPdfDoc.getPage(1);
+
+      pdfCanvas.width = 0;
+      pdfCanvas.height = 0;
+
+      const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
+      const pageRotation = page.rotate || 0;
+      const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
+      const pageScale = availableWidth / unscaledViewport.width;
+      const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
+
+      pdfCanvas.width = viewport.width;
+      pdfCanvas.height = viewport.height;
+      const ctx = pdfCanvas.getContext('2d');
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: viewport
+      }).promise;
+
+      const textContent = await page.getTextContent();
+      const items = textContent.items;
+
+      const validSpans = [];
+      const chineseCharRegex = /[\u4e00-\u9fa5]/;
+
+      items.forEach(it => {
+        const str = it.str || '';
+        if (!str.trim()) return;
+
+        const tx = it.transform;
+        const pdfX = tx[4];
+        const pdfY = tx[5];
+
+        const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
+        const fontWidth = it.width * pageScale;
+
+        const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
+        const screenX0 = p0[0];
+
+        const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
+        const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+
+        const realTop = Math.min(p0[1], pTop[1]);
+        const realBottom = Math.max(p0[1], pTop[1]);
+
+        const charWidth = fontWidth / Math.max(1, str.length);
+        for (let c = 0; c < str.length; c++) {
+          const char = str[c];
+          if (chineseCharRegex.test(char)) {
+            const charX0 = screenX0 + (c * charWidth);
+            const charX1 = charX0 + charWidth;
+            validSpans.push({
+              x0: charX0,
+              x1: charX1,
+              topY: realTop,
+              bottomY: realBottom,
+              fs: fontScale,
+              char: char
+            });
+          }
+        }
+      });
+
+      validSpans.sort((a, b) => a.topY - b.topY);
+      const rowGroups = [];
+
+      validSpans.forEach(span => {
+        let matched = false;
+        for (let g of rowGroups) {
+          if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
+            g.spans.push
