@@ -42,9 +42,7 @@
       overflow: hidden;
     }
 
-    /* ----------------------------------------------------
-       【LINE 警示層】：拉至最高圖層 (z-index: 99999)，絕不被開機板遮擋
-    ---------------------------------------------------- */
+    /* LINE 內建瀏覽器大字警示層：最高圖層 (z-index: 99999) */
     #line-warning-banner {
       display: none;
       position: fixed;
@@ -1290,11 +1288,11 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v129_isolated_dual_engine_fixed';
+    const APP_BUILD_VERSION = 'v130_char_accurate_engine';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
     // =========================================================================
-    // 【精確硬體與系統判定】
+    // 【系統環境與硬體精確判定】
     // =========================================================================
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -1396,8 +1394,10 @@
 
     let isGuideActive = false;
     let currentLineIndex = 0;
-    let currentLineProgress = 0.0;
-    let lineDuration = 3200;
+    
+    // 【真實漢字物理進度】：以實體漢字個數為尺度的浮點計數（0.0 ~ 該行漢字總數 N）
+    let currentCharIndexFloat = 0.0;
+    
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
 
@@ -1442,12 +1442,6 @@
       newSpeed = Math.max(0.5, Math.min(4.0, newSpeed));
       baseSpeed = newSpeed;
       localStorage.setItem('user_speed_preference', baseSpeed.toFixed(1));
-
-      if (parsedTextLines[currentLineIndex]) {
-        const line = parsedTextLines[currentLineIndex];
-        const chineseCount = (line.charItems || []).length;
-        lineDuration = (chineseCount / (3.2 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
-      }
 
       speedToastBadge.textContent = `【語速 ${baseSpeed.toFixed(1)}x】`;
       speedToastBadge.style.display = 'block';
@@ -1574,7 +1568,7 @@
         markB_Index = -1;
       }
       completedCycles = 0;
-      currentLineProgress = 0.0;
+      currentCharIndexFloat = 0.0;
       isGuideActive = false;
       isTransitioningLine = false;
 
@@ -1714,7 +1708,6 @@
       if (!lineObj) return;
 
       if (!isAppleDevice) {
-        // [Android 原生代碼]
         lineElement.style.top = `${lineObj.underLineY}px`;
         lineElement.style.left = `${lineObj.x0}px`;
         lineElement.style.width = `${lineObj.x1 - lineObj.x0}px`;
@@ -1722,7 +1715,6 @@
         return;
       }
 
-      // [Apple 尺度校準]
       const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
       lineElement.style.top = `${offsetTop + (lineObj.underLineY * scaleY)}px`;
       lineElement.style.left = `${offsetLeft + (lineObj.x0 * scaleX)}px`;
@@ -1737,7 +1729,6 @@
       if (parsedTextLines.length === 0) return 0;
 
       if (!isAppleDevice) {
-        // [Android 原生算法]
         const btnRect = buttonElement.getBoundingClientRect();
         const centerRect = centerCore.getBoundingClientRect();
         const buttonBottomViewportY = btnRect.bottom - centerRect.top;
@@ -1757,7 +1748,6 @@
         return closestIdx;
       }
 
-      // [Apple 尺度還原]
       const btnRect = buttonElement.getBoundingClientRect();
       const canvasRect = pdfCanvas.getBoundingClientRect();
       const { scaleY } = getAppleCanvasScale();
@@ -1817,7 +1807,7 @@
           markA_Index = Math.max(0, todayPlan.start - 1);
           markB_Index = Math.min(parsedTextLines.length - 1, todayPlan.end - 1);
           currentLineIndex = markA_Index;
-          currentLineProgress = 0.0;
+          currentCharIndexFloat = 0.0;
           completedCycles = 0;
 
           if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
@@ -1901,7 +1891,7 @@
       }
 
       currentLineIndex = markA_Index;
-      currentLineProgress = 0.0;
+      currentCharIndexFloat = 0.0;
       completedCycles = 0;
 
       updateVisualDisplay();
@@ -2242,7 +2232,7 @@
       completedCycles = 0;
       btnRepeatCount.textContent = `${totalTargetCycles}次`;
       currentLineIndex = markA_Index;
-      currentLineProgress = 0.0;
+      currentCharIndexFloat = 0.0;
 
       btnGuideToggle.textContent = '靜止';
       btnGuideToggle.classList.remove('guide-active');
@@ -2350,12 +2340,6 @@
                 const ratio = targetNominalIntervalMs / Math.max(100, avgIntervalMs);
                 const targetMultiplier = Math.max(0.75, Math.min(1.25, ratio));
                 effectiveSpeedMultiplier = effectiveSpeedMultiplier * 0.7 + targetMultiplier * 0.3;
-
-                if (parsedTextLines[currentLineIndex]) {
-                  const line = parsedTextLines[currentLineIndex];
-                  const chineseCount = (line.charItems || []).length;
-                  lineDuration = (chineseCount / (3.2 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
-                }
               }
             }
           } else {
@@ -2396,7 +2380,7 @@
       guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
 
       scrollToAlignTop(currentLineIndex);
-      setupActiveLine(currentLineIndex, currentLineProgress);
+      setupActiveLine(currentLineIndex, currentCharIndexFloat);
 
       lastAnimTimestamp = performance.now();
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
@@ -2444,35 +2428,38 @@
       }
     }
 
-    function getLinePhysicalXByProgress(line, progress) {
+    // =========================================================================
+    // 【純漢字物理坐標換算】：依實體漢字字元邊界計算紅點 X 軸 (跳過標點符號)
+    // =========================================================================
+    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
       if (!line) return 0;
       if (!line.charItems || line.charItems.length === 0) {
-        return line.x0 + (line.x1 - line.x0) * progress;
+        return line.x0;
       }
       const items = line.charItems;
-      const N = items.length;
-      const scaledProgress = progress * N;
-      const charIndex = Math.min(N - 1, Math.floor(scaledProgress));
-      const charFraction = scaledProgress - charIndex;
+      const totalChars = items.length;
 
-      const item = items[charIndex];
-      return item.x0 + (item.x1 - item.x0) * charFraction;
+      if (charProgressFloat <= 0) return items[0].x0;
+      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
+
+      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
+      const intraCharFraction = charProgressFloat - charIdx;
+
+      const item = items[charIdx];
+      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
     }
 
     // =========================================================================
-    // 【分流模組 3-A】：導引線與紅點初始化
+    // 【分流模組 3-A】：導引線與紅點初始化 (setupActiveLine)
     // =========================================================================
-    function setupActiveLine(idx, initialProgress = 0.0) {
+    function setupActiveLine(idx, initialCharProgress = 0.0) {
       if (idx >= parsedTextLines.length) {
         handleCycleCompletion();
         return;
       }
 
       const line = parsedTextLines[idx];
-      const chineseCount = (line && line.charItems) ? line.charItems.length : 10;
-
-      lineDuration = (chineseCount / (3.2 * baseSpeed * effectiveSpeedMultiplier)) * 1000;
-      currentLineProgress = initialProgress;
+      currentCharIndexFloat = initialCharProgress;
 
       if (isGuideActive) {
         if (!isAppleDevice) {
@@ -2482,7 +2469,7 @@
           guideLine.style.left = `${line.x0}px`;
           guideLine.style.width = `${line.x1 - line.x0}px`;
 
-          const curX = getLinePhysicalXByProgress(line, currentLineProgress);
+          const curX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
           redDot.style.top = `${lineY}px`;
           redDot.style.left = `${curX}px`;
         } else {
@@ -2496,7 +2483,7 @@
           guideLine.style.left = `${targetLeft}px`;
           guideLine.style.width = `${targetWidth}px`;
 
-          const rawX = getLinePhysicalXByProgress(line, currentLineProgress);
+          const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
           redDot.style.top = `${targetY}px`;
           redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
         }
@@ -2511,7 +2498,11 @@
     let hasPageFlipped = false;
 
     // =========================================================================
-    // 【分流模組 3-B】：導引紅點逐幀位移
+    // 【分流模組 3-B】：逐幀物理前進動畫 (stepGuideMovement)
+    // - 實體漢字陣列步進
+    // - 前 N-2 字：有聲音才前進，沒聲音立停
+    // - 後 2 個字：自動慣性平順滑行
+    // - 最後一字過半 (N - 0.5)：提前平順翻頁
     // =========================================================================
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
@@ -2522,22 +2513,26 @@
       }
       lastAnimTimestamp = now;
 
-      const isNearLineEnd = (currentLineProgress >= 0.88);
+      const curLine = parsedTextLines[currentLineIndex];
+      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
 
-      if (!isVoiceActive && !isNearLineEnd) {
+      // 計算是否進入倒數第 2 個字（若總字數小於等於 2 則全段發聲驅動）
+      const inertiaStartIndex = Math.max(1, totalChars - 2);
+      const isInInertiaZone = (currentCharIndexFloat >= inertiaStartIndex);
+
+      // 【核心體驗】：主體段若無聲音，進度完全凍結，停在原地等長輩念！
+      if (!isVoiceActive && !isInInertiaZone) {
         guideAnimId = requestAnimationFrame(stepGuideMovement);
         return;
       }
 
-      currentLineProgress += (delta / lineDuration);
+      // 每毫秒前進的漢字步進量 (依 baseSpeed 換算，例如 3.2 字/秒)
+      const stepPerMs = (3.2 * baseSpeed * effectiveSpeedMultiplier) / 1000;
+      currentCharIndexFloat += stepPerMs * delta;
 
-      const curLine = parsedTextLines[currentLineIndex];
-      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
-      const lastCharHalfThreshold = Math.max(0.5, 1.0 - (0.5 / totalChars));
-
-      if (currentLineProgress >= lastCharHalfThreshold && !hasPageFlipped) {
+      // 【視覺平順關鍵】：當紅點踩過最後一個漢字的「物理中心 (50%)」，立刻平順滾動翻頁！
+      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
         const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
-        
         if (!isCurrentLineAtTargetEnd) {
           const visibleBottomIdx = getVisibleBottomLineIndex();
           if (currentLineIndex === visibleBottomIdx) {
@@ -2547,8 +2542,9 @@
         }
       }
 
-      if (currentLineProgress >= 1.0) {
-        currentLineProgress = 1.0;
+      // 當整句漢字朗讀完畢
+      if (currentCharIndexFloat >= totalChars) {
+        currentCharIndexFloat = totalChars;
 
         if (curLine) {
           if (!isAppleDevice) {
@@ -2586,7 +2582,7 @@
 
           hasPageFlipped = false;
           currentLineIndex = nextIndex;
-          currentLineProgress = 0.0;
+          currentCharIndexFloat = 0.0;
 
           setupActiveLine(currentLineIndex, 0.0);
           lastAnimTimestamp = performance.now();
@@ -2597,7 +2593,7 @@
       }
 
       if (curLine) {
-        const rawX = getLinePhysicalXByProgress(curLine, currentLineProgress);
+        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
         if (!isAppleDevice) {
           redDot.style.left = `${rawX}px`;
           redDot.style.top = `${curLine.underLineY}px`;
@@ -2649,13 +2645,12 @@
 
         hasPageFlipped = false;
         currentLineIndex = markA_Index;
-        currentLineProgress = 0.0;
+        currentCharIndexFloat = 0.0;
         scrollToAlignTop(currentLineIndex);
 
         setupActiveLine(currentLineIndex, 0.0);
         isTransitioningLine = false;
 
-        // 重置時間戳與語音門檻，防止 iOS 第二遍卡死
         lastAnimTimestamp = performance.now();
         lastVoiceDetectedTime = performance.now();
         isVoiceActive = false;
@@ -2687,7 +2682,7 @@
 
       completedCycles = 0;
       currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
-      currentLineProgress = 0.0;
+      currentCharIndexFloat = 0.0;
 
       btnGuideToggle.textContent = '背書';
       btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
@@ -2787,7 +2782,6 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      // 優先檢查 LINE 內建視窗，若是則亮起紅底提示卡，絕不讓開機指引板覆蓋
       if (checkLineInAppBrowser()) return;
 
       verifyVersionAndCleanState();
@@ -2961,9 +2955,7 @@
     });
 
     // =========================================================================
-    // 【分流模組 5】：渲染方向與邊界
-    // - Android：保留寬小於高等待旋轉，保證原生流暢
-    // - Apple：下載完成直接繪製，徹底解除 PWA 直向無限迴圈
+    // 【分流模組 5】：渲染方向與純漢字抽取
     // =========================================================================
     async function parseAndRenderPdfData(typedarray) {
       if (!isAppleDevice) {
@@ -3007,7 +2999,7 @@
       const items = textContent.items;
 
       const validSpans = [];
-      const chineseCharRegex = /[\u4e00-\u9fa5]/;
+      const chineseCharRegex = /[\u4e00-\u9fa5]/; // 純漢字匹配
 
       items.forEach(it => {
         const str = it.str || '';
@@ -3032,6 +3024,7 @@
         const charWidth = fontWidth / Math.max(1, str.length);
         for (let c = 0; c < str.length; c++) {
           const char = str[c];
+          // 嚴格只收錄實體漢字，標點符號不列入步進計數
           if (chineseCharRegex.test(char)) {
             const charX0 = screenX0 + (c * charWidth);
             const charX1 = charX0 + charWidth;
@@ -3105,7 +3098,7 @@
             topGlobal: r.minTop,
             bottomGlobal: r.maxBottom,
             underLineY: r.underLineY,
-            charItems: r.spans
+            charItems: r.spans // 純漢字實體矩形陣列
           });
         }
       });
