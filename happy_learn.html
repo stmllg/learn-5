@@ -42,9 +42,7 @@
       overflow: hidden;
     }
 
-    /* ----------------------------------------------------
-       【LINE 內建瀏覽器大字警示層】：引導打橫與跳轉
-    ---------------------------------------------------- */
+    /* LINE 內建瀏覽器大字警示層 */
     #line-warning-banner {
       display: none;
       position: fixed;
@@ -1039,7 +1037,7 @@
 </head>
 <body>
 
-  <!-- LINE 內建瀏覽器大字警示層：優先提醒打橫 -->
+  <!-- LINE 內建瀏覽器大字警示層 -->
   <div id="line-warning-banner">
     <div class="line-warning-card">
       <div class="line-warning-icon">📱 ➔ 🔄</div>
@@ -1290,9 +1288,15 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v126_seamless_schedule_sync';
+    const APP_BUILD_VERSION = 'v127_isolated_platform_dual_engine';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
+    // ----------------------------------------------------
+    // 【精確硬體與作業系統判定】：保證 Android 零回歸
+    // ----------------------------------------------------
+    const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
     let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
     if (isNaN(baseSpeed) || baseSpeed < 0.5 || baseSpeed > 4.0) {
       baseSpeed = 1.5;
@@ -1495,9 +1499,6 @@
       } catch (e) {}
     }
 
-    /* ----------------------------------------------------
-       【LINE 偵測】：優先提示手機橫放，再開 Safari
-    ---------------------------------------------------- */
     function checkLineInAppBrowser() {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       if (/Line/i.test(ua)) {
@@ -1528,9 +1529,6 @@
       return `${yyyy}/${mm}/${dd}`;
     }
 
-    /* ----------------------------------------------------
-       【開機導引看板點擊進入】：絕不抹除已獲取的今日排程
-    ---------------------------------------------------- */
     welcomeOverlay.addEventListener('click', async () => {
       hasInteractedWithWelcome = true;
       welcomeOverlay.style.opacity = '0';
@@ -1540,7 +1538,6 @@
 
       await triggerLandscapeLock();
 
-      // 若未鎖定排程才歸零，若有排程則保留起訖點！
       if (!isScheduleLocked) {
         markA_Index = -1;
         markB_Index = -1;
@@ -1674,17 +1671,88 @@
       btnRepeatCount.textContent = `${remain}次`;
     }
 
+    /* ----------------------------------------------------
+       【分流處理 1】：標記線繪製 (renderMarkerLine)
+       - Android：100% 走昨天完美舊邏輯
+       - Apple：計算畫布顯示縮放尺度
+    ---------------------------------------------------- */
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
-      lineElement.style.top = `${lineObj.underLineY}px`;
-      lineElement.style.left = `${lineObj.x0}px`;
-      lineElement.style.width = `${lineObj.x1 - lineObj.x0}px`;
+
+      if (!isAppleDevice) {
+        // [Android 專用原生邏輯 - 保持昨天完全不變]
+        lineElement.style.top = `${lineObj.underLineY}px`;
+        lineElement.style.left = `${lineObj.x0}px`;
+        lineElement.style.width = `${lineObj.x1 - lineObj.x0}px`;
+        lineElement.style.display = 'block';
+        return;
+      }
+
+      // [Apple / iOS 專用校準邏輯]
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      const scaleY = (canvasRect.height > 0 && pdfCanvas.height > 0) ? (canvasRect.height / pdfCanvas.height) : 1.0;
+      const scaleX = (canvasRect.width > 0 && pdfCanvas.width > 0) ? (canvasRect.width / pdfCanvas.width) : 1.0;
+
+      const canvasOffsetTop = pdfCanvas.offsetTop || 0;
+      const canvasOffsetLeft = pdfCanvas.offsetLeft || 0;
+
+      lineElement.style.top = `${canvasOffsetTop + (lineObj.underLineY * scaleY)}px`;
+      lineElement.style.left = `${canvasOffsetLeft + (lineObj.x0 * scaleX)}px`;
+      lineElement.style.width = `${(lineObj.x1 - lineObj.x0) * scaleX}px`;
       lineElement.style.display = 'block';
     }
 
     /* ----------------------------------------------------
-       【今日排程健全化】：首次啟動主動拉取，起訖線絕不遺失
+       【分流處理 2】：起訖點按鈕目標行選取 (getLineAtButtonBottom)
+       - Android：100% 走昨天驗證通過的原生算法
+       - Apple：走尺度還原幾何算法
     ---------------------------------------------------- */
+    function getLineAtButtonBottom(buttonElement) {
+      if (parsedTextLines.length === 0) return 0;
+
+      if (!isAppleDevice) {
+        // [Android 專用原生算法 - 保持昨天完全不變]
+        const btnRect = buttonElement.getBoundingClientRect();
+        const centerRect = centerCore.getBoundingClientRect();
+        const buttonBottomViewportY = btnRect.bottom - centerRect.top;
+        const targetAbsoluteY = centerCore.scrollTop + buttonBottomViewportY;
+
+        let closestIdx = 0;
+        let minDiff = Infinity;
+
+        for (let i = 0; i < parsedTextLines.length; i++) {
+          const lineY = parsedTextLines[i].underLineY;
+          const diff = Math.abs(lineY - targetAbsoluteY);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestIdx = i;
+          }
+        }
+        return closestIdx;
+      }
+
+      // [Apple / iOS 專用尺度還原算法]
+      const btnRect = buttonElement.getBoundingClientRect();
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      const scaleY = (canvasRect.height > 0 && pdfCanvas.height > 0) ? (canvasRect.height / pdfCanvas.height) : 1.0;
+
+      const visualClickY = btnRect.bottom - canvasRect.top;
+      const targetCanvasY = visualClickY / scaleY;
+
+      let closestIdx = 0;
+      let minDiff = Infinity;
+
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const lineY = parsedTextLines[i].underLineY;
+        const diff = Math.abs(lineY - targetCanvasY);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = i;
+        }
+      }
+      return closestIdx;
+    }
+
     async function checkDailySchedule() {
       try {
         let scheduleData = null;
@@ -1692,7 +1760,6 @@
         if (localCache) {
           scheduleData = JSON.parse(localCache);
         } else {
-          // 首次啟動本機無快取時：立即非同步請求 schedule.json，免退出重進
           const res = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
           if (res.ok) {
             scheduleData = await res.json();
@@ -1790,31 +1857,6 @@
 
       if (onProgress) onProgress(100, receivedLength, receivedLength);
       return { buffer: fullBytes.buffer, tag };
-    }
-
-    /* ----------------------------------------------------
-       【純幾何畫布相對投影算法】：跨平台（Android/iPad/iPhone）精準對齊
-    ---------------------------------------------------- */
-    function getLineAtButtonBottom(buttonElement) {
-      if (parsedTextLines.length === 0) return 0;
-
-      const btnRect = buttonElement.getBoundingClientRect();
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-
-      const targetCanvasY = btnRect.bottom - canvasRect.top;
-
-      let closestIdx = 0;
-      let minDiff = Infinity;
-
-      for (let i = 0; i < parsedTextLines.length; i++) {
-        const lineY = parsedTextLines[i].underLineY;
-        const diff = Math.abs(lineY - targetCanvasY);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = i;
-        }
-      }
-      return closestIdx;
     }
 
     btnMarkA.addEventListener('click', () => {
@@ -2851,9 +2893,19 @@
     });
 
     /* ----------------------------------------------------
-       【PDF 渲染】：解除直向等待死鎖，下載完立即呈現
+       【分流處理 3】：PDF 渲染方向與安全區防護
+       - Android：維持原生寬度判定
+       - Apple：即時繪製，徹底解除 PWA 直向無限輪詢
     ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
+      if (!isAppleDevice) {
+        // [Android 專用渲染保護 - 保持昨天完全不變]
+        if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
+          setTimeout(() => parseAndRenderPdfData(typedarray), 350);
+          return;
+        }
+      }
+
       statusCard.style.display = 'none';
       pdfContainerWrap.style.display = 'flex';
 
