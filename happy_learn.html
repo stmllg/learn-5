@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式播放器 v136 (看板觸控直通穿透修復版)</title>
+  <title>歡喜背書橫式播放器 v137 (雙門檻平滑遲滯連貫版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -95,7 +95,7 @@
       transition: opacity 0.2s ease-out;
     }
 
-    /* 關鍵修復：讓內部卡片 pointer-events 為 none，點擊百分之百穿透給外層 overlay */
+    /* 讓內部卡片 pointer-events 為 none，點擊百分之百穿透給外層 overlay */
     .welcome-board, .welcome-board * {
       pointer-events: none !important;
     }
@@ -1323,7 +1323,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v136_python_flow_engine_locked';
+    const APP_BUILD_VERSION = 'v137_python_flow_engine_locked';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
     // =========================================================================
@@ -2318,9 +2318,10 @@
     }
 
     // =========================================================================
-    // 【Python 式 Chunk 即時監測】：取消 380ms 延遲，嘴停即刻煞車
+    // 【平滑雙門檻遲滯判定】：字與字之間自然連貫，真正停頓立即煞車
     // =========================================================================
     let silentFrameCount = 0;
+    const HOLD_FRAMES = 9; // 約 140~150ms，完美跨過字間換氣與閉唇音
 
     function startVadMonitorLoop() {
       if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
@@ -2346,32 +2347,29 @@
           }
 
           const deltaRms = rms - prevRms;
-          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
 
-          // 1. 起句解鎖：若處於起跑鎖定中，捕捉到明顯起音波峰（Attack Peak）立即解鎖
-          if (isLineHeadLocked && deltaRms > (dynamicThreshold * 0.4)) {
+          // 雙門檻：背誦中只要維持 65% 能量即算有聲，消除斷續頓挫
+          const activeThreshold = isVoiceActive ? (dynamicThreshold * 0.65) : dynamicThreshold;
+          const hasVoiceEnergy = (rms > activeThreshold) || isTouchingDisplay;
+
+          // 1. 起句解鎖：起音爆發判定
+          if (isLineHeadLocked && (deltaRms > (dynamicThreshold * 0.35) || rms > (dynamicThreshold * 1.2))) {
             isLineHeadLocked = false;
           }
 
           // 2. 換行靈活監聽狀態機 (200ms 保底 ＋ 雙逃脫通道)
           if (isTransitioningLine) {
             const elapsed = performance.now() - lineEndTime;
-            
-            // 逃脫通道 1：新句開口（新波峰），秒切下一句
-            if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.45)) {
+            if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
               proceedToNextLineImmediately();
-            }
-            // 逃脫通道 2：能量相對下墜超過 30%，提早於 80~100ms 順暢滑入
-            else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
+            } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.65)) {
               proceedToNextLineImmediately();
-            }
-            // 保底通道 3：200ms 硬上限強制換行
-            else if (elapsed >= 200) {
+            } else if (elapsed >= 200) {
               proceedToNextLineImmediately();
             }
           }
 
-          // 3. 即時聲音狀態切換 (比照 Python：低於門檻只給 2~3 個 Frame 約 40ms 緩衝立即煞車)
+          // 3. 平滑發聲狀態切換
           if (hasVoiceEnergy) {
             silentFrameCount = 0;
             if (!isVoiceActive) {
@@ -2383,7 +2381,8 @@
             }
           } else {
             silentFrameCount++;
-            if (silentFrameCount >= 3) { // 約 30~50 毫秒極速煞車
+            // 給予 9 幀 (約 150ms) 的字間容錯，不再一直跳回「靜止」
+            if (silentFrameCount >= HOLD_FRAMES) {
               if (isVoiceActive) {
                 isVoiceActive = false;
                 btnGuideToggle.textContent = '靜止';
