@@ -1467,8 +1467,8 @@
     function formatDateTime(dateObj) {
       const d = dateObj || new Date();
       const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
       const hh = String(d.getHours()).padStart(2, '0');
       const min = String(d.getMinutes()).padStart(2, '0');
       return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
@@ -2589,34 +2589,3 @@
           setupActiveLine(currentLineIndex, 0.0, 0.0);
           lastAnimTimestamp = performance.now();
           guideAnimId = requestAnimationFrame(stepGuideMovement);
-        }, 160);
-
-        return;
-      }
-
-      if (curLine) {
-        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
-        if (!isAppleDevice) {
-          redDot.style.left = `${rawX}px`;
-          redDot.style.top = `${curLine.underLineY}px`;
-        } else {
-          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
-          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
-          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
-        }
-      }
-
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    // =========================================================================
-    // 【分流模組 4-B】：換遍校準防卡死
-    // =========================================================================
-    function handleCycleCompletion() {
-      if (guideAnimId) {
-        cancelAnimationFrame(guideAnimId);
-        guideAnimId = null;
-      }
-
-      completedCycles += 1;
-      const
