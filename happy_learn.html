@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式播放器 v135 (看板點擊修復暨動態流速版)</title>
+  <title>歡喜背書橫式播放器 v136 (看板觸控直通穿透修復版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -76,7 +76,7 @@
       box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
     }
 
-    /* 開機看板預設隱藏，避免搶先在 LINE 裡露臉遮擋 */
+    /* 開機看板：加入 touch-action 確保點擊零延遲 */
     #welcome-start-overlay {
       display: none;
       position: fixed;
@@ -91,7 +91,13 @@
       align-items: center;
       padding: 12px;
       cursor: pointer;
-      transition: opacity 0.3s ease-out;
+      touch-action: manipulation;
+      transition: opacity 0.2s ease-out;
+    }
+
+    /* 關鍵修復：讓內部卡片 pointer-events 為 none，點擊百分之百穿透給外層 overlay */
+    .welcome-board, .welcome-board * {
+      pointer-events: none !important;
     }
 
     /* 若確認不是 LINE，正常呈現開機看板 */
@@ -1079,7 +1085,8 @@
     </div>
   </div>
 
-  <div id="welcome-start-overlay">
+  <!-- 開機看板：內嵌 onclick 雙重保險 -->
+  <div id="welcome-start-overlay" onclick="dismissWelcomeOverlay(event)">
     <div class="welcome-board">
       <div class="welcome-board-header">
         <div class="welcome-board-title">歡喜背書橫式播放器 — 操作指引</div>
@@ -1316,7 +1323,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v135_python_flow_engine_locked';
+    const APP_BUILD_VERSION = 'v136_python_flow_engine_locked';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
     // =========================================================================
@@ -1568,17 +1575,20 @@
     }
 
     // =========================================================================
-    // 【開機操作指引看板點擊】：優先淡出關閉，防全螢幕阻塞卡死
+    // 【開機操作指引看板直通關閉】：支援 pointerdown 與 click，保證絕不卡死
     // =========================================================================
-    welcomeOverlay.addEventListener('click', () => {
-      // 1. 第一優先：立即將看板淡出並隱藏，保證點擊絕對有反應
-      hasInteractedWithWelcome = true;
-      welcomeOverlay.style.opacity = '0';
-      setTimeout(() => {
-        welcomeOverlay.style.display = 'none';
-      }, 300);
+    function dismissWelcomeOverlay(e) {
+      if (e) {
+        try { e.preventDefault(); } catch (err) {}
+        try { e.stopPropagation(); } catch (err) {}
+      }
 
-      // 2. 螢幕旋轉與全螢幕放在背景嘗試，不使用 await 阻塞後續初始化
+      // 1. 最優先：直接物理隱藏看板
+      welcomeOverlay.style.display = 'none';
+      welcomeOverlay.style.opacity = '0';
+      hasInteractedWithWelcome = true;
+
+      // 2. 螢幕旋轉與全螢幕放在背景嘗試
       try {
         if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
           document.documentElement.requestFullscreen().catch(() => {});
@@ -1623,7 +1633,11 @@
       } else {
         speakPrompt("隨喜大家，精進背誦");
       }
-    });
+    }
+
+    // 雙重事件綁定
+    welcomeOverlay.addEventListener('pointerdown', dismissWelcomeOverlay, { passive: false });
+    welcomeOverlay.addEventListener('click', dismissWelcomeOverlay);
 
     // =========================================================================
     // 【分流模組 4-A】：關機與釋放（嚴禁更動）
@@ -3080,4 +3094,85 @@
         let matched = false;
         for (let g of rowGroups) {
           if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
-            g.spans.push
+            g.spans.push(span);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          rowGroups.push({ topY: span.topY, spans: [span] });
+        }
+      });
+
+      const analyzedRows = rowGroups.map(g => {
+        g.spans.sort((a, b) => a.x0 - b.x0);
+        const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
+        const minTop = Math.min(...g.spans.map(s => s.topY));
+        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
+        const lineX0 = g.spans[0].x0;
+        const lineX1 = g.spans[g.spans.length - 1].x1;
+
+        return {
+          spans: g.spans,
+          chineseCount: g.spans.length,
+          avgFs: avgFs,
+          minTop: minTop,
+          maxBottom: maxBottom,
+          lineX0: lineX0,
+          lineX1: lineX1,
+          underLineY: maxBottom + 7
+        };
+      });
+
+      const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
+      let mainTextFontSize = 0;
+      if (candidateLargeRows.length > 0) {
+        const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
+        mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
+      }
+
+      parsedTextLines = [];
+      let internalIndex = 0;
+
+      analyzedRows.forEach(r => {
+        const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
+
+        if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
+          parsedTextLines.push({
+            lineIndex: internalIndex++,
+            x0: r.lineX0,
+            x1: r.lineX1,
+            topGlobal: r.minTop,
+            bottomGlobal: r.maxBottom,
+            underLineY: r.underLineY,
+            charItems: r.spans
+          });
+        }
+      });
+
+      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+      guideStage.style.height = `${viewport.height}px`;
+    }
+
+    let reRenderDebounceTimer = null;
+    function handleScreenDimensionStabilize() {
+      if (isGuideActive) return;
+
+      clearTimeout(reRenderDebounceTimer);
+      reRenderDebounceTimer = setTimeout(() => {
+        if (cachedRawBuffer && centerCore.clientWidth > centerCore.clientHeight) {
+          parseAndRenderPdfData(new Uint8Array(cachedRawBuffer)).then(() => {
+            updateVisualDisplay();
+            scrollToAlignTop(currentLineIndex);
+          });
+        }
+      }, 400);
+    }
+
+    window.addEventListener('resize', handleScreenDimensionStabilize);
+    if (screen.orientation) {
+      screen.orientation.addEventListener('change', handleScreenDimensionStabilize);
+    }
+  </script>
+</body>
+</html>
