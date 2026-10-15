@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>歡喜背書橫式雙模播放器 (PDF/MP4 節能整合版)</title>
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="歡喜背書">
+  <meta name="theme-color" content="#000000">
+
+  <!-- LINE 攔截 -->
+  <script>
+    (function() {
+      var ua = navigator.userAgent || navigator.vendor || window.opera || '';
+      if (/Line/i.test(ua)) {
+        document.documentElement.classList.add('is-line-app');
+      }
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background-color: #000000;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      overflow: hidden;
+    }
+
+    #landscape-container {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* LINE 警示層 */
+    #line-warning-banner {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at center, #DC2626 0%, #991B1B 100%);
+      color: #FFFFFF;
+      z-index: 999999 !important;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .line-warning-card {
+      background: rgba(0, 0, 0, 0.85);
+      border: 2.5px solid #FEF08A;
+      border-radius: 20px;
+      padding: 24px 20px;
+      max-width: 500px;
+      width: 92%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .line-warning-title { font-size: 22px; font-weight: 900; color: #FEF08A; }
+    .line-warning-text { font-size: 16px; line-height: 1.7; font-weight: 700; color: #FFFFFF; text-align: left; }
+    .line-warning-highlight { color: #38BDF8; font-weight: 900; }
+
+    /* 開機看板 */
+    #welcome-start-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(8, 12, 22, 0.98);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+      padding: 12px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .welcome-board, .welcome-board * { pointer-events: none !important; }
+    html:not(.is-line-app) #welcome-start-overlay { display: flex; }
+    html.is-line-app #line-warning-banner { display: flex !important; }
+    html.is-line-app #welcome-start-overlay { display: none !important; }
+
+    .welcome-board {
+      width: 100%;
+      max-width: 900px;
+      height: 100%;
+      max-height: 96vh;
+      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
+      border: 2px solid #F59E0B;
+      border-radius: 20px;
+      padding: 12px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .welcome-board-title { font-size: clamp(16px, 4vw, 21px); font-weight: 900; color: #FBBF24; }
+    .wings-guide-container { width: 100%; flex: 1; display: flex; flex-direction: row; justify-content: space-around; align-items: center; gap: 16px; margin: 8px 0; overflow-y: auto; }
+    .wing-column { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .guide-btn-card { display: flex; align-items: center; gap: 12px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 6px 10px; }
+    .guide-btn-circle { width: clamp(36px, 6vh, 42px); height: clamp(36px, 6vh, 42px); border-radius: 50%; border: 2px solid #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: clamp(11px, 1.9vh, 12.5px); font-weight: 900; color: #FFFFFF; flex-shrink: 0; }
+    .guide-btn-info { display: flex; flex-direction: column; text-align: left; }
+    .guide-btn-name { font-size: clamp(12px, 2.2vh, 14px); font-weight: 900; color: #F8FAFC; }
+    .guide-btn-desc { font-size: clamp(10px, 1.8vh, 12px); color: #94A3B8; }
+    .welcome-board-footer { width: 100%; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; border-radius: 14px; padding: 10px 16px; text-align: center; font-size: clamp(15px, 2.8vh, 18px); font-weight: 900; }
+
+    /* 左右翼 */
+    .side-wing {
+      flex-shrink: 0;
+      height: 100%;
+      background-color: #000000;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      align-items: center;
+      padding-top: 4px;
+      padding-bottom: 4px;
+      z-index: 60;
+      box-sizing: border-box;
+    }
+    #left-wing { width: calc(56px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; }
+    #right-wing { width: calc(56px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 4px); padding-left: 4px; }
+    .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
+
+    .circle-btn {
+      width: 48px !important;
+      height: 48px !important;
+      border-radius: 50%;
+      border: 2px solid #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 12.5px !important;
+      font-weight: 900;
+      color: #FFFFFF;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.7);
+      transition: transform 0.15s ease-out;
+      text-align: center;
+      line-height: 1.1;
+      touch-action: manipulation;
+    }
+    .circle-btn:active { transform: scale(0.92); opacity: 0.85; }
+
+    .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
+    #btn-mark-a.active-mark { box-shadow: 0 0 16px #38BDF8, inset 0 0 8px #FFFFFF; }
+    .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
+    #btn-mark-b.active-mark { box-shadow: 0 0 16px #FB923C, inset 0 0 8px #FFFFFF; }
+    .btn-color-repeat { background: linear-gradient(135deg, #6366F1 0%, #4338CA 100%); border-color: #E0E7FF; font-size: 13px !important; }
+    .btn-color-shutdown { background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); border-color: #FECACA; }
+
+    .btn-color-guide { background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%); border-color: #FECACA; }
+    #btn-guide-toggle.guide-waiting { background: radial-gradient(circle, #EAB308 0%, #CA8A04 100%) !important; border-color: #FEF08A !important; }
+    #btn-guide-toggle.guide-active { background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important; border-color: #DCFCE7 !important; }
+
+    .btn-color-mode { background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%); border-color: #DDD6FE; }
+    .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
+    .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
+
+    /* 中央核心區 */
+    #center-core {
+      flex: 1;
+      height: 100%;
+      background-color: #FFFFFF;
+      position: relative;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-left: 2px solid #1E293B;
+      border-right: 2px solid #1E293B;
+      scroll-behavior: smooth;
+    }
+
+    #guide-stage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+    #guide-line { position: absolute; height: 5px; background-color: #00E676; border-radius: 3px; box-shadow: 0 0 8px rgba(0, 230, 118, 0.85); display: none; }
+    #red-dot { position: absolute; width: min(18px, 5.5vh); height: min(18px, 5.5vh); background: radial-gradient(circle, #FF5252 20%, #FF1744 100%); border: 2px solid #FFFFFF; border-radius: 50%; transform: translate(-50%, -50%); display: none; }
+    #mark-a-line, #mark-b-line { position: absolute; height: 5px; border-radius: 3px; display: none; }
+    #mark-a-line { background-color: #0284C7; box-shadow: 0 0 10px #38BDF8; z-index: 48; }
+    #mark-b-line { background-color: #EA580C; box-shadow: 0 0 10px #FB923C; z-index: 48; }
+
+    #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; pointer-events: none; display: flex; justify-content: center; }
+    #pdf-canvas { display: block; width: 100% !important; height: auto !important; image-rendering: -webkit-optimize-contrast; transform: translateZ(0); }
+
+    #video-container-wrap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #000000; display: none; justify-content: center; align-items: center; z-index: 55; }
+    #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
+
+    #schedule-toast { display: none; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.94); color: #38BDF8; border: 1.5px solid #38BDF8; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 800; z-index: 900; pointer-events: none; }
+    #speed-toast-badge { display: none; position: absolute; top: 14px; right: calc(74px + env(safe-area-inset-right, 0px)); background: rgba(15, 23, 42, 0.96); color: #34D399; border: 2px solid #10B981; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 900; z-index: 120; pointer-events: none; }
+
+    .popup-modal { display: none; position: absolute; top: 50%; left: calc(74px + env(safe-area-inset-left, 0px)); transform: translateY(-50%); background: rgba(30, 41, 59, 0.98); border-radius: 18px; padding: 12px; z-index: 100; flex-direction: column; gap: 8px; border: 2px solid #6366F1; }
+    .modal-option { padding: 9px 18px; font-size: 16px; font-weight: 800; color: #FFFFFF; background-color: #334155; border: none; border-radius: 10px; cursor: pointer; text-align: center; }
+    .modal-option.active { background: #6366F1; }
+  </style>
+</head>
+<body>
+
+  <div id="line-warning-banner">
+    <div class="line-warning-card">
+      <div class="line-warning-title">請先將手機「橫向擺放」</div>
+      <div class="line-warning-text">
+        1. 請先把手機 <span class="line-warning-highlight">橫著拿</span><br><br>
+        2. 點選螢幕邊緣的 <span class="line-warning-highlight">分享鍵 (⎋ 或 ⠇)</span><br><br>
+        3. 點選 ➔ <span class="line-warning-highlight">「以預設瀏覽器開啟」</span>（或 Safari）
+      </div>
+    </div>
+  </div>
+
+  <div id="welcome-start-overlay" onclick="dismissWelcomeOverlay(event)">
+    <div class="welcome-board">
+      <div class="welcome-board-header">
+        <div class="welcome-board-title">歡喜背書雙模播放器 — 操作指引</div>
+      </div>
+      <div class="wings-guide-container">
+        <div class="wing-column">
+          <div class="guide-btn-card"><div class="guide-btn-circle btn-color-mark-a">起點</div><div class="guide-btn-info"><span class="guide-btn-name">起點</span><span class="guide-btn-desc">標定經文背誦起點</span></div></div>
+          <div class="guide-btn-card"><div class="guide-btn-circle btn-color-mark-b">終點</div><div class="guide-btn-info"><span class="guide-btn-name">終點</span><span class="guide-btn-desc">標定經文背誦終點</span></div></div>
+          <div class="guide-btn-card"><div class="guide-btn-circle btn-color-repeat">1次</div><div class="guide-btn-info"><span class="guide-btn-name">次數</span><span class="guide-btn-desc">點擊設定循環遍數</span></div></div>
+          <div class="guide-btn-card"><div class="guide-btn-circle btn-color-shutdown">關機</div><div class="guide-btn-info"><span class="guide-btn-name">關機</span><span class="guide-btn-desc">保存進度並退出</span></div></div>
+        </div>
+        <div class="wing-column">
+          <div class="guide-btn-card"><div class="guide-btn-circle btn-color-guide">背書</div><div class="guide-btn-info"><span class="guide-btn-name">背書</span><span class="guide-btn-desc">開始/暫停導引或播放</span></div></div>
+          <div class="guide-btn-card"><div class="guide-btn-circle btn-color-mode">切換</div><div class="guide-btn-info"><span class="guide-btn-name">切換模式</span><span class="guide-btn-desc">切換經文/影片</span></div></div>
+          <div class="guide-btn-card"><div class="guide-btn-circle btn-color-speed-up">語快</div><div class="guide-btn-info"><span class="guide-btn-name">語快</span><span class="guide-btn-desc">即時加速 (+0.1x)</span></div></div>
+          <div class="guide-btn-card"><div class="guide-btn-circle btn-color-speed-down">語慢</div><div class="guide-btn-info"><span class="guide-btn-name">語慢</span><span class="guide-btn-desc">即時減速 (-0.1x)</span></div></div>
+        </div>
+      </div>
+      <div class="welcome-board-footer">🙏 點擊任意處進入背誦</div>
+    </div>
+  </div>
+
+  <div id="schedule-toast">📅 載入進度中...</div>
+  <div id="speed-toast-badge">【語速 1.5x】</div>
+
+  <div id="landscape-container">
+    <div class="side-wing" id="left-wing">
+      <div class="slot"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起點</button></div>
+      <div class="slot"><button class="circle-btn btn-color-mark-b" id="btn-mark-b">終點</button></div>
+      <div class="slot"><button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button></div>
+      <div class="slot"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">關機</button></div>
+    </div>
+
+    <div id="center-core">
+      <div id="guide-stage">
+        <div id="mark-a-line"></div>
+        <div id="mark-b-line"></div>
+        <div id="guide-line"></div>
+        <div id="red-dot"></div>
+      </div>
+      <div id="pdf-container-wrap">
+        <canvas id="pdf-canvas"></canvas>
+      </div>
+      <div id="video-container-wrap">
+        <video id="my-chant-video" playsinline webkit-playsinline src="./chant_video.mp4"></video>
+      </div>
+    </div>
+
+    <div class="side-wing" id="right-wing">
+      <div class="slot"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
+      <div class="slot"><button class="circle-btn btn-color-mode" id="btn-mode-toggle">切影片</button></div>
+      <div class="slot"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button></div>
+      <div class="slot"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button></div>
+    </div>
+  </div>
+
+  <div id="repeat-modal" class="popup-modal">
+    <button class="modal-option active" data-count="1">1 次</button>
+    <button class="modal-option" data-count="3">3 次</button>
+    <button class="modal-option" data-count="5">5 次</button>
+    <button class="modal-option" data-count="7">7 次</button>
+    <button class="modal-option" data-count="10">10 次</button>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. 全域變數與系統硬體判斷
+    // =========================================================================
+    const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    let scriptureData = []; // 外掛 sentences.json 注入
+    let currentMode = 'pdf'; // 'pdf' 或 'mp4'
+    let markA_Index = 1;     // 預設第 2 句 (索引 1)
+    let markB_Index = 4;     // 預設第 5 句 (索引 4)
+    let totalTargetCycles = 1;
+    let completedCycles = 0;
+    let isScheduleLocked = false;
+    let isGuideActive = false;
+
+    let baseSpeed = 1.5;
+    let parsedTextLines = [];
+    let currentLineIndex = 0;
+    let currentCharIndexFloat = 0.0;
+    let isLineHeadLocked = true;
+    let isTransitioningLine = false;
+    let lastAnimTimestamp = 0;
+
+    // DOM 快取
+    const centerCore = document.getElementById('center-core');
+    const pdfWrap = document.getElementById('pdf-container-wrap');
+    const videoWrap = document.getElementById('video-container-wrap');
+    const video = document.getElementById('my-chant-video');
+    const pdfCanvas = document.getElementById('pdf-canvas');
+    const guideStage = document.getElementById('guide-stage');
+    const guideLine = document.getElementById('guide-line');
+    const redDot = document.getElementById('red-dot');
+    const markALine = document.getElementById('mark-a-line');
+    const markBLine = document.getElementById('mark-b-line');
+
+    const btnMarkA = document.getElementById('btn-mark-a');
+    const btnMarkB = document.getElementById('btn-mark-b');
+    const btnRepeatCount = document.getElementById('btn-repeat-count');
+    const btnShutdownExit = document.getElementById('btn-shutdown-exit');
+    const btnGuideToggle = document.getElementById('btn-guide-toggle');
+    const btnModeToggle = document.getElementById('btn-mode-toggle');
+    const btnSpeedUp = document.getElementById('btn-speed-up');
+    const btnSpeedDown = document.getElementById('btn-speed-down');
+    const repeatModal = document.getElementById('repeat-modal');
+    const welcomeOverlay = document.getElementById('welcome-start-overlay');
+    const scheduleToast = document.getElementById('schedule-toast');
+    const speedToastBadge = document.getElementById('speed-toast-badge');
+
+    // Apple 幾何畫布轉換器
+    function getAppleCanvasScale() {
+      if (!isAppleDevice || !pdfCanvas || pdfCanvas.height === 0) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      return {
+        scaleX: canvasRect.width / pdfCanvas.width,
+        scaleY: canvasRect.height / pdfCanvas.height,
+        offsetTop: pdfCanvas.offsetTop || 0,
+        offsetLeft: pdfCanvas.offsetLeft || 0
+      };
+    }
+
+    function showToast(msg, duration = 3000) {
+      scheduleToast.textContent = msg;
+      scheduleToast.style.display = 'block';
+      scheduleToast.style.opacity = '1';
+      clearTimeout(scheduleToast._t);
+      scheduleToast._t = setTimeout(() => {
+        scheduleToast.style.opacity = '0';
+        setTimeout(() => { scheduleToast.style.display = 'none'; }, 300);
+      }, duration);
+    }
+
+    function speakPrompt(text) {
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'zh-TW';
+          utterance.rate = 1.1;
+          window.speechSynthesis.speak(utterance);
+        }
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // 2. 外部字典載入 (sentences.json)
+    // =========================================================================
+    async function loadSentencesData() {
+      try {
+        const res = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          scriptureData = await res.json();
+          localStorage.setItem('LOCAL_SENTENCES_CACHE', JSON.stringify(scriptureData));
+          return true;
+        }
+      } catch (e) {}
+
+      const local = localStorage.getItem('LOCAL_SENTENCES_CACHE');
+      if (local) {
+        scriptureData = JSON.parse(local);
+        return true;
+      }
+      return false;
+    }
+
+    // =========================================================================
+    // 3. 雙模式（PDF / MP4）切換
+    // =========================================================================
+    btnModeToggle.addEventListener('click', () => {
+      if (isGuideActive) haltGuideRunner();
+
+      if (currentMode === 'pdf') {
+        currentMode = 'mp4';
+        pdfWrap.style.display = 'none';
+        guideStage.style.display = 'none';
+        videoWrap.style.display = 'flex';
+        btnModeToggle.textContent = '切經文';
+        showToast('切換為：MP4 影片跟讀模式');
+
+        if (scriptureData[markA_Index]) {
+          video.currentTime = scriptureData[markA_Index].start;
+        }
+      } else {
+        currentMode = 'pdf';
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfWrap.style.display = 'flex';
+        guideStage.style.display = 'block';
+        btnModeToggle.textContent = '切影片';
+        showToast('切換為：PDF 默背模式');
+        scrollToAlignTop(markA_Index);
+      }
+      updateVisualDisplay();
+    });
+
+    // =========================================================================
+    // 4. 起訖標記與視覺渲染
+    // =========================================================================
+    function renderMarkerLine(lineElement, lineObj) {
+      if (!lineObj) return;
+      if (!isAppleDevice) {
+        lineElement.style.top = `${lineObj.underLineY}px`;
+        lineElement.style.left = `${lineObj.x0}px`;
+        lineElement.style.width = `${lineObj.x1 - lineObj.x0}px`;
+      } else {
+        const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+        lineElement.style.top = `${offsetTop + (lineObj.underLineY * scaleY)}px`;
+        lineElement.style.left = `${offsetLeft + (lineObj.x0 * scaleX)}px`;
+        lineElement.style.width = `${(lineObj.x1 - lineObj.x0) * scaleX}px`;
+      }
+      lineElement.style.display = 'block';
+    }
+
+    function updateVisualDisplay() {
+      if (currentMode === 'pdf') {
+        if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
+          btnMarkA.classList.add('active-mark');
+          renderMarkerLine(markALine, parsedTextLines[markA_Index]);
+        } else {
+          btnMarkA.classList.remove('active-mark');
+          markALine.style.display = 'none';
+        }
+
+        if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
+          btnMarkB.classList.add('active-mark');
+          renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
+        } else {
+          btnMarkB.classList.remove('active-mark');
+          markBLine.style.display = 'none';
+        }
+      }
+
+      const remain = Math.max(0, totalTargetCycles - completedCycles);
+      btnRepeatCount.textContent = `${remain}次`;
+
+      if (!isGuideActive) {
+        guideLine.style.display = 'none';
+        redDot.style.display = 'none';
+        btnGuideToggle.textContent = '背書';
+        btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
+      }
+    }
+
+    function getLineAtButtonBottom(buttonElement) {
+      if (parsedTextLines.length === 0) return 0;
+      const btnRect = buttonElement.getBoundingClientRect();
+
+      if (!isAppleDevice) {
+        const centerRect = centerCore.getBoundingClientRect();
+        const targetAbsoluteY = centerCore.scrollTop + (btnRect.bottom - centerRect.top);
+        let closestIdx = 0, minDiff = Infinity;
+        for (let i = 0; i < parsedTextLines.length; i++) {
+          const diff = Math.abs(parsedTextLines[i].underLineY - targetAbsoluteY);
+          if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+        }
+        return closestIdx;
+      } else {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const { scaleY } = getAppleCanvasScale();
+        const targetCanvasY = (btnRect.bottom - canvasRect.top) / scaleY;
+        let closestIdx = 0, minDiff = Infinity;
+        for (let i = 0; i < parsedTextLines.length; i++) {
+          const diff = Math.abs(parsedTextLines[i].underLineY - targetCanvasY);
+          if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+        }
+        return closestIdx;
+      }
+    }
+
+    btnMarkA.addEventListener('click', () => {
+      if (isGuideActive) return;
+      if (isScheduleLocked) { speakPrompt("請先完成今日排程功課"); return; }
+      if (parsedTextLines.length === 0) return;
+      markA_Index = getLineAtButtonBottom(btnMarkA);
+      if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = markA_Index;
+      updateVisualDisplay();
+      scrollToAlignTop(markA_Index);
+      speakPrompt("起點已設定");
+    });
+
+    btnMarkB.addEventListener('click', () => {
+      if (isGuideActive) return;
+      if (isScheduleLocked) { speakPrompt("請先完成今日排程功課"); return; }
+      if (parsedTextLines.length === 0) return;
+      const selectedB = getLineAtButtonBottom(btnMarkB);
+      if (markA_Index !== -1 && selectedB < markA_Index) {
+        speakPrompt("終點不能在起點之前");
+        return;
+      }
+      markB_Index = selectedB;
+      updateVisualDisplay();
+      speakPrompt("終點設定完畢");
+    });
+
+    btnRepeatCount.addEventListener('click', () => {
+      if (isGuideActive) return;
+      repeatModal.style.display = repeatModal.style.display === 'flex' ? 'none' : 'flex';
+    });
+
+    document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        totalTargetCycles = parseInt(btn.dataset.count, 10);
+        completedCycles = 0;
+        document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateVisualDisplay();
+        repeatModal.style.display = 'none';
+      });
+    });
+
+    btnSpeedUp.addEventListener('click', () => {
+      baseSpeed = Math.min(3.5, Math.round((baseSpeed + 0.1) * 10) / 10);
+      speedToastBadge.textContent = `【語速 ${baseSpeed.toFixed(1)}x】`;
+      speedToastBadge.style.display = 'block';
+      setTimeout(() => { speedToastBadge.style.display = 'none'; }, 2000);
+    });
+
+    btnSpeedDown.addEventListener('click', () => {
+      baseSpeed = Math.max(0.6, Math.round((baseSpeed - 0.1) * 10) / 10);
+      speedToastBadge.textContent = `【語速 ${baseSpeed.toFixed(1)}x】`;
+      speedToastBadge.style.display = 'block';
+      setTimeout(() => { speedToastBadge.style.display = 'none'; }, 2000);
+    });
+
+    // =========================================================================
+    // 5. 背書總控制（雙模連動）
+    // =========================================================================
+    btnGuideToggle.addEventListener('click', async () => {
+      if (markA_Index === -1 || markB_Index === -1) {
+        speakPrompt("請先設定起點與終點");
+        return;
+      }
+
+      if (currentMode === 'mp4') {
+        const tStart = scriptureData[markA_Index].start;
+        const tEnd = scriptureData[markB_Index].end;
+
+        if (video.paused) {
+          if (video.currentTime < tStart || video.currentTime >= tEnd) {
+            video.currentTime = tStart;
+          }
+          video.play();
+          btnGuideToggle.textContent = '暫停';
+          btnGuideToggle.classList.add('guide-active');
+        } else {
+          video.pause();
+          btnGuideToggle.textContent = '背書';
+          btnGuideToggle.classList.remove('guide-active');
+        }
+      } else {
+        if (isGuideActive) {
+          haltGuideRunner();
+          return;
+        }
+
+        isGuideActive = true;
+        completedCycles = 0;
+        currentLineIndex = markA_Index;
+        currentCharIndexFloat = 0.0;
+        isLineHeadLocked = true;
+
+        btnGuideToggle.textContent = '背誦中';
+        btnGuideToggle.classList.add('guide-active');
+
+        scrollToAlignTop(currentLineIndex);
+        setupActiveLine(currentLineIndex, 0.0);
+        lastAnimTimestamp = performance.now();
+        requestAnimationFrame(stepGuideMovement);
+        await startVoiceActivityDetection();
+      }
+    });
+
+    // MP4 播放監聽與遍數共用
+    video.addEventListener('timeupdate', () => {
+      if (currentMode !== 'mp4') return;
+      const tStart = scriptureData[markA_Index].start;
+      const tEnd = scriptureData[markB_Index].end;
+
+      if (video.currentTime >= tEnd) {
+        completedCycles++;
+        const remain = Math.max(0, totalTargetCycles - completedCycles);
+        btnRepeatCount.textContent = `${remain}次`;
+
+        if (completedCycles >= totalTargetCycles) {
+          video.pause();
+          btnGuideToggle.textContent = '背書';
+          btnGuideToggle.classList.remove('guide-active');
+          speakPrompt("背誦圓滿，功德無量");
+          showToast('🎉 今日背誦圓滿！');
+        } else {
+          showToast(`已完成 ${completedCycles} 遍，繼續循環`);
+          video.currentTime = tStart;
+          video.play();
+        }
+      }
+    });
+
+    // =========================================================================
+    // 6. PDF 導引與 30 FPS 節流 VAD 引擎
+    // =========================================================================
+    let audioContext = null;
+    let analyser = null;
+    let micStream = null;
+    let isVoiceActive = false;
+    let lastVadSampleTime = 0;
+
+    async function startVoiceActivityDetection() {
+      try {
+        if (!micStream) {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
+          });
+        }
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        source.connect(analyser);
+
+        monitorVolumeThrottled();
+      } catch (e) {
+        console.warn("麥克風啟動略過:", e);
+      }
+    }
+
+    // 關鍵節流：限制每秒最多採樣 30 次（間隔約 33ms），避免 CPU 飆高
+    function monitorVolumeThrottled() {
+      if (!isGuideActive) return;
+
+      const now = performance.now();
+      if (now - lastVadSampleTime >= 33 && analyser) {
+        lastVadSampleTime = now;
+        const dataArray = new Float32Array(analyser.frequencyBinCount);
+        analyser.getFloatTimeDomainData(dataArray);
+
+        let sumSquares = 0.0;
+        for (let i = 0; i < dataArray.length; i++) sumSquares += dataArray[i] * dataArray[i];
+        const rms = Math.sqrt(sumSquares / dataArray.length);
+
+        if (rms > 0.0035) {
+          isVoiceActive = true;
+          isLineHeadLocked = false;
+        } else {
+          isVoiceActive = false;
+        }
+      }
+      requestAnimationFrame(monitorVolumeThrottled);
+    }
+
+    function setupActiveLine(idx, initChar = 0.0) {
+      if (idx >= parsedTextLines.length) return;
+      const line = parsedTextLines[idx];
+      currentCharIndexFloat = initChar;
+
+      if (!isAppleDevice) {
+        guideLine.style.top = `${line.underLineY}px`;
+        guideLine.style.left = `${line.x0}px`;
+        guideLine.style.width = `${line.x1 - line.x0}px`;
+        redDot.style.top = `${line.underLineY}px`;
+        redDot.style.left = `${line.x0}px`;
+      } else {
+        const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+        guideLine.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
+        guideLine.style.left = `${offsetLeft + (line.x0 * scaleX)}px`;
+        guideLine.style.width = `${(line.x1 - line.x0) * scaleX}px`;
+        redDot.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
+        redDot.style.left = `${offsetLeft + (line.x0 * scaleX)}px`;
+      }
+      guideLine.style.display = 'block';
+      redDot.style.display = 'block';
+    }
+
+    function stepGuideMovement(now) {
+      if (!isGuideActive || isTransitioningLine) return;
+      let delta = now - lastAnimTimestamp;
+      if (delta <= 0 || delta > 100) delta = 16.6;
+      lastAnimTimestamp = now;
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const totalChars = curLine && curLine.charItems ? curLine.charItems.length : 7;
+
+      if (isVoiceActive) {
+        const charPerMs = (2.8 * baseSpeed) / 1000;
+        currentCharIndexFloat += charPerMs * delta;
+      }
+
+      if (currentCharIndexFloat >= totalChars) {
+        currentCharIndexFloat = 0.0;
+        if (currentLineIndex >= markB_Index) {
+          completedCycles++;
+          const remain = Math.max(0, totalTargetCycles - completedCycles);
+          btnRepeatCount.textContent = `${remain}次`;
+
+          if (completedCycles >= totalTargetCycles) {
+            haltGuideRunner();
+            speakPrompt("背誦圓滿，功德無量");
+            return;
+          } else {
+            currentLineIndex = markA_Index;
+            scrollToAlignTop(currentLineIndex);
+          }
+        } else {
+          currentLineIndex++;
+          scrollToAlignTop(currentLineIndex);
+        }
+        setupActiveLine(currentLineIndex, 0.0);
+      }
+
+      if (curLine) {
+        const progressX = curLine.x0 + ((curLine.x1 - curLine.x0) * (currentCharIndexFloat / totalChars));
+        if (!isAppleDevice) {
+          redDot.style.left = `${progressX}px`;
+        } else {
+          const { scaleX, offsetLeft } = getAppleCanvasScale();
+          redDot.style.left = `${offsetLeft + (progressX * scaleX)}px`;
+        }
+      }
+
+      requestAnimationFrame(stepGuideMovement);
+    }
+
+    function scrollToAlignTop(idx) {
+      const line = parsedTextLines[idx];
+      if (line) centerCore.scrollTop = Math.max(0, line.topGlobal - 18);
+    }
+
+    function haltGuideRunner() {
+      isGuideActive = false;
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+      btnGuideToggle.textContent = '背書';
+      btnGuideToggle.classList.remove('guide-active');
+      video.pause();
+    }
+
+    // 關機鍵
+    btnShutdownExit.addEventListener('click', () => {
+      haltGuideRunner();
+      if (micStream) {
+        try { micStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+        micStream = null;
+      }
+      welcomeOverlay.style.display = 'flex';
+    });
+
+    function dismissWelcomeOverlay(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      welcomeOverlay.style.display = 'none';
+      checkDailySchedule();
+    }
+
+    // =========================================================================
+    // 7. 排程讀取 (schedule.json)
+    // =========================================================================
+    async function checkDailySchedule() {
+      try {
+        const res = await fetch('./schedule.json?nocache=' + Date.now());
+        if (res.ok) {
+          const scheduleData = await res.json();
+          const now = new Date();
+          const todayStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+          const todayPlan = scheduleData.find(item => item.date === todayStr);
+
+          if (todayPlan) {
+            isScheduleLocked = true;
+            markA_Index = Math.max(0, todayPlan.start - 1);
+            markB_Index = Math.min(parsedTextLines.length - 1, todayPlan.end - 1);
+            totalTargetCycles = todayPlan.repeat || 1;
+            btnRepeatCount.textContent = `${totalTargetCycles}次`;
+            updateVisualDisplay();
+            scrollToAlignTop(markA_Index);
+            showToast(`🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句（${totalTargetCycles}遍）`);
+            return;
+          }
+        }
+      } catch (e) {}
+      updateVisualDisplay();
+    }
+
+    // =========================================================================
+    // 8. PDF 單次渲染與文字分析 (One-Time Render)
+    // =========================================================================
+    async function loadPdfScripture() {
+      try {
+        const loadingTask = pdfjsLib.getDocument({
+          url: './scripture.pdf',
+          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+          cMapPacked: true
+        });
+        const pdfDoc = await loadingTask.promise;
+        const page = await pdfDoc.getPage(1);
+
+        const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
+        const unscaled = page.getViewport({ scale: 1.0 });
+        const pageScale = availableWidth / unscaled.width;
+        const viewport = page.getViewport({ scale: pageScale });
+
+        pdfCanvas.width = viewport.width;
+        pdfCanvas.height = viewport.height;
+        const ctx = pdfCanvas.getContext('2d');
+
+        // 單次繪製凍結
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+        const textContent = await page.getTextContent();
+        const validSpans = [];
+        const chineseCharRegex = /[\u4e00-\u9fa5]/;
+
+        textContent.items.forEach(it => {
+          if (!it.str.trim()) return;
+          const tx = it.transform;
+          const pdfX = tx[4];
+          const pdfY = tx[5];
+          const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
+          const fontWidth = it.width * pageScale;
+          const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
+          const screenX0 = p0[0];
+          const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + fontScale], viewport.transform);
+          const realTop = Math.min(p0[1], pTop[1]);
+          const realBottom = Math.max(p0[1], pTop[1]);
+
+          const charWidth = fontWidth / Math.max(1, it.str.length);
+          for (let c = 0; c < it.str.length; c++) {
+            const ch = it.str[c];
+            if (chineseCharRegex.test(ch)) {
+              validSpans.push({
+                x0: screenX0 + (c * charWidth),
+                x1: screenX0 + ((c + 1) * charWidth),
+                topY: realTop,
+                bottomY: realBottom,
+                fs: fontScale,
+                char: ch
+              });
+            }
+          }
+        });
+
+        validSpans.sort((a, b) => a.topY - b.topY);
+        const rowGroups = [];
+        validSpans.forEach(span => {
+          let matched = false;
+          for (let g of rowGroups) {
+            if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
+              g.spans.push(span);
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
+        });
+
+        const analyzedRows = rowGroups.map(g => {
+          g.spans.sort((a, b) => a.x0 - b.x0);
+          return {
+            spans: g.spans,
+            chineseCount: g.spans.length,
+            minTop: Math.min(...g.spans.map(s => s.topY)),
+            maxBottom: Math.max(...g.spans.map(s => s.bottomY)),
+            lineX0: g.spans[0].x0,
+            lineX1: g.spans[g.spans.length - 1].x1,
+            underLineY: Math.max(...g.spans.map(s => s.bottomY)) + 7
+          };
+        });
+
+        parsedTextLines = analyzedRows
+          .filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80)
+          .map((r, idx) => ({
+            lineIndex: idx,
+            x0: r.lineX0,
+            x1: r.lineX1,
+            topGlobal: r.minTop,
+            bottomGlobal: r.maxBottom,
+            underLineY: r.underLineY,
+            charItems: r.spans
+          }));
+
+        parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+        guideStage.style.height = `${viewport.height}px`;
+
+        updateVisualDisplay();
+        scrollToAlignTop(markA_Index);
+      } catch (err) {
+        console.warn("PDF 載入異常:", err);
+      }
+    }
+
+    // =========================================================================
+    // 9. 頁面啟動總入口
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadSentencesData();
+      await loadPdfScripture();
+      await checkDailySchedule();
+    });
+  </script>
+</body>
+</html>
