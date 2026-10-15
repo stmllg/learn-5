@@ -42,6 +42,9 @@
       overflow: hidden;
     }
 
+    /* ----------------------------------------------------
+       【LINE 內建瀏覽器大字警示層】：引導打橫與跳轉
+    ---------------------------------------------------- */
     #line-warning-banner {
       display: none;
       position: fixed;
@@ -62,26 +65,26 @@
     }
 
     .line-warning-card {
-      background: rgba(0, 0, 0, 0.75);
-      border: 2px solid #FEF08A;
+      background: rgba(0, 0, 0, 0.82);
+      border: 2.5px solid #FEF08A;
       border-radius: 20px;
       padding: 24px 20px;
-      max-width: 480px;
-      width: 90%;
+      max-width: 500px;
+      width: 92%;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
     }
 
     .line-warning-icon {
-      font-size: 44px;
+      font-size: 52px;
       line-height: 1;
     }
 
     .line-warning-title {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 900;
       color: #FEF08A;
       letter-spacing: 0.5px;
@@ -89,9 +92,11 @@
 
     .line-warning-text {
       font-size: 16px;
-      line-height: 1.6;
+      line-height: 1.7;
       font-weight: 700;
       color: #FFFFFF;
+      text-align: left;
+      width: 100%;
     }
 
     .line-warning-highlight {
@@ -119,7 +124,6 @@
       transition: opacity 0.3s ease;
     }
 
-    /* 語速提示標籤 */
     #speed-toast-badge {
       display: none;
       position: absolute;
@@ -138,7 +142,6 @@
       transition: opacity 0.3s ease;
     }
 
-    /* 更新確認視窗 */
     #update-modal-overlay {
       display: none;
       position: fixed;
@@ -227,7 +230,6 @@
       transform: scale(0.96);
     }
 
-    /* 開機指引看板 */
     #welcome-start-overlay {
       display: flex;
       position: fixed;
@@ -355,9 +357,6 @@
       100% { transform: scale(1); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
     }
 
-    /* ----------------------------------------------------
-       【兩翼側邊欄】：iPhone / Android 全域自適應無縫容錯
-    ---------------------------------------------------- */
     .side-wing {
       flex-shrink: 0;
       height: 100%;
@@ -393,7 +392,6 @@
       position: relative;
     }
 
-    /* 48px 實心大圓鈕：全機種完全居中、絕不切邊 */
     .circle-btn {
       width: 48px !important;
       height: 48px !important;
@@ -423,7 +421,6 @@
       opacity: 0.85;
     }
 
-    /* 左側 4 鍵樣式 */
     .btn-color-mark-a {
       background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
       border-color: #BAE6FD;
@@ -454,7 +451,6 @@
       color: #FFFFFF;
     }
 
-    /* 右側 4 鍵樣式 */
     .btn-color-guide {
       background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%);
       border-color: #FECACA;
@@ -839,7 +835,6 @@
       color: #475569;
     }
 
-    /* 支援兩指縮放 + 平移滿版雙榜 */
     #leaderboard-modal-overlay {
       display: none;
       position: fixed;
@@ -1044,14 +1039,16 @@
 </head>
 <body>
 
+  <!-- LINE 內建瀏覽器大字警示層：優先提醒打橫 -->
   <div id="line-warning-banner">
     <div class="line-warning-card">
-      <div class="line-warning-icon">⚠️</div>
-      <div class="line-warning-title">偵測到 LINE 內建瀏覽器</div>
+      <div class="line-warning-icon">📱 ➔ 🔄</div>
+      <div class="line-warning-title">請先將手機「橫向擺放」</div>
       <div class="line-warning-text">
-        請點選螢幕 <span class="line-warning-highlight">上下側邊</span> 的功能選單或直線三點 (⋮)<br><br>
-        選擇 ➔ <span class="line-warning-highlight">「以預設瀏覽器開啟」</span><br><br>
-        即可正常啟用麥克風進行背誦！
+        1. 請先把手機 <span class="line-warning-highlight">橫著拿</span><br><br>
+        2. 再點選螢幕邊緣的 <span class="line-warning-highlight">直線三點 (⋮) 或分享圖示</span><br><br>
+        3. 選擇 ➔ <span class="line-warning-highlight">「以預設瀏覽器開啟」</span>（或以 Safari 開啟）<br><br>
+        即可正常啟用麥克風進行全螢幕背誦！
       </div>
     </div>
   </div>
@@ -1152,7 +1149,6 @@
   </div>
 
   <div id="landscape-container">
-    <!-- 左側面板：定位與設定區 (起點、終點、次數、關機) -->
     <div class="side-wing" id="left-wing">
       <div class="slot">
         <button class="circle-btn btn-color-mark-a" id="btn-mark-a" aria-label="設定起點">起點</button>
@@ -1208,7 +1204,6 @@
       </div>
     </div>
 
-    <!-- 右側面板：主控與即時調速區 (背書、供養、語快、語慢) -->
     <div class="side-wing" id="right-wing">
       <div class="slot">
         <button class="circle-btn btn-color-guide" id="btn-guide-toggle" aria-label="背書導引開關">背書</button>
@@ -1295,7 +1290,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v123_pure_geometric_alignment';
+    const APP_BUILD_VERSION = 'v126_seamless_schedule_sync';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
     let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
@@ -1500,14 +1495,17 @@
       } catch (e) {}
     }
 
+    /* ----------------------------------------------------
+       【LINE 偵測】：優先提示手機橫放，再開 Safari
+    ---------------------------------------------------- */
     function checkLineInAppBrowser() {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       if (/Line/i.test(ua)) {
         const banner = document.getElementById('line-warning-banner');
         if (banner) banner.style.display = 'flex';
         setTimeout(() => {
-          speakPrompt("請按上下側邊選單，以預設瀏覽器開啟");
-        }, 1200);
+          speakPrompt("請先將手機橫放，再點選邊緣三點，以預設瀏覽器開啟");
+        }, 1000);
       }
     }
 
@@ -1530,6 +1528,9 @@
       return `${yyyy}/${mm}/${dd}`;
     }
 
+    /* ----------------------------------------------------
+       【開機導引看板點擊進入】：絕不抹除已獲取的今日排程
+    ---------------------------------------------------- */
     welcomeOverlay.addEventListener('click', async () => {
       hasInteractedWithWelcome = true;
       welcomeOverlay.style.opacity = '0';
@@ -1539,18 +1540,22 @@
 
       await triggerLandscapeLock();
 
-      markA_Index = -1;
-      markB_Index = -1;
+      // 若未鎖定排程才歸零，若有排程則保留起訖點！
+      if (!isScheduleLocked) {
+        markA_Index = -1;
+        markB_Index = -1;
+      }
       completedCycles = 0;
-      currentLineIndex = 0;
       currentLineProgress = 0.0;
       isGuideActive = false;
       isTransitioningLine = false;
 
-      try { localStorage.removeItem(APP_CONFIG_KEY); } catch (e) {}
-
       updateVisualDisplay();
-      scrollToAlignTop(0);
+      if (markA_Index !== -1) {
+        scrollToAlignTop(markA_Index);
+      } else {
+        scrollToAlignTop(0);
+      }
 
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -1677,11 +1682,23 @@
       lineElement.style.display = 'block';
     }
 
+    /* ----------------------------------------------------
+       【今日排程健全化】：首次啟動主動拉取，起訖線絕不遺失
+    ---------------------------------------------------- */
     async function checkDailySchedule() {
       try {
         let scheduleData = null;
         const localCache = localStorage.getItem('LOCAL_SCHEDULE_CACHE');
-        if (localCache) scheduleData = JSON.parse(localCache);
+        if (localCache) {
+          scheduleData = JSON.parse(localCache);
+        } else {
+          // 首次啟動本機無快取時：立即非同步請求 schedule.json，免退出重進
+          const res = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) {
+            scheduleData = await res.json();
+            localStorage.setItem('LOCAL_SCHEDULE_CACHE', JSON.stringify(scheduleData));
+          }
+        }
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           isScheduleLocked = false;
@@ -1700,6 +1717,8 @@
             pendingScheduleSpeech = "";
             return false;
           }
+
+          if (parsedTextLines.length === 0) return false;
 
           isScheduleLocked = true;
           markA_Index = Math.max(0, todayPlan.start - 1);
@@ -1774,8 +1793,7 @@
     }
 
     /* ----------------------------------------------------
-       【純幾何畫布相對投影算法】：徹底解決 iPhone 安全區座標偏移
-       直接量測按鈕下緣相對於 PDF 畫布頂部的真實物理像素位置
+       【純幾何畫布相對投影算法】：跨平台（Android/iPad/iPhone）精準對齊
     ---------------------------------------------------- */
     function getLineAtButtonBottom(buttonElement) {
       if (parsedTextLines.length === 0) return 0;
@@ -1783,7 +1801,6 @@
       const btnRect = buttonElement.getBoundingClientRect();
       const canvasRect = pdfCanvas.getBoundingClientRect();
 
-      // 純視口幾何投影：按鈕下緣在畫布內的相對 Y 軸像素位置
       const targetCanvasY = btnRect.bottom - canvasRect.top;
 
       let closestIdx = 0;
@@ -1961,7 +1978,6 @@
       document.body.appendChild(scriptTag);
     });
 
-    /* 支援兩指縮放 + 平移手勢 */
     let currentScale = 1.0;
     let translateX = 0;
     let translateY = 0;
@@ -2834,13 +2850,10 @@
       }
     });
 
-    /* PDF 渲染與轉向防護：清空緩衝區，動態取得旋轉角度 */
+    /* ----------------------------------------------------
+       【PDF 渲染】：解除直向等待死鎖，下載完立即呈現
+    ---------------------------------------------------- */
     async function parseAndRenderPdfData(typedarray) {
-      if (centerCore.clientWidth < centerCore.clientHeight && window.innerWidth < window.innerHeight) {
-        setTimeout(() => parseAndRenderPdfData(typedarray), 350);
-        return;
-      }
-
       statusCard.style.display = 'none';
       pdfContainerWrap.style.display = 'flex';
 
