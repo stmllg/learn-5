@@ -1316,7 +1316,7 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    const APP_BUILD_VERSION = 'v132_syllable_beat_engine_locked';
+    const APP_BUILD_VERSION = 'v133_python_flow_engine_locked';
     const APP_CONFIG_KEY = 'happy_recite_user_state';
     
     // =========================================================================
@@ -1343,11 +1343,11 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
+    // 基準語速倍率 (1.0x ~ 4.0x)
     let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
     if (isNaN(baseSpeed) || baseSpeed < 0.5 || baseSpeed > 4.0) {
       baseSpeed = 1.5;
     }
-    let effectiveSpeedMultiplier = 1.0;
 
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
 
@@ -1424,12 +1424,10 @@
     let currentLineIndex = 0;
     
     // =========================================================================
-    // 【字元級步進器】：說一聲前進 1 格，平滑流速追隨
+    // 【Python 式實體漢字流速步進器】：
+    // currentCharIndexFloat 代表當前踩在第幾個漢字的物理進度 (0.0 ~ 該行漢字數 N)
     // =========================================================================
-    let targetCharIndex = 0.0;       // 由音節脈衝推動的目標字數（每次叫一聲 +1.0）
-    let currentCharIndexFloat = 0.0; // 畫面小紅點實際呈現的浮點流動位置
-    let lastCharBeatTime = 0;        // 上一次觸發音節脈衝的時間戳
-
+    let currentCharIndexFloat = 0.0;
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
 
@@ -1443,14 +1441,13 @@
     let lastVoiceDetectedTime = 0;
     let isVoiceActive = false;
     let isTouchingDisplay = false;
-    const SILENCE_TIMEOUT_MS = 1000;
+    const SILENCE_TIMEOUT_MS = 380; // 靜音靈敏釋放：換氣停頓立即煞車等待
 
     let baseNoiseLevel = 0.0015;
     let dynamicThreshold = 0.0020;
     let calibrationSamples = [];
     let isCalibrating = false;
 
-    let previousRms = 0.0;
     let speedBadgeTimer = null;
 
     function showToast(msg, duration = 3000) {
@@ -1465,6 +1462,9 @@
       }, duration);
     }
 
+    // =========================================================================
+    // 【語快／語慢】：直接增減基準流速 (Base Velocity)
+    // =========================================================================
     function triggerSpeedChange(delta) {
       let newSpeed = Math.round((baseSpeed + delta) * 10) / 10;
       newSpeed = Math.max(0.5, Math.min(4.0, newSpeed));
@@ -1587,7 +1587,6 @@
         markB_Index = -1;
       }
       completedCycles = 0;
-      targetCharIndex = 0.0;
       currentCharIndexFloat = 0.0;
       isGuideActive = false;
       isTransitioningLine = false;
@@ -1825,7 +1824,6 @@
           markA_Index = Math.max(0, todayPlan.start - 1);
           markB_Index = Math.min(parsedTextLines.length - 1, todayPlan.end - 1);
           currentLineIndex = markA_Index;
-          targetCharIndex = 0.0;
           currentCharIndexFloat = 0.0;
           completedCycles = 0;
 
@@ -1910,7 +1908,6 @@
       }
 
       currentLineIndex = markA_Index;
-      targetCharIndex = 0.0;
       currentCharIndexFloat = 0.0;
       completedCycles = 0;
 
@@ -2186,14 +2183,10 @@
       leaderboardOverlay.style.display = 'none';
     });
 
+    // 觸控螢幕作為輔助手動持續推進
     centerCore.addEventListener('pointerdown', () => {
       if (!isGuideActive) return;
       isTouchingDisplay = true;
-      const curLine = parsedTextLines[currentLineIndex];
-      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
-      if (targetCharIndex < totalChars) {
-        targetCharIndex += 1.0;
-      }
       if (!isVoiceActive) {
         isVoiceActive = true;
         btnGuideToggle.textContent = '背誦中';
@@ -2250,13 +2243,11 @@
       isTransitioningLine = false;
       hasPageFlipped = false;
       lastVoiceDetectedTime = performance.now();
-      lastCharBeatTime = performance.now();
 
       spawnGoldCoinsAt(btnGuideToggle);
       completedCycles = 0;
       btnRepeatCount.textContent = `${totalTargetCycles}次`;
       currentLineIndex = markA_Index;
-      targetCharIndex = 0.0;
       currentCharIndexFloat = 0.0;
 
       btnGuideToggle.textContent = '靜止';
@@ -2301,8 +2292,6 @@
         }, 350);
 
         lastVoiceDetectedTime = performance.now();
-        previousRms = 0.0;
-        lastCharBeatTime = performance.now();
         startVadMonitorLoop();
       } catch (err) {
         console.warn("麥克風無法啟動:", err);
@@ -2311,7 +2300,7 @@
     }
 
     // =========================================================================
-    // 【音節拍點偵測】：每叫一聲（音節爆發峰值），targetCharIndex 嚴格只加 1.0
+    // 【平滑語音活動監測】：持續發聲維持前進向量，換氣短暫停頓即刻煞車
     // =========================================================================
     function startVadMonitorLoop() {
       if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
@@ -2348,19 +2337,8 @@
               btnGuideToggle.classList.add('guide-active');
               lastAnimTimestamp = performance.now();
             }
-
-            const deltaRms = rms - previousRms;
-            if (deltaRms > (dynamicThreshold * 0.45) && (now - lastCharBeatTime > 140)) {
-              lastCharBeatTime = now;
-
-              const curLine = parsedTextLines[currentLineIndex];
-              const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
-
-              if (targetCharIndex < totalChars) {
-                targetCharIndex = Math.min(totalChars, Math.floor(targetCharIndex) + 1.0);
-              }
-            }
           } else {
+            // 靜音釋放門檻：背誦者思考、卡詞或換氣時，紅點立刻停在當前字等候
             if (isVoiceActive && (now - lastVoiceDetectedTime > SILENCE_TIMEOUT_MS)) {
               isVoiceActive = false;
               btnGuideToggle.textContent = '靜止';
@@ -2368,8 +2346,6 @@
               btnGuideToggle.classList.add('guide-waiting');
             }
           }
-
-          previousRms = rms;
         }
 
         vadCheckTimer = requestAnimationFrame(checkVolume);
@@ -2393,7 +2369,7 @@
       guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
 
       scrollToAlignTop(currentLineIndex);
-      setupActiveLine(currentLineIndex, targetCharIndex, currentCharIndexFloat);
+      setupActiveLine(currentLineIndex, currentCharIndexFloat);
 
       lastAnimTimestamp = performance.now();
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
@@ -2465,14 +2441,13 @@
     // =========================================================================
     // 【分流模組 3-A】：導引線與紅點初始化 (setupActiveLine - 嚴禁更動)
     // =========================================================================
-    function setupActiveLine(idx, initTarget = 0.0, initCurrent = 0.0) {
+    function setupActiveLine(idx, initCurrent = 0.0) {
       if (idx >= parsedTextLines.length) {
         handleCycleCompletion();
         return;
       }
 
       const line = parsedTextLines[idx];
-      targetCharIndex = initTarget;
       currentCharIndexFloat = initCurrent;
 
       if (isGuideActive) {
@@ -2510,7 +2485,11 @@
     let hasPageFlipped = false;
 
     // =========================================================================
-    // 【分流模組 3-B】：逐幀物理前進動畫 (stepGuideMovement)
+    // 【分流模組 3-B】：Python 式連續流速動畫核心 (stepGuideMovement)
+    // - 實體漢字陣列步進，發聲即恆速流動，無頓挫
+    // - 「語快／語慢」（baseSpeed）即基準流速
+    // - 倒數 2 字等速平穩收尾，絕不暴衝
+    // - 末字過半 (N - 0.5) 提前平順換頁
     // =========================================================================
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
@@ -2522,20 +2501,18 @@
       const curLine = parsedTextLines[currentLineIndex];
       const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
 
+      // 倒數 2 個字過渡區 (Tail Zone)
       const inertiaStartIndex = Math.max(1, totalChars - 2);
-      const isInInertiaZone = (targetCharIndex >= inertiaStartIndex || currentCharIndexFloat >= inertiaStartIndex);
+      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
 
-      if (isInInertiaZone) {
-        targetCharIndex = totalChars;
+      // 前進條件：發聲中，或已踏入倒數 2 字過渡區
+      if (isVoiceActive || isInTailZone) {
+        // Python 基準漢字流速 (字/毫秒)：基準 2.8 字/秒乘上語速倍率
+        const charPerMs = (2.8 * baseSpeed) / 1000;
+        currentCharIndexFloat += charPerMs * delta;
       }
 
-      const glideRate = Math.min(0.28, (0.007 * baseSpeed * delta));
-      const distToTarget = targetCharIndex - currentCharIndexFloat;
-
-      if (distToTarget > 0.001) {
-        currentCharIndexFloat += distToTarget * glideRate;
-      }
-
+      // 【視覺平順換頁】：踩過最後一個漢字的 50% 物理中心，立即平順滾動
       if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
         const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
         if (!isCurrentLineAtTargetEnd) {
@@ -2547,7 +2524,8 @@
         }
       }
 
-      if (currentCharIndexFloat >= (totalChars - 0.05)) {
+      // 當整句漢字朗讀完畢
+      if (currentCharIndexFloat >= totalChars) {
         currentCharIndexFloat = totalChars;
 
         if (curLine) {
@@ -2586,10 +2564,9 @@
 
           hasPageFlipped = false;
           currentLineIndex = nextIndex;
-          targetCharIndex = 0.0;
           currentCharIndexFloat = 0.0;
 
-          setupActiveLine(currentLineIndex, 0.0, 0.0);
+          setupActiveLine(currentLineIndex, 0.0);
           lastAnimTimestamp = performance.now();
           guideAnimId = requestAnimationFrame(stepGuideMovement);
         }, 160);
@@ -2650,18 +2627,15 @@
 
         hasPageFlipped = false;
         currentLineIndex = markA_Index;
-        targetCharIndex = 0.0;
         currentCharIndexFloat = 0.0;
         scrollToAlignTop(currentLineIndex);
 
-        setupActiveLine(currentLineIndex, 0.0, 0.0);
+        setupActiveLine(currentLineIndex, 0.0);
         isTransitioningLine = false;
 
         lastAnimTimestamp = performance.now();
         lastVoiceDetectedTime = performance.now();
-        lastCharBeatTime = performance.now();
         isVoiceActive = false;
-        previousRms = 0.0;
 
         btnGuideToggle.textContent = '靜止';
         btnGuideToggle.classList.remove('guide-active');
@@ -2688,7 +2662,6 @@
 
       completedCycles = 0;
       currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
-      targetCharIndex = 0.0;
       currentCharIndexFloat = 0.0;
 
       btnGuideToggle.textContent = '背書';
