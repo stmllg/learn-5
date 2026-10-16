@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v143 (黃金麥克風鎖定版)</title>
+  <title>歡喜背書橫式雙模播放器 v145 (全離線快取版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -88,7 +88,7 @@
     .guide-btn-desc { font-size: clamp(12px, 2.0vh, 14px); color: #CBD5E1; }
     .welcome-board-footer { width: 100%; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; border-radius: 14px; padding: 12px 18px; text-align: center; font-size: clamp(16px, 3vh, 20px); font-weight: 900; }
 
-    /* 頂部【大字體綠底診斷浮標】專用樣式（超清晰高對比） */
+    /* 頂部【大字體綠底診斷浮標】 */
     #schedule-toast {
       display: none;
       position: absolute;
@@ -212,7 +212,7 @@
     #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; pointer-events: none; display: flex; justify-content: center; }
     #pdf-canvas { display: block; width: 100% !important; height: auto !important; image-rendering: -webkit-optimize-contrast; transform: translateZ(0); }
 
-    /* 影片視圖（全屏填滿中央區） */
+    /* 影片視圖 */
     #video-container-wrap {
       position: absolute;
       top: 0;
@@ -312,7 +312,7 @@
       </div>
 
       <div id="video-container-wrap">
-        <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto" src="./chant_video.mp4"></video>
+        <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
       </div>
     </div>
 
@@ -438,13 +438,12 @@
     let currentPdfDoc = null;
     let parsedTextLines = [];
 
+    // 句數索引變數（嚴禁隨意清空）
     let markA_Index = -1;
     let markB_Index = -1;
     let totalTargetCycles = 1;
     let completedCycles = 0;
     let isScheduleLocked = false;
-
-    // 記憶暫停秒數
     let videoPausedAt = -1;
 
     let guideAnimId = null;
@@ -475,7 +474,46 @@
     let isCalibrating = false;
     let silentFrameCount = 0;
 
-    // 大字體綠底診斷浮標
+    // =========================================================================
+    // 【手機專屬資料庫核心：五檔案 100% 離線快取引擎 (IndexedDB)】
+    // =========================================================================
+    const DB_NAME = 'HappyReciteDB_Offline_v145';
+    const STORE_NAME = 'app_offline_files';
+
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        try {
+          const req = indexedDB.open(DB_NAME, 1);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        } catch (e) { reject(e); }
+      });
+    }
+
+    async function getLocalFile(key) {
+      try {
+        const db = await openDatabase();
+        return new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const req = tx.objectStore(STORE_NAME).get(key);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) { return null; }
+    }
+
+    async function saveLocalFile(key, data, tag) {
+      try {
+        const db = await openDatabase();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put({ data: data, tag: tag }, key);
+      } catch (e) {}
+    }
+
     function showToast(msg, duration = 4000) {
       if (!scheduleToast) return;
       scheduleToast.textContent = msg;
@@ -538,8 +576,11 @@
 
       if (bIdx < aIdx) bIdx = aIdx;
 
-      const startObj = scriptureData[aIdx] || scriptureData[0];
-      const endObj = scriptureData[bIdx] || scriptureData[scriptureData.length - 1];
+      aIdx = Math.min(aIdx, scriptureData.length - 1);
+      bIdx = Math.min(bIdx, scriptureData.length - 1);
+
+      const startObj = scriptureData[aIdx];
+      const endObj = scriptureData[bIdx];
 
       const tStart = (startObj && typeof startObj.start === 'number') ? startObj.start : 0;
       const tEnd = (endObj && typeof endObj.end === 'number') ? endObj.end : (video.duration || 999);
@@ -554,7 +595,7 @@
     }
 
     // =========================================================================
-    // 【單指左右滑動切換雙模式】：放寬判斷門檻，保證大字綠底診斷浮標必出
+    // 【單指左右滑動切換雙模式】：切換到影片時直接沿用設定，不重新計算座標
     // =========================================================================
     let touchStartX = 0;
     let touchStartY = 0;
@@ -571,7 +612,6 @@
         const deltaX = e.changedTouches[0].clientX - touchStartX;
         const deltaY = e.changedTouches[0].clientY - touchStartY;
 
-        // 水平滑動超過 40px 即觸發切換
         if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
           toggleModeSwitch();
         }
@@ -591,11 +631,10 @@
         videoPausedAt = -1;
         video.currentTime = range.start;
 
-        // 🌟【大字體綠底診斷浮標】：明確告知長輩鎖定的秒數與句數
         if (range.valid) {
           showToast(`🎬【區段已鎖定】第 ${range.sentenceA}～${range.sentenceB} 句（${range.start.toFixed(1)}s～${range.end.toFixed(1)}s）`, 4500);
         } else {
-          showToast(`⚠️ 正在載入句數表，暫以整部播放`, 4000);
+          showToast(`⚠️ 句數秒數表載入中...`, 3000);
         }
       } else {
         currentMode = 'pdf';
@@ -610,14 +649,13 @@
     }
 
     // =========================================================================
-    // 【影片播放進度監控：精準折返、遍數循環與福慧幣結算】
+    // 【影片播放進度監控：精確到達終點秒數立即折返】
     // =========================================================================
     video.addEventListener('timeupdate', () => {
       if (currentMode !== 'mp4') return;
 
       const range = getActiveVideoRange();
 
-      // 當秒數抵達或超過終點秒數，瞬間折返
       if (video.currentTime >= range.end) {
         completedCycles++;
         const remain = Math.max(0, totalTargetCycles - completedCycles);
@@ -643,7 +681,7 @@
     });
 
     // =========================================================================
-    // 【起點終點標記與按鈕連動】
+    // 【起點終點手動標定：點擊後立即記錄句子索引】
     // =========================================================================
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
@@ -719,6 +757,7 @@
       if (isGuideActive) return;
       if (isScheduleLocked) { speakPrompt("請先完成今日共同功課"); return; }
       if (parsedTextLines.length === 0) return;
+
       markA_Index = getLineAtButtonBottom(btnMarkA);
       if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
       currentLineIndex = markA_Index;
@@ -727,20 +766,21 @@
       completedCycles = 0;
       videoPausedAt = -1;
       updateVisualDisplay();
-      speakPrompt("起點已設定");
+      speakPrompt(`起點設定在第 ${markA_Index + 1} 句`);
     });
 
     btnMarkB.addEventListener('click', () => {
       if (isGuideActive) return;
       if (isScheduleLocked) { speakPrompt("請先完成今日共同功課"); return; }
       if (parsedTextLines.length === 0) return;
+
       const selectedB = getLineAtButtonBottom(btnMarkB);
       if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
       markB_Index = selectedB;
       completedCycles = 0;
       videoPausedAt = -1;
       updateVisualDisplay();
-      speakPrompt("終點設定完畢");
+      speakPrompt(`終點設定在第 ${markB_Index + 1} 句`);
     });
 
     btnRepeatCount.addEventListener('click', () => {
@@ -762,10 +802,9 @@
     });
 
     // =========================================================================
-    // 【背書開關總控制】：記憶暫停接續播放 與 PDF 導引
+    // 【背書開關總控制】：支援記憶暫停與接續播放
     // =========================================================================
     btnGuideToggle.addEventListener('click', async () => {
-      // --- 模式 1：MP4 模式 ---
       if (currentMode === 'mp4') {
         const range = getActiveVideoRange();
 
@@ -791,12 +830,11 @@
           videoPausedAt = video.currentTime;
           btnGuideToggle.textContent = '背書';
           btnGuideToggle.classList.remove('guide-active');
-          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒，再按背書即可接續`, 3000);
+          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒，再按背書接續播放`, 3000);
         }
         return;
       }
 
-      // --- 模式 2：PDF 默背模式 ---
       if (markA_Index === -1 || markB_Index === -1) {
         speakPrompt("請先設定起點與終點");
         return;
@@ -833,7 +871,7 @@
     });
 
     // =========================================================================
-    // 🔒【黃金麥克風調校核心：全盤鎖定，嚴禁修改】
+    // 🔒【黃金麥克風調校核心：全盤鎖定】
     // =========================================================================
     async function startVoiceActivityDetection() {
       try {
@@ -891,12 +929,12 @@
           const deltaRms = rms - prevRms;
           const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
 
-          // 1. 起句解鎖：捕捉明顯起音波峰（Attack Peak）
+          // 1. 起句波峰解鎖
           if (isLineHeadLocked && deltaRms > (dynamicThreshold * 0.35)) {
             isLineHeadLocked = false;
           }
 
-          // 2. 換行靈活監聽狀態機 (200ms 保底 ＋ 雙逃脫通道)
+          // 2. 換行靈活監聽狀態機 (200ms 保底 ＋ 雙逃脫)
           if (isTransitioningLine) {
             const elapsed = performance.now() - lineEndTime;
             if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
@@ -908,7 +946,7 @@
             }
           }
 
-          // 3. 換氣緩衝鎖定 14 幀 (約 230ms 緩衝，絕不卡死跳靜音)
+          // 3. 換氣緩衝鎖定 14 幀 (約 230ms)
           if (hasVoiceEnergy) {
             silentFrameCount = 0;
             if (!isVoiceActive) {
@@ -1318,46 +1356,49 @@
         if (!audioContext) audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
       } catch (e) {}
-      checkDailySchedule();
+      applyScheduleToState();
+      // 在關閉看板後，若有連線，在背景悄悄檢查五檔案是否有更新
+      syncFiveFilesInBackground();
     }
     welcomeOverlay.addEventListener('pointerdown', dismissWelcomeOverlay, { passive: false });
     welcomeOverlay.addEventListener('click', dismissWelcomeOverlay);
 
     // =========================================================================
-    // 【排程自動套用 (schedule.json)】
+    // 【排程套用核心（優先套用本機 schedule.json 快取）】
     // =========================================================================
-    async function checkDailySchedule() {
+    function applyScheduleToState() {
       try {
-        const res = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
-        if (res.ok) {
-          const scheduleData = await res.json();
-          const todayStr = getNormalizedDateStr();
-          const todayPlan = scheduleData.find(item => item.date === todayStr);
+        let scheduleData = null;
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
+        if (localSched) scheduleData = JSON.parse(localSched);
 
-          if (todayPlan && typeof todayPlan.start === 'number' && typeof todayPlan.end === 'number') {
-            const completedRecord = localStorage.getItem('SCHEDULE_DONE_' + todayStr);
-            if (completedRecord === 'true') { isScheduleLocked = false; return false; }
+        if (!scheduleData || !Array.isArray(scheduleData)) { isScheduleLocked = false; return false; }
+        const todayStr = getNormalizedDateStr();
+        const todayPlan = scheduleData.find(item => item.date === todayStr);
 
-            isScheduleLocked = true;
-            markA_Index = Math.max(0, todayPlan.start - 1);
-            markB_Index = Math.min(36, todayPlan.end - 1);
-            currentLineIndex = markA_Index;
-            currentCharIndexFloat = 0.0;
-            isLineHeadLocked = true;
-            completedCycles = 0;
-            videoPausedAt = -1;
+        if (todayPlan && typeof todayPlan.start === 'number' && typeof todayPlan.end === 'number') {
+          const completedRecord = localStorage.getItem('SCHEDULE_DONE_' + todayStr);
+          if (completedRecord === 'true') { isScheduleLocked = false; return false; }
 
-            if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
-              totalTargetCycles = todayPlan.repeat;
-              btnRepeatCount.textContent = `${totalTargetCycles}次`;
-            }
+          isScheduleLocked = true;
+          markA_Index = Math.max(0, todayPlan.start - 1);
+          markB_Index = Math.min(36, todayPlan.end - 1);
+          currentLineIndex = markA_Index;
+          currentCharIndexFloat = 0.0;
+          isLineHeadLocked = true;
+          completedCycles = 0;
+          videoPausedAt = -1;
 
-            updateVisualDisplay();
-            scrollToAlignTop(markA_Index);
-            const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
-            showToast(`🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText}`, 4500);
-            return true;
+          if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
+            totalTargetCycles = todayPlan.repeat;
+            btnRepeatCount.textContent = `${totalTargetCycles}次`;
           }
+
+          updateVisualDisplay();
+          scrollToAlignTop(markA_Index);
+          const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
+          showToast(`🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText}`, 4500);
+          return true;
         }
       } catch (err) {}
       isScheduleLocked = false;
@@ -1502,24 +1543,115 @@
     }
 
     // =========================================================================
-    // 【開機載入入口】
+    // 【五檔案背景靜默更新比對器（只在連網時執行）】
     // =========================================================================
-    window.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const sRes = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
-        if (sRes.ok) scriptureData = await sRes.json();
-      } catch (e) {}
+    async function syncFiveFilesInBackground() {
+      if (!navigator.onLine) return; // 斷網時完全略過
 
+      // 1. schedule.json
       try {
-        const pRes = await fetch('./scripture.pdf?nocache=' + Date.now(), { cache: 'no-store' });
-        if (pRes.ok) {
-          const buf = await pRes.arrayBuffer();
-          await parseAndRenderPdfData(new Uint8Array(buf));
-          updateVisualDisplay();
-          scrollToAlignTop(0);
-          await checkDailySchedule();
+        const res = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const fresh = await res.json();
+          const old = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
+          if (JSON.stringify(fresh) !== old) {
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(fresh));
+            if (!isGuideActive) applyScheduleToState();
+          }
         }
       } catch (e) {}
+
+      // 2. sentences.json
+      try {
+        const res = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const fresh = await res.json();
+          const old = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+          if (JSON.stringify(fresh) !== old) {
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(fresh));
+            scriptureData = fresh;
+          }
+        }
+      } catch (e) {}
+
+      // 3. scripture.pdf
+      try {
+        const head = await fetch('./scripture.pdf', { method: 'HEAD', cache: 'no-store' });
+        if (head.ok) {
+          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
+          const saved = await getLocalFile('pdf_file');
+          if (!saved || saved.tag !== tag) {
+            const getRes = await fetch('./scripture.pdf?nocache=' + Date.now());
+            const buf = await getRes.arrayBuffer();
+            await saveLocalFile('pdf_file', buf, tag);
+          }
+        }
+      } catch (e) {}
+
+      // 4. chant_video.mp4
+      try {
+        const head = await fetch('./chant_video.mp4', { method: 'HEAD', cache: 'no-store' });
+        if (head.ok) {
+          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
+          const saved = await getLocalFile('video_file');
+          if (!saved || saved.tag !== tag) {
+            const getRes = await fetch('./chant_video.mp4?nocache=' + Date.now());
+            const buf = await getRes.arrayBuffer();
+            await saveLocalFile('video_file', buf, tag);
+            const blob = new Blob([buf], { type: 'video/mp4' });
+            video.src = URL.createObjectURL(blob);
+          }
+        }
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // 【開機總入口：優先 100% 讀取手機本機存檔，斷網秒開】
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', async () => {
+      // 1. 秒讀本機 sentences.json
+      const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+      if (localSent) {
+        try { scriptureData = JSON.parse(localSent); } catch (e) {}
+      } else {
+        try {
+          const sRes = await fetch('./sentences.json');
+          if (sRes.ok) {
+            scriptureData = await sRes.json();
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(scriptureData));
+          }
+        } catch (e) {}
+      }
+
+      // 2. 秒讀本機影片（若有快取直接用 Blob，沒有則走相對路徑）
+      const localVideo = await getLocalFile('video_file');
+      if (localVideo && localVideo.data) {
+        const blob = new Blob([localVideo.data], { type: 'video/mp4' });
+        video.src = URL.createObjectURL(blob);
+      } else {
+        video.src = './chant_video.mp4';
+      }
+
+      // 3. 秒讀本機 PDF 經文
+      const localPdf = await getLocalFile('pdf_file');
+      if (localPdf && localPdf.data) {
+        await parseAndRenderPdfData(new Uint8Array(localPdf.data));
+        updateVisualDisplay();
+        scrollToAlignTop(0);
+        applyScheduleToState();
+      } else {
+        try {
+          const pRes = await fetch('./scripture.pdf');
+          if (pRes.ok) {
+            const buf = await pRes.arrayBuffer();
+            await saveLocalFile('pdf_file', buf, 'init_pdf');
+            await parseAndRenderPdfData(new Uint8Array(buf));
+            updateVisualDisplay();
+            scrollToAlignTop(0);
+            applyScheduleToState();
+          }
+        } catch (e) {}
+      }
     });
   </script>
 </body>
