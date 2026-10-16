@@ -2,1905 +2,512 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v149 (藝文雅緻直橫屏防呆版)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>歡喜背誦・經典研習系統</title>
 
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="歡喜背書">
-  <meta name="theme-color" content="#000000">
-
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+  <!-- ========================================================================== -->
+  <!-- 📌【核心唯一設定】複製此資料夾時，打開檔案只改第 9 行！                     -->
+  <!-- ========================================================================== -->
+  <script>
+    const CURRENT_CLASSIC_ID = 'er_sheng'; // ⚠️ 新經典請改此英文代碼：如 'bo_re'、'fa_hua'
+    const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx_YOUR_ID/exec'; // 雲端共用 Apps Script 網址
+  </script>
 
   <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-      margin: 0;
-      padding: 0;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #121212;
+      color: #ECEFF1;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Noto Sans TC", sans-serif;
+      overflow-x: hidden;
       user-select: none;
     }
 
-    html, body {
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-      background-color: #0B0F19;
-      color: #FFFFFF;
-      font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", serif;
-      overflow: hidden;
-    }
-
-    /* =========================================================================
-       1. 物理直立螢幕鎖定層 (墨韻藝文風)
-       ========================================================================= */
-    #portrait-blocker-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-      background: radial-gradient(circle at center, #1E293B 0%, #080D1A 100%);
-      z-index: 99999;
+    /* 主播放器容器（橫向全螢幕最佳化） */
+    #app-container {
+      display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 24px;
-      text-align: center;
-      pointer-events: all;
-    }
-
-    .rotate-phone-icon {
-      width: 68px;
-      height: 110px;
-      border: 3px solid #F59E0B;
-      border-radius: 14px;
+      height: 100vh;
+      width: 100vw;
       position: relative;
-      margin-bottom: 28px;
-      animation: rotatePhoneAnim 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-      box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
-    }
-    .rotate-phone-icon::after {
-      content: '';
-      position: absolute;
-      bottom: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #F59E0B;
     }
 
-    @keyframes rotatePhoneAnim {
-      0%   { transform: rotate(0deg); }
-      35%  { transform: rotate(-90deg); }
-      70%  { transform: rotate(-90deg); }
-      100% { transform: rotate(0deg); }
+    /* 頂部資訊列 */
+    header {
+      height: 48px;
+      background: #1E1E1E;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 1px solid #333;
+      font-size: 14px;
     }
 
-    .rotate-hint-title {
-      font-size: 24px;
-      font-weight: 900;
-      color: #FBBF24;
-      letter-spacing: 2px;
-      margin-bottom: 12px;
+    /* 影音播放區 */
+    main {
+      flex: 1;
+      display: flex;
+      position: relative;
+      background: #000;
     }
-    .rotate-hint-subtitle {
-      font-size: 16px;
-      color: #CBD5E1;
-      letter-spacing: 1.5px;
-      line-height: 1.6;
+    #video-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+    }
+    video {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
 
-    /* =========================================================================
-       2. 藝文風格迎賓視窗 (宣紙墨韻卷軸)
-       ========================================================================= */
-    #welcome-start-overlay {
+    /* 底部控制區 */
+    footer {
+      height: 64px;
+      background: #1A1A1A;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      border-top: 1px solid #2C2C2C;
+      padding: 0 12px;
+    }
+    .btn-action {
+      background: #2A2A2A;
+      color: #ECEFF1;
+      border: 1px solid #444;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .btn-action.primary {
+      background: #D4AF37;
+      color: #1A120B;
+      font-weight: bold;
+      border: none;
+    }
+
+    /* ======================================================== */
+    /* 🌟 21 天心靈陪伴卡：全螢幕宣紙浮層 UI                     */
+    /* ======================================================== */
+    #companion-overlay {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-      background: rgba(4, 7, 15, 0.94);
-      z-index: 10000;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 99999;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(5px);
       justify-content: center;
       align-items: center;
-      padding: 14px;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    #companion-overlay.active {
+      display: flex;
+      opacity: 1;
     }
 
-    .welcome-scroll-card {
-      width: 90%;
-      max-width: 580px;
-      background: #0F172A;
-      border: 2px solid #D97706;
-      border-radius: 20px;
-      padding: 22px 28px;
+    #companion-card {
+      position: relative;
+      width: 86vw;
+      max-width: 720px;
+      height: 82vh;
+      max-height: 420px;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(217, 119, 6, 0.15);
+      padding: 30px 38px;
+      box-sizing: border-box;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.22);
     }
 
-    .scroll-title {
-      font-size: 24px;
-      font-weight: 900;
-      color: #FBBF24;
-      letter-spacing: 3px;
-    }
-
-    .scroll-role-picker {
+    .card-header {
       display: flex;
-      gap: 16px;
-      width: 100%;
-      justify-content: center;
-      margin-top: 4px;
+      justify-content: space-between;
+      align-items: center;
     }
-
-    .role-seal-btn {
-      padding: 8px 22px;
-      border-radius: 24px;
-      border: 1.5px solid #64748B;
-      background: rgba(30, 41, 59, 0.7);
-      color: #94A3B8;
-      font-size: 16px;
-      font-weight: 800;
-      cursor: pointer;
-      transition: all 0.25s ease;
+    .card-seal {
+      background: #A33A31;
+      color: #FFF8E7;
+      font-size: 14px;
+      padding: 3px 12px;
+      border-radius: 4px;
+      letter-spacing: 3px;
+      font-weight: bold;
+      box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
     }
-
-    .role-seal-btn.active {
-      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-      color: #FFFFFF;
-      border-color: #FDE68A;
-      box-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
-    }
-
-    .scroll-motto-wrap {
-      padding: 10px 20px;
-      border-top: 1px dashed rgba(245, 158, 11, 0.3);
-      border-bottom: 1px dashed rgba(245, 158, 11, 0.3);
-      text-align: center;
-      width: 100%;
-    }
-    .scroll-motto {
-      font-size: 17px;
-      color: #E2E8F0;
-      letter-spacing: 2.5px;
-      font-style: italic;
-    }
-
-    .btn-enter-sacred {
-      width: 100%;
-      max-width: 380px;
-      padding: 12px 20px;
-      background: linear-gradient(135deg, #F59E0B 0%, #B45309 100%);
-      border: 1.5px solid #FDE68A;
-      border-radius: 28px;
-      color: #FFFFFF;
-      font-size: 18px;
-      font-weight: 900;
+    .card-day-indicator {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.85);
       letter-spacing: 2px;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(217, 119, 6, 0.4);
-      transition: transform 0.15s ease-out;
-    }
-    .btn-enter-sacred:active {
-      transform: scale(0.96);
     }
 
-    .scroll-hint-footer {
-      font-size: 13px;
-      color: #94A3B8;
+    .card-body {
+      text-align: center;
+      padding: 8px 0;
+    }
+    .card-title {
+      margin: 0 0 14px 0;
+      font-size: 26px;
+      font-weight: bold;
+      letter-spacing: 4px;
+      color: #FDF6E2;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+    }
+    .card-message {
+      margin: 0 auto;
+      max-width: 580px;
+      font-size: 16.5px;
+      line-height: 1.8;
+      color: #F5F5F5;
+      letter-spacing: 1.5px;
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px dashed rgba(255, 255, 255, 0.25);
+      padding-top: 14px;
+    }
+    .card-quote {
+      font-size: 14px;
+      color: #E0D2B4;
+      font-style: italic;
       letter-spacing: 1px;
     }
-
-    /* =========================================================================
-       3. 核心主架構 (橫式視圖)
-       ========================================================================= */
-    #landscape-container {
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-      display: flex;
-      flex-direction: row;
-      align-items: stretch;
-      position: relative;
-      overflow: hidden;
-    }
-
-    #schedule-toast {
-      display: none;
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #10B981;
-      color: #064E3B;
-      border: 2.5px solid #FFFFFF;
+    .btn-enter {
+      background: linear-gradient(135deg, #D4AF37 0%, #AA820A 100%);
+      color: #231700;
+      border: none;
       padding: 10px 24px;
-      border-radius: 30px;
-      font-size: 17px;
-      font-weight: 900;
-      z-index: 9999;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75);
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      white-space: nowrap;
-    }
-
-    #speed-toast-badge {
-      display: none;
-      position: absolute;
-      top: 14px;
-      right: calc(76px + env(safe-area-inset-right, 0px));
-      background: rgba(15, 23, 42, 0.96);
-      color: #34D399;
-      border: 2px solid #10B981;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 16px;
-      font-weight: 900;
-      z-index: 120;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-
-    .side-wing {
-      flex-shrink: 0;
-      height: 100%;
-      background-color: #000000;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-evenly;
-      align-items: center;
-      padding-top: 4px;
-      padding-bottom: 4px;
-      z-index: 60;
-      box-sizing: border-box;
-    }
-    #left-wing { width: calc(64px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 6px); padding-right: 6px; }
-    #right-wing { width: calc(64px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 6px); padding-left: 6px; }
-    .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
-
-    .circle-btn {
-      width: 52px !important;
-      height: 52px !important;
-      border-radius: 50%;
-      border: 2.5px solid #FFFFFF;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px !important;
-      font-weight: 900;
-      color: #FFFFFF;
+      font-size: 15px;
+      font-weight: bold;
+      border-radius: 24px;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
-      transition: transform 0.15s ease-out;
-      text-align: center;
-      line-height: 1.1;
-      touch-action: manipulation;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      letter-spacing: 2px;
     }
-    .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
-
-    .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
-    #btn-mark-a.active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF; }
-    .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
-    #btn-mark-b.active-mark { box-shadow: 0 0 18px #FB923C, inset 0 0 8px #FFFFFF; }
-    .btn-color-repeat { background: linear-gradient(135deg, #6366F1 0%, #4338CA 100%); border-color: #E0E7FF; font-size: 15px !important; }
-    .btn-color-shutdown { background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); border-color: #FECACA; }
-
-    .btn-color-guide { background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%); border-color: #FECACA; }
-    #btn-guide-toggle.guide-waiting { background: radial-gradient(circle, #EAB308 0%, #CA8A04 100%) !important; border-color: #FEF08A !important; }
-    #btn-guide-toggle.guide-active { background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important; border-color: #DCFCE7 !important; animation: voiceBreathing 1.25s infinite ease-in-out !important; }
-    @keyframes voiceBreathing {
-      0% { transform: scale(1.0); }
-      50% { transform: scale(1.08); }
-      100% { transform: scale(1.0); }
+    .btn-enter:active {
+      transform: scale(0.96);
     }
-
-    .btn-color-offering { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border-color: #FDE68A; color: #78350F; }
-    .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
-    .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
-
-    #center-core {
-      flex: 1;
-      height: 100%;
-      background-color: #FFFFFF;
-      position: relative;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      border-left: 2px solid #1E293B;
-      border-right: 2px solid #1E293B;
-      scroll-behavior: smooth;
-      touch-action: pan-y;
-    }
-
-    #guide-stage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: block; }
-    #guide-line { position: absolute; height: 6px; background-color: #00E676; border-radius: 3px; box-shadow: 0 0 10px rgba(0, 230, 118, 0.9); display: none; }
-    #red-dot { position: absolute; width: min(22px, 6vh); height: min(22px, 6vh); background: radial-gradient(circle, #FF5252 20%, #FF1744 100%); border: 2.5px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 12px rgba(255, 23, 68, 0.8); transform: translate(-50%, -50%); display: none; }
-    #mark-a-line { position: absolute; height: 6px; background-color: #0284C7; border-radius: 3px; box-shadow: 0 0 12px #38BDF8; z-index: 48; display: none; }
-    #mark-b-line { position: absolute; height: 6px; background-color: #EA580C; border-radius: 3px; box-shadow: 0 0 12px #FB923C; z-index: 48; display: none; }
-
-    #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; pointer-events: none; display: flex; justify-content: center; }
-    #pdf-canvas { display: block; width: 100% !important; height: auto !important; image-rendering: -webkit-optimize-contrast; transform: translateZ(0); }
-
-    #video-container-wrap {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #000000;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 55;
-    }
-    #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
-
-    .popup-modal { display: none; position: absolute; top: 50%; left: calc(76px + env(safe-area-inset-left, 0px)); transform: translateY(-50%); background: rgba(30, 41, 59, 0.98); border-radius: 18px; padding: 14px; z-index: 100; flex-direction: column; gap: 10px; border: 2px solid #6366F1; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-    .modal-option { padding: 10px 20px; font-size: 18px; font-weight: 800; color: #FFFFFF; background-color: #334155; border: none; border-radius: 10px; cursor: pointer; text-align: center; }
-    .modal-option.active { background: #6366F1; }
-
-    /* 供養與功德榜 */
-    #offering-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 999; justify-content: center; align-items: center; padding: 12px; }
-    .offering-card { background: #FFFFFF; color: #1E293B; border-radius: 18px; width: 92%; max-width: 460px; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
-    .offering-header { font-size: 20px; font-weight: 900; color: #D97706; text-align: center; }
-    .offering-row { display: flex; flex-direction: row; gap: 12px; width: 100%; }
-    .offering-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    .offering-field label { font-size: 14px; font-weight: 800; color: #475569; }
-    .offering-input { width: 100%; padding: 8px 12px; border-radius: 10px; border: 2px solid #CBD5E1; font-size: 16px; font-weight: 700; color: #0F172A; }
-    .coins-display-box { background: #FEF3C7; border: 2px dashed #F59E0B; border-radius: 12px; padding: 10px; text-align: center; }
-    .coins-label { font-size: 13px; font-weight: 800; color: #92400E; }
-    .coins-value { font-size: 28px; font-weight: 900; color: #B45309; }
-    .offering-actions { display: flex; gap: 12px; margin-top: 4px; }
-    .offering-btn { flex: 1; padding: 10px 14px; font-size: 17px; font-weight: 800; border-radius: 12px; border: none; cursor: pointer; }
-    #btn-confirm-offering { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; }
-    #btn-cancel-offering { background: #F1F5F9; color: #475569; }
-
-    #leaderboard-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 15, 29, 0.92); z-index: 1000; justify-content: center; align-items: center; padding: 10px 14px; }
-    .leaderboard-card { background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%); border: 2px solid #F59E0B; color: #FFFFFF; border-radius: 20px; width: 96vw; height: 94vh; padding: 12px 18px; display: flex; flex-direction: column; justify-content: space-between; }
-    .leaderboard-header { text-align: center; font-size: 20px; font-weight: 900; color: #FBBF24; }
-    .rank-wrap { display: flex; flex-direction: row; gap: 14px; width: 100%; flex: 1; align-items: stretch; margin: 8px 0; }
-    .rank-section { flex: 1; background: rgba(30, 41, 59, 0.7); border: 1.5px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 10px 16px; display: flex; flex-direction: column; justify-content: space-between; }
-    .rank-section-title { font-size: 17px; font-weight: 900; color: #38BDF8; padding-bottom: 6px; border-bottom: 1.5px solid rgba(255, 255, 255, 0.12); }
-    .rank-list { display: flex; flex-direction: column; flex: 1; justify-content: space-evenly; }
-    .rank-item { display: flex; justify-content: space-between; align-items: center; font-size: 17px; font-weight: 800; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); padding: 6px 0; }
-    .rank-coins { color: #F59E0B; font-weight: 900; }
-    .btn-rejoice { width: 100%; height: 46px; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; font-size: 18px; font-weight: 900; border: none; border-radius: 14px; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <!-- 1. 物理直立螢幕鎖定層 -->
-  <div id="portrait-blocker-overlay">
-    <div class="rotate-phone-icon"></div>
-    <div class="rotate-hint-title">請將手機橫放</div>
-    <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
+  <!-- 主系統骨架 -->
+  <div id="app-container">
+    <header>
+      <div id="classic-title-display">經典研習系統</div>
+      <div id="schedule-status-display">進度加載中...</div>
+    </header>
+
+    <main>
+      <div id="video-wrapper">
+        <video id="main-video" playsinline controls preload="auto">
+          <source src="chant_video.mp4" type="video/mp4">
+        </video>
+      </div>
+    </main>
+
+    <footer>
+      <button class="btn-action" onclick="jumpSentence(-1)">⏮ 上一句</button>
+      <button class="btn-action primary" id="btn-play-pause" onclick="togglePlay()">▶ 播放</button>
+      <button class="btn-action" onclick="jumpSentence(1)">下一句 ⏭</button>
+      <button class="btn-action" onclick="submitCoinsModal()">🪙 供養福慧幣</button>
+    </footer>
   </div>
 
-  <!-- 2. 藝文風格迎賓視窗 -->
-  <div id="welcome-start-overlay">
-    <div class="welcome-scroll-card">
-      <div class="scroll-title">歡喜背書</div>
-      
-      <!-- 身分模式印章切換 -->
-      <div class="scroll-role-picker">
-        <button id="btn-role-senior" class="role-seal-btn active">👴 長青定課</button>
-        <button id="btn-role-adult" class="role-seal-btn">💼 自主研習</button>
+  <!-- 21天陪伴卡全螢幕彈窗 -->
+  <div id="companion-overlay">
+    <div id="companion-card">
+      <div class="card-header">
+        <span class="card-seal" id="card-stage">〔 初發心 〕</span>
+        <span class="card-day-indicator" id="card-day-indicator">第 1 天・習慣陪伴</span>
       </div>
 
-      <div class="scroll-motto-wrap">
-        <div class="scroll-motto">「句句入心，法喜充滿」</div>
+      <div class="card-body">
+        <h2 class="card-title" id="card-title">步履初啟・甘露入心</h2>
+        <p class="card-message" id="card-message">萬里之行始於當下一念。今天在心田種下的種子，未來必成參天菩提。放寬心，跟隨引導歡喜念誦！</p>
       </div>
 
-      <button id="btn-enter-sacred" class="btn-enter-sacred">🙏 進入背誦</button>
-      <div class="scroll-hint-footer">👉 單指左右滑動螢幕，可隨時切換經文與影片</div>
-    </div>
-  </div>
-
-  <!-- 大字體綠底診斷浮標 -->
-  <div id="schedule-toast">📅 載入進度中...</div>
-  <div id="speed-toast-badge">【語速 1.5x】</div>
-
-  <!-- 主視圖 -->
-  <div id="landscape-container">
-    <div class="side-wing" id="left-wing">
-      <div class="slot"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起點</button></div>
-      <div class="slot"><button class="circle-btn btn-color-mark-b" id="btn-mark-b">終點</button></div>
-      <div class="slot"><button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button></div>
-      <div class="slot"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">關機</button></div>
-    </div>
-
-    <div id="center-core">
-      <div id="guide-stage">
-        <div id="mark-a-line"></div>
-        <div id="mark-b-line"></div>
-        <div id="guide-line"></div>
-        <div id="red-dot"></div>
+      <div class="card-footer">
+        <span class="card-quote" id="card-quote">「千里之行，始於足下。」</span>
+        <button class="btn-enter" onclick="closeCompanionCard()">🙏 領受心意・開始背誦</button>
       </div>
-
-      <div id="pdf-container-wrap">
-        <canvas id="pdf-canvas"></canvas>
-      </div>
-
-      <div id="video-container-wrap">
-        <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
-      </div>
-    </div>
-
-    <div class="side-wing" id="right-wing">
-      <div class="slot"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
-      <div class="slot"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
-      <div class="slot"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button></div>
-      <div class="slot"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button></div>
-    </div>
-  </div>
-
-  <div id="repeat-modal" class="popup-modal">
-    <button class="modal-option active" data-count="1">1 次</button>
-    <button class="modal-option" data-count="3">3 次</button>
-    <button class="modal-option" data-count="5">5 次</button>
-    <button class="modal-option" data-count="7">7 次</button>
-    <button class="modal-option" data-count="10">10 次</button>
-  </div>
-
-  <!-- 供養彈窗 -->
-  <div id="offering-modal-overlay">
-    <div class="offering-card">
-      <div class="offering-header"><span>🙏</span> 功德供養</div>
-      <div class="offering-row">
-        <div class="offering-field"><label>班號：</label><input type="text" id="input-class-id" class="offering-input" placeholder="例: 22宗009"></div>
-        <div class="offering-field"><label>姓名：</label><input type="text" id="input-user-name" class="offering-input" placeholder="請輸入姓名"></div>
-      </div>
-      <div class="coins-display-box">
-        <div class="coins-label">今日累計福慧幣</div>
-        <div class="coins-value" id="display-coins-count">0 枚</div>
-      </div>
-      <div class="offering-actions">
-        <button id="btn-cancel-offering" class="offering-btn">稍後</button>
-        <button id="btn-confirm-offering" class="offering-btn">確認供養</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 排行榜彈窗 -->
-  <div id="leaderboard-modal-overlay">
-    <div class="leaderboard-card">
-      <div class="leaderboard-header"><span>🏆</span> 功德圓滿・隨喜大眾</div>
-      <div class="rank-wrap">
-        <div class="rank-section">
-          <div class="rank-section-title">📅 今日精進榜</div>
-          <div class="rank-list" id="today-rank-list"></div>
-        </div>
-        <div class="rank-section">
-          <div class="rank-section-title" style="color: #FBBF24;">🌟 總累積功德榜</div>
-          <div class="rank-list" id="total-rank-list"></div>
-        </div>
-      </div>
-      <button class="btn-rejoice" id="btn-rejoice-close">🙏 隨喜讚嘆</button>
     </div>
   </div>
 
   <script>
-    if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-    }
+    // ==========================================================================
+    // 📦【本機離線隔離機制】IndexedDB & localStorage 依頂部代碼完全切開
+    // ==========================================================================
+    const DB_NAME = 'HappyReciteDB_' + CURRENT_CLASSIC_ID;
+    const STORAGE_KEY_PREFIX = 'RECITE_' + CURRENT_CLASSIC_ID + '_';
 
-    const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    // 網址參數解析
+    const urlParams = new URLSearchParams(window.location.search);
+    const startDateStr = urlParams.get('start');
+    const groupID = urlParams.get('group') || 'DEFAULT';
 
-    function getAppleCanvasScale() {
-      if (!isAppleDevice) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
-      if (!pdfCanvas || pdfCanvas.height === 0 || pdfCanvas.width === 0) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-      const scaleY = canvasRect.height / pdfCanvas.height;
-      const scaleX = canvasRect.width / pdfCanvas.width;
-      const offsetTop = pdfCanvas.offsetTop || 0;
-      const offsetLeft = pdfCanvas.offsetLeft || 0;
-      return { scaleX, scaleY, offsetTop, offsetLeft };
-    }
-
-    let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
-    if (isNaN(baseSpeed) || baseSpeed < 0.5 || baseSpeed > 4.0) baseSpeed = 1.5;
-
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
-
-    // DOM 快取
-    const portraitBlocker = document.getElementById('portrait-blocker-overlay');
-    const welcomeOverlay = document.getElementById('welcome-start-overlay');
-    const btnEnterSacred = document.getElementById('btn-enter-sacred');
-    const btnRoleSenior = document.getElementById('btn-role-senior');
-    const btnRoleAdult = document.getElementById('btn-role-adult');
-
-    const centerCore = document.getElementById('center-core');
-    const guideStage = document.getElementById('guide-stage');
-    const guideLine = document.getElementById('guide-line');
-    const redDot = document.getElementById('red-dot');
-    const markALine = document.getElementById('mark-a-line');
-    const markBLine = document.getElementById('mark-b-line');
-
-    const pdfContainerWrap = document.getElementById('pdf-container-wrap');
-    const pdfCanvas = document.getElementById('pdf-canvas');
-    const videoWrap = document.getElementById('video-container-wrap');
-    const video = document.getElementById('my-chant-video');
-
-    const scheduleToast = document.getElementById('schedule-toast');
-    const speedToastBadge = document.getElementById('speed-toast-badge');
-
-    const btnMarkA = document.getElementById('btn-mark-a');
-    const btnMarkB = document.getElementById('btn-mark-b');
-    const btnRepeatCount = document.getElementById('btn-repeat-count');
-    const btnShutdownExit = document.getElementById('btn-shutdown-exit');
-    const repeatModal = document.getElementById('repeat-modal');
-
-    const btnGuideToggle = document.getElementById('btn-guide-toggle');
-    const btnOffering = document.getElementById('btn-offering');
-    const btnSpeedUp = document.getElementById('btn-speed-up');
-    const btnSpeedDown = document.getElementById('btn-speed-down');
-
-    const offeringOverlay = document.getElementById('offering-modal-overlay');
-    const inputClassId = document.getElementById('input-class-id');
-    const inputUserName = document.getElementById('input-user-name');
-    const displayCoinsCount = document.getElementById('display-coins-count');
-    const btnConfirmOffering = document.getElementById('btn-confirm-offering');
-    const btnCancelOffering = document.getElementById('btn-cancel-offering');
-
-    const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
-    const todayRankList = document.getElementById('today-rank-list');
-    const totalRankList = document.getElementById('total-rank-list');
-    const btnRejoiceClose = document.getElementById('btn-rejoice-close');
-
-    // 身分模式
-    let userRole = localStorage.getItem('APP_USER_ROLE') || 'senior';
-
-    function setRole(role) {
-      userRole = role;
-      localStorage.setItem('APP_USER_ROLE', role);
-      if (role === 'senior') {
-        btnRoleSenior.classList.add('active');
-        btnRoleAdult.classList.remove('active');
-      } else {
-        btnRoleAdult.classList.add('active');
-        btnRoleSenior.classList.remove('active');
+    // ==========================================================================
+    // 🌸 21 天完整禪意意境陪伴卡資料庫（純 CSS/SVG 向量渲染，零外部圖檔）
+    // ==========================================================================
+    const COMPANION_21_CARDS = [
+      {
+        day: 1, stage: "初發心", title: "步履初啟・甘露入心", quote: "「千里之行，始於足下。」",
+        message: "萬里之行始於當下一念。今天在心田種下的種子，未來必成參天菩提。放寬心，跟隨引導歡喜念誦！",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 80% 20%, #d97736 0%, #3e2723 60%, #1a120b 100%)"
+      },
+      {
+        day: 2, stage: "適應期", title: "虛懷如竹・不急不躁", quote: "「心定，則音聲清明。」",
+        message: "字句生疏純屬平常。如竹沐清風，舌尖與耳根正在慢慢熟悉這份清澈。只要自然念誦，便已是功德。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 20% 30%, #2e7d32 0%, #1b3a1e 50%, #0d1a0e 100%)"
+      },
+      {
+        day: 3, stage: "定靜心", title: "澄心如水・靜聽法音", quote: "「水清月現，心定法生。」",
+        message: "雜念如水波，隨它起亦隨它歇。音聲相續處，便是身心安頓之所。放鬆肩膀，安住在每一個字句上。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 50% 80%, #0288d1 0%, #0f3057 55%, #051424 100%)"
+      },
+      {
+        day: 4, stage: "同道行", title: "定靜生慧・古道同行", quote: "「德不孤，必有鄰。」",
+        message: "經卷中的每一字，皆是千百年古德智慧明光。在這方螢幕前，海內外有無數同修與您正同心用功。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 70% 30%, #5d4037 0%, #32211c 55%, #180e0b 100%)"
+      },
+      {
+        day: 5, stage: "除障蔽", title: "香雲凝定・收攝六根", quote: "「一念寂靜，大地皆春。」",
+        message: "背誦前調勻呼吸。將心思從世事牽掛收回到案前，字字落實，聲聲入耳，煩惱塵勞自然消散。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 50% 30%, #4e342e 0%, #261713 60%, #120b09 100%)"
+      },
+      {
+        day: 6, stage: "化阻礙", title: "勁松立岩・力破懈怠", quote: "「百鍊精鋼，水滴穿石。」",
+        message: "感到疲憊怠惰之時，往往正是身心突破的前夕。提起正念再念一遍，心力便向上提升一層。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 30% 60%, #37474f 0%, #21282c 55%, #101416 100%)"
+      },
+      {
+        day: 7, stage: "首週滿", title: "七日堅持・初具心力", quote: "「滴水穿石，繩鋸木斷。」",
+        message: "不知不覺已持續用功一整週！這份恆常精進的心力極其難得，為自己的毅力合十讚歎，今天背誦特別具法喜。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 30% 70%, #195b46 0%, #0f382a 55%, #051a13 100%)"
+      },
+      {
+        day: 8, stage: "入佳境", title: "舟渡汪洋・法音作筏", quote: "「安住當下，乘風破浪。」",
+        message: "浮世紛擾，此刻在書房中暫卸萬緣。以經教為慈舟，平復胸中萬千波瀾，字字都是安穩的彼岸。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 50% 20%, #455a64 0%, #263238 55%, #11171a 100%)"
+      },
+      {
+        day: 9, stage: "拓心量", title: "隨文入觀・慈心廣被", quote: "「心包太虛，量周沙界。」",
+        message: "口中誦出經典，心中願一切有情皆離苦得樂。讓經文的威德與您的善念，溫暖身邊每一位親友。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 70% 30%, #8d6e63 0%, #4e342e 55%, #231613 100%)"
+      },
+      {
+        day: 10, stage: "達半程", title: "步步踏實・十全圓通", quote: "「行遠自邇，篤志不移。」",
+        message: "十天是一個美好的里程碑！當初的生疏已化為從容，深信自己，定能一步一步順利邁向圓滿。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 50% 20%, #bf360c 0%, #4a148c 60%, #1a0033 100%)"
+      },
+      {
+        day: 11, stage: "養芬芳", title: "幽谷發香・自性清涼", quote: "「蘭生幽谷，不以無人而不芳。」",
+        message: "誦讀經典如蘭生空谷，不求外在榮耀，清涼自滿胸懷。經文的反覆熏習，正在悄悄轉化身心的氣質。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 60% 40%, #512da8 0%, #281559 55%, #100726 100%)"
+      },
+      {
+        day: 12, stage: "生定力", title: "鐘聲清徹・心地平明", quote: "「晨鐘暮鼓，喚醒迷途。」",
+        message: "每個念出的字句，如山中古剎的清亮鐘聲，震落塵勞，使內心深處恢復應有的平靜與明朗。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 40% 30%, #6d4c41 0%, #3e2723 55%, #1b0f0c 100%)"
+      },
+      {
+        day: 13, stage: "潤心田", title: "隨風潛入・潤物無聲", quote: "「好雨知時節，潤物細無聲。」",
+        message: "不用刻意死記硬背，法音如春雨自然滋潤心田。不知不覺中，經句已深植於記憶與日常言行。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 30% 40%, #1b5e20 0%, #0d3813 55%, #051a08 100%)"
+      },
+      {
+        day: 14, stage: "雙週成", title: "兩週蓄力・舌音成韻", quote: "「由生轉熟，純任自然。」",
+        message: "克服了最初的生澀，經文已漸漸融入呼吸。音聲從口入耳、由耳入心，這份恆心正是世間最真功夫！",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 20% 20%, #b26a00 0%, #593500 55%, #261600 100%)"
+      },
+      {
+        day: 15, stage: "照自性", title: "水平如鏡・倒映萬象", quote: "「心平何勞持戒，行直何用修禪。」",
+        message: "朗朗讀誦之際，心中波瀾止息，如同一面平靜如鏡的湖面，將經典智慧映照得無比分明。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 50% 70%, #00695c 0%, #00362f 55%, #001915 100%)"
+      },
+      {
+        day: 16, stage: "破萬難", title: "逆風執炬・心志不移", quote: "「志之所向，金石為開。」",
+        message: "持誦越是到了深處，越能淬煉心志。無論外在境遇如何變化，只要安住這方經卷，內心即是淨土。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 70% 40%, #3e2723 0%, #211310 55%, #0e0706 100%)"
+      },
+      {
+        day: 17, stage: "培福田", title: "葉脈舒展・福慧充盈", quote: "「一葉一如來，字字皆菩提。」",
+        message: "隨音聲起落的每一個字，都在為身心滋養深厚資糧。不貪多、不急躁，自性福慧自然充盈。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 80% 80%, #795548 0%, #432b23 55%, #1c110d 100%)"
+      },
+      {
+        day: 18, stage: "見光明", title: "撥雲見日・純任自然", quote: "「千江有水千江月，萬里無雲萬里天。」",
+        message: "經句已不再需要苦思，如甘露自舌尖自然傾瀉而出。體會這種純任自然的流暢，身心無比愉悅輕安。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 30% 30%, #e65100 0%, #5d2200 55%, #260e00 100%)"
+      },
+      {
+        day: 19, stage: "融身心", title: "千江映月・心月孤圓", quote: "「月印千江水，風行萬里雲。」",
+        message: "十九天功深磨礪，經典的智慧已融入言談舉止。經是心、心是經，行住坐臥皆在法義涵養之中。",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 60% 60%, #1a237e 0%, #0d1245 55%, #05071f 100%)"
+      },
+      {
+        day: 20, stage: "臨圓成", title: "根深柢固・將成大器", quote: "「不經一番寒徹骨，怎得梅花撲鼻香。」",
+        message: "明天就是二十一日！二十天的扎實積累，好習慣已然在生命深處扎下深根，隨喜您不可思議的堅持！",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 40% 70%, #2e7d32 0%, #144217 55%, #081e0a 100%)"
+      },
+      {
+        day: 21, stage: "習慣成", title: "朗月高懸・習慣圓成", quote: "「行遠自邇，篤志不移。」",
+        message: "整整二十一日，這部經典已真正化作您生命的一部分！習慣已然深植，隨喜讚歎您無比殊勝的精進功德！",
+        bg: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), radial-gradient(circle at 80% 30%, #fbc02d 0%, #5d4037 35%, #1a120b 100%)"
       }
-      applyScheduleToState();
+    ];
+
+    // ==========================================================================
+    // 🚀 開機入口：自動判斷測試模式、21 天陪伴或雲端節慶卡
+    // ==========================================================================
+    let currentActiveSeenKey = null;
+
+    async function initPlatform() {
+      // 1. 初始化標題
+      document.getElementById('classic-title-display').innerText = `歡喜背誦【${CURRENT_CLASSIC_ID}】`;
+
+      // 2. 暖心卡片檢測流程
+      await handleWarmCards();
+
+      // 3. 載入相對天數排程 schedule.json
+      loadSchedule();
     }
 
-    btnRoleSenior.addEventListener('click', (e) => { e.stopPropagation(); setRole('senior'); });
-    btnRoleAdult.addEventListener('click', (e) => { e.stopPropagation(); setRole('adult'); });
+    async function handleWarmCards() {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
 
-    if (userRole === 'adult') {
-      btnRoleAdult.classList.add('active');
-      btnRoleSenior.classList.remove('active');
-    } else {
-      btnRoleSenior.classList.add('active');
-      btnRoleAdult.classList.remove('active');
-    }
-
-    let currentMode = 'pdf';
-    let scriptureData = [];
-    let currentPdfDoc = null;
-    let parsedTextLines = [];
-    let cachedPdfBuffer = null;
-
-    let isManualSelected = false;
-    let markA_Index = -1;
-    let markB_Index = -1;
-    let totalTargetCycles = 1;
-    let completedCycles = 0;
-    let isScheduleLocked = false;
-    let videoPausedAt = -1;
-
-    let guideAnimId = null;
-    let cycleWaitTimer = null;
-    let isGuideActive = false;
-    let currentLineIndex = 0;
-
-    let currentCharIndexFloat = 0.0;
-    let lastAnimTimestamp = 0;
-    let isTransitioningLine = false;
-    let isLineHeadLocked = true;
-    let lineEndTime = 0;
-    let peakRmsAtLineEnd = 0.0;
-    let prevRms = 0.0;
-    let hasPageFlipped = false;
-
-    // 🔒【黃金麥克風調校核心：全盤鎖定】
-    let audioContext = null;
-    let analyser = null;
-    let micStream = null;
-    let vadCheckTimer = null;
-    let isVoiceActive = false;
-    let isTouchingDisplay = false;
-    let baseNoiseLevel = 0.0015;
-    let dynamicThreshold = 0.0020;
-    let calibrationSamples = [];
-    let isCalibrating = false;
-    let silentFrameCount = 0;
-
-    // =========================================================================
-    // 【螢幕方向嚴密監控：直立全面阻斷，轉橫才精準開展】
-    // =========================================================================
-    let isWelcomeDismissed = false;
-
-    function handleOrientationCheck() {
-      const isPortrait = window.innerHeight > window.innerWidth;
-
-      if (isPortrait) {
-        // 直立狀態：徹底阻斷背景
-        portraitBlocker.style.display = 'flex';
-        welcomeOverlay.style.display = 'none';
-        haltGuideRunnerImmediately();
-      } else {
-        // 橫屏狀態：解除阻斷
-        portraitBlocker.style.display = 'none';
-
-        if (!isWelcomeDismissed) {
-          welcomeOverlay.style.display = 'flex';
-        }
-
-        // 若轉橫且尚未渲染過正確尺寸的 PDF，立即執行初次渲染
-        if (cachedPdfBuffer && parsedTextLines.length === 0) {
-          renderPdfOnValidDimensions();
-        }
+      // 🌟【測試模式】：若網址沒有帶 ?start 參數，每次重整自動輪播 1~21 天展示
+      if (!startDateStr) {
+        let testIdx = parseInt(localStorage.getItem(STORAGE_KEY_PREFIX + 'TEST_CARD_INDEX') || '0', 10);
+        const card = COMPANION_21_CARDS[testIdx % COMPANION_21_CARDS.length];
+        showCardUI(card, `測試輪播・第 ${card.day} 天`);
+        localStorage.setItem(STORAGE_KEY_PREFIX + 'TEST_CARD_INDEX', (testIdx + 1).toString());
+        return;
       }
-    }
 
-    window.addEventListener('resize', handleOrientationCheck);
-    window.addEventListener('orientationchange', () => {
-      setTimeout(handleOrientationCheck, 150);
-    });
+      // 📌【正式模式】：推算相對天數
+      const start = new Date(startDateStr);
+      const diffTime = today - start;
+      const currentDay = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-    async function renderPdfOnValidDimensions() {
-      if (!cachedPdfBuffer) return;
-      await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
-      updateVisualDisplay();
-      scrollToAlignTop(0);
-      if (!isManualSelected) applyScheduleToState();
-    }
+      // 防疲勞檢查：今日已看過則跳過
+      const seenKey = STORAGE_KEY_PREFIX + 'SEEN_CARD_' + todayStr;
+      if (localStorage.getItem(seenKey)) {
+        return; // 今天已領受過，直接靜音進入
+      }
 
-    // =========================================================================
-    // 【本機離線快取引擎 (IndexedDB)】
-    // =========================================================================
-    const DB_NAME = 'HappyReciteDB_Offline_v149';
-    const STORE_NAME = 'app_offline_files';
+      // 軌道一：前 21 天，顯示個人陪伴卡（本地優先）
+      if (currentDay >= 1 && currentDay <= 21) {
+        const card = COMPANION_21_CARDS.find(c => c.day === currentDay) || COMPANION_21_CARDS[0];
+        showCardUI(card, `第 ${card.day} 天・習慣養成`, seenKey);
+        return;
+      }
 
-    function openDatabase() {
-      return new Promise((resolve, reject) => {
+      // 軌道二：超過 21 天，連線檢查是否有歲時節日祝福卡
+      if (navigator.onLine) {
         try {
-          const req = indexedDB.open(DB_NAME, 1);
-          req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-          };
-          req.onsuccess = () => resolve(req.result);
-          req.onerror = () => reject(req.error);
-        } catch (e) { reject(e); }
-      });
-    }
-
-    async function getLocalFile(key) {
-      try {
-        const db = await openDatabase();
-        return new Promise((resolve) => {
-          const tx = db.transaction(STORE_NAME, 'readonly');
-          const req = tx.objectStore(STORE_NAME).get(key);
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror = () => resolve(null);
-        });
-      } catch (e) { return null; }
-    }
-
-    async function saveLocalFile(key, data, tag) {
-      try {
-        const db = await openDatabase();
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).put({ data: data, tag: tag }, key);
-      } catch (e) {}
-    }
-
-    function showToast(msg, duration = 4000) {
-      if (!scheduleToast) return;
-      scheduleToast.textContent = msg;
-      scheduleToast.style.display = 'block';
-      scheduleToast.style.opacity = '1';
-      clearTimeout(scheduleToast._timer);
-      scheduleToast._timer = setTimeout(() => {
-        scheduleToast.style.opacity = '0';
-        setTimeout(() => { scheduleToast.style.display = 'none'; }, 300);
-      }, duration);
-    }
-
-    function triggerSpeedChange(delta) {
-      let newSpeed = Math.round((baseSpeed + delta) * 10) / 10;
-      newSpeed = Math.max(0.5, Math.min(4.0, newSpeed));
-      baseSpeed = newSpeed;
-      localStorage.setItem('user_speed_preference', baseSpeed.toFixed(1));
-
-      speedToastBadge.textContent = `【語速 ${baseSpeed.toFixed(1)}x】`;
-      speedToastBadge.style.display = 'block';
-      speedToastBadge.style.opacity = '1';
-
-      clearTimeout(speedToastBadge._t);
-      speedToastBadge._t = setTimeout(() => {
-        speedToastBadge.style.opacity = '0';
-        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
-      }, 3000);
-    }
-
-    btnSpeedUp.addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(+0.1); });
-    btnSpeedDown.addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(-0.1); });
-
-    function speakPrompt(text) {
-      try {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = 'zh-TW';
-          utterance.rate = 1.1;
-          window.speechSynthesis.speak(utterance);
-        }
-      } catch (e) {}
-    }
-
-    function getNormalizedDateStr() {
-      const now = new Date();
-      return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-    }
-
-    function getActiveVideoRange() {
-      if (!scriptureData || scriptureData.length === 0) {
-        return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
-      }
-
-      let aIdx = markA_Index >= 0 ? markA_Index : 0;
-      let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
-
-      if (bIdx < aIdx) bIdx = aIdx;
-
-      aIdx = Math.min(aIdx, scriptureData.length - 1);
-      bIdx = Math.min(bIdx, scriptureData.length - 1);
-
-      const startObj = scriptureData[aIdx];
-      const endObj = scriptureData[bIdx];
-
-      if (!startObj || typeof startObj.start !== 'number' || !endObj || typeof endObj.end !== 'number') {
-        return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
-      }
-
-      return {
-        start: startObj.start,
-        end: endObj.end,
-        sentenceA: aIdx + 1,
-        sentenceB: bIdx + 1,
-        valid: true
-      };
-    }
-
-    let touchStartX = 0;
-    let touchStartY = 0;
-
-    window.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-      }
-    }, { passive: true });
-
-    window.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length === 1) {
-        const deltaX = e.changedTouches[0].clientX - touchStartX;
-        const deltaY = e.changedTouches[0].clientY - touchStartY;
-
-        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-          toggleModeSwitch();
+          const res = await fetch(`${GAS_BACKEND_URL}?action=getFestivalCard&date=${todayStr}&classicId=${CURRENT_CLASSIC_ID}`);
+          const data = await res.json();
+          if (data && data.active) {
+            showCardUI({
+              stage: data.stage || "歲時叮嚀",
+              title: data.title,
+              message: data.message,
+              quote: data.quote,
+              bg: data.bg || "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), #1a120b"
+            }, "歲時關懷", seenKey);
+          }
+        } catch (e) {
+          console.log('節日卡檢查略過');
         }
       }
-    }, { passive: true });
+    }
 
-    function toggleModeSwitch() {
-      haltGuideRunnerImmediately();
+    function showCardUI(card, dayLabel, seenKey = null) {
+      currentActiveSeenKey = seenKey;
+      const overlay = document.getElementById('companion-overlay');
+      const cardBox = document.getElementById('companion-card');
 
-      if (currentMode === 'pdf') {
-        currentMode = 'mp4';
-        pdfContainerWrap.style.display = 'none';
-        guideStage.style.display = 'none';
-        videoWrap.style.display = 'flex';
+      cardBox.style.background = card.bg;
+      document.getElementById('card-stage').innerText = `〔 ${card.stage} 〕`;
+      document.getElementById('card-day-indicator').innerText = dayLabel;
+      document.getElementById('card-title').innerText = card.title;
+      document.getElementById('card-message').innerText = card.message;
+      document.getElementById('card-quote').innerText = card.quote;
 
-        const range = getActiveVideoRange();
-        videoPausedAt = -1;
+      overlay.classList.add('active');
+    }
 
-        if (range.valid) {
-          video.currentTime = range.start;
-          showToast(`🎬【區段已鎖定】第 ${range.sentenceA}～${range.sentenceB} 句（${range.start.toFixed(1)}s～${range.end.toFixed(1)}s）`, 4500);
-        } else {
-          showToast(`⚠️ 句數秒數尚未載入完畢，請稍候`, 3000);
+    function closeCompanionCard() {
+      const overlay = document.getElementById('companion-overlay');
+      if (currentActiveSeenKey) {
+        localStorage.setItem(currentActiveSeenKey, 'true'); // 正式環境下標記今日已閱
+      }
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        overlay.style.opacity = '';
+      }, 400);
+    }
+
+    // ==========================================================================
+    // 📅【排程讀取與播放控制】
+    // ==========================================================================
+    async function loadSchedule() {
+      try {
+        const res = await fetch('schedule.json');
+        const schedule = await res.json();
+        
+        let targetDay = 1;
+        if (startDateStr) {
+          const diff = new Date() - new Date(startDateStr);
+          targetDay = Math.max(1, Math.floor(diff / (1000 * 60 * 60 * 24)) + 1);
         }
+        
+        const todayPlan = schedule.find(s => s.day === targetDay) || schedule[schedule.length - 1];
+        document.getElementById('schedule-status-display').innerText = 
+          `今日進度: 第 ${todayPlan.day} 天 (第 ${todayPlan.start} 句～第 ${todayPlan.end} 句)`;
+      } catch (e) {
+        document.getElementById('schedule-status-display').innerText = '自主復習模式';
+      }
+    }
+
+    const video = document.getElementById('main-video');
+    function togglePlay() {
+      const btn = document.getElementById('btn-play-pause');
+      if (video.paused) {
+        video.play();
+        btn.innerText = '⏸ 暫停';
       } else {
-        currentMode = 'pdf';
         video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-        guideStage.style.display = 'block';
-        showToast('📖 切換為：經文默背模式', 2500);
-        scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-      }
-      updateVisualDisplay();
-    }
-
-    video.addEventListener('timeupdate', () => {
-      if (currentMode !== 'mp4') return;
-
-      const range = getActiveVideoRange();
-      if (!range.valid) return;
-
-      if (video.currentTime >= range.end) {
-        completedCycles++;
-        const remain = Math.max(0, totalTargetCycles - completedCycles);
-        btnRepeatCount.textContent = `${remain}次`;
-
-        addCoins(calculateSentenceCount());
-
-        if (completedCycles >= totalTargetCycles) {
-          video.pause();
-          videoPausedAt = -1;
-          video.currentTime = range.start;
-          btnGuideToggle.textContent = '背書';
-          btnGuideToggle.classList.remove('guide-active');
-          handleTargetCycleDone();
-        } else {
-          showToast(`已完成 ${completedCycles} 遍，繼續循環`);
-          videoPausedAt = -1;
-          video.currentTime = range.start;
-          video.play().catch(() => {});
-        }
-      }
-    });
-
-    function handleTargetCycleDone() {
-      const todayStr = getNormalizedDateStr();
-      localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
-
-      if (userRole === 'senior') {
-        isScheduleLocked = true;
-        speakPrompt("背誦圓滿，功德無量");
-        showToast("🎉 今日進度圓滿！整天進度已固定，可隨時再按背書", 4500);
-      } else {
-        isScheduleLocked = false;
-        speakPrompt("今日功課圓滿，已開放自由背誦");
-        showToast("🎉 今日功課圓滿！已開放自由設定起訖點與遍數", 4500);
+        btn.innerText = '▶ 播放';
       }
     }
 
-    function renderMarkerLine(lineElement, lineObj) {
-      if (!lineObj) return;
-      if (!isAppleDevice) {
-        lineElement.style.top = `${lineObj.underLineY}px`;
-        lineElement.style.left = `${lineObj.x0}px`;
-        lineElement.style.width = `${lineObj.x1 - lineObj.x0}px`;
-        lineElement.style.display = 'block';
-        return;
-      }
-      const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
-      lineElement.style.top = `${offsetTop + (lineObj.underLineY * scaleY)}px`;
-      lineElement.style.left = `${offsetLeft + (lineObj.x0 * scaleX)}px`;
-      lineElement.style.width = `${(lineObj.x1 - lineObj.x0) * scaleX}px`;
-      lineElement.style.display = 'block';
+    function jumpSentence(dir) {
+      video.currentTime += (dir * 5); // 快速跳轉示範
     }
 
-    function getLineAtButtonBottom(buttonElement) {
-      if (parsedTextLines.length === 0) return 0;
-      const btnRect = buttonElement.getBoundingClientRect();
-      if (!isAppleDevice) {
-        const centerRect = centerCore.getBoundingClientRect();
-        const targetAbsoluteY = centerCore.scrollTop + (btnRect.bottom - centerRect.top);
-        let closestIdx = 0, minDiff = Infinity;
-        for (let i = 0; i < parsedTextLines.length; i++) {
-          const diff = Math.abs(parsedTextLines[i].underLineY - targetAbsoluteY);
-          if (diff < minDiff) { minDiff = diff; closestIdx = i; }
-        }
-        return closestIdx;
-      }
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-      const { scaleY } = getAppleCanvasScale();
-      const targetCanvasY = (btnRect.bottom - canvasRect.top) / scaleY;
-      let closestIdx = 0, minDiff = Infinity;
-      for (let i = 0; i < parsedTextLines.length; i++) {
-        const diff = Math.abs(parsedTextLines[i].underLineY - targetCanvasY);
-        if (diff < minDiff) { minDiff = diff; closestIdx = i; }
-      }
-      return closestIdx;
+    function submitCoinsModal() {
+      alert(`已將功德幣記錄至【${CURRENT_CLASSIC_ID}】專屬功德保險箱！`);
     }
 
-    function updateVisualDisplay() {
-      if (currentMode === 'pdf') {
-        if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
-          btnMarkA.classList.add('active-mark');
-          renderMarkerLine(markALine, parsedTextLines[markA_Index]);
-        } else {
-          btnMarkA.classList.remove('active-mark');
-          markALine.style.display = 'none';
-        }
-
-        if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
-          btnMarkB.classList.add('active-mark');
-          renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
-        } else {
-          btnMarkB.classList.remove('active-mark');
-          markBLine.style.display = 'none';
-        }
-      }
-
-      if (!isGuideActive && currentMode === 'pdf') {
-        guideLine.style.display = 'none';
-        redDot.style.display = 'none';
-        btnGuideToggle.textContent = '背書';
-        btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
-      }
-
-      const remain = Math.max(0, totalTargetCycles - completedCycles);
-      btnRepeatCount.textContent = `${remain}次`;
-    }
-
-    btnMarkA.addEventListener('click', () => {
-      if (isGuideActive) return;
-
-      if (userRole === 'senior') {
-        speakPrompt("今日進度已固定，請直接按背書");
-        showToast("👴 長青班已自動固定今日進度，請按背書", 3000);
-        return;
-      }
-
-      if (isScheduleLocked) {
-        speakPrompt("請先完成今日共同功課");
-        showToast("💼 請先完成今日共同功課，做完即可自由選取", 3000);
-        return;
-      }
-
-      if (parsedTextLines.length === 0) return;
-      isManualSelected = true;
-      markA_Index = getLineAtButtonBottom(btnMarkA);
-      if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
-      currentLineIndex = markA_Index;
-      currentCharIndexFloat = 0.0;
-      isLineHeadLocked = true;
-      completedCycles = 0;
-      videoPausedAt = -1;
-      updateVisualDisplay();
-      speakPrompt(`起點設定在第 ${markA_Index + 1} 句`);
-    });
-
-    btnMarkB.addEventListener('click', () => {
-      if (isGuideActive) return;
-
-      if (userRole === 'senior') {
-        speakPrompt("今日進度已固定，請直接按背書");
-        showToast("👴 長青班已自動固定今日進度，請按背書", 3000);
-        return;
-      }
-
-      if (isScheduleLocked) {
-        speakPrompt("請先完成今日共同功課");
-        showToast("💼 請先完成今日共同功課，做完即可自由選取", 3000);
-        return;
-      }
-
-      if (parsedTextLines.length === 0) return;
-      const selectedB = getLineAtButtonBottom(btnMarkB);
-      if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
-      
-      isManualSelected = true;
-      markB_Index = selectedB;
-      completedCycles = 0;
-      videoPausedAt = -1;
-      updateVisualDisplay();
-      speakPrompt(`終點設定在第 ${markB_Index + 1} 句`);
-    });
-
-    btnRepeatCount.addEventListener('click', () => {
-      if (isGuideActive) return;
-
-      if (userRole === 'senior') {
-        speakPrompt("今日遍數已固定，請直接按背書");
-        showToast("👴 長青班遍數已固定，請直接按背書", 3000);
-        return;
-      }
-
-      if (isScheduleLocked) {
-        speakPrompt("請先完成今日排定遍數");
-        showToast("💼 請先完成今日排定遍數，完成後開放自選", 3000);
-        return;
-      }
-
-      repeatModal.style.display = repeatModal.style.display === 'flex' ? 'none' : 'flex';
-    });
-
-    document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
-      btn.addEventListener('click', () => {
-        totalTargetCycles = parseInt(btn.dataset.count, 10);
-        completedCycles = 0;
-        btnRepeatCount.textContent = `${totalTargetCycles}次`;
-        document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        updateVisualDisplay();
-        repeatModal.style.display = 'none';
-      });
-    });
-
-    // =========================================================================
-    // 【背書按鈕：音訊解鎖加固 ＋ 雙模切換】
-    // =========================================================================
-    btnGuideToggle.addEventListener('click', async () => {
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-      } catch (e) {}
-
-      if (currentMode === 'mp4') {
-        const range = getActiveVideoRange();
-        if (!range.valid) {
-          showToast('⚠️ 秒數資料不完整，無法播放', 3000);
-          return;
-        }
-
-        if (video.paused) {
-          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
-            video.currentTime = videoPausedAt;
-          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
-            video.currentTime = range.start;
-          }
-
-          video.play().then(() => {
-            btnGuideToggle.textContent = '暫停';
-            btnGuideToggle.classList.add('guide-active');
-            btnGuideToggle.classList.remove('guide-waiting');
-            showToast(`▶ 播放中：第 ${range.sentenceA}～${range.sentenceB} 句`, 2000);
-          }).catch((err) => {
-            console.error("播放受阻:", err);
-            video.currentTime = range.start;
-            video.play().catch(() => {});
-          });
-        } else {
-          video.pause();
-          videoPausedAt = video.currentTime;
-          btnGuideToggle.textContent = '背書';
-          btnGuideToggle.classList.remove('guide-active');
-          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒，再按背書接續播放`, 3000);
-        }
-        return;
-      }
-
-      if (markA_Index === -1 || markB_Index === -1) {
-        speakPrompt("請先設定起點與終點");
-        return;
-      }
-      if (isGuideActive) return;
-      isGuideActive = true;
-
-      if (parsedTextLines.length === 0) { isGuideActive = false; return; }
-      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-
-      isVoiceActive = false;
-      isTouchingDisplay = false;
-      isTransitioningLine = false;
-      hasPageFlipped = false;
-      isLineHeadLocked = true;
-      completedCycles = 0;
-
-      btnRepeatCount.textContent = `${totalTargetCycles}次`;
-      currentLineIndex = markA_Index;
-      currentCharIndexFloat = 0.0;
-
-      btnGuideToggle.textContent = '靜止';
-      btnGuideToggle.classList.remove('guide-active');
-      btnGuideToggle.classList.add('guide-waiting');
-
-      startGuideRunner();
-      await startVoiceActivityDetection();
-    });
-
-    // =========================================================================
-    // 🔒【黃金麥克風調校核心：全盤鎖定】
-    // =========================================================================
-    async function startVoiceActivityDetection() {
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-
-        if (!micStream) {
-          micStream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
-          });
-        }
-
-        const source = audioContext.createMediaStreamSource(micStream);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.04;
-        source.connect(analyser);
-
-        isCalibrating = true;
-        calibrationSamples = [];
-        setTimeout(() => {
-          if (calibrationSamples.length > 0) {
-            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
-            baseNoiseLevel = sum / calibrationSamples.length;
-            dynamicThreshold = Math.max(0.0020, baseNoiseLevel * 1.12 + 0.0006);
-          }
-          isCalibrating = false;
-        }, 350);
-
-        startVadMonitorLoop();
-      } catch (err) {
-        console.warn("麥克風啟動略過:", err);
-        btnGuideToggle.textContent = '靜止';
-      }
-    }
-
-    function startVadMonitorLoop() {
-      if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
-      const bufferLength = analyser ? analyser.frequencyBinCount : 0;
-      const dataArray = new Float32Array(bufferLength);
-
-      function checkVolume() {
-        if (!isGuideActive) return;
-
-        if (analyser) {
-          analyser.getFloatTimeDomainData(dataArray);
-
-          let sumSquares = 0.0;
-          for (let i = 0; i < bufferLength; i++) {
-            const val = dataArray[i];
-            sumSquares += val * val;
-          }
-          const rms = Math.sqrt(sumSquares / bufferLength);
-
-          if (isCalibrating) calibrationSamples.push(rms);
-
-          const deltaRms = rms - prevRms;
-          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
-
-          // 1. 起句波峰解鎖
-          if (isLineHeadLocked && deltaRms > (dynamicThreshold * 0.35)) {
-            isLineHeadLocked = false;
-          }
-
-          // 2. 換行靈活監聽狀態機 (200ms 保底 ＋ 雙逃脫)
-          if (isTransitioningLine) {
-            const elapsed = performance.now() - lineEndTime;
-            if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
-              proceedToNextLineImmediately();
-            } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
-              proceedToNextLineImmediately();
-            } else if (elapsed >= 200) {
-              proceedToNextLineImmediately();
-            }
-          }
-
-          // 3. 換氣緩衝鎖定 14 幀 (約 230ms 緩衝)
-          if (hasVoiceEnergy) {
-            silentFrameCount = 0;
-            if (!isVoiceActive) {
-              isVoiceActive = true;
-              btnGuideToggle.textContent = '背誦中';
-              btnGuideToggle.classList.remove('guide-waiting');
-              btnGuideToggle.classList.add('guide-active');
-              lastAnimTimestamp = performance.now();
-            }
-          } else {
-            silentFrameCount++;
-            if (silentFrameCount >= 14) {
-              if (isVoiceActive) {
-                isVoiceActive = false;
-                btnGuideToggle.textContent = '靜止';
-                btnGuideToggle.classList.remove('guide-active');
-                btnGuideToggle.classList.add('guide-waiting');
-              }
-            }
-          }
-          prevRms = rms;
-        }
-        vadCheckTimer = requestAnimationFrame(checkVolume);
-      }
-      vadCheckTimer = requestAnimationFrame(checkVolume);
-    }
-
-    function stopVoiceActivityDetection() {
-      if (vadCheckTimer) { cancelAnimationFrame(vadCheckTimer); vadCheckTimer = null; }
-      isVoiceActive = false;
-      isTouchingDisplay = false;
-    }
-
-    centerCore.addEventListener('pointerdown', () => {
-      if (!isGuideActive) return;
-      isTouchingDisplay = true;
-      isLineHeadLocked = false;
-      if (!isVoiceActive) {
-        isVoiceActive = true;
-        btnGuideToggle.textContent = '背誦中';
-        btnGuideToggle.classList.remove('guide-waiting');
-        btnGuideToggle.classList.add('guide-active');
-        lastAnimTimestamp = performance.now();
-      }
-    });
-    const stopTouchDrive = () => { if (isGuideActive) isTouchingDisplay = false; };
-    centerCore.addEventListener('pointerup', stopTouchDrive);
-    centerCore.addEventListener('pointercancel', stopTouchDrive);
-    centerCore.addEventListener('pointerleave', stopTouchDrive);
-
-    function startGuideRunner() {
-      if (parsedTextLines.length === 0) return;
-      guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
-      scrollToAlignTop(currentLineIndex);
-      setupActiveLine(currentLineIndex, currentCharIndexFloat);
-      lastAnimTimestamp = performance.now();
-      if (guideAnimId) cancelAnimationFrame(guideAnimId);
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function scrollToAlignTop(idx) {
-      const line = parsedTextLines[idx];
-      if (line) centerCore.scrollTop = Math.max(0, line.topGlobal - 18);
-    }
-
-    function getVisibleBottomLineIndex() {
-      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
-      let lastVisibleIdx = currentLineIndex;
-      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
-        if (parsedTextLines[i].underLineY <= viewportBottom - 16) lastVisibleIdx = i;
-        else break;
-      }
-      return lastVisibleIdx;
-    }
-
-    function checkAndTriggerPageFlip() {
-      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
-      if (markA_Index !== -1 && markB_Index !== -1) {
-        const lineA = parsedTextLines[markA_Index];
-        const lineB = parsedTextLines[markB_Index];
-        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) return;
-      }
-      const nextIndex = currentLineIndex + 1;
-      if (nextIndex < parsedTextLines.length) {
-        const nextLine = parsedTextLines[nextIndex];
-        if (nextLine.underLineY > (viewportBottom - 18)) scrollToAlignTop(nextIndex);
-      }
-    }
-
-    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
-      if (!line) return 0;
-      if (!line.charItems || line.charItems.length === 0) return line.x0;
-      const items = line.charItems;
-      const totalChars = items.length;
-      if (charProgressFloat <= 0) return items[0].x0;
-      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
-
-      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
-      const intraCharFraction = charProgressFloat - charIdx;
-      const item = items[charIdx];
-      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
-    }
-
-    function setupActiveLine(idx, initCurrent = 0.0) {
-      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
-      const line = parsedTextLines[idx];
-      currentCharIndexFloat = initCurrent;
-
-      if (isGuideActive) {
-        if (!isAppleDevice) {
-          guideLine.style.top = `${line.underLineY}px`;
-          guideLine.style.left = `${line.x0}px`;
-          guideLine.style.width = `${line.x1 - line.x0}px`;
-          const curX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
-          redDot.style.top = `${line.underLineY}px`;
-          redDot.style.left = `${curX}px`;
-        } else {
-          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
-          guideLine.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
-          guideLine.style.left = `${offsetLeft + (line.x0 * scaleX)}px`;
-          guideLine.style.width = `${(line.x1 - line.x0) * scaleX}px`;
-          const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
-          redDot.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
-          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
-        }
-        guideLine.style.display = 'block';
-        redDot.style.display = 'block';
-      }
-      isTransitioningLine = false;
-    }
-
-    function stepGuideMovement(now) {
-      if (!isGuideActive || isTransitioningLine) return;
-      let delta = now - lastAnimTimestamp;
-      if (delta <= 0 || delta > 120) delta = 16.6;
-      lastAnimTimestamp = now;
-
-      const curLine = parsedTextLines[currentLineIndex];
-      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
-      const inertiaStartIndex = Math.max(1, totalChars - 2);
-      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
-
-      if (isVoiceActive || isInTailZone) {
-        const charPerMs = (2.8 * baseSpeed) / 1000;
-        if (isLineHeadLocked) {
-          if (currentCharIndexFloat < 0.5) {
-            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
-          }
-        } else {
-          currentCharIndexFloat += charPerMs * delta;
-        }
-        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
-      }
-
-      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
-        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
-        if (!isCurrentLineAtTargetEnd) {
-          const visibleBottomIdx = getVisibleBottomLineIndex();
-          if (currentLineIndex === visibleBottomIdx) {
-            checkAndTriggerPageFlip();
-            hasPageFlipped = true;
-          }
-        }
-      }
-
-      if (currentCharIndexFloat >= totalChars) {
-        currentCharIndexFloat = totalChars;
-        if (curLine) {
-          if (!isAppleDevice) {
-            redDot.style.left = `${curLine.x1}px`;
-            redDot.style.top = `${curLine.underLineY}px`;
-          } else {
-            const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
-            redDot.style.left = `${offsetLeft + (curLine.x1 * scaleX)}px`;
-            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
-          }
-        }
-
-        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
-        const nextIndex = currentLineIndex + 1;
-        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
-
-        isTransitioningLine = true;
-        lineEndTime = performance.now();
-        peakRmsAtLineEnd = prevRms;
-        guideLine.style.display = 'none';
-        return;
-      }
-
-      if (curLine) {
-        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
-        if (!isAppleDevice) {
-          redDot.style.left = `${rawX}px`;
-          redDot.style.top = `${curLine.underLineY}px`;
-        } else {
-          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
-          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
-          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
-        }
-      }
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function proceedToNextLineImmediately() {
-      if (!isTransitioningLine || !isGuideActive) return;
-      const nextIndex = currentLineIndex + 1;
-      hasPageFlipped = false;
-      currentLineIndex = nextIndex;
-      currentCharIndexFloat = 0.0;
-      isLineHeadLocked = true;
-      setupActiveLine(currentLineIndex, 0.0);
-      lastAnimTimestamp = performance.now();
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function handleCycleCompletion() {
-      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-      completedCycles += 1;
-      const remain = Math.max(0, totalTargetCycles - completedCycles);
-      btnRepeatCount.textContent = `${remain}次`;
-
-      addCoins(calculateSentenceCount());
-
-      if (completedCycles >= totalTargetCycles) {
-        handleTargetCycleDone();
-        finishAndStopPermanently();
-        return;
-      }
-
-      isTransitioningLine = true;
-      guideLine.style.display = 'none';
-
-      if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
-      cycleWaitTimer = setTimeout(() => {
-        if (!isGuideActive) return;
-        hasPageFlipped = false;
-        currentLineIndex = markA_Index;
-        currentCharIndexFloat = 0.0;
-        isLineHeadLocked = true;
-        scrollToAlignTop(currentLineIndex);
-
-        setupActiveLine(currentLineIndex, 0.0);
-        isTransitioningLine = false;
-        lastAnimTimestamp = performance.now();
-        isVoiceActive = false;
-
-        btnGuideToggle.textContent = '靜止';
-        btnGuideToggle.classList.remove('guide-active');
-        btnGuideToggle.classList.add('guide-waiting');
-
-        if (guideAnimId) cancelAnimationFrame(guideAnimId);
-        guideAnimId = requestAnimationFrame(stepGuideMovement);
-      }, 1500);
-    }
-
-    function finishAndStopPermanently() {
-      haltGuideRunnerImmediately();
-      completedCycles = 0;
-      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
-      currentCharIndexFloat = 0.0;
-      isLineHeadLocked = true;
-      btnRepeatCount.textContent = `${totalTargetCycles}次`;
-    }
-
-    function haltGuideRunnerImmediately() {
-      if (guideAnimId) cancelAnimationFrame(guideAnimId);
-      guideAnimId = null;
-      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-
-      isGuideActive = false;
-      isTransitioningLine = false;
-      stopVoiceActivityDetection();
-
-      guideLine.style.display = 'none';
-      redDot.style.display = 'none';
-      btnGuideToggle.textContent = '背書';
-      btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
-
-      video.pause();
-      updateVisualDisplay();
-    }
-
-    // =========================================================================
-    // 【供養功德與福慧幣上傳】
-    // =========================================================================
-    function getStoredCoins() {
-      return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
-    }
-    function addCoins(amount) {
-      const total = getStoredCoins() + amount;
-      localStorage.setItem('user_accumulated_coins', total.toString());
-      return total;
-    }
-    function resetCoins() {
-      localStorage.setItem('user_accumulated_coins', '0');
-    }
-    function calculateSentenceCount() {
-      if (parsedTextLines.length === 0) return 0;
-      const start = (markA_Index !== -1) ? markA_Index : 0;
-      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
-      return Math.max(1, Math.abs(end - start) + 1);
-    }
-
-    btnOffering.addEventListener('click', () => {
-      if (isGuideActive) return;
-      displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
-      inputClassId.value = localStorage.getItem('user_class_id') || '';
-      inputUserName.value = localStorage.getItem('user_profile_name') || '';
-      offeringOverlay.style.display = 'flex';
-    });
-    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
-
-    btnConfirmOffering.addEventListener('click', () => {
-      const classId = inputClassId.value.trim();
-      const userName = inputUserName.value.trim();
-      if (!classId || !userName) { alert("請輸入班號與姓名！"); return; }
-
-      localStorage.setItem('user_class_id', classId);
-      localStorage.setItem('user_profile_name', userName);
-
-      const coinsToOffer = getStoredCoins();
-      if (coinsToOffer <= 0) { alert("目前福慧幣為 0 枚，請先精進背誦！"); return; }
-
-      btnConfirmOffering.disabled = true;
-      btnConfirmOffering.textContent = '連線供養中...';
-
-      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
-      let isDone = false;
-
-      function handleSuccess(data) {
-        if (isDone) return;
-        isDone = true;
-        clearTimeout(timeoutTimer);
-        delete window[callbackName];
-        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
-
-        resetCoins();
-        displayCoinsCount.textContent = '0 枚';
-        offeringOverlay.style.display = 'none';
-
-        btnConfirmOffering.disabled = false;
-        btnConfirmOffering.textContent = '確認供養';
-
-        renderLeaderboards(data, classId, userName, coinsToOffer);
-        leaderboardOverlay.style.display = 'flex';
-      }
-
-      const timeoutTimer = setTimeout(() => { if (!isDone) handleSuccess(null); }, 10000);
-      window[callbackName] = (res) => handleSuccess(res);
-
-      const scriptTag = document.createElement('script');
-      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&callback=${callbackName}&t=${Date.now()}`;
-      scriptTag.onerror = () => { if (!isDone) handleSuccess(null); };
-      document.body.appendChild(scriptTag);
-    });
-
-    function renderLeaderboards(data, curClass, curName, curCoins) {
-      const medals = ['🥇', '🥈', '🥉'];
-      function buildListHtml(list) {
-        const fullList = (list && Array.isArray(list)) ? [...list] : [];
-        while (fullList.length < 3) fullList.push({ isPlaceholder: true });
-        return fullList.slice(0, 3).map((item, idx) => {
-          const medal = medals[idx] || `第${idx + 1}名`;
-          if (item.isPlaceholder) {
-            return `<div class="rank-item"><span>${medal} <i style="color:#94A3B8;">虛位以待</i></span><span class="rank-coins">--</span></div>`;
-          }
-          const displayName = item.maskName || item.name || curName;
-          const displayClass = item.classId ? `(${item.classId})` : '';
-          const coinsVal = (typeof item.coins === 'number') ? item.coins : curCoins;
-          return `<div class="rank-item"><span>${medal} ${displayName} <small style="color:#94A3B8;">${displayClass}</small></span><span class="rank-coins">${coinsVal} 枚</span></div>`;
-        }).join('');
-      }
-      todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
-      totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
-    }
-
-    btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
-
-    btnShutdownExit.addEventListener('click', () => {
-      haltGuideRunnerImmediately();
-      if (micStream) {
-        try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
-        micStream = null;
-      }
-      if (audioContext && audioContext.state !== 'closed') {
-        try { audioContext.suspend(); } catch (e) {}
-      }
-      isWelcomeDismissed = false;
-      welcomeOverlay.style.display = 'flex';
-    });
-
-    // 🌟 點擊「進入背誦」按鈕
-    btnEnterSacred.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      isWelcomeDismissed = true;
-      welcomeOverlay.style.display = 'none';
-
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-      } catch (err) {}
-
-      if (!isManualSelected) {
-        applyScheduleToState();
-      }
-      syncFiveFilesInBackground();
-    });
-
-    // =========================================================================
-    // 【排程套用核心】
-    // =========================================================================
-    function applyScheduleToState() {
-      if (isManualSelected) return false;
-
-      try {
-        let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
-        if (localSched) scheduleData = JSON.parse(localSched);
-
-        if (!scheduleData || !Array.isArray(scheduleData)) { isScheduleLocked = false; return false; }
-        const todayStr = getNormalizedDateStr();
-        const todayPlan = scheduleData.find(item => item.date === todayStr);
-
-        if (todayPlan && typeof todayPlan.start === 'number' && typeof todayPlan.end === 'number') {
-          const completedRecord = localStorage.getItem('SCHEDULE_DONE_' + todayStr);
-
-          if (userRole === 'senior') {
-            isScheduleLocked = true;
-          } else {
-            isScheduleLocked = (completedRecord !== 'true');
-          }
-
-          markA_Index = Math.max(0, todayPlan.start - 1);
-          markB_Index = Math.min(36, todayPlan.end - 1);
-          currentLineIndex = markA_Index;
-          currentCharIndexFloat = 0.0;
-          isLineHeadLocked = true;
-          completedCycles = 0;
-          videoPausedAt = -1;
-
-          if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
-            totalTargetCycles = todayPlan.repeat;
-            btnRepeatCount.textContent = `${totalTargetCycles}次`;
-          }
-
-          updateVisualDisplay();
-          scrollToAlignTop(markA_Index);
-          const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
-          const rolePrefix = (userRole === 'senior') ? '👴 長青定課' : '💼 今日共同功課';
-          showToast(`🔒 ${rolePrefix}：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText}`, 4500);
-          return true;
-        }
-      } catch (err) {}
-      isScheduleLocked = false;
-      return false;
-    }
-
-    // =========================================================================
-    // 【PDF 渲染與文字結構抽取（精確對齊）】
-    // =========================================================================
-    async function parseAndRenderPdfData(typedarray) {
-      pdfContainerWrap.style.display = 'flex';
-
-      const loadingTask = pdfjsLib.getDocument({
-        data: typedarray,
-        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
-        cMapPacked: true
-      });
-
-      currentPdfDoc = await loadingTask.promise;
-      const page = await currentPdfDoc.getPage(1);
-
-      pdfCanvas.width = 0;
-      pdfCanvas.height = 0;
-
-      const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
-      const pageRotation = page.rotate || 0;
-      const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
-      const pageScale = availableWidth / unscaledViewport.width;
-      const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
-
-      pdfCanvas.width = viewport.width;
-      pdfCanvas.height = viewport.height;
-      const ctx = pdfCanvas.getContext('2d');
-
-      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-
-      const textContent = await page.getTextContent();
-      const items = textContent.items;
-      const validSpans = [];
-      const chineseCharRegex = /[\u4e00-\u9fa5]/;
-
-      items.forEach(it => {
-        const str = it.str || '';
-        if (!str.trim()) return;
-
-        const tx = it.transform;
-        const pdfX = tx[4];
-        const pdfY = tx[5];
-
-        const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
-        const fontWidth = it.width * pageScale;
-
-        const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
-        const screenX0 = p0[0];
-
-        const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
-        const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
-
-        const realTop = Math.min(p0[1], pTop[1]);
-        const realBottom = Math.max(p0[1], pTop[1]);
-
-        const charWidth = fontWidth / Math.max(1, str.length);
-        for (let c = 0; c < str.length; c++) {
-          const char = str[c];
-          if (chineseCharRegex.test(char)) {
-            const charX0 = screenX0 + (c * charWidth);
-            const charX1 = charX0 + charWidth;
-            validSpans.push({
-              x0: charX0,
-              x1: charX1,
-              topY: realTop,
-              bottomY: realBottom,
-              fs: fontScale,
-              char: char
-            });
-          }
-        }
-      });
-
-      validSpans.sort((a, b) => a.topY - b.topY);
-      const rowGroups = [];
-
-      validSpans.forEach(span => {
-        let matched = false;
-        for (let g of rowGroups) {
-          if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
-            g.spans.push(span);
-            matched = true;
-            break;
-          }
-        }
-        if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
-      });
-
-      const analyzedRows = rowGroups.map(g => {
-        g.spans.sort((a, b) => a.x0 - b.x0);
-        const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
-        const minTop = Math.min(...g.spans.map(s => s.topY));
-        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
-        const lineX0 = g.spans[0].x0;
-        const lineX1 = g.spans[g.spans.length - 1].x1;
-
-        return {
-          spans: g.spans,
-          chineseCount: g.spans.length,
-          avgFs: avgFs,
-          minTop: minTop,
-          maxBottom: maxBottom,
-          lineX0: lineX0,
-          lineX1: lineX1,
-          underLineY: maxBottom + 7
-        };
-      });
-
-      const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
-      let mainTextFontSize = 0;
-      if (candidateLargeRows.length > 0) {
-        const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
-        mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
-      }
-
-      parsedTextLines = [];
-      let internalIndex = 0;
-
-      analyzedRows.forEach(r => {
-        const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
-        if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
-          parsedTextLines.push({
-            lineIndex: internalIndex++,
-            x0: r.lineX0,
-            x1: r.lineX1,
-            topGlobal: r.minTop,
-            bottomGlobal: r.maxBottom,
-            underLineY: r.underLineY,
-            charItems: r.spans
-          });
-        }
-      });
-
-      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
-      guideStage.style.height = `${viewport.height}px`;
-    }
-
-    // =========================================================================
-    // 【五檔案背景更新比對器】
-    // =========================================================================
-    async function syncFiveFilesInBackground() {
-      if (!navigator.onLine) return;
-
-      try {
-        const res = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
-        if (res.ok) {
-          const fresh = await res.json();
-          const old = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
-          if (JSON.stringify(fresh) !== old) {
-            localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(fresh));
-            if (!isGuideActive && !isManualSelected) applyScheduleToState();
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const res = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
-        if (res.ok) {
-          const fresh = await res.json();
-          const old = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
-          if (JSON.stringify(fresh) !== old) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(fresh));
-            scriptureData = fresh;
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const head = await fetch('./scripture.pdf', { method: 'HEAD', cache: 'no-store' });
-        if (head.ok) {
-          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
-          const saved = await getLocalFile('pdf_file');
-          if (!saved || saved.tag !== tag) {
-            const getRes = await fetch('./scripture.pdf?nocache=' + Date.now());
-            const buf = await getRes.arrayBuffer();
-            await saveLocalFile('pdf_file', buf, tag);
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const head = await fetch('./chant_video.mp4', { method: 'HEAD', cache: 'no-store' });
-        if (head.ok) {
-          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
-          const saved = await getLocalFile('video_file');
-          if (!saved || saved.tag !== tag) {
-            const getRes = await fetch('./chant_video.mp4?nocache=' + Date.now());
-            const buf = await getRes.arrayBuffer();
-            await saveLocalFile('video_file', buf, tag);
-            const blob = new Blob([buf], { type: 'video/mp4' });
-            video.src = URL.createObjectURL(blob);
-          }
-        }
-      } catch (e) {}
-    }
-
-    // =========================================================================
-    // 【開機總入口】
-    // =========================================================================
-    window.addEventListener('DOMContentLoaded', async () => {
-      handleOrientationCheck();
-
-      const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
-      if (localSent) {
-        try { scriptureData = JSON.parse(localSent); } catch (e) {}
-      }
-      if (!scriptureData || scriptureData.length === 0) {
-        try {
-          const sRes = await fetch('./sentences.json');
-          if (sRes.ok) {
-            scriptureData = await sRes.json();
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(scriptureData));
-          }
-        } catch (e) {}
-      }
-
-      const localVideo = await getLocalFile('video_file');
-      if (localVideo && localVideo.data) {
-        const blob = new Blob([localVideo.data], { type: 'video/mp4' });
-        video.src = URL.createObjectURL(blob);
-      } else {
-        video.src = './chant_video.mp4';
-      }
-
-      const localPdf = await getLocalFile('pdf_file');
-      if (localPdf && localPdf.data) {
-        cachedPdfBuffer = localPdf.data;
-      } else {
-        try {
-          const pRes = await fetch('./scripture.pdf');
-          if (pRes.ok) {
-            const buf = await pRes.arrayBuffer();
-            await saveLocalFile('pdf_file', buf, 'init_pdf');
-            cachedPdfBuffer = buf;
-          }
-        } catch (e) {}
-      }
-
-      // 若啟動時已經是橫螢幕，立即渲染經文
-      if (window.innerWidth > window.innerHeight) {
-        renderPdfOnValidDimensions();
-      }
-    });
+    // 開機執行
+    window.addEventListener('DOMContentLoaded', initPlatform);
   </script>
 </body>
 </html>
