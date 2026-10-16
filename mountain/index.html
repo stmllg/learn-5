@@ -3,16 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式播放器 v137 (雙模影音離線快取修復版)</title>
+  <title>歡喜背書橫式播放器 v138</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
   <meta name="theme-color" content="#000000">
 
-  <!-- =========================================================================
-       【LINE 零延遲最高速同步攔截】：在所有外部資源下載前，第 1 微秒立即鎖定
-       ========================================================================= -->
   <script>
     (function() {
       var ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -54,7 +51,6 @@
       overflow: hidden;
     }
 
-    /* LINE 警示層 */
     #line-warning-banner {
       display: none;
       position: fixed;
@@ -71,7 +67,6 @@
       align-items: center;
       padding: 24px;
       text-align: center;
-      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
     }
 
     #welcome-start-overlay {
@@ -89,7 +84,6 @@
       padding: 12px;
       cursor: pointer;
       touch-action: manipulation;
-      transition: opacity 0.2s ease-out;
     }
 
     .welcome-board, .welcome-board * {
@@ -111,12 +105,10 @@
       flex-direction: column;
       align-items: center;
       gap: 16px;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
     }
-    .line-warning-icon { font-size: 52px; line-height: 1; }
-    .line-warning-title { font-size: 22px; font-weight: 900; color: #FEF08A; letter-spacing: 0.5px; }
-    .line-warning-text { font-size: 16px; line-height: 1.7; font-weight: 700; color: #FFFFFF; text-align: left; width: 100%; }
-    .line-warning-highlight { color: #38BDF8; font-weight: 900; font-size: 18px; }
+    .line-warning-title { font-size: 22px; font-weight: 900; color: #FEF08A; }
+    .line-warning-text { font-size: 16px; line-height: 1.7; font-weight: 700; color: #FFFFFF; text-align: left; }
+    .line-warning-highlight { color: #38BDF8; font-weight: 900; }
 
     #schedule-toast {
       display: none;
@@ -150,45 +142,9 @@
       font-size: 14px;
       font-weight: 900;
       z-index: 120;
-      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.5);
       pointer-events: none;
       transition: opacity 0.3s ease;
     }
-
-    #update-modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-      background: rgba(5, 10, 20, 0.92);
-      z-index: 99990;
-      justify-content: center;
-      align-items: center;
-      padding: 16px;
-      backdrop-filter: blur(6px);
-    }
-    .update-notice-card {
-      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
-      border: 2.5px solid #38BDF8;
-      color: #FFFFFF;
-      border-radius: 20px;
-      width: 90%;
-      max-width: 480px;
-      padding: 20px 24px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.4);
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      text-align: center;
-    }
-    .update-notice-header { font-size: 22px; font-weight: 900; color: #38BDF8; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .update-notice-body { background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; text-align: left; }
-    .update-detail-row { font-size: 16px; font-weight: 700; color: #F8FAFC; line-height: 1.5; }
-    .update-detail-highlight { color: #FBBF24; font-weight: 900; }
-    .btn-update-confirm { width: 100%; height: 48px; background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border: 2px solid #BAE6FD; color: #FFFFFF; font-size: 18px; font-weight: 900; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.5); }
 
     .welcome-board {
       width: 100%;
@@ -203,18 +159,16 @@
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(245, 158, 11, 0.2);
     }
-    .welcome-board-header { text-align: center; }
-    .welcome-board-title { font-size: clamp(16px, 4vw, 21px); font-weight: 900; color: #FBBF24; letter-spacing: 0.5px; }
+    .welcome-board-title { font-size: clamp(16px, 4vw, 21px); font-weight: 900; color: #FBBF24; }
     .wings-guide-container { width: 100%; flex: 1; display: flex; flex-direction: row; justify-content: space-around; align-items: center; gap: 16px; margin: 8px 0; overflow-y: auto; }
     .wing-column { flex: 1; display: flex; flex-direction: column; gap: 10px; }
     .guide-btn-card { display: flex; align-items: center; gap: 12px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 6px 10px; }
-    .guide-btn-circle { width: clamp(36px, 6vh, 42px); height: clamp(36px, 6vh, 42px); border-radius: 50%; border: 2px solid #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: clamp(11px, 1.9vh, 12.5px); font-weight: 900; color: #FFFFFF; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.6); text-align: center; line-height: 1.1; }
+    .guide-btn-circle { width: clamp(36px, 6vh, 42px); height: clamp(36px, 6vh, 42px); border-radius: 50%; border: 2px solid #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: clamp(11px, 1.9vh, 12.5px); font-weight: 900; color: #FFFFFF; flex-shrink: 0; }
     .guide-btn-info { display: flex; flex-direction: column; text-align: left; }
     .guide-btn-name { font-size: clamp(12px, 2.2vh, 14px); font-weight: 900; color: #F8FAFC; }
-    .guide-btn-desc { font-size: clamp(10px, 1.8vh, 12px); color: #94A3B8; line-height: 1.2; }
-    .welcome-board-footer { width: 100%; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; border-radius: 14px; padding: 10px 16px; text-align: center; font-size: clamp(15px, 2.8vh, 18px); font-weight: 900; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5); }
+    .guide-btn-desc { font-size: clamp(10px, 1.8vh, 12px); color: #94A3B8; }
+    .welcome-board-footer { width: 100%; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; border-radius: 14px; padding: 10px 16px; text-align: center; font-size: clamp(15px, 2.8vh, 18px); font-weight: 900; }
 
     .side-wing {
       flex-shrink: 0;
@@ -266,7 +220,7 @@
     .btn-color-shutdown { background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); border-color: #FECACA; }
 
     .btn-color-guide { background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%); border-color: #FECACA; }
-    #btn-guide-toggle.guide-waiting { background: radial-gradient(circle, #EAB308 0%, #CA8A04 100%) !important; border-color: #FEF08A !important; box-shadow: 0 0 12px rgba(234, 179, 8, 0.7) !important; }
+    #btn-guide-toggle.guide-waiting { background: radial-gradient(circle, #EAB308 0%, #CA8A04 100%) !important; border-color: #FEF08A !important; }
     #btn-guide-toggle.guide-active { background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important; border-color: #DCFCE7 !important; animation: voiceBreathing 1.25s infinite ease-in-out !important; }
     @keyframes voiceBreathing {
       0% { transform: scale(1.0); box-shadow: 0 0 10px rgba(34, 197, 94, 0.6); }
@@ -308,7 +262,7 @@
     #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; pointer-events: none; display: flex; justify-content: center; }
     #pdf-canvas { display: block; width: 100% !important; height: auto !important; image-rendering: -webkit-optimize-contrast; transform: translateZ(0); }
 
-    /* 影片視圖 */
+    /* 影片視圖（全屏填滿中央區） */
     #video-container-wrap {
       position: absolute;
       top: 0;
@@ -371,7 +325,6 @@
 </head>
 <body>
 
-  <!-- LINE 警示層 -->
   <div id="line-warning-banner">
     <div class="line-warning-card">
       <div class="line-warning-icon">📱 ➔ 🔄</div>
@@ -384,7 +337,6 @@
     </div>
   </div>
 
-  <!-- 開機指引看板 -->
   <div id="welcome-start-overlay" onclick="dismissWelcomeOverlay(event)">
     <div class="welcome-board">
       <div class="welcome-board-header">
@@ -405,21 +357,13 @@
         </div>
       </div>
       <div class="welcome-board-footer">
-        👉 <b>【單指左右滑動】</b> 隨時切換經文/影片 ｜ 🙏 點擊任意處進入背誦
+        👉 <b>【單指左右滑動螢幕】</b> 隨時切換經文/影片 ｜ 🙏 點擊任意處進入背誦
       </div>
     </div>
   </div>
 
   <div id="schedule-toast">📅 載入進度中...</div>
   <div id="speed-toast-badge">【語速 1.5x】</div>
-
-  <div id="update-modal-overlay">
-    <div class="update-notice-card">
-      <div class="update-notice-header"><span>🔄</span> 最新版本同步通知</div>
-      <div class="update-notice-body" id="update-modal-body"></div>
-      <button class="btn-update-confirm" id="btn-update-confirm">確認，開始精進背誦</button>
-    </div>
-  </div>
 
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
@@ -447,10 +391,12 @@
       </div>
 
       <div id="video-container-wrap">
-        <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
+        <!-- 直接以標準相對路徑指向 chant_video.mp4 -->
+        <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto" src="./chant_video.mp4"></video>
       </div>
     </div>
 
+    <!-- 右側 4 按鍵 -->
     <div class="side-wing" id="right-wing">
       <div class="slot"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
       <div class="slot"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
@@ -549,9 +495,6 @@
 
     const scheduleToast = document.getElementById('schedule-toast');
     const speedToastBadge = document.getElementById('speed-toast-badge');
-    const updateModalOverlay = document.getElementById('update-modal-overlay');
-    const updateModalBody = document.getElementById('update-modal-body');
-    const btnUpdateConfirm = document.getElementById('btn-update-confirm');
     const welcomeOverlay = document.getElementById('welcome-start-overlay');
 
     const btnMarkA = document.getElementById('btn-mark-a');
@@ -573,8 +516,6 @@
     const btnCancelOffering = document.getElementById('btn-cancel-offering');
 
     const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
-    const zoomViewport = document.getElementById('zoom-viewport');
-    const zoomableContent = document.getElementById('zoomable-board-content');
     const todayRankList = document.getElementById('today-rank-list');
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
@@ -596,7 +537,7 @@
     let isGuideActive = false;
     let currentLineIndex = 0;
 
-    // 原版實體漢字流速步進器
+    // 實體漢字流速步進器
     let currentCharIndexFloat = 0.0;
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
@@ -607,7 +548,7 @@
     let hasPageFlipped = false;
     let pendingScheduleSpeech = "";
 
-    // 原版音訊與動態環境門檻校準
+    // 音訊與動態環境門檻校準
     let audioContext = null;
     let analyser = null;
     let micStream = null;
@@ -652,11 +593,6 @@
     btnSpeedUp.addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(+0.1); });
     btnSpeedDown.addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(-0.1); });
 
-    function formatDateTime(dateObj) {
-      const d = dateObj || new Date();
-      return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-    }
-
     function speakPrompt(text) {
       try {
         if ('speechSynthesis' in window) {
@@ -664,7 +600,6 @@
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'zh-TW';
           utterance.rate = 1.1;
-          utterance.volume = 0.7;
           window.speechSynthesis.speak(utterance);
         }
       } catch (e) {}
@@ -676,7 +611,7 @@
     }
 
     // =========================================================================
-    // 【單指左右滑動切換雙模式 (PDF 經文 / MP4 影片)】
+    // 【單指左右滑動切換雙模式】：經文 PDF ↔ MP4 影片
     // =========================================================================
     let touchStartX = 0;
     let touchStartY = 0;
@@ -709,8 +644,9 @@
         videoWrap.style.display = 'flex';
         showToast('🎬 切換為：影音跟讀模式 (單指滑動可切回)');
 
-        if (video.readyState >= 1) {
-          if (scriptureData[markA_Index]) video.currentTime = scriptureData[markA_Index].start;
+        // 設定起點秒數
+        if (scriptureData && scriptureData[markA_Index]) {
+          video.currentTime = scriptureData[markA_Index].start;
         }
       } else {
         currentMode = 'pdf';
@@ -724,9 +660,7 @@
       updateVisualDisplay();
     }
 
-    // =========================================================================
-    // 【影片播放進度監控與 AB 區間循環 (徹底修復播放問題)】
-    // =========================================================================
+    // 影片狀態與播放循環
     video.addEventListener('timeupdate', () => {
       if (currentMode !== 'mp4') return;
       if (!scriptureData || scriptureData.length === 0) return;
@@ -872,7 +806,7 @@
     });
 
     // =========================================================================
-    // 【背書開關總控制】：MP4 播放手勢授權解鎖 與 PDF 麥克風導引
+    // 【背書開關總控制】：MP4 播放手勢授權解鎖（徹底修復無聲卡住問題）
     // =========================================================================
     btnGuideToggle.addEventListener('click', async () => {
       if (markA_Index === -1 || markB_Index === -1) {
@@ -886,18 +820,20 @@
         const tEnd = scriptureData[markB_Index] ? scriptureData[markB_Index].end : video.duration;
 
         if (video.paused) {
-          // 強制對齊時間並使用使用者手勢授權解鎖播放
-          if (video.currentTime < tStart || video.currentTime >= tEnd) {
-            video.currentTime = tStart;
-          }
-
+          // 關鍵修復：在手勢點擊的同一個同步執行緒中先呼叫 play()，解鎖手機瀏覽器限制
           video.play().then(() => {
+            // 解鎖成功後，再設定精準秒數
+            if (video.currentTime < tStart || video.currentTime >= tEnd) {
+              video.currentTime = tStart;
+            }
             btnGuideToggle.textContent = '暫停';
             btnGuideToggle.classList.add('guide-active');
             btnGuideToggle.classList.remove('guide-waiting');
           }).catch((err) => {
             console.error("播放受阻:", err);
-            showToast("⚠️ 請再點擊一次解鎖音訊");
+            // 若被攔截，再次嘗試設定秒數後播放
+            video.currentTime = tStart;
+            video.play().catch(() => {});
           });
         } else {
           video.pause();
@@ -907,7 +843,7 @@
         return;
       }
 
-      // --- 模式 2：PDF 經文默背模式 ---
+      // --- 模式 2：PDF 默背模式 ---
       if (isGuideActive) return;
       isGuideActive = true;
 
@@ -940,7 +876,7 @@
     });
 
     // =========================================================================
-    // 【全盤複製：原版 VAD 監測、起句 Attack Peak 與 雙逃脫換行狀態機】
+    // 【改善 2：放寬麥克風靜音偵測緩衝，徹底修復語順中斷】
     // =========================================================================
     async function startVoiceActivityDetection() {
       try {
@@ -963,7 +899,7 @@
           if (calibrationSamples.length > 0) {
             const sum = calibrationSamples.reduce((a, b) => a + b, 0);
             baseNoiseLevel = sum / calibrationSamples.length;
-            dynamicThreshold = Math.max(0.0022, baseNoiseLevel * 1.15 + 0.0008);
+            dynamicThreshold = Math.max(0.0020, baseNoiseLevel * 1.12 + 0.0006);
           }
           isCalibrating = false;
         }, 350);
@@ -999,28 +935,24 @@
           const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
 
           // 1. 起句解鎖：捕捉明顯起音波峰（Attack Peak）
-          if (isLineHeadLocked && deltaRms > (dynamicThreshold * 0.4)) {
+          if (isLineHeadLocked && deltaRms > (dynamicThreshold * 0.35)) {
             isLineHeadLocked = false;
           }
 
           // 2. 換行靈活監聽狀態機 (200ms 保底 ＋ 雙逃脫通道)
           if (isTransitioningLine) {
             const elapsed = performance.now() - lineEndTime;
-            // 逃脫 1：新句開口秒切
-            if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.45)) {
+            if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
               proceedToNextLineImmediately();
-            }
-            // 逃脫 2：能量相對下墜超過 30%
-            else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
+            } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
               proceedToNextLineImmediately();
-            }
-            // 保底 3：200ms 強制換行
-            else if (elapsed >= 200) {
+            } else if (elapsed >= 200) {
               proceedToNextLineImmediately();
             }
           }
 
-          // 3. 原版精準聲音狀態切換
+          // 3. 關鍵改善：將靜音幀數緩衝從 3 幀提高至 14 幀 (約 230 毫秒)
+          // 讓長輩在換氣、字距停頓時，紅點持續保持動力，絕不卡死跳靜音
           if (hasVoiceEnergy) {
             silentFrameCount = 0;
             if (!isVoiceActive) {
@@ -1032,7 +964,7 @@
             }
           } else {
             silentFrameCount++;
-            if (silentFrameCount >= 3) {
+            if (silentFrameCount >= 14) { // 給足換氣緩衝
               if (isVoiceActive) {
                 isVoiceActive = false;
                 btnGuideToggle.textContent = '靜止';
@@ -1153,7 +1085,6 @@
       isTransitioningLine = false;
     }
 
-    // 連續流速核心（原版）
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
       let delta = now - lastAnimTimestamp;
@@ -1312,7 +1243,7 @@
     }
 
     // =========================================================================
-    // 【供養功德與福慧幣上傳邏輯】
+    // 【供養功德與福慧幣上傳】
     // =========================================================================
     function getStoredCoins() {
       return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
@@ -1439,7 +1370,6 @@
       }
     }
 
-    // 關機與開機看板
     btnShutdownExit.addEventListener('click', () => {
       haltGuideRunnerImmediately();
       if (micStream) {
@@ -1465,7 +1395,6 @@
         if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
       } catch (e) {}
       checkDailySchedule();
-      runFiveFilesBackgroundSync();
     }
     welcomeOverlay.addEventListener('pointerdown', dismissWelcomeOverlay, { passive: false });
     welcomeOverlay.addEventListener('click', dismissWelcomeOverlay);
@@ -1475,37 +1404,35 @@
     // =========================================================================
     async function checkDailySchedule() {
       try {
-        let scheduleData = null;
-        const localCache = localStorage.getItem('LOCAL_SCHEDULE_CACHE');
-        if (localCache) scheduleData = JSON.parse(localCache);
+        const res = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const scheduleData = await res.json();
+          const todayStr = getNormalizedDateStr();
+          const todayPlan = scheduleData.find(item => item.date === todayStr);
 
-        if (!scheduleData || !Array.isArray(scheduleData)) { isScheduleLocked = false; return false; }
-        const todayStr = getNormalizedDateStr();
-        const todayPlan = scheduleData.find(item => item.date === todayStr);
+          if (todayPlan && typeof todayPlan.start === 'number' && typeof todayPlan.end === 'number') {
+            const completedRecord = localStorage.getItem('SCHEDULE_DONE_' + todayStr);
+            if (completedRecord === 'true') { isScheduleLocked = false; return false; }
 
-        if (todayPlan && typeof todayPlan.start === 'number' && typeof todayPlan.end === 'number') {
-          const completedRecord = localStorage.getItem('SCHEDULE_DONE_' + todayStr);
-          if (completedRecord === 'true') { isScheduleLocked = false; return false; }
-          if (parsedTextLines.length === 0) return false;
+            isScheduleLocked = true;
+            markA_Index = Math.max(0, todayPlan.start - 1);
+            markB_Index = Math.min(36, todayPlan.end - 1);
+            currentLineIndex = markA_Index;
+            currentCharIndexFloat = 0.0;
+            isLineHeadLocked = true;
+            completedCycles = 0;
 
-          isScheduleLocked = true;
-          markA_Index = Math.max(0, todayPlan.start - 1);
-          markB_Index = Math.min(parsedTextLines.length - 1, todayPlan.end - 1);
-          currentLineIndex = markA_Index;
-          currentCharIndexFloat = 0.0;
-          isLineHeadLocked = true;
-          completedCycles = 0;
+            if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
+              totalTargetCycles = todayPlan.repeat;
+              btnRepeatCount.textContent = `${totalTargetCycles}次`;
+            }
 
-          if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
-            totalTargetCycles = todayPlan.repeat;
-            btnRepeatCount.textContent = `${totalTargetCycles}次`;
+            updateVisualDisplay();
+            scrollToAlignTop(markA_Index);
+            const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
+            showToast(`🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText}`, 4000);
+            return true;
           }
-
-          updateVisualDisplay();
-          scrollToAlignTop(markA_Index);
-          const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
-          showToast(`🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText}`, 4000);
-          return true;
         }
       } catch (err) {}
       isScheduleLocked = false;
@@ -1513,171 +1440,7 @@
     }
 
     // =========================================================================
-    // 【五大檔案 IndexedDB 快取管理：徹底解決影片無法下載問題】
-    // =========================================================================
-    const DB_NAME = 'HappyReciteDB_BBox_v58';
-    const STORE_NAME = 'app_media_store';
-    const PDF_KEY = 'saved_scripture';
-    const VIDEO_KEY = 'saved_chant_video';
-
-    function openDatabase() {
-      return new Promise((resolve, reject) => {
-        try {
-          const req = indexedDB.open(DB_NAME, 1);
-          req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-          };
-          req.onsuccess = () => resolve(req.result);
-          req.onerror = () => reject(req.error);
-        } catch (e) { reject(e); }
-      });
-    }
-
-    async function getCachedRecord(key) {
-      try {
-        const db = await openDatabase();
-        return new Promise((resolve) => {
-          const tx = db.transaction(STORE_NAME, 'readonly');
-          const req = tx.objectStore(STORE_NAME).get(key);
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror = () => resolve(null);
-        });
-      } catch (e) { return null; }
-    }
-
-    async function saveRecordToCache(key, data, fileTag) {
-      try {
-        const db = await openDatabase();
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).put({ buffer: data, tag: fileTag }, key);
-      } catch (e) {}
-    }
-
-    // 真正將影片下載進手機資料庫
-    async function loadOrDownloadVideo() {
-      try {
-        const cached = await getCachedRecord(VIDEO_KEY);
-        if (cached && cached.buffer) {
-          const blob = new Blob([cached.buffer], { type: 'video/mp4' });
-          video.src = URL.createObjectURL(blob);
-          return;
-        }
-
-        const res = await fetch('./chant_video.mp4?nocache=' + Date.now());
-        if (res.ok) {
-          const buf = await res.arrayBuffer();
-          const tag = res.headers.get('etag') || 'video_init';
-          await saveRecordToCache(VIDEO_KEY, buf, tag);
-          localStorage.setItem('APP_SAVED_VIDEO_TAG', tag);
-          const blob = new Blob([buf], { type: 'video/mp4' });
-          video.src = URL.createObjectURL(blob);
-        }
-      } catch (err) {
-        console.warn("影片本機快取略過:", err);
-        video.src = './chant_video.mp4'; // 回退至普通串流
-      }
-    }
-
-    // =========================================================================
-    // 【雲端 5 個檔案全智慧比對同步器】
-    // =========================================================================
-    async function runFiveFilesBackgroundSync() {
-      if (!navigator.onLine) return;
-      const updatedItemsList = [];
-      let latestServerTimeStr = "";
-      let needAppReload = false;
-
-      // 1. schedule.json
-      try {
-        const schedRes = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
-        if (schedRes.ok) {
-          const freshSchedule = await schedRes.json();
-          const oldSched = localStorage.getItem('LOCAL_SCHEDULE_CACHE');
-          if (JSON.stringify(freshSchedule) !== oldSched) {
-            localStorage.setItem('LOCAL_SCHEDULE_CACHE', JSON.stringify(freshSchedule));
-            updatedItemsList.push("每日進度排程 (schedule.json)");
-            if (!isGuideActive) await checkDailySchedule();
-          }
-        }
-      } catch (e) {}
-
-      // 2. sentences.json
-      try {
-        const sentRes = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
-        if (sentRes.ok) {
-          const freshSentences = await sentRes.json();
-          const oldSent = localStorage.getItem('LOCAL_SENTENCES_CACHE');
-          if (JSON.stringify(freshSentences) !== oldSent) {
-            localStorage.setItem('LOCAL_SENTENCES_CACHE', JSON.stringify(freshSentences));
-            scriptureData = freshSentences;
-            updatedItemsList.push("句數秒數對照 (sentences.json)");
-          }
-        }
-      } catch (e) {}
-
-      // 3. scripture.pdf
-      try {
-        const headPdf = await fetch('./scripture.pdf?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-        if (headPdf.ok) {
-          const remoteTag = headPdf.headers.get('etag') || headPdf.headers.get('last-modified') || '';
-          const localTag = localStorage.getItem('APP_SAVED_PDF_TAG');
-          if (remoteTag && remoteTag !== localTag) {
-            const res = await fetch('./scripture.pdf?nocache=' + Date.now(), { cache: 'no-store' });
-            const buf = await res.arrayBuffer();
-            cachedRawBuffer = buf;
-            localStorage.setItem('APP_SAVED_PDF_TAG', remoteTag);
-            await saveRecordToCache(PDF_KEY, buf, remoteTag);
-            if (!isGuideActive) {
-              await parseAndRenderPdfData(new Uint8Array(buf));
-              updateVisualDisplay();
-            }
-            updatedItemsList.push("經文檔案 (scripture.pdf)");
-          }
-        }
-      } catch (e) {}
-
-      // 4. chant_video.mp4 (真正下載比對)
-      try {
-        const headVideo = await fetch('./chant_video.mp4?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-        if (headVideo.ok) {
-          const remoteVideoTag = headVideo.headers.get('etag') || headVideo.headers.get('last-modified') || '';
-          const localVideoTag = localStorage.getItem('APP_SAVED_VIDEO_TAG');
-          if (remoteVideoTag && remoteVideoTag !== localVideoTag) {
-            const res = await fetch('./chant_video.mp4?nocache=' + Date.now(), { cache: 'no-store' });
-            const buf = await res.arrayBuffer();
-            await saveRecordToCache(VIDEO_KEY, buf, remoteVideoTag);
-            localStorage.setItem('APP_SAVED_VIDEO_TAG', remoteVideoTag);
-            const blob = new Blob([buf], { type: 'video/mp4' });
-            video.src = URL.createObjectURL(blob);
-            updatedItemsList.push("背書影片 (chant_video.mp4)");
-          }
-        }
-      } catch (e) {}
-
-      // 5. index.html
-      try {
-        const headHtml = await fetch('./index.html?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-        if (headHtml.ok) {
-          const remoteHtmlTag = headHtml.headers.get('etag') || headHtml.headers.get('last-modified') || '';
-          const localHtmlTag = localStorage.getItem('APP_SERVER_HTML_TAG');
-          if (!localHtmlTag) {
-            if (remoteHtmlTag) localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
-          } else if (remoteHtmlTag && remoteHtmlTag !== localHtmlTag) {
-            localStorage.setItem('APP_SERVER_HTML_TAG', remoteHtmlTag);
-            updatedItemsList.push("播放器核心 (index.html)");
-            needAppReload = true;
-          }
-        }
-      } catch (e) {}
-
-      if (updatedItemsList.length > 0) {
-        showUpdateConfirmModal(updatedItemsList, latestServerTimeStr, needAppReload);
-      }
-    }
-
-    // =========================================================================
-    // 【原版 PDF 單次繪製與文字抽取核心】
+    // 【PDF 單次繪製與純漢字抽取】
     // =========================================================================
     async function parseAndRenderPdfData(typedarray) {
       if (!isAppleDevice) {
@@ -1819,46 +1582,27 @@
     }
 
     // =========================================================================
-    // 【開機總流程：五檔案載入與排程初始化】
+    // 【開機載入入口】
     // =========================================================================
     window.addEventListener('DOMContentLoaded', async () => {
-      // 1. 讀取 sentences.json
-      const localSent = localStorage.getItem('LOCAL_SENTENCES_CACHE');
-      if (localSent) scriptureData = JSON.parse(localSent);
+      // 1. 抓取 sentences.json
+      try {
+        const sRes = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (sRes.ok) scriptureData = await sRes.json();
+      } catch (e) {}
 
-      // 2. 啟動背誦影片的本機快取或主動下載
-      await loadOrDownloadVideo();
-
-      // 3. 讀取 PDF 快取
-      const cachedPdf = await getCachedRecord(PDF_KEY);
-      const localBuffer = cachedPdf ? (cachedPdf.buffer || cachedPdf) : null;
-
-      if (localBuffer) {
-        cachedRawBuffer = localBuffer;
-        statusCard.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-        await parseAndRenderPdfData(new Uint8Array(localBuffer));
-        updateVisualDisplay();
-        scrollToAlignTop(0);
-        await checkDailySchedule();
-      } else {
-        statusTitle.textContent = '📖 正在自伺服器下載經文...';
-        try {
-          const res = await fetch('./scripture.pdf?nocache=' + Date.now(), { cache: 'no-store' });
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            cachedRawBuffer = buf;
-            const tag = res.headers.get('etag') || 'initial';
-            await saveRecordToCache(PDF_KEY, buf, tag);
-            localStorage.setItem('APP_SAVED_PDF_TAG', tag);
-            await parseAndRenderPdfData(new Uint8Array(buf));
-            updateVisualDisplay();
-            scrollToAlignTop(0);
-            await checkDailySchedule();
-          }
-        } catch (e) {
-          statusTitle.textContent = '⚠️ 請檢查網路連線';
+      // 2. 抓取 PDF
+      try {
+        const pRes = await fetch('./scripture.pdf?nocache=' + Date.now(), { cache: 'no-store' });
+        if (pRes.ok) {
+          const buf = await pRes.arrayBuffer();
+          await parseAndRenderPdfData(new Uint8Array(buf));
+          updateVisualDisplay();
+          scrollToAlignTop(0);
+          await checkDailySchedule();
         }
+      } catch (e) {
+        statusTitle.textContent = '⚠️ 請確認網路與檔案';
       }
     });
   </script>
