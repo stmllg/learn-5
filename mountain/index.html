@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式播放器 v136 (手勢雙模全功德版)</title>
+  <title>歡喜背書橫式播放器 v137 (雙模影音離線快取修復版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -274,7 +274,6 @@
       100% { transform: scale(1.0); box-shadow: 0 0 10px rgba(34, 197, 94, 0.6); }
     }
 
-    /* 供養按鈕復原 */
     .btn-color-offering { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border-color: #FDE68A; color: #78350F; }
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
@@ -332,7 +331,7 @@
     .modal-option { padding: 9px 18px; font-size: 16px; font-weight: 800; color: #FFFFFF; background-color: #334155; border: none; border-radius: 10px; cursor: pointer; text-align: center; }
     .modal-option.active { background: #6366F1; }
 
-    /* 供養彈窗 */
+    /* 供養與功德榜樣式 */
     #offering-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.78); z-index: 999; justify-content: center; align-items: center; padding: 8px; }
     .offering-card { background: #FFFFFF; color: #1E293B; border-radius: 16px; width: 92%; max-width: 440px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; }
     .offering-header { font-size: 17px; font-weight: 900; color: #D97706; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -348,7 +347,6 @@
     #btn-confirm-offering { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; }
     #btn-cancel-offering { background: #F1F5F9; color: #475569; }
 
-    /* 排行榜彈窗 */
     #leaderboard-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 15, 29, 0.88); z-index: 1000; justify-content: center; align-items: center; padding: 6px 12px; backdrop-filter: blur(4px); }
     .leaderboard-card { background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%); border: 2px solid #F59E0B; color: #FFFFFF; border-radius: 18px; width: 96vw; height: 94vh; padding: 8px 16px 10px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; }
     .leaderboard-header { text-align: center; font-size: 18px; font-weight: 900; color: #FBBF24; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -364,7 +362,6 @@
     .rank-coins { color: #F59E0B; font-weight: 900; margin-left: 8px; }
     .btn-rejoice { width: 100%; height: 42px; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: none; border-radius: 12px; cursor: pointer; }
 
-    /* 金幣噴發 */
     .gold-coin { position: absolute; font-size: 28px; pointer-events: none; z-index: 9999; animation: explodeCoin 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
     @keyframes explodeCoin {
       0% { opacity: 1; transform: translate(0, 0) scale(0.6); }
@@ -408,7 +405,7 @@
         </div>
       </div>
       <div class="welcome-board-footer">
-        👉 <b>【單指左右滑動】</b> 可隨時切換經文/影片 ｜ 🙏 點擊任意處進入背誦
+        👉 <b>【單指左右滑動】</b> 隨時切換經文/影片 ｜ 🙏 點擊任意處進入背誦
       </div>
     </div>
   </div>
@@ -450,11 +447,10 @@
       </div>
 
       <div id="video-container-wrap">
-        <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto" src="./chant_video.mp4"></video>
+        <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
       </div>
     </div>
 
-    <!-- 右側 4 按鈕：完全復原原版配置（背書、供養、語快、語慢） -->
     <div class="side-wing" id="right-wing">
       <div class="slot"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
       <div class="slot"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
@@ -583,13 +579,11 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 狀態變數
     let currentMode = 'pdf'; // 'pdf' 或 'mp4'
     let scriptureData = [];
     let currentPdfDoc = null;
     let cachedRawBuffer = null;
     let parsedTextLines = [];
-    let currentActiveFileTag = '';
 
     let markA_Index = -1;
     let markB_Index = -1;
@@ -670,6 +664,7 @@
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'zh-TW';
           utterance.rate = 1.1;
+          utterance.volume = 0.7;
           window.speechSynthesis.speak(utterance);
         }
       } catch (e) {}
@@ -698,7 +693,6 @@
         const deltaX = e.changedTouches[0].clientX - touchStartX;
         const deltaY = e.changedTouches[0].clientY - touchStartY;
 
-        // 水平滑動超過 55px，且水平位移明顯大於垂直滾動
         if (Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
           toggleModeSwitch();
         }
@@ -717,8 +711,6 @@
 
         if (video.readyState >= 1) {
           if (scriptureData[markA_Index]) video.currentTime = scriptureData[markA_Index].start;
-        } else {
-          video.load();
         }
       } else {
         currentMode = 'pdf';
@@ -732,8 +724,9 @@
       updateVisualDisplay();
     }
 
-    // 影片狀態與播放循環
-    video.addEventListener('loadeddata', () => { showToast("✅ 影片載入就緒！", 1500); });
+    // =========================================================================
+    // 【影片播放進度監控與 AB 區間循環 (徹底修復播放問題)】
+    // =========================================================================
     video.addEventListener('timeupdate', () => {
       if (currentMode !== 'mp4') return;
       if (!scriptureData || scriptureData.length === 0) return;
@@ -879,7 +872,7 @@
     });
 
     // =========================================================================
-    // 【背書開關總控制】：MP4 播放 與 原版麥克風導引
+    // 【背書開關總控制】：MP4 播放手勢授權解鎖 與 PDF 麥克風導引
     // =========================================================================
     btnGuideToggle.addEventListener('click', async () => {
       if (markA_Index === -1 || markB_Index === -1) {
@@ -887,17 +880,23 @@
         return;
       }
 
+      // --- 模式 1：MP4 模式 ---
       if (currentMode === 'mp4') {
         const tStart = scriptureData[markA_Index] ? scriptureData[markA_Index].start : 0;
         const tEnd = scriptureData[markB_Index] ? scriptureData[markB_Index].end : video.duration;
 
         if (video.paused) {
-          if (video.currentTime < tStart || video.currentTime >= tEnd) video.currentTime = tStart;
+          // 強制對齊時間並使用使用者手勢授權解鎖播放
+          if (video.currentTime < tStart || video.currentTime >= tEnd) {
+            video.currentTime = tStart;
+          }
+
           video.play().then(() => {
             btnGuideToggle.textContent = '暫停';
             btnGuideToggle.classList.add('guide-active');
             btnGuideToggle.classList.remove('guide-waiting');
-          }).catch(() => {
+          }).catch((err) => {
+            console.error("播放受阻:", err);
             showToast("⚠️ 請再點擊一次解鎖音訊");
           });
         } else {
@@ -908,6 +907,7 @@
         return;
       }
 
+      // --- 模式 2：PDF 經文默背模式 ---
       if (isGuideActive) return;
       isGuideActive = true;
 
@@ -1020,7 +1020,7 @@
             }
           }
 
-          // 3. 原版精準聲音狀態切換（給足 3 個幀緩衝，避免過早斷定靜音）
+          // 3. 原版精準聲音狀態切換
           if (hasVoiceEnergy) {
             silentFrameCount = 0;
             if (!isVoiceActive) {
@@ -1312,7 +1312,7 @@
     }
 
     // =========================================================================
-    // 【供養功德與福慧幣上傳邏輯（原版完整保留）】
+    // 【供養功德與福慧幣上傳邏輯】
     // =========================================================================
     function getStoredCoins() {
       return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
@@ -1513,6 +1513,73 @@
     }
 
     // =========================================================================
+    // 【五大檔案 IndexedDB 快取管理：徹底解決影片無法下載問題】
+    // =========================================================================
+    const DB_NAME = 'HappyReciteDB_BBox_v58';
+    const STORE_NAME = 'app_media_store';
+    const PDF_KEY = 'saved_scripture';
+    const VIDEO_KEY = 'saved_chant_video';
+
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        try {
+          const req = indexedDB.open(DB_NAME, 1);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        } catch (e) { reject(e); }
+      });
+    }
+
+    async function getCachedRecord(key) {
+      try {
+        const db = await openDatabase();
+        return new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const req = tx.objectStore(STORE_NAME).get(key);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) { return null; }
+    }
+
+    async function saveRecordToCache(key, data, fileTag) {
+      try {
+        const db = await openDatabase();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put({ buffer: data, tag: fileTag }, key);
+      } catch (e) {}
+    }
+
+    // 真正將影片下載進手機資料庫
+    async function loadOrDownloadVideo() {
+      try {
+        const cached = await getCachedRecord(VIDEO_KEY);
+        if (cached && cached.buffer) {
+          const blob = new Blob([cached.buffer], { type: 'video/mp4' });
+          video.src = URL.createObjectURL(blob);
+          return;
+        }
+
+        const res = await fetch('./chant_video.mp4?nocache=' + Date.now());
+        if (res.ok) {
+          const buf = await res.arrayBuffer();
+          const tag = res.headers.get('etag') || 'video_init';
+          await saveRecordToCache(VIDEO_KEY, buf, tag);
+          localStorage.setItem('APP_SAVED_VIDEO_TAG', tag);
+          const blob = new Blob([buf], { type: 'video/mp4' });
+          video.src = URL.createObjectURL(blob);
+        }
+      } catch (err) {
+        console.warn("影片本機快取略過:", err);
+        video.src = './chant_video.mp4'; // 回退至普通串流
+      }
+    }
+
+    // =========================================================================
     // 【雲端 5 個檔案全智慧比對同步器】
     // =========================================================================
     async function runFiveFilesBackgroundSync() {
@@ -1521,7 +1588,7 @@
       let latestServerTimeStr = "";
       let needAppReload = false;
 
-      // 1. 排程 schedule.json
+      // 1. schedule.json
       try {
         const schedRes = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
         if (schedRes.ok) {
@@ -1535,7 +1602,7 @@
         }
       } catch (e) {}
 
-      // 2. 句數對照 sentences.json
+      // 2. sentences.json
       try {
         const sentRes = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
         if (sentRes.ok) {
@@ -1549,7 +1616,7 @@
         }
       } catch (e) {}
 
-      // 3. 經文 PDF (scripture.pdf)
+      // 3. scripture.pdf
       try {
         const headPdf = await fetch('./scripture.pdf?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
         if (headPdf.ok) {
@@ -1560,7 +1627,7 @@
             const buf = await res.arrayBuffer();
             cachedRawBuffer = buf;
             localStorage.setItem('APP_SAVED_PDF_TAG', remoteTag);
-            await saveRecordToCache(buf, remoteTag);
+            await saveRecordToCache(PDF_KEY, buf, remoteTag);
             if (!isGuideActive) {
               await parseAndRenderPdfData(new Uint8Array(buf));
               updateVisualDisplay();
@@ -1570,21 +1637,25 @@
         }
       } catch (e) {}
 
-      // 4. 背誦影片 (chant_video.mp4)
+      // 4. chant_video.mp4 (真正下載比對)
       try {
         const headVideo = await fetch('./chant_video.mp4?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
         if (headVideo.ok) {
           const remoteVideoTag = headVideo.headers.get('etag') || headVideo.headers.get('last-modified') || '';
           const localVideoTag = localStorage.getItem('APP_SAVED_VIDEO_TAG');
           if (remoteVideoTag && remoteVideoTag !== localVideoTag) {
+            const res = await fetch('./chant_video.mp4?nocache=' + Date.now(), { cache: 'no-store' });
+            const buf = await res.arrayBuffer();
+            await saveRecordToCache(VIDEO_KEY, buf, remoteVideoTag);
             localStorage.setItem('APP_SAVED_VIDEO_TAG', remoteVideoTag);
-            video.load();
+            const blob = new Blob([buf], { type: 'video/mp4' });
+            video.src = URL.createObjectURL(blob);
             updatedItemsList.push("背書影片 (chant_video.mp4)");
           }
         }
       } catch (e) {}
 
-      // 5. 播放器核心 (index.html)
+      // 5. index.html
       try {
         const headHtml = await fetch('./index.html?nocache=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
         if (headHtml.ok) {
@@ -1606,48 +1677,7 @@
     }
 
     // =========================================================================
-    // 【IndexedDB 快取儲存】
-    // =========================================================================
-    const DB_NAME = 'HappyReciteDB_BBox_v57';
-    const STORE_NAME = 'pdf_store';
-    const PDF_KEY = 'saved_scripture';
-
-    function openDatabase() {
-      return new Promise((resolve, reject) => {
-        try {
-          const req = indexedDB.open(DB_NAME, 1);
-          req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-          };
-          req.onsuccess = () => resolve(req.result);
-          req.onerror = () => reject(req.error);
-        } catch (e) { reject(e); }
-      });
-    }
-
-    async function getCachedRecord() {
-      try {
-        const db = await openDatabase();
-        return new Promise((resolve) => {
-          const tx = db.transaction(STORE_NAME, 'readonly');
-          const req = tx.objectStore(STORE_NAME).get(PDF_KEY);
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror = () => resolve(null);
-        });
-      } catch (e) { return null; }
-    }
-
-    async function saveRecordToCache(arrayBuffer, fileTag) {
-      try {
-        const db = await openDatabase();
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).put({ buffer: arrayBuffer, tag: fileTag }, PDF_KEY);
-      } catch (e) {}
-    }
-
-    // =========================================================================
-    // 【原版 PDF 單次繪製與實體文字抽取】
+    // 【原版 PDF 單次繪製與文字抽取核心】
     // =========================================================================
     async function parseAndRenderPdfData(typedarray) {
       if (!isAppleDevice) {
@@ -1768,6 +1798,7 @@
 
       parsedTextLines = [];
       let internalIndex = 0;
+
       analyzedRows.forEach(r => {
         const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
         if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
@@ -1788,16 +1819,19 @@
     }
 
     // =========================================================================
-    // 【頁面載入總入口】
+    // 【開機總流程：五檔案載入與排程初始化】
     // =========================================================================
     window.addEventListener('DOMContentLoaded', async () => {
-      // 1. 讀取句數對照表
+      // 1. 讀取 sentences.json
       const localSent = localStorage.getItem('LOCAL_SENTENCES_CACHE');
       if (localSent) scriptureData = JSON.parse(localSent);
 
-      // 2. 讀取本機快取的 PDF
-      const cached = await getCachedRecord();
-      const localBuffer = cached ? (cached.buffer || cached) : null;
+      // 2. 啟動背誦影片的本機快取或主動下載
+      await loadOrDownloadVideo();
+
+      // 3. 讀取 PDF 快取
+      const cachedPdf = await getCachedRecord(PDF_KEY);
+      const localBuffer = cachedPdf ? (cachedPdf.buffer || cachedPdf) : null;
 
       if (localBuffer) {
         cachedRawBuffer = localBuffer;
@@ -1815,7 +1849,7 @@
             const buf = await res.arrayBuffer();
             cachedRawBuffer = buf;
             const tag = res.headers.get('etag') || 'initial';
-            await saveRecordToCache(buf, tag);
+            await saveRecordToCache(PDF_KEY, buf, tag);
             localStorage.setItem('APP_SAVED_PDF_TAG', tag);
             await parseAndRenderPdfData(new Uint8Array(buf));
             updateVisualDisplay();
