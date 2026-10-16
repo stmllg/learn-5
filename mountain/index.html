@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v142</title>
+  <title>歡喜背書橫式雙模播放器 v143 (黃金麥克風鎖定版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -88,22 +88,22 @@
     .guide-btn-desc { font-size: clamp(12px, 2.0vh, 14px); color: #CBD5E1; }
     .welcome-board-footer { width: 100%; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; border-radius: 14px; padding: 12px 18px; text-align: center; font-size: clamp(16px, 3vh, 20px); font-weight: 900; }
 
-    /* 頂部大字診斷與進度提示 */
+    /* 頂部【大字體綠底診斷浮標】專用樣式（超清晰高對比） */
     #schedule-toast {
       display: none;
       position: absolute;
-      top: 12px;
+      top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.96);
-      color: #38BDF8;
-      border: 2px solid #38BDF8;
-      padding: 8px 22px;
-      border-radius: 24px;
-      font-size: 16px;
+      background: #10B981;
+      color: #064E3B;
+      border: 2.5px solid #FFFFFF;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-size: 17px;
       font-weight: 900;
-      z-index: 900;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.7);
+      z-index: 9999;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75);
       pointer-events: none;
       transition: opacity 0.3s ease;
       white-space: nowrap;
@@ -287,6 +287,7 @@
     </div>
   </div>
 
+  <!-- 大字體綠底診斷浮標 -->
   <div id="schedule-toast">📅 載入進度中...</div>
   <div id="speed-toast-badge">【語速 1.5x】</div>
 
@@ -443,7 +444,7 @@
     let completedCycles = 0;
     let isScheduleLocked = false;
 
-    // 記憶暫停專用變數：精確記錄長輩在哪個秒數按暫停
+    // 記憶暫停秒數
     let videoPausedAt = -1;
 
     let guideAnimId = null;
@@ -461,7 +462,7 @@
     let prevRms = 0.0;
     let hasPageFlipped = false;
 
-    // 音訊與動態環境門檻校準
+    // 🔒【黃金麥克風調校核心：全盤鎖定】
     let audioContext = null;
     let analyser = null;
     let micStream = null;
@@ -474,8 +475,8 @@
     let isCalibrating = false;
     let silentFrameCount = 0;
 
-    // 大字提示顯示器
-    function showToast(msg, duration = 3500) {
+    // 大字體綠底診斷浮標
+    function showToast(msg, duration = 4000) {
       if (!scheduleToast) return;
       scheduleToast.textContent = msg;
       scheduleToast.style.display = 'block';
@@ -532,13 +533,11 @@
         return { start: 0, end: video.duration || 999, sentenceA: 1, sentenceB: 1, valid: false };
       }
 
-      // 若尚未手動標記，以排程或預設句數為準
       let aIdx = markA_Index >= 0 ? markA_Index : 0;
       let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
 
       if (bIdx < aIdx) bIdx = aIdx;
 
-      // 取得對應句數的物件 (若 sentences.json 索引由 0 開始)
       const startObj = scriptureData[aIdx] || scriptureData[0];
       const endObj = scriptureData[bIdx] || scriptureData[scriptureData.length - 1];
 
@@ -555,24 +554,25 @@
     }
 
     // =========================================================================
-    // 【單指左右滑動切換雙模式】：經文 PDF ↔ MP4 影片（加入自動偵測與大字提示）
+    // 【單指左右滑動切換雙模式】：放寬判斷門檻，保證大字綠底診斷浮標必出
     // =========================================================================
     let touchStartX = 0;
     let touchStartY = 0;
 
-    centerCore.addEventListener('touchstart', (e) => {
+    window.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
       }
     }, { passive: true });
 
-    centerCore.addEventListener('touchend', (e) => {
+    window.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - touchStartX;
         const deltaY = e.changedTouches[0].clientY - touchStartY;
 
-        if (Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+        // 水平滑動超過 40px 即觸發切換
+        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
           toggleModeSwitch();
         }
       }
@@ -587,16 +587,15 @@
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
 
-        // 換算區段資訊
         const range = getActiveVideoRange();
-        videoPausedAt = -1; // 切換模式時重設暫停點
+        videoPausedAt = -1;
         video.currentTime = range.start;
 
-        // 偵測回報大字訊息：讓長輩清楚知道目前對照的句數與秒數
+        // 🌟【大字體綠底診斷浮標】：明確告知長輩鎖定的秒數與句數
         if (range.valid) {
-          showToast(`🎬【區段已鎖定】第 ${range.sentenceA}～${range.sentenceB} 句（${range.start.toFixed(1)}s～${range.end.toFixed(1)}s）`, 4000);
+          showToast(`🎬【區段已鎖定】第 ${range.sentenceA}～${range.sentenceB} 句（${range.start.toFixed(1)}s～${range.end.toFixed(1)}s）`, 4500);
         } else {
-          showToast(`⚠️ 句數資料載入中，目前為整段播放`, 4000);
+          showToast(`⚠️ 正在載入句數表，暫以整部播放`, 4000);
         }
       } else {
         currentMode = 'pdf';
@@ -627,7 +626,6 @@
         addCoins(calculateSentenceCount());
 
         if (completedCycles >= totalTargetCycles) {
-          // 圓滿停機
           video.pause();
           videoPausedAt = -1;
           video.currentTime = range.start;
@@ -636,7 +634,6 @@
           speakPrompt("背誦圓滿，功德無量");
           showToast('🎉 今日背誦圓滿！');
         } else {
-          // 繼續下一遍循環
           showToast(`已完成 ${completedCycles} 遍，繼續循環`);
           videoPausedAt = -1;
           video.currentTime = range.start;
@@ -765,15 +762,14 @@
     });
 
     // =========================================================================
-    // 【背書開關總控制】：支援「記憶暫停 ➔ 接著播放」與「PDF 導引」
+    // 【背書開關總控制】：記憶暫停接續播放 與 PDF 導引
     // =========================================================================
     btnGuideToggle.addEventListener('click', async () => {
-      // --- 模式 1：MP4 模式（支援暫停與接續播放） ---
+      // --- 模式 1：MP4 模式 ---
       if (currentMode === 'mp4') {
         const range = getActiveVideoRange();
 
         if (video.paused) {
-          // 判定播放起點：如果先前有暫停過且在有效區間內，就從暫停點接著播！
           if (videoPausedAt >= range.start && videoPausedAt < range.end) {
             video.currentTime = videoPausedAt;
           } else if (video.currentTime < range.start || video.currentTime >= range.end) {
@@ -791,7 +787,6 @@
             video.play().catch(() => {});
           });
         } else {
-          // 按下「暫停」：記住當前秒數！
           video.pause();
           videoPausedAt = video.currentTime;
           btnGuideToggle.textContent = '背書';
@@ -838,7 +833,7 @@
     });
 
     // =========================================================================
-    // 【麥克風 VAD 監測：換氣緩衝充足，語順流暢無卡頓】
+    // 🔒【黃金麥克風調校核心：全盤鎖定，嚴禁修改】
     // =========================================================================
     async function startVoiceActivityDetection() {
       try {
@@ -913,7 +908,7 @@
             }
           }
 
-          // 3. 換氣緩衝提高至 14 幀 (約 230ms)
+          // 3. 換氣緩衝鎖定 14 幀 (約 230ms 緩衝，絕不卡死跳靜音)
           if (hasVoiceEnergy) {
             silentFrameCount = 0;
             if (!isVoiceActive) {
@@ -1360,7 +1355,7 @@
             updateVisualDisplay();
             scrollToAlignTop(markA_Index);
             const repeatText = todayPlan.repeat ? `（共 ${todayPlan.repeat} 遍）` : '';
-            showToast(`🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText}`, 4000);
+            showToast(`🔒 今日功課：第 ${todayPlan.start}～${todayPlan.end} 句${repeatText}`, 4500);
             return true;
           }
         }
