@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v141</title>
+  <title>歡喜背書橫式雙模播放器 v142</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -88,7 +88,7 @@
     .guide-btn-desc { font-size: clamp(12px, 2.0vh, 14px); color: #CBD5E1; }
     .welcome-board-footer { width: 100%; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; border-radius: 14px; padding: 12px 18px; text-align: center; font-size: clamp(16px, 3vh, 20px); font-weight: 900; }
 
-    /* 頂部通知浮標 (放大字體) */
+    /* 頂部大字診斷與進度提示 */
     #schedule-toast {
       display: none;
       position: absolute;
@@ -98,14 +98,15 @@
       background: rgba(15, 23, 42, 0.96);
       color: #38BDF8;
       border: 2px solid #38BDF8;
-      padding: 8px 20px;
+      padding: 8px 22px;
       border-radius: 24px;
       font-size: 16px;
       font-weight: 900;
       z-index: 900;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.7);
       pointer-events: none;
       transition: opacity 0.3s ease;
+      white-space: nowrap;
     }
 
     #speed-toast-badge {
@@ -125,7 +126,7 @@
       transition: opacity 0.3s ease;
     }
 
-    /* 兩側翅膀按鈕 (大圓鈕、大字體、好按) */
+    /* 兩側翅膀按鈕 (大圓鈕、大字體) */
     .side-wing {
       flex-shrink: 0;
       height: 100%;
@@ -184,7 +185,7 @@
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
 
-    /* 中央閱讀區 */
+    /* 中央核心區 */
     #center-core {
       flex: 1;
       height: 100%;
@@ -442,6 +443,9 @@
     let completedCycles = 0;
     let isScheduleLocked = false;
 
+    // 記憶暫停專用變數：精確記錄長輩在哪個秒數按暫停
+    let videoPausedAt = -1;
+
     let guideAnimId = null;
     let cycleWaitTimer = null;
     let isGuideActive = false;
@@ -470,7 +474,8 @@
     let isCalibrating = false;
     let silentFrameCount = 0;
 
-    function showToast(msg, duration = 3000) {
+    // 大字提示顯示器
+    function showToast(msg, duration = 3500) {
       if (!scheduleToast) return;
       scheduleToast.textContent = msg;
       scheduleToast.style.display = 'block';
@@ -520,7 +525,37 @@
     }
 
     // =========================================================================
-    // 【單指左右滑動切換雙模式】：經文 PDF ↔ MP4 影片
+    // 【核心運算：精準換算當前影片起訖秒數與句數】
+    // =========================================================================
+    function getActiveVideoRange() {
+      if (!scriptureData || scriptureData.length === 0) {
+        return { start: 0, end: video.duration || 999, sentenceA: 1, sentenceB: 1, valid: false };
+      }
+
+      // 若尚未手動標記，以排程或預設句數為準
+      let aIdx = markA_Index >= 0 ? markA_Index : 0;
+      let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
+
+      if (bIdx < aIdx) bIdx = aIdx;
+
+      // 取得對應句數的物件 (若 sentences.json 索引由 0 開始)
+      const startObj = scriptureData[aIdx] || scriptureData[0];
+      const endObj = scriptureData[bIdx] || scriptureData[scriptureData.length - 1];
+
+      const tStart = (startObj && typeof startObj.start === 'number') ? startObj.start : 0;
+      const tEnd = (endObj && typeof endObj.end === 'number') ? endObj.end : (video.duration || 999);
+
+      return {
+        start: tStart,
+        end: tEnd,
+        sentenceA: aIdx + 1,
+        sentenceB: bIdx + 1,
+        valid: true
+      };
+    }
+
+    // =========================================================================
+    // 【單指左右滑動切換雙模式】：經文 PDF ↔ MP4 影片（加入自動偵測與大字提示）
     // =========================================================================
     let touchStartX = 0;
     let touchStartY = 0;
@@ -551,54 +586,40 @@
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
-        showToast('🎬 切換為：影音跟讀模式 (單指滑動可切回)');
 
-        const { start: tStart } = getActiveVideoRange();
-        video.currentTime = tStart;
+        // 換算區段資訊
+        const range = getActiveVideoRange();
+        videoPausedAt = -1; // 切換模式時重設暫停點
+        video.currentTime = range.start;
+
+        // 偵測回報大字訊息：讓長輩清楚知道目前對照的句數與秒數
+        if (range.valid) {
+          showToast(`🎬【區段已鎖定】第 ${range.sentenceA}～${range.sentenceB} 句（${range.start.toFixed(1)}s～${range.end.toFixed(1)}s）`, 4000);
+        } else {
+          showToast(`⚠️ 句數資料載入中，目前為整段播放`, 4000);
+        }
       } else {
         currentMode = 'pdf';
         video.pause();
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
-        showToast('📖 切換為：經文默背模式 (單指滑動可切回)');
+        showToast('📖 切換為：經文默背模式', 2500);
         scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
       }
       updateVisualDisplay();
     }
 
     // =========================================================================
-    // 【精準計算當前影片起訖秒數】：徹底根治播到片尾問題
+    // 【影片播放進度監控：精準折返、遍數循環與福慧幣結算】
     // =========================================================================
-    function getActiveVideoRange() {
-      if (!scriptureData || scriptureData.length === 0) {
-        return { start: 0, end: video.duration || 999 };
-      }
-
-      // 起點防呆 (預設第 1 句 / 索引 0)
-      let aIdx = markA_Index >= 0 ? markA_Index : 0;
-      // 終點防呆 (預設起點或最後一句)
-      let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
-
-      if (bIdx < aIdx) bIdx = aIdx;
-
-      const startObj = scriptureData[aIdx] || scriptureData[0];
-      const endObj = scriptureData[bIdx] || scriptureData[scriptureData.length - 1];
-
-      const tStart = (startObj && typeof startObj.start === 'number') ? startObj.start : 0;
-      const tEnd = (endObj && typeof endObj.end === 'number') ? endObj.end : video.duration;
-
-      return { start: tStart, end: tEnd };
-    }
-
-    // 影片狀態與精準折返循環
     video.addEventListener('timeupdate', () => {
       if (currentMode !== 'mp4') return;
 
-      const { start: tStart, end: tEnd } = getActiveVideoRange();
+      const range = getActiveVideoRange();
 
-      // 當播放秒數到達或超過終點秒數，立刻折返
-      if (video.currentTime >= tEnd) {
+      // 當秒數抵達或超過終點秒數，瞬間折返
+      if (video.currentTime >= range.end) {
         completedCycles++;
         const remain = Math.max(0, totalTargetCycles - completedCycles);
         btnRepeatCount.textContent = `${remain}次`;
@@ -606,15 +627,19 @@
         addCoins(calculateSentenceCount());
 
         if (completedCycles >= totalTargetCycles) {
+          // 圓滿停機
           video.pause();
-          video.currentTime = tStart;
+          videoPausedAt = -1;
+          video.currentTime = range.start;
           btnGuideToggle.textContent = '背書';
           btnGuideToggle.classList.remove('guide-active');
           speakPrompt("背誦圓滿，功德無量");
           showToast('🎉 今日背誦圓滿！');
         } else {
+          // 繼續下一遍循環
           showToast(`已完成 ${completedCycles} 遍，繼續循環`);
-          video.currentTime = tStart;
+          videoPausedAt = -1;
+          video.currentTime = range.start;
           video.play().catch(() => {});
         }
       }
@@ -682,7 +707,7 @@
         }
       }
 
-      if (!isGuideActive) {
+      if (!isGuideActive && currentMode === 'pdf') {
         guideLine.style.display = 'none';
         redDot.style.display = 'none';
         btnGuideToggle.textContent = '背書';
@@ -703,6 +728,7 @@
       currentCharIndexFloat = 0.0;
       isLineHeadLocked = true;
       completedCycles = 0;
+      videoPausedAt = -1;
       updateVisualDisplay();
       speakPrompt("起點已設定");
     });
@@ -714,6 +740,8 @@
       const selectedB = getLineAtButtonBottom(btnMarkB);
       if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
       markB_Index = selectedB;
+      completedCycles = 0;
+      videoPausedAt = -1;
       updateVisualDisplay();
       speakPrompt("終點設定完畢");
     });
@@ -737,32 +765,38 @@
     });
 
     // =========================================================================
-    // 【背書開關總控制】：MP4 播放手勢授權解鎖 與 PDF 默背導引
+    // 【背書開關總控制】：支援「記憶暫停 ➔ 接著播放」與「PDF 導引」
     // =========================================================================
     btnGuideToggle.addEventListener('click', async () => {
-      // --- 模式 1：MP4 模式 ---
+      // --- 模式 1：MP4 模式（支援暫停與接續播放） ---
       if (currentMode === 'mp4') {
-        const { start: tStart, end: tEnd } = getActiveVideoRange();
+        const range = getActiveVideoRange();
 
         if (video.paused) {
-          // 確保時間在區間內
-          if (video.currentTime < tStart || video.currentTime >= tEnd) {
-            video.currentTime = tStart;
+          // 判定播放起點：如果先前有暫停過且在有效區間內，就從暫停點接著播！
+          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
+            video.currentTime = videoPausedAt;
+          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
+            video.currentTime = range.start;
           }
 
           video.play().then(() => {
             btnGuideToggle.textContent = '暫停';
             btnGuideToggle.classList.add('guide-active');
             btnGuideToggle.classList.remove('guide-waiting');
+            showToast(`▶ 播放中：第 ${range.sentenceA}～${range.sentenceB} 句`, 2000);
           }).catch((err) => {
             console.error("播放受阻:", err);
-            video.currentTime = tStart;
+            video.currentTime = range.start;
             video.play().catch(() => {});
           });
         } else {
+          // 按下「暫停」：記住當前秒數！
           video.pause();
+          videoPausedAt = video.currentTime;
           btnGuideToggle.textContent = '背書';
           btnGuideToggle.classList.remove('guide-active');
+          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒，再按背書即可接續`, 3000);
         }
         return;
       }
@@ -879,7 +913,7 @@
             }
           }
 
-          // 3. 換氣緩衝提高至 14 幀 (約 230ms)，避免長輩停頓被過早判斷為靜止
+          // 3. 換氣緩衝提高至 14 幀 (約 230ms)
           if (hasVoiceEnergy) {
             silentFrameCount = 0;
             if (!isVoiceActive) {
@@ -1316,6 +1350,7 @@
             currentCharIndexFloat = 0.0;
             isLineHeadLocked = true;
             completedCycles = 0;
+            videoPausedAt = -1;
 
             if (typeof todayPlan.repeat === 'number' && todayPlan.repeat > 0) {
               totalTargetCycles = todayPlan.repeat;
@@ -1376,11 +1411,13 @@
         const tx = it.transform;
         const pdfX = tx[4];
         const pdfY = tx[5];
+
         const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
         const fontWidth = it.width * pageScale;
 
         const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
         const screenX0 = p0[0];
+
         const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
         const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
 
@@ -1407,6 +1444,7 @@
 
       validSpans.sort((a, b) => a.topY - b.topY);
       const rowGroups = [];
+
       validSpans.forEach(span => {
         let matched = false;
         for (let g of rowGroups) {
