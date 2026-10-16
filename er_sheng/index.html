@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v150 (雅緻純淨版)</title>
+  <title>歡喜背書橫式雙模播放器 v152 (藝文流暢版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -66,7 +66,7 @@
       border: 3px solid #F59E0B;
       border-radius: 14px;
       position: relative;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
       animation: rotatePhoneAnim 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
       box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
     }
@@ -94,17 +94,17 @@
       font-weight: 900;
       color: #FBBF24;
       letter-spacing: 2px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .rotate-hint-subtitle {
-      font-size: 16px;
+      font-size: 15px;
       color: #CBD5E1;
       letter-spacing: 1.5px;
       line-height: 1.6;
     }
 
     /* =========================================================================
-       🌟 1.5 外部瀏覽器（LINE防呆）三點指引浮層 UI
+       🌟 2. 外部瀏覽器（LINE防呆）三點指引浮層 UI (修復重疊跑版)
        ========================================================================= */
     #line-browser-overlay {
       display: none;
@@ -116,7 +116,7 @@
       backdrop-filter: blur(8px);
       justify-content: center;
       align-items: center;
-      padding: 16px;
+      padding: 12px;
       box-sizing: border-box;
       opacity: 0;
       transition: opacity 0.35s ease;
@@ -126,56 +126,66 @@
       opacity: 1;
     }
 
-    .line-top-pointer {
-      position: absolute;
-      top: 14px;
-      right: 28px;
+    /* 右上角獨立膠囊引導指針（不與卡片標題重疊） */
+    .line-top-pointer-badge {
+      position: fixed;
+      top: 10px;
+      right: calc(16px + env(safe-area-inset-right, 0px));
+      background: rgba(15, 23, 42, 0.92);
+      border: 1.5px solid #F59E0B;
+      padding: 5px 14px;
+      border-radius: 20px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
       color: #FBBF24;
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 900;
-      letter-spacing: 1.5px;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
       animation: pointPulse 1.4s infinite ease-in-out;
+      z-index: 25010;
     }
-    .line-top-pointer span.arrow-icon {
-      font-size: 32px;
+    .line-top-pointer-badge span.arrow-icon {
+      font-size: 18px;
       line-height: 1;
     }
 
     @keyframes pointPulse {
       0%   { transform: translateY(0); opacity: 0.85; }
-      50%  { transform: translateY(-5px); opacity: 1; }
+      50%  { transform: translateY(-4px); opacity: 1; }
       100% { transform: translateY(0); opacity: 0.85; }
     }
 
     .line-guide-card {
       background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
-      border: 2px solid #F59E0B;
-      border-radius: 20px;
-      max-width: 560px;
-      width: 90%;
-      padding: 24px 30px;
+      border: 2px solid #D97706;
+      border-radius: 18px;
+      max-width: 520px;
+      width: 92%;
+      max-height: 90vh;
+      padding: 18px 24px;
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9);
       text-align: center;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      justify-content: space-between;
+      gap: 12px;
+      box-sizing: border-box;
     }
     .line-guide-title {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 900;
       color: #FBBF24;
       letter-spacing: 2px;
     }
     .line-guide-content {
-      font-size: 16px;
-      line-height: 1.7;
+      font-size: 15px;
+      line-height: 1.65;
       color: #E2E8F0;
       text-align: left;
-      background: rgba(15, 23, 42, 0.6);
-      padding: 14px 18px;
+      background: rgba(15, 23, 42, 0.65);
+      padding: 12px 18px;
       border-radius: 12px;
       border: 1px dashed rgba(245, 158, 11, 0.4);
     }
@@ -185,8 +195,8 @@
     .btn-line-confirm {
       align-self: center;
       width: 100%;
-      max-width: 320px;
-      padding: 11px 22px;
+      max-width: 340px;
+      padding: 10px 20px;
       background: linear-gradient(135deg, #F59E0B 0%, #B45309 100%);
       color: #FFFFFF;
       border: 1.5px solid #FDE68A;
@@ -203,7 +213,7 @@
     }
 
     /* =========================================================================
-       🌟 21 天心靈陪伴卡：古風宣紙水墨浮層 UI
+       🌟 3. 21 天心靈陪伴卡：古風宣紙水墨浮層 UI
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -211,12 +221,14 @@
       top: 0; left: 0;
       width: 100vw; height: 100vh; height: 100dvh;
       z-index: 20000;
-      background: rgba(4, 7, 15, 0.85);
+      background: rgba(4, 7, 15, 0.88);
       backdrop-filter: blur(6px);
       justify-content: center;
       align-items: center;
       opacity: 0;
       transition: opacity 0.4s ease;
+      padding: 12px;
+      box-sizing: border-box;
     }
     #companion-overlay.active {
       display: flex;
@@ -226,16 +238,16 @@
     #companion-card {
       position: relative;
       width: 88vw;
-      max-width: 680px;
-      height: 84vh;
-      max-height: 400px;
+      max-width: 660px;
+      height: 86vh;
+      max-height: 380px;
       border-radius: 18px;
       overflow: hidden;
       box-shadow: 0 16px 45px rgba(0, 0, 0, 0.8);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 26px 36px;
+      padding: 20px 32px;
       box-sizing: border-box;
       color: #FFFFFF;
       border: 1.5px solid rgba(245, 158, 11, 0.35);
@@ -247,12 +259,12 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
-      padding-bottom: 8px;
+      padding-bottom: 6px;
     }
     .card-seal-tag {
       background: #A33A31;
       color: #FFF8E7;
-      font-size: 14px;
+      font-size: 13px;
       padding: 3px 12px;
       border-radius: 4px;
       letter-spacing: 3px;
@@ -260,18 +272,18 @@
       box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0,0,0,0.3);
     }
     .card-day-lbl {
-      font-size: 14px;
+      font-size: 13px;
       color: #CBD5E1;
       letter-spacing: 2px;
     }
 
     .card-center-body {
       text-align: center;
-      padding: 6px 0;
+      padding: 4px 0;
     }
     .card-zen-title {
-      margin: 0 0 12px 0;
-      font-size: 25px;
+      margin: 0 0 10px 0;
+      font-size: 23px;
       font-weight: 900;
       letter-spacing: 3px;
       color: #FDF6E2;
@@ -279,9 +291,9 @@
     }
     .card-zen-message {
       margin: 0 auto;
-      max-width: 540px;
-      font-size: 16px;
-      line-height: 1.75;
+      max-width: 520px;
+      font-size: 15px;
+      line-height: 1.7;
       color: #F1F5F9;
       letter-spacing: 1.2px;
       text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
@@ -292,10 +304,10 @@
       justify-content: space-between;
       align-items: center;
       border-top: 1px dashed rgba(255, 255, 255, 0.2);
-      padding-top: 12px;
+      padding-top: 10px;
     }
     .card-zen-quote {
-      font-size: 14px;
+      font-size: 13px;
       color: #FDE68A;
       font-style: italic;
       letter-spacing: 1px;
@@ -304,7 +316,7 @@
       background: linear-gradient(135deg, #F59E0B 0%, #B45309 100%);
       color: #FFFFFF;
       border: 1.5px solid #FDE68A;
-      padding: 9px 22px;
+      padding: 8px 22px;
       font-size: 15px;
       font-weight: 900;
       border-radius: 24px;
@@ -318,86 +330,7 @@
     }
 
     /* =========================================================================
-       2. 藝文風格迎賓視窗 (宣紙墨韻卷軸 - 純淨版)
-       ========================================================================= */
-    #welcome-start-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-      background: rgba(4, 7, 15, 0.94);
-      z-index: 10000;
-      justify-content: center;
-      align-items: center;
-      padding: 14px;
-    }
-
-    .welcome-scroll-card {
-      width: 90%;
-      max-width: 540px;
-      background: #0F172A;
-      border: 2px solid #D97706;
-      border-radius: 20px;
-      padding: 26px 32px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(217, 119, 6, 0.15);
-    }
-
-    .scroll-title {
-      font-size: 26px;
-      font-weight: 900;
-      color: #FBBF24;
-      letter-spacing: 4px;
-    }
-
-    .scroll-motto-wrap {
-      padding: 12px 24px;
-      border-top: 1px dashed rgba(245, 158, 11, 0.3);
-      border-bottom: 1px dashed rgba(245, 158, 11, 0.3);
-      text-align: center;
-      width: 100%;
-    }
-    .scroll-motto {
-      font-size: 18px;
-      color: #E2E8F0;
-      letter-spacing: 3px;
-      font-style: italic;
-    }
-
-    .btn-enter-sacred {
-      width: 100%;
-      max-width: 380px;
-      padding: 13px 20px;
-      background: linear-gradient(135deg, #F59E0B 0%, #B45309 100%);
-      border: 1.5px solid #FDE68A;
-      border-radius: 28px;
-      color: #FFFFFF;
-      font-size: 19px;
-      font-weight: 900;
-      letter-spacing: 2px;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(217, 119, 6, 0.4);
-      transition: transform 0.15s ease-out;
-    }
-    .btn-enter-sacred:active {
-      transform: scale(0.96);
-    }
-
-    .scroll-hint-footer {
-      font-size: 13px;
-      color: #94A3B8;
-      letter-spacing: 1px;
-    }
-
-    /* =========================================================================
-       3. 核心主架構 (橫式視圖)
+       4. 核心主架構 (橫式視圖)
        ========================================================================= */
     #landscape-container {
       width: 100vw;
@@ -586,24 +519,26 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 1.5 外部瀏覽器（LINE防呆）三點指示浮層 -->
+  <!-- 🌟 2. 外部瀏覽器（LINE防呆）三點指引浮層 -->
   <div id="line-browser-overlay">
-    <div class="line-top-pointer">
-      <span>請點擊右上角「⋯」</span>
+    <!-- 右上角獨立指示徽章 -->
+    <div class="line-top-pointer-badge">
+      <span>右上角點擊直三點「⋮」</span>
       <span class="arrow-icon">↗</span>
     </div>
+
     <div class="line-guide-card">
       <div class="line-guide-title">📌 溫馨提醒・瀏覽器設定</div>
       <div class="line-guide-content">
         若您是從 <strong>LINE</strong> 點擊打開，為確保能完整啟用<strong>語音朗讀、麥克風收音與橫式全螢幕</strong>，請按步驟切換：<br><br>
-        1. 點擊右上角（或右下角）的「<strong>⋯</strong>」或「<strong>⋮</strong>」<br>
-        2. 選擇「<strong>以預設瀏覽器開啟</strong>」（Safari 或 Chrome）
+        1. 點擊螢幕右上角<strong>直式三點「⋮」</strong>（或「⋯」）<br>
+        2. 選擇<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）
       </div>
-      <button class="btn-line-confirm" id="btn-line-confirm" onclick="dismissLineGuide()">🙏 已在外部瀏覽器 / 繼續進入</button>
+      <button class="btn-line-confirm" id="btn-line-confirm" onclick="dismissLineGuide()">🙏 已在外部瀏覽器／領受今日陪伴</button>
     </div>
   </div>
 
-  <!-- 🌟 21 天心靈陪伴卡全螢幕彈窗 (素雅水墨意境) -->
+  <!-- 🌟 3. 21 天心靈陪伴卡全螢幕彈窗 -->
   <div id="companion-overlay">
     <div id="companion-card">
       <div class="card-top-bar">
@@ -623,25 +558,11 @@
     </div>
   </div>
 
-  <!-- 2. 藝文風格迎賓視窗 (純淨版，已取消長青/一般人切換) -->
-  <div id="welcome-start-overlay">
-    <div class="welcome-scroll-card">
-      <div class="scroll-title">歡喜背書</div>
-      
-      <div class="scroll-motto-wrap">
-        <div class="scroll-motto">「句句入心，法喜充滿」</div>
-      </div>
-
-      <button id="btn-enter-sacred" class="btn-enter-sacred">🙏 進入背誦</button>
-      <div class="scroll-hint-footer">👉 單指左右滑動螢幕，可隨時切換經文與影片</div>
-    </div>
-  </div>
-
   <!-- 狀態浮標 -->
   <div id="schedule-toast">📅 載入進度中...</div>
   <div id="speed-toast-badge">【語速 1.5x】</div>
 
-  <!-- 主視圖 -->
+  <!-- 4. 主視圖 (橫式雙模核心) -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
       <div class="slot"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起點</button></div>
@@ -744,9 +665,7 @@
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
-    // =========================================================================
     // 🌸 21 天完整水墨禪意陪伴卡資料庫
-    // =========================================================================
     const COMPANION_21_CARDS = [
       {
         day: 1, stage: "初發心", title: "步履初啟・甘露入心", quote: "「千里之行，始於足下。」",
@@ -859,8 +778,6 @@
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
     const lineBrowserOverlay = document.getElementById('line-browser-overlay');
     const companionOverlay = document.getElementById('companion-overlay');
-    const welcomeOverlay = document.getElementById('welcome-start-overlay');
-    const btnEnterSacred = document.getElementById('btn-enter-sacred');
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -927,7 +844,7 @@
     let prevRms = 0.0;
     let hasPageFlipped = false;
 
-    // 🔒【音訊檢測參數】
+    // 音訊檢測
     let audioContext = null;
     let analyser = null;
     let micStream = null;
@@ -941,11 +858,10 @@
     let silentFrameCount = 0;
 
     // =========================================================================
-    // 【螢幕方向與防呆監控：直立阻斷 ➔ 三點指示 ➔ 21天陪伴 ➔ 迎賓進入】
+    // 【循序流轉控制：直屏阻斷 ➔ 三點指引 ➔ 21天陪伴卡 ➔ 直接進入背誦主視圖】
     // =========================================================================
     let isLineGuideDismissed = false;
     let isCompanionDismissed = false;
-    let isWelcomeDismissed = false;
 
     function handleOrientationCheck() {
       const isPortrait = window.innerHeight > window.innerWidth;
@@ -954,18 +870,15 @@
         portraitBlocker.style.display = 'flex';
         lineBrowserOverlay.classList.remove('active');
         companionOverlay.classList.remove('active');
-        welcomeOverlay.style.display = 'none';
         haltGuideRunnerImmediately();
       } else {
         portraitBlocker.style.display = 'none';
 
-        // 橫屏循序解鎖邏輯
+        // 橫屏循序解鎖：先三點指引 ➔ 再 21 天陪伴卡 ➔ 進入主視圖
         if (!isLineGuideDismissed) {
           lineBrowserOverlay.classList.add('active');
         } else if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
           companionOverlay.classList.add('active');
-        } else if (!isWelcomeDismissed) {
-          welcomeOverlay.style.display = 'flex';
         }
 
         if (cachedPdfBuffer && parsedTextLines.length === 0) {
@@ -987,11 +900,43 @@
         if (window.innerWidth > window.innerHeight) {
           if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
             companionOverlay.classList.add('active');
-          } else if (!isWelcomeDismissed) {
-            welcomeOverlay.style.display = 'flex';
+          } else {
+            // 若今日陪伴卡已閱，直接進入背誦主畫面
+            activateMainReciteEntry();
           }
         }
       }, 350);
+    }
+
+    // 點擊陪伴卡按鈕，關閉卡片直接進入主視圖
+    function closeCompanionCard() {
+      if (currentCompanionSeenKey) {
+        localStorage.setItem(currentCompanionSeenKey, 'true');
+      }
+      isCompanionDismissed = true;
+      companionOverlay.setAttribute('data-needed', 'false');
+      companionOverlay.style.opacity = '0';
+      setTimeout(() => {
+        companionOverlay.classList.remove('active');
+        companionOverlay.style.opacity = '';
+        activateMainReciteEntry();
+      }, 400);
+    }
+
+    // 正式進入背誦主畫面時的環境準備
+    function activateMainReciteEntry() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+      } catch (err) {}
+
+      if (!isManualSelected) {
+        applyScheduleToState();
+      }
+      syncFiveFilesInBackground();
     }
 
     window.addEventListener('resize', handleOrientationCheck);
@@ -1282,7 +1227,7 @@
       btnRepeatCount.textContent = `${remain}次`;
     }
 
-    // 起訖點與遍數自由設定（無身分防呆拘束）
+    // 起點、終點與遍數自由設定（無身分拘束）
     btnMarkA.addEventListener('click', () => {
       if (isGuideActive) return;
       if (parsedTextLines.length === 0) return;
@@ -1330,7 +1275,7 @@
     });
 
     // =========================================================================
-    // 【背書按鈕：音訊解鎖加固 ＋ 雙模切換】
+    // 【背書按鈕：模式啟動】
     // =========================================================================
     btnGuideToggle.addEventListener('click', async () => {
       try {
@@ -1405,7 +1350,7 @@
     });
 
     // =========================================================================
-    // 🔒【黃金麥克風調校核心】
+    // 【聲音感應與導引運算】
     // =========================================================================
     async function startVoiceActivityDetection() {
       try {
@@ -1468,12 +1413,10 @@
           const deltaRms = rms - prevRms;
           const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
 
-          // 1. 起句波峰解鎖
           if (isLineHeadLocked && deltaRms > (dynamicThreshold * 0.35)) {
             isLineHeadLocked = false;
           }
 
-          // 2. 換行靈活監聽狀態機 (200ms 保底 ＋ 雙逃脫)
           if (isTransitioningLine) {
             const elapsed = performance.now() - lineEndTime;
             if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
@@ -1485,7 +1428,6 @@
             }
           }
 
-          // 3. 換氣緩衝鎖定 14 幀 (約 230ms 緩衝)
           if (hasVoiceEnergy) {
             silentFrameCount = 0;
             if (!isVoiceActive) {
@@ -1865,6 +1807,7 @@
 
     btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
 
+    // 關機按鈕
     btnShutdownExit.addEventListener('click', () => {
       haltGuideRunnerImmediately();
       if (micStream) {
@@ -1874,28 +1817,7 @@
       if (audioContext && audioContext.state !== 'closed') {
         try { audioContext.suspend(); } catch (e) {}
       }
-      isWelcomeDismissed = false;
-      welcomeOverlay.style.display = 'flex';
-    });
-
-    // 點擊「進入背誦」按鈕
-    btnEnterSacred.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      isWelcomeDismissed = true;
-      welcomeOverlay.style.display = 'none';
-
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-      } catch (err) {}
-
-      if (!isManualSelected) {
-        applyScheduleToState();
-      }
-      syncFiveFilesInBackground();
+      showToast("已停止背誦並釋放語音資源", 3000);
     });
 
     // =========================================================================
@@ -1950,29 +1872,10 @@
       document.getElementById('card-quote').innerText = card.quote;
 
       companionOverlay.setAttribute('data-needed', 'true');
-      if (window.innerWidth > window.innerHeight && isLineGuideDismissed) {
-        companionOverlay.classList.add('active');
-      }
-    }
-
-    function closeCompanionCard() {
-      if (currentCompanionSeenKey) {
-        localStorage.setItem(currentCompanionSeenKey, 'true');
-      }
-      isCompanionDismissed = true;
-      companionOverlay.setAttribute('data-needed', 'false');
-      companionOverlay.style.opacity = '0';
-      setTimeout(() => {
-        companionOverlay.classList.remove('active');
-        companionOverlay.style.opacity = '';
-        if (!isWelcomeDismissed && window.innerWidth > window.innerHeight) {
-          welcomeOverlay.style.display = 'flex';
-        }
-      }, 400);
     }
 
     // =========================================================================
-    // 【排程套用核心（自由選取模式，無強迫鎖定）】
+    // 【排程套用核心】
     // =========================================================================
     function applyScheduleToState() {
       if (isManualSelected) return false;
@@ -2160,7 +2063,7 @@
     }
 
     // =========================================================================
-    // 【五檔案背景更新比對器】
+    // 【五檔案背景更新】
     // =========================================================================
     async function syncFiveFilesInBackground() {
       if (!navigator.onLine) return;
@@ -2225,7 +2128,7 @@
       // 1. 陪伴卡資料評估
       await evaluateWarmCompanionCard();
 
-      // 2. 螢幕方向與防呆檢測（包含三點指引層）
+      // 2. 螢幕方向與三點防呆檢測
       handleOrientationCheck();
 
       // 3. 離線快取初始化
