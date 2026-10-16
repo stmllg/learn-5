@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v153 (禪風意境版)</title>
+  <title>歡喜背書橫式雙模播放器 v154 (宣紙水墨禪意全螢幕版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#0B0F19">
 
   <!-- ========================================================================== -->
   <!-- 📌【核心唯一設定】複製此資料夾為新經典時，打開檔案只改此代碼！                -->
@@ -37,10 +37,13 @@
       color: #FFFFFF;
       font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", serif;
       overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
     }
 
     /* =========================================================================
-       1. 物理直立螢幕鎖定層 (墨韻藝文風)
+       1. 物理直立螢幕鎖定層 (純文字溫馨提醒：找右下角或右上角)
        ========================================================================= */
     #portrait-blocker-overlay {
       display: none;
@@ -58,17 +61,20 @@
       padding: 24px;
       text-align: center;
       pointer-events: all;
+      box-sizing: border-box;
+      gap: 16px;
     }
 
     .rotate-phone-icon {
-      width: 68px;
-      height: 110px;
+      width: 60px;
+      height: 98px;
       border: 3px solid #F59E0B;
-      border-radius: 14px;
+      border-radius: 12px;
       position: relative;
-      margin-bottom: 24px;
+      margin-bottom: 6px;
       animation: rotatePhoneAnim 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
       box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+      flex-shrink: 0;
     }
     .rotate-phone-icon::after {
       content: '';
@@ -76,8 +82,8 @@
       bottom: 8px;
       left: 50%;
       transform: translateX(-50%);
-      width: 10px;
-      height: 10px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       background: #F59E0B;
     }
@@ -94,125 +100,46 @@
       font-weight: 900;
       color: #FBBF24;
       letter-spacing: 2px;
-      margin-bottom: 10px;
     }
     .rotate-hint-subtitle {
       font-size: 15px;
       color: #CBD5E1;
-      letter-spacing: 1.5px;
-      line-height: 1.6;
+      letter-spacing: 1.2px;
+      line-height: 1.5;
     }
 
-    /* =========================================================================
-       🌟 2. 外部瀏覽器（LINE防呆）三點指引浮層 UI
-       ========================================================================= */
-    #line-browser-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh; height: 100dvh;
-      z-index: 25000;
-      background: rgba(4, 7, 15, 0.92);
-      backdrop-filter: blur(8px);
-      justify-content: center;
-      align-items: center;
-      padding: 12px;
-      box-sizing: border-box;
-      opacity: 0;
-      transition: opacity 0.35s ease;
+    /* 內嵌純文字說明卡片（不畫箭頭） */
+    .line-browser-guide-box {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1.5px dashed #F59E0B;
+      border-radius: 16px;
+      padding: 14px 18px;
+      text-align: left;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      margin-top: 10px;
     }
-    #line-browser-overlay.active {
-      display: flex;
-      opacity: 1;
-    }
-
-    .line-top-pointer-badge {
-      position: fixed;
-      top: 10px;
-      right: calc(16px + env(safe-area-inset-right, 0px));
-      background: rgba(15, 23, 42, 0.92);
-      border: 1.5px solid #F59E0B;
-      padding: 5px 14px;
-      border-radius: 20px;
+    .guide-box-header {
       display: flex;
       align-items: center;
       gap: 6px;
       color: #FBBF24;
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: 1px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
-      animation: pointPulse 1.4s infinite ease-in-out;
-      z-index: 25010;
-    }
-    .line-top-pointer-badge span.arrow-icon {
-      font-size: 18px;
-      line-height: 1;
-    }
-
-    @keyframes pointPulse {
-      0%   { transform: translateY(0); opacity: 0.85; }
-      50%  { transform: translateY(-4px); opacity: 1; }
-      100% { transform: translateY(0); opacity: 0.85; }
-    }
-
-    .line-guide-card {
-      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
-      border: 2px solid #D97706;
-      border-radius: 18px;
-      max-width: 520px;
-      width: 92%;
-      max-height: 90vh;
-      padding: 18px 24px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9);
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 12px;
-      box-sizing: border-box;
-    }
-    .line-guide-title {
-      font-size: 20px;
-      font-weight: 900;
-      color: #FBBF24;
-      letter-spacing: 2px;
-    }
-    .line-guide-content {
       font-size: 15px;
-      line-height: 1.65;
-      color: #E2E8F0;
-      text-align: left;
-      background: rgba(15, 23, 42, 0.65);
-      padding: 12px 18px;
-      border-radius: 12px;
-      border: 1px dashed rgba(245, 158, 11, 0.4);
-    }
-    .line-guide-content strong {
-      color: #38BDF8;
-    }
-    .btn-line-confirm {
-      align-self: center;
-      width: 100%;
-      max-width: 340px;
-      padding: 10px 20px;
-      background: linear-gradient(135deg, #F59E0B 0%, #B45309 100%);
-      color: #FFFFFF;
-      border: 1.5px solid #FDE68A;
-      border-radius: 24px;
-      font-size: 16px;
       font-weight: 900;
-      letter-spacing: 1.5px;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
-      transition: transform 0.15s ease-out;
+      margin-bottom: 8px;
     }
-    .btn-line-confirm:active {
-      transform: scale(0.96);
+    .guide-box-content {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #E2E8F0;
+    }
+    .guide-box-content strong {
+      color: #38BDF8;
     }
 
     /* =========================================================================
-       🌟 3. 21 天心靈陪伴卡：禪意典雅水墨寫意浮層 UI
+       🌟 2. 21 天心靈陪伴卡：古風宣紙水墨意境浮層 (依範本打造)
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -220,13 +147,13 @@
       top: 0; left: 0;
       width: 100vw; height: 100vh; height: 100dvh;
       z-index: 20000;
-      background: rgba(4, 7, 15, 0.88);
+      background: rgba(4, 7, 15, 0.90);
       backdrop-filter: blur(8px);
       justify-content: center;
       align-items: center;
       opacity: 0;
-      transition: opacity 0.4s ease;
-      padding: 12px;
+      transition: opacity 0.35s ease;
+      padding: 14px;
       box-sizing: border-box;
     }
     #companion-overlay.active {
@@ -236,99 +163,112 @@
 
     #companion-card {
       position: relative;
-      width: 88vw;
-      max-width: 660px;
+      width: 90vw;
+      max-width: 680px;
       height: 86vh;
       max-height: 390px;
-      border-radius: 20px;
+      border-radius: 18px;
       overflow: hidden;
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.85);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 22px 32px;
+      padding: 22px 34px;
       box-sizing: border-box;
-      color: #FFFFFF;
-      border: 1.5px solid rgba(245, 158, 11, 0.45);
-      background-size: cover !important;
-      background-position: center center !important;
-      background-repeat: no-repeat !important;
-      transition: background 0.5s ease;
+      background-color: #F8F5EC;
+      color: #1F2937;
+      border: 2px solid #D4A373;
+      box-shadow: inset 0 0 0 5px #F8F5EC, inset 0 0 0 7px rgba(212, 163, 115, 0.5), 0 16px 45px rgba(0, 0, 0, 0.9);
+    }
+
+    /* 背景純水墨向量層 */
+    .card-bg-art {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.38;
+    }
+
+    .card-top-bar, .card-center-body, .card-bottom-bar {
+      position: relative;
+      z-index: 2;
     }
 
     .card-top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.25);
-      padding-bottom: 8px;
+      border-bottom: 1px dashed rgba(163, 58, 49, 0.25);
+      padding-bottom: 6px;
     }
     .card-seal-tag {
       background: #A33A31;
       color: #FFF8E7;
       font-size: 13px;
-      padding: 3px 14px;
-      border-radius: 6px;
+      padding: 2px 12px;
+      border-radius: 4px;
       letter-spacing: 3px;
       font-weight: 900;
-      box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 6px rgba(163, 58, 49, 0.35);
+      font-family: "Songti TC", "Noto Serif TC", serif;
     }
     .card-day-lbl {
-      font-size: 14px;
-      color: #E2E8F0;
+      font-size: 13px;
+      color: #64748B;
       letter-spacing: 2px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-      font-weight: 700;
+      font-weight: 800;
     }
 
     .card-center-body {
       text-align: center;
-      padding: 6px 0;
+      padding: 4px 0;
     }
     .card-zen-title {
       margin: 0 0 10px 0;
       font-size: 24px;
       font-weight: 900;
       letter-spacing: 3px;
-      color: #FFFBEB;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
+      color: #18181B;
+      font-family: "Noto Serif TC", "Songti TC", serif;
     }
     .card-zen-message {
       margin: 0 auto;
-      max-width: 530px;
+      max-width: 520px;
       font-size: 15px;
       line-height: 1.75;
-      color: #F8FAFC;
+      color: #334155;
       letter-spacing: 1.2px;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
-      font-weight: 500;
+      font-weight: 600;
     }
 
     .card-bottom-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1px dashed rgba(255, 255, 255, 0.25);
+      border-top: 1px dashed rgba(163, 58, 49, 0.25);
       padding-top: 10px;
     }
     .card-zen-quote {
-      font-size: 14px;
-      color: #FDE68A;
+      font-size: 13px;
+      color: #854D0E;
       font-style: italic;
       letter-spacing: 1.2px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.85);
-      font-weight: 600;
+      font-weight: 700;
     }
     .btn-card-accept {
-      background: linear-gradient(135deg, #F59E0B 0%, #B45309 100%);
-      color: #FFFFFF;
-      border: 1.5px solid #FDE68A;
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+      color: #FDE68A;
+      border: 1.5px solid #F59E0B;
       padding: 9px 24px;
       font-size: 15px;
       font-weight: 900;
       border-radius: 24px;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
       letter-spacing: 1.5px;
       transition: transform 0.15s ease-out;
     }
@@ -337,7 +277,7 @@
     }
 
     /* =========================================================================
-       4. 核心主架構 (橫式視圖)
+       3. 核心主架構 (橫式雙模視圖)
        ========================================================================= */
     #landscape-container {
       width: 100vw;
@@ -519,34 +459,25 @@
 </head>
 <body>
 
-  <!-- 1. 物理直立螢幕鎖定層 -->
+  <!-- 1. 物理直立螢幕鎖定層 (純文字導引，不畫箭頭) -->
   <div id="portrait-blocker-overlay">
     <div class="rotate-phone-icon"></div>
     <div class="rotate-hint-title">請將手機橫放</div>
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
-  </div>
 
-  <!-- 🌟 2. 外部瀏覽器（LINE防呆）三點指引浮層 -->
-  <div id="line-browser-overlay">
-    <div class="line-top-pointer-badge">
-      <span>右上角點擊直三點「⋮」</span>
-      <span class="arrow-icon">↗</span>
-    </div>
-
-    <div class="line-guide-card">
-      <div class="line-guide-title">📌 溫馨提醒・瀏覽器設定</div>
-      <div class="line-guide-content">
-        若您是從 <strong>LINE</strong> 點擊打開，為確保能完整啟用<strong>語音朗讀、麥克風收音與橫式全螢幕</strong>，請按步驟切換：<br><br>
-        1. 點擊螢幕右上角<strong>直式三點「⋮」</strong>（或「⋯」）<br>
-        2. 選擇<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）
+    <div class="line-browser-guide-box">
+      <div class="guide-box-header">📌 若於 LINE 中開啟</div>
+      <div class="guide-box-content">
+        請留意畫面<strong>右下角或右上角</strong>的三點圖示「⋮」或「⋯」，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome），即可完整支援全螢幕橫向視野與麥克風收音。
       </div>
-      <button class="btn-line-confirm" id="btn-line-confirm" onclick="dismissLineGuide()">🙏 已在外部瀏覽器／領受今日陪伴</button>
     </div>
   </div>
 
-  <!-- 🌟 3. 21 天心靈陪伴卡全螢幕彈窗 (精選 6 款禪意圖片底圖) -->
+  <!-- 🌟 2. 21 天水墨宣紙心靈陪伴卡 (依範本打造) -->
   <div id="companion-overlay">
     <div id="companion-card">
+      <div class="card-bg-art" id="companion-bg-art"></div>
+
       <div class="card-top-bar">
         <span class="card-seal-tag" id="card-stage">〔 初發心 〕</span>
         <span class="card-day-lbl" id="card-day-indicator">第 1 天・習慣陪伴</span>
@@ -568,7 +499,7 @@
   <div id="schedule-toast">📅 載入進度中...</div>
   <div id="speed-toast-badge">【語速 1.5x】</div>
 
-  <!-- 4. 主視圖 (橫式雙模核心) -->
+  <!-- 3. 主視圖 (橫式雙模核心) -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
       <div class="slot"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起點</button></div>
@@ -672,136 +603,145 @@
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
     // =========================================================================
-    // 🌸 精選 6 款禪意/西藏/名山典雅底圖（半透明墨韻遮罩保護文字可讀性）
+    // 🌸 21 款專屬純向量水墨禪意背景庫（零外部網路依賴、絕無日本街景）
     // =========================================================================
-    const ZEN_PHOTO_STYLES = [
-      // 1. 西藏雪山梵宇
-      "linear-gradient(rgba(10, 15, 25, 0.65), rgba(10, 15, 25, 0.80)), url('https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80')",
-      // 2. 空山幽竹水墨
-      "linear-gradient(rgba(10, 15, 25, 0.65), rgba(10, 15, 25, 0.80)), url('https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80')",
-      // 3. 雲海千嶂晨曦
-      "linear-gradient(rgba(10, 15, 25, 0.65), rgba(10, 15, 25, 0.80)), url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80')",
-      // 4. 雪域白塔經幡
-      "linear-gradient(rgba(10, 15, 25, 0.65), rgba(10, 15, 25, 0.80)), url('https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?auto=format&fit=crop&w=1200&q=80')",
-      // 5. 古木禪寺梵鐘
-      "linear-gradient(rgba(10, 15, 25, 0.65), rgba(10, 15, 25, 0.80)), url('https://images.unsplash.com/photo-1528164344705-475426879c0d?auto=format&fit=crop&w=1200&q=80')",
-      // 6. 高原澄澈聖湖
-      "linear-gradient(rgba(10, 15, 25, 0.65), rgba(10, 15, 25, 0.80)), url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80')"
+    const ZEN_SVGS = [
+      // 1. 遠山晨霧古剎[cite: 5]
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><defs><linearGradient id="g1" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#475569" stop-opacity="0.3"/><stop offset="100%" stop-color="#94a3b8" stop-opacity="0"/></linearGradient></defs><path d="M0,450 Q200,280 400,340 T800,290 L800,450 Z" fill="url(#g1)"/><path d="M0,450 Q300,200 550,290 T800,220 L800,450 Z" fill="#334155" opacity="0.18"/><path d="M580,260 L600,240 L620,260 Z M590,260 L590,280 M610,260 L610,280" stroke="#1e293b" stroke-width="2" fill="none"/></svg>`,
+      // 2. 清風疏竹拂面[cite: 5]
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M80,450 Q90,200 70,0 M85,450 Q95,200 75,0 M150,450 Q140,240 160,0" stroke="#334155" stroke-width="4" stroke-opacity="0.25" fill="none"/><path d="M75,180 Q120,160 140,175 M80,260 Q130,230 150,255 M150,140 Q190,120 220,135" stroke="#475569" stroke-width="2.5" stroke-opacity="0.28" fill="none"/></svg>`,
+      // 3. 靜水微瀾清蓮[cite: 5]
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><ellipse cx="650" cy="380" rx="140" ry="25" fill="none" stroke="#d4a373" stroke-width="2" stroke-opacity="0.35"/><ellipse cx="650" cy="380" rx="90" ry="16" fill="none" stroke="#d4a373" stroke-width="1.5" stroke-opacity="0.45"/><path d="M640,360 Q650,310 660,360 Q680,320 670,365 Q630,320 640,360 Z" fill="#64748b" opacity="0.3"/></svg>`,
+      // 4. 古寺飛簷晨鐘[cite: 5]
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M0,280 Q80,260 140,290 L160,320 L0,320 Z M120,280 Q200,240 280,285 L300,315 L120,315 Z" fill="#1e293b" opacity="0.22"/><path d="M280,285 Q290,295 285,305" stroke="#94a3b8" stroke-width="2" fill="none"/></svg>`,
+      // 5. 千仞懸崖勁松[cite: 5]
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M0,450 L160,260 Q220,290 180,450 Z" fill="#334155" opacity="0.28"/><path d="M120,310 Q160,250 240,270 Q280,240 330,260 M180,280 Q210,240 260,245" stroke="#1e293b" stroke-width="4" stroke-linecap="round" opacity="0.35" fill="none"/></svg>`,
+      // 6. 朝陽破霧千嶂[cite: 5]
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><circle cx="680" cy="180" r="65" fill="#f59e0b" opacity="0.22"/><path d="M400,450 Q550,260 700,340 T800,280 L800,450 Z" fill="#334155" opacity="0.24"/></svg>`,
+      // 7. 禪院石燈幽徑[cite: 5]
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M60,450 L75,340 L85,340 L100,450 Z M65,340 L95,340 L90,310 L70,310 Z M55,310 L105,310 L80,285 Z" fill="#334155" opacity="0.26"/></svg>`,
+      // 8. 幽谷長溪漸入[cite: 5]
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M380,260 Q420,330 360,380 T460,450" stroke="#94a3b8" stroke-width="12" stroke-opacity="0.3" fill="none"/><path d="M200,450 Q350,220 500,450 Z" fill="#475569" opacity="0.16"/></svg>`,
+      // 9. 朗月千江澄照[cite: 5]
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><circle cx="700" cy="140" r="55" fill="#eab308" opacity="0.25"/><path d="M0,450 Q300,340 800,360 L800,450 Z" fill="#1e293b" opacity="0.2"/></svg>`,
+      // 10. 雲開峰現十方
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M150,450 L380,180 L620,450 Z" fill="#334155" opacity="0.18"/><path d="M0,450 Q400,300 800,450 Z" fill="#64748b" opacity="0.15"/></svg>`,
+      // 11. 空谷幽蘭凝香
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M60,450 Q90,320 130,300 M70,450 Q110,360 160,340" stroke="#334155" stroke-width="2.5" stroke-opacity="0.3" fill="none"/><circle cx="132" cy="298" r="4" fill="#a33a31" opacity="0.4"/></svg>`,
+      // 12. 梵宇凌虛鐘響
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M660,260 L700,220 L740,260 Z M675,260 L675,290 M725,260 L725,290" stroke="#334155" stroke-width="3" opacity="0.3" fill="none"/></svg>`,
+      // 13. 春雨潤物無聲
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M100,100 L80,160 M250,80 L230,140 M400,120 L380,180 M600,90 L580,150" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,8" stroke-opacity="0.35"/></svg>`,
+      // 14. 雙松迎客挺立
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M640,450 Q660,320 620,240 M690,450 Q710,310 740,250" stroke="#334155" stroke-width="4.5" stroke-opacity="0.3" fill="none"/></svg>`,
+      // 15. 平湖秋月倒影
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><circle cx="160" cy="180" r="45" fill="#f59e0b" opacity="0.2"/><line x1="50" y1="360" x2="270" y2="360" stroke="#d4a373" stroke-width="2" stroke-opacity="0.4"/></svg>`,
+      // 16. 孤舟泛海渡津
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M560,380 Q620,395 680,380 Q620,388 560,380 Z" fill="#334155" opacity="0.35"/><line x1="625" y1="380" x2="625" y2="340" stroke="#334155" stroke-width="2" opacity="0.35"/></svg>`,
+      // 17. 菩提分明拂動
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M720,0 Q680,140 600,180 M600,180 Q560,160 550,190 Q590,200 600,180" stroke="#475569" stroke-width="2.5" stroke-opacity="0.3" fill="none"/></svg>`,
+      // 18. 霞光破雲晴空
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><circle cx="400" cy="120" r="50" fill="#f59e0b" opacity="0.18"/><line x1="400" y1="120" x2="300" y2="300" stroke="#f59e0b" stroke-width="1.5" stroke-opacity="0.2"/><line x1="400" y1="120" x2="500" y2="300" stroke="#f59e0b" stroke-width="1.5" stroke-opacity="0.2"/></svg>`,
+      // 19. 遠鶴翔雲千尋
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M220,160 Q240,145 260,160 Q280,145 300,160 M320,130 Q335,118 350,130 Q365,118 380,130" stroke="#334155" stroke-width="2" stroke-opacity="0.35" fill="none"/></svg>`,
+      // 20. 疊石清流問道
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><ellipse cx="140" cy="400" rx="60" ry="25" fill="#475569" opacity="0.25"/><ellipse cx="160" cy="370" rx="40" ry="18" fill="#334155" opacity="0.3"/></svg>`,
+      // 21. 皓月圓滿普薰[cite: 5]
+      `<svg viewBox="0 0 800 450" preserveAspectRatio="none" style="width:100%;height:100%"><circle cx="680" cy="150" r="60" fill="#eab308" opacity="0.35"/><circle cx="680" cy="150" r="85" fill="none" stroke="#fef08a" stroke-width="2" stroke-opacity="0.3"/><path d="M0,450 Q400,280 800,320 L800,450 Z" fill="#1e293b" opacity="0.22"/></svg>`
     ];
 
-    // 🌸 21 天完整禪意陪伴卡資料庫（6 款底圖輪替映射）
+    // 🌸 21 天完整水墨禪意卡片內容（通用普適無經名）[cite: 5]
     const COMPANION_21_CARDS = [
       {
         day: 1, stage: "初發心", title: "步履初啟・甘露入心", quote: "「千里之行，始於足下。」",
-        message: "萬里之行始於當下一念。今天在心田種下的善法種子，未來必成參天菩提。放寬心，歡喜念誦！",
-        bg: ZEN_PHOTO_STYLES[0]
+        message: "萬里之行始於當下一念。今天在心田種下的善法種子，未來必成參天菩提。放寬心，歡喜念誦！"
       },
       {
-        day: 2, stage: "適應期", title: "虛懷如竹・不急不躁", quote: "「心定，則音聲清明。」",
-        message: "字句讀來若感生疏純屬平常。如竹沐清風，舌尖與耳根正在慢慢熟悉節奏，只要自然隨念便是功德。",
-        bg: ZEN_PHOTO_STYLES[1]
+        day: 2, stage: "適應期", title: "心無旁騖・專注當下", quote: "「心定，則音聲清明。」",
+        message: "字句讀來若感生疏純屬平常。如竹沐清風，舌尖與耳根正在慢慢熟悉節奏，只要自然隨念便是功德。"
       },
       {
-        day: 3, stage: "定靜心", title: "澄心如水・靜聽法音", quote: "「水清月現，心定法生。」",
-        message: "雜念如水波，隨它起亦隨它歇。音聲相續處便是安頓之所。放鬆肩膀，安住在每一個字句上。",
-        bg: ZEN_PHOTO_STYLES[2]
+        day: 3, stage: "定靜心", title: "法音宣流・普潤慈悲", quote: "「水清月現，心定法生。」",
+        message: "雜念如水波，隨它起亦隨它歇。音聲相續處便是安頓之所。放鬆肩膀，安住在每一個字句上。"
       },
       {
-        day: 4, stage: "同道行", title: "定靜生慧・古道同行", quote: "「德不孤，必有鄰。」",
-        message: "經卷中的每一字，皆是千百年古德智慧明光。在這方螢幕前，海內外有無數同修與您正同心用功。",
-        bg: ZEN_PHOTO_STYLES[3]
+        day: 4, stage: "同道行", title: "梵音裊裊・慧日高懸", quote: "「德不孤，必有鄰。」",
+        message: "經卷中的每一字，皆是千百年古德智慧明光。在這方螢幕前，海內外有無數同修與您正同心用功。"
       },
       {
-        day: 5, stage: "澄六根", title: "香雲凝定・收攝身心", quote: "「一念寂靜，大地皆春。」",
-        message: "背誦前調勻呼吸。將心思從世事牽掛收回到案前，字字分明、聲聲入耳，洗盡塵勞煩惱。",
-        bg: ZEN_PHOTO_STYLES[4]
+        day: 5, stage: "澄六根", title: "堅定不移・菩提大願", quote: "「一念寂靜，大地皆春。」",
+        message: "背誦前調勻呼吸。將心思從世事牽掛收回到案前，字字分明、聲聲入耳，洗盡塵勞煩惱。"
       },
       {
-        day: 6, stage: "化阻礙", title: "勁松立岩・力破懈怠", quote: "「百鍊精鋼，水滴穿石。」",
-        message: "感到疲憊怠惰之時，往往正是境界突破的前夕。提起正念再讀一遍，心力便向上提升一層。",
-        bg: ZEN_PHOTO_STYLES[5]
+        day: 6, stage: "化阻礙", title: "行願無盡・普照十方", quote: "「百鍊精鋼，水滴穿石。」",
+        message: "感到疲憊怠惰之時，往往正是境界突破的前夕。提起正念再讀一遍，心力便向上提升一層。"
       },
       {
         day: 7, stage: "首週滿", title: "七日堅持・初具心力", quote: "「滴水穿石，繩鋸木斷。」",
-        message: "不知不覺已持續用功一整週！這份恆常精進的心力極其難得，為自己的毅力合十讚歎。",
-        bg: ZEN_PHOTO_STYLES[0]
+        message: "不知不覺已持續用功一整週！這份恆常精進的心力極其難得，為自己的毅力合十讚歎。"
       },
       {
-        day: 8, stage: "入佳境", title: "舟渡汪洋・法音作筏", quote: "「安住當下，乘風破浪。」",
-        message: "浮世奔忙暫卸萬緣。以經教為慈舟，平復胸中萬千波瀾，字字都是安穩的彼岸。",
-        bg: ZEN_PHOTO_STYLES[1]
+        day: 8, stage: "入佳境", title: "智慧開顯・照破昏暗", quote: "「安住當下，乘風破浪。」",
+        message: "浮世奔忙暫卸萬緣。以經教為慈舟，平復胸中萬千波瀾，字字都是安穩的彼岸。"
       },
       {
-        day: 9, stage: "拓心量", title: "隨文入觀・慈心廣被", quote: "「心包太虛，量周沙界。」",
-        message: "口誦聖言、心懷有情。願智慧慈悲如晨曦微光，普照身邊每一位至親好友。",
-        bg: ZEN_PHOTO_STYLES[2]
+        day: 9, stage: "拓心量", title: "步步為營・漸入佳境", quote: "「心包太虛，量周沙界。」",
+        message: "口誦聖言、心懷有情。願智慧慈悲如晨曦微光，普照身邊每一位至親好友。"
       },
       {
-        day: 10, stage: "達半程", title: "步步踏實・十全圓通", quote: "「不忘初心，方得始終。」",
-        message: "十天是一個美好的里程碑！當初的生疏已化為從容，深信自己，定能一步一步順利邁向圓滿。",
-        bg: ZEN_PHOTO_STYLES[3]
+        day: 10, stage: "達半程", title: "圓滿智慧・德香普薰", quote: "「不忘初心，方得始終。」",
+        message: "十天是一個美好的里程碑！當初的生疏已化為從容，深信自己，定能一步一步順利邁向圓滿。"
       },
       {
         day: 11, stage: "養芬芳", title: "幽谷發香・自性清涼", quote: "「蘭生幽谷，不以無人而不芳。」",
-        message: "誦讀聖言如蘭生幽谷，不求外在榮耀，清涼自滿胸懷。經文反覆熏習，正在悄悄轉化身心氣質。",
-        bg: ZEN_PHOTO_STYLES[4]
+        message: "誦讀聖言如蘭生幽谷，不求外在榮耀，清涼自滿胸懷。經文反覆熏習，正在悄悄轉化身心氣質。"
       },
       {
         day: 12, stage: "生定力", title: "鐘聲清徹・心地平明", quote: "「晨鐘暮鼓，喚醒迷途。」",
-        message: "念出的每一個字句，如山中清澈鐘聲，震落塵勞，使內心深處恢復應有的寧靜與透亮。",
-        bg: ZEN_PHOTO_STYLES[5]
+        message: "念出的每一個字句，如山中清澈鐘聲，震落塵勞，使內心深處恢復應有的寧靜與透亮。"
       },
       {
         day: 13, stage: "潤心田", title: "隨風潛入・潤物無聲", quote: "「好雨知時節，潤物細無聲。」",
-        message: "不用刻意死記硬背，法音如春雨自然滋潤心田。不知不覺中，經句已深植於日常行止。",
-        bg: ZEN_PHOTO_STYLES[0]
+        message: "不用刻意死記硬背，法音如春雨自然滋潤心田。不知不覺中，經句已深植於日常行止。"
       },
       {
         day: 14, stage: "雙週成", title: "兩週蓄力・舌音成韻", quote: "「由生轉熟，純任自然。」",
-        message: "克服了最初的起伏，經句已漸漸融入呼吸。音聲從口入耳、由耳入心，這份堅持正是真功夫！",
-        bg: ZEN_PHOTO_STYLES[1]
+        message: "克服了最初的起伏，經句已漸漸融入呼吸。音聲從口入耳、由耳入心，這份堅持正是真功夫！"
       },
       {
         day: 15, stage: "照自性", title: "水平如鏡・倒映萬象", quote: "「水清見底，雲散月明。」",
-        message: "朗朗讀誦之際，心中波瀾止息，如同一面平靜的明鏡，將法義映照得無比澄澈。",
-        bg: ZEN_PHOTO_STYLES[2]
+        message: "朗朗讀誦之際，心中波瀾止息，如同一面平靜的明鏡，將法義映照得無比澄澈。"
       },
       {
         day: 16, stage: "破萬難", title: "逆風執炬・心志不移", quote: "「志之所向，金石為開。」",
-        message: "持誦越是到了深處，越能淬煉心志。無論外在境遇如何變化，只要安住經卷，當下即是淨土。",
-        bg: ZEN_PHOTO_STYLES[3]
+        message: "持誦越是到了深處，越能淬煉心志。無論外在境遇如何變化，只要安住經卷，當下即是淨土。"
       },
       {
         day: 17, stage: "培福田", title: "葉脈舒展・福慧充盈", quote: "「一葉一如來，字字皆菩提。」",
-        message: "隨音聲起落的每一個字，都在為身心滋養深厚資糧。不急不躁，自性福慧日日充盈。",
-        bg: ZEN_PHOTO_STYLES[4]
+        message: "隨音聲起落的每一個字，都在為身心滋養深厚資糧。不急不躁，自性福慧日日充盈。"
       },
       {
         day: 18, stage: "見光明", title: "撥雲見日・純任自然", quote: "「萬里無雲，晴空朗照。」",
-        message: "經句已不再需要苦思，自舌尖自然傾瀉而出。體會這種純任自然的流暢，身心無比愉悅輕安。",
-        bg: ZEN_PHOTO_STYLES[5]
+        message: "經句已不再需要苦思，自舌尖自然傾瀉而出。體會這種純任自然的流暢，身心無比愉悅輕安。"
       },
       {
         day: 19, stage: "融身心", title: "心光朗照・法喜充滿", quote: "「月印千江，風行萬里。」",
-        message: "十九天功深磨礪，經典的智慧已融入氣質。行住坐臥皆在法義涵養之中，安然自得。",
-        bg: ZEN_PHOTO_STYLES[0]
+        message: "十九天功深磨礪，經典的智慧已融入氣質。行住坐臥皆在法義涵養之中，安然自得。"
       },
       {
         day: 20, stage: "臨圓成", title: "根深柢固・將成大器", quote: "「根深葉茂，本固枝榮。」",
-        message: "二十天扎實積累，好習慣已在生命深處扎下深根。明天就是圓滿日，隨喜不可思議的堅持！",
-        bg: ZEN_PHOTO_STYLES[1]
+        message: "二十天扎實積累，好習慣已在生命深處扎下深根。明天就是圓滿日，隨喜不可思議的堅持！"
       },
       {
         day: 21, stage: "習慣成", title: "朗月高懸・習慣圓成", quote: "「行遠自邇，篤志不移。」",
-        message: "整整二十一日，經典已化作您生命的一部分！習慣深植心田，隨喜讚歎您殊勝的精進功德！",
-        bg: ZEN_PHOTO_STYLES[2]
+        message: "整整二十一日，經典已化作您生命的一部分！習慣深植心田，隨喜讚歎您殊勝的精進功德！"
       }
     ];
 
     // DOM 快取
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
-    const lineBrowserOverlay = document.getElementById('line-browser-overlay');
     const companionOverlay = document.getElementById('companion-overlay');
+    const companionBgArt = document.getElementById('companion-bg-art');
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -882,9 +822,8 @@
     let silentFrameCount = 0;
 
     // =========================================================================
-    // 【循序流轉控制：直屏阻斷 ➔ 三點指引 ➔ 21天陪伴卡 ➔ 直接進入背誦主視圖】
+    // 【螢幕方向監控：直立提示轉橫；轉橫立即進入 21 陪伴卡】
     // =========================================================================
-    let isLineGuideDismissed = false;
     let isCompanionDismissed = false;
 
     function handleOrientationCheck() {
@@ -892,15 +831,13 @@
 
       if (isPortrait) {
         portraitBlocker.style.display = 'flex';
-        lineBrowserOverlay.classList.remove('active');
         companionOverlay.classList.remove('active');
         haltGuideRunnerImmediately();
       } else {
         portraitBlocker.style.display = 'none';
 
-        if (!isLineGuideDismissed) {
-          lineBrowserOverlay.classList.add('active');
-        } else if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
+        // 轉橫屏直接展示 21 天心靈陪伴卡
+        if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
           companionOverlay.classList.add('active');
         }
 
@@ -910,28 +847,24 @@
       }
     }
 
-    // 點擊「三點指示」確認按鈕，接續開啟 21 天卡片
-    function dismissLineGuide() {
-      isLineGuideDismissed = true;
-      lineBrowserOverlay.classList.remove('active');
-      lineBrowserOverlay.style.opacity = '0';
-
-      setTimeout(() => {
-        lineBrowserOverlay.style.display = 'none';
-        lineBrowserOverlay.style.opacity = '';
-
-        if (window.innerWidth > window.innerHeight) {
-          if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
-            companionOverlay.classList.add('active');
-          } else {
-            activateMainReciteEntry();
-          }
+    // 全螢幕驅動函式
+    function triggerAppFullscreen() {
+      const el = document.documentElement;
+      try {
+        if (el.requestFullscreen) {
+          el.requestFullscreen().catch(() => {});
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen().catch(() => {});
+        } else if (el.msRequestFullscreen) {
+          el.msRequestFullscreen().catch(() => {});
         }
-      }, 350);
+      } catch (e) {}
     }
 
-    // 點擊陪伴卡按鈕，關閉卡片直接進入主視圖
+    // 點擊陪伴卡「領受心意・開始背誦」
     function closeCompanionCard() {
+      triggerAppFullscreen();
+
       if (currentCompanionSeenKey) {
         localStorage.setItem(currentCompanionSeenKey, 'true');
       }
@@ -942,7 +875,7 @@
         companionOverlay.classList.remove('active');
         companionOverlay.style.opacity = '';
         activateMainReciteEntry();
-      }, 400);
+      }, 350);
     }
 
     // 正式進入背誦主畫面時的環境準備
@@ -1299,6 +1232,8 @@
     // 【背書按鈕：模式啟動】
     // =========================================================================
     btnGuideToggle.addEventListener('click', async () => {
+      triggerAppFullscreen();
+
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioContext) audioContext = new AudioContextClass();
@@ -1856,7 +1791,8 @@
       if (!startStr) {
         let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_' + CURRENT_CLASSIC_ID) || '0', 10);
         const card = COMPANION_21_CARDS[tIdx % COMPANION_21_CARDS.length];
-        renderCompanionUI(card, `測試預覽・第 ${card.day} 天`);
+        const svgBg = ZEN_SVGS[tIdx % ZEN_SVGS.length];
+        renderCompanionUI(card, svgBg, `測試預覽・第 ${card.day} 天`);
         localStorage.setItem('TEST_CARD_INDEX_' + CURRENT_CLASSIC_ID, (tIdx + 1).toString());
         return;
       }
@@ -1874,18 +1810,19 @@
       }
 
       if (currentDay >= 1 && currentDay <= 21) {
-        const card = COMPANION_21_CARDS.find(c => c.day === currentDay) || COMPANION_21_CARDS[0];
-        renderCompanionUI(card, `第 ${card.day} 天・習慣陪伴`, seenKey);
+        const cIdx = currentDay - 1;
+        const card = COMPANION_21_CARDS[cIdx] || COMPANION_21_CARDS[0];
+        const svgBg = ZEN_SVGS[cIdx % ZEN_SVGS.length];
+        renderCompanionUI(card, svgBg, `第 ${card.day} 天・習慣陪伴`, seenKey);
       } else {
         isCompanionDismissed = true;
         companionOverlay.setAttribute('data-needed', 'false');
       }
     }
 
-    function renderCompanionUI(card, dayLabel, seenKey = null) {
+    function renderCompanionUI(card, svgBg, dayLabel, seenKey = null) {
       currentCompanionSeenKey = seenKey;
-      const cardBox = document.getElementById('companion-card');
-      cardBox.style.background = card.bg;
+      companionBgArt.innerHTML = svgBg;
       document.getElementById('card-stage').innerText = `〔 ${card.stage} 〕`;
       document.getElementById('card-day-indicator').innerText = dayLabel;
       document.getElementById('card-title').innerText = card.title;
@@ -2149,7 +2086,7 @@
       // 1. 陪伴卡資料評估
       await evaluateWarmCompanionCard();
 
-      // 2. 螢幕方向與三點防呆檢測
+      // 2. 螢幕方向與防呆檢測
       handleOrientationCheck();
 
       // 3. 離線快取初始化
