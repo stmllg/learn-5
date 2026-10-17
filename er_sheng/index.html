@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v172 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v173 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -240,7 +240,7 @@
       overflow: hidden;
     }
 
-    /* 🟢 綠色通知置中顯示 (清晰不擋經文) */
+    /* 🟢 綠色通知置中顯示 */
     #schedule-toast {
       display: none;
       position: fixed;
@@ -892,7 +892,7 @@
       }
     }, { passive: true });
 
-    // 🎯 模式切換：在影片模式下隱藏 PDF 設定按鈕，且顯示純「第幾句～第幾句」無時間數據
+    // 🎯 模式切換：修正提示文字為「播放 ：第...」並隱藏 PDF 設定按鈕
     function toggleModeSwitch() {
       haltGuideRunnerImmediately();
 
@@ -917,7 +917,7 @@
 
         if (range.valid) {
           video.currentTime = range.start;
-          showToast(`🎬【區段已鎖定】第 ${range.sentenceA} ～ 第 ${range.sentenceB} 句`, 4500);
+          showToast(`播放 ：第 ${range.sentenceA} ～ 第 ${range.sentenceB} 句`, 4500);
         } else {
           showToast(`⚠️ 句數秒數尚未載入完畢，請稍候`, 3000);
         }
@@ -933,7 +933,7 @@
         if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
         if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
 
-        showToast('📖 切換為：經文默背模式', 2500);
+        showToast('經文默背模式', 2500);
         scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
       }
       updateVisualDisplay();
@@ -960,7 +960,7 @@
           btnGuideToggle.classList.remove('guide-active');
           handleTargetCycleDone();
         } else {
-          showToast(`已完成 ${completedCycles} 遍，繼續循環`);
+          // 🚫 刪除影片循環次數計算的 toast 顯示
           videoPausedAt = -1;
           video.currentTime = range.start;
           video.play().catch(() => {});
@@ -968,12 +968,11 @@
       }
     });
 
-    // 🌸 執行完成遍數後的慶祝：不發出語音，改為五瓣花天女散花動畫
+    // 🌸 執行完成遍數後的慶祝：不發出語音、不顯示文字，改為五瓣花天女散花動畫
     function handleTargetCycleDone() {
       const todayStr = getNormalizedDateStr();
       localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
       
-      showToast("🎉 背誦圓滿！已完成排定遍數，隨喜功德", 4500);
       triggerFivePetalFlowerRain();
     }
 
@@ -1804,10 +1803,10 @@
       }
       // 3. 測試無參數輪播 (以 22 天為週期循環)
       else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V172_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V173_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V172_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V173_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
