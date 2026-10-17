@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v181 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v182 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -476,7 +476,7 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
+        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong><strong>以預設瀏覽器開啟</strong></strong>（Safari 或 Chrome）。
       </div>
     </div>
   </div>
@@ -509,9 +509,13 @@
   <!-- 4. 主視圖 (v158 原生橫式雙模核心，完全保留) -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
+      <!-- Slot 1: 自讀/跟讀時為起點；比對模式時為語速調整 -->
       <div class="slot"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起點</button></div>
+      <!-- Slot 2: 自讀/跟讀時為終點 -->
       <div class="slot"><button class="circle-btn btn-color-mark-b" id="btn-mark-b">終點</button></div>
+      <!-- Slot 3: 重複次數 -->
       <div class="slot"><button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button></div>
+      <!-- Slot 4: 關機鍵（永遠保留） -->
       <div class="slot"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">關機</button></div>
     </div>
 
@@ -534,21 +538,19 @@
       <!-- 🎙️ 比對模式：錄音與回放工作坊介面 -->
       <div id="record-container-wrap">
         <div style="font-size: 26px; font-weight: 900; color: #FBBF24; letter-spacing: 2px;">🎙️ 比對模式・錄音工作坊</div>
-        <div style="font-size: 16px; color: #94A3B8; text-align: center; max-width: 420px; line-height: 1.6;">點擊下方紅色按鈕開始錄製您的誦讀聲音，錄製完畢後可直接點擊播放來自我比對發音與節奏。</div>
+        <div style="font-size: 16px; color: #94A3B8; text-align: center; max-width: 420px; line-height: 1.6;">使用右側翼鍵進行錄音與回放比對，檢視您的誦讀發音與節奏。</div>
         <div id="record-status" style="font-size: 18px; font-weight: bold; color: #38BDF8;">準備就緒</div>
-        <div style="display: flex; gap: 20px; align-items: center; margin-top: 10px;">
-          <button id="btn-start-record" class="circle-btn" style="width: 72px !important; height: 72px !important; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); font-size: 16px !important;">錄音</button>
-          <button id="btn-stop-record" class="circle-btn" style="width: 72px !important; height: 72px !important; background: linear-gradient(135deg, #64748B 0%, #475569 100%); font-size: 16px !important; opacity: 0.5;" disabled>停止</button>
-        </div>
-        <audio id="playback-audio" controls style="margin-top: 14px; display: none; width: 85%; max-width: 340px;"></audio>
+        <audio id="playback-audio" controls style="margin-top: 10px; display: none; width: 85%; max-width: 340px;"></audio>
       </div>
     </div>
 
     <div class="side-wing" id="right-wing">
-      <div class="slot"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
-      <div class="slot"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
-      <div class="slot"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button></div>
-      <div class="slot"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button></div>
+      <!-- Slot 1 & 2 區塊：在比對模式時合併為長方型錄音控制 -->
+      <div class="slot" id="slot-r1"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
+      <div class="slot" id="slot-r2"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
+      <!-- Slot 3 & 4 區塊：在比對模式時合併為播放控制 -->
+      <div class="slot" id="slot-r3"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button></div>
+      <div class="slot" id="slot-r4"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button></div>
     </div>
   </div>
 
@@ -619,8 +621,8 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
-    if (isNaN(baseSpeed) || baseSpeed < 0.5 || baseSpeed > 2.0) baseSpeed = 1.5;
+    let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.0');
+    if (isNaN(baseSpeed) || baseSpeed < 0.5 || baseSpeed > 2.0) baseSpeed = 1.0;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
@@ -658,6 +660,11 @@
     const btnSpeedUp = document.getElementById('btn-speed-up');
     const btnSpeedDown = document.getElementById('btn-speed-down');
 
+    const slotR1 = document.getElementById('slot-r1');
+    const slotR2 = document.getElementById('slot-r2');
+    const slotR3 = document.getElementById('slot-r3');
+    const slotR4 = document.getElementById('slot-r4');
+
     const offeringOverlay = document.getElementById('offering-modal-overlay');
     const inputClassId = document.getElementById('input-class-id');
     const inputUserName = document.getElementById('input-user-name');
@@ -670,15 +677,14 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 錄音比對相關 DOM
-    const btnStartRecord = document.getElementById('btn-start-record');
-    const btnStopRecord = document.getElementById('btn-stop-record');
+    // 比對模式相關 DOM
     const recordStatus = document.getElementById('record-status');
     const playbackAudio = document.getElementById('playback-audio');
     let mediaRecorder = null;
     let audioChunks = [];
+    let isUserRecording = false;
 
-    // 模式順序：'pdf' (自讀) -> 'mp4' (跟讀) -> 'record' (比對) -> 循環
+    // 三模式順序：'pdf' (自讀) -> 'mp4' (跟讀) -> 'record' (比對) -> 循環
     let currentMode = 'pdf';
     let scriptureData = [];
     let currentPdfDoc = null;
@@ -892,7 +898,7 @@
           modeGrandBanner.style.opacity = '';
           modeGrandBanner.style.transform = '';
         }, 350);
-      }, 2000); // 2秒精準停留
+      }, 2000);
     }
 
     function triggerSpeedChange(delta) {
@@ -910,6 +916,9 @@
         speedToastBadge.style.opacity = '0';
         setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
       }, 3000);
+
+      // 同步更新比對模式的語速
+      playbackAudio.playbackRate = baseSpeed;
     }
 
     btnSpeedUp.addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(+0.1); });
@@ -992,6 +1001,7 @@
       const btnSpeedDown = document.getElementById('btn-speed-down');
 
       if (currentMode === 'pdf') {
+        // 切換到跟讀模式 (mp4)
         currentMode = 'mp4';
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
@@ -1000,8 +1010,9 @@
 
         if (btnMarkA) btnMarkA.style.visibility = 'hidden';
         if (btnMarkB) btnMarkB.style.visibility = 'hidden';
-        if (btnSpeedUp) btnSpeedUp.style.visibility = 'hidden';
-        if (btnSpeedDown) btnSpeedDown.style.visibility = 'hidden';
+        if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
+        if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
+        resetSideWingsForMode('mp4');
 
         const range = getActiveVideoRange();
         videoPausedAt = -1;
@@ -1010,6 +1021,7 @@
         }
         showModeBanner('▶ 跟讀模式', `播放：第 ${range.sentenceA} ～ 第 ${range.sentenceB} 句`);
       } else if (currentMode === 'mp4') {
+        // 切換到比對模式 (record)
         currentMode = 'record';
         video.pause();
         videoWrap.style.display = 'none';
@@ -1021,9 +1033,11 @@
         if (btnMarkB) btnMarkB.style.visibility = 'hidden';
         if (btnSpeedUp) btnSpeedUp.style.visibility = 'hidden';
         if (btnSpeedDown) btnSpeedDown.style.visibility = 'hidden';
+        resetSideWingsForMode('record');
 
         showModeBanner('🎙️ 比對模式', '錄音比對・自我檢視');
       } else {
+        // 切換到自讀模式 (pdf)
         currentMode = 'pdf';
         video.pause();
         recordWrap.style.display = 'none';
@@ -1035,6 +1049,7 @@
         if (btnMarkB) btnMarkB.style.visibility = 'visible';
         if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
         if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
+        resetSideWingsForMode('pdf');
 
         scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
         showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
@@ -1042,42 +1057,120 @@
       updateVisualDisplay();
     }
 
-    // 🎙️ 錄音比對功能互動邏輯
-    btnStartRecord.addEventListener('click', async () => {
-      try {
-        audioChunks = [];
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) audioChunks.push(e.data);
+    // 翼鍵動態佈局切換
+    function resetSideWingsForMode(mode) {
+      if (mode === 'record') {
+        // 左1: 語速調整按鈕
+        btnMarkA.className = "circle-btn btn-color-speed-up";
+        btnMarkA.textContent = `${baseSpeed.toFixed(1)}x`;
+        btnMarkA.style.visibility = 'visible';
+        btnMarkA.onclick = (e) => {
+          e.stopPropagation();
+          triggerSpeedChange(+0.1);
+          btnMarkA.textContent = `${baseSpeed.toFixed(1)}x`;
         };
-        mediaRecorder.onstop = () => {
-          const recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          const audioUrl = URL.createObjectURL(recordedBlob);
-          playbackAudio.src = audioUrl;
-          playbackAudio.style.display = 'block';
-          recordStatus.textContent = '錄音完成！可點擊下方播放比對發音';
-          btnStartRecord.disabled = false;
-          btnStopRecord.disabled = true;
-          btnStartRecord.style.opacity = '1';
-          btnStopRecord.style.opacity = '0.5';
-        };
-        mediaRecorder.start();
-        recordStatus.textContent = '🔴 正在錄音中... 請朗讀經文';
-        btnStartRecord.disabled = true;
-        btnStopRecord.disabled = false;
-        btnStartRecord.style.opacity = '0.5';
-        btnStopRecord.style.opacity = '1';
-        playbackAudio.style.display = 'none';
-      } catch (err) {
-        alert('無法存取麥克風，請檢查裝置權限設定');
-      }
-    });
 
-    btnStopRecord.addEventListener('click', () => {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
+        // 左2, 左3 隱藏
+        btnMarkB.style.visibility = 'hidden';
+        document.getElementById('btn-repeat-count').style.visibility = 'hidden';
+
+        // 右1 & 右2 區塊：長方型錄音按鈕
+        slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">🎙️ 錄音</button>`;
+        slotR2.innerHTML = '';
+
+        // 右3 & 右4 區塊：播放控制按鈕
+        slotR3.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">▶ 播放</button>`;
+        slotR4.innerHTML = '';
+
+        // 綁定比對模式按鈕事件
+        document.getElementById('wing-btn-record').addEventListener('click', () => {
+          toggleRecordAction();
+        });
+        document.getElementById('wing-btn-play').addEventListener('click', () => {
+          togglePlaybackAction();
+        });
+      } else {
+        // 還原自讀/跟讀模式的翼鍵
+        btnMarkA.className = "circle-btn btn-color-mark-a";
+        btnMarkA.textContent = "起點";
+        btnMarkA.style.visibility = 'visible';
+        btnMarkA.onclick = null;
+
+        btnMarkB.className = "circle-btn btn-color-mark-b";
+        btnMarkB.textContent = "終點";
+        btnMarkB.style.visibility = 'visible';
+
+        document.getElementById('btn-repeat-count').style.visibility = 'visible';
+
+        slotR1.innerHTML = `<button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button>`;
+        slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
+        slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button>`;
+        slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button>`;
+
+        // 重新綁定事件
+        document.getElementById('btn-guide-toggle').addEventListener('click', handleGuideToggleClick);
+        document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
+        document.getElementById('btn-speed-up').addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(+0.1); });
+        document.getElementById('btn-speed-down').addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(-0.1); });
       }
+    }
+
+    // 比對模式錄音邏輯
+    async function toggleRecordAction() {
+      const wingBtnRecord = document.getElementById('wing-btn-record');
+      if (!isUserRecording) {
+        try {
+          audioChunks = [];
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunks.push(e.data);
+          };
+          mediaRecorder.onstop = () => {
+            const recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const audioUrl = URL.createObjectURL(recordedBlob);
+            playbackAudio.src = audioUrl;
+            playbackAudio.playbackRate = baseSpeed;
+            playbackAudio.style.display = 'block';
+            recordStatus.textContent = '錄音完成！可點擊右側「播放」聆聽比對';
+          };
+          mediaRecorder.start();
+          isUserRecording = true;
+          wingBtnRecord.textContent = '⏹ 停止';
+          wingBtnRecord.style.background = 'linear-gradient(135deg, #64748B 0%, #475569 100%)';
+          recordStatus.textContent = '🔴 正在錄音中... 請朗讀經文區段';
+          playbackAudio.style.display = 'none';
+        } catch (err) {
+          alert('無法存取麥克風，請檢查裝置權限設定');
+        }
+      } else {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        isUserRecording = false;
+        wingBtnRecord.textContent = '🎙️ 錄音';
+        wingBtnRecord.style.background = 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)';
+      }
+    }
+
+    function togglePlaybackAction() {
+      if (!playbackAudio.src) {
+        showToast('尚無錄音檔案可供播放', 2500);
+        return;
+      }
+      if (playbackAudio.paused) {
+        playbackAudio.playbackRate = baseSpeed;
+        playbackAudio.play().catch(() => {});
+        document.getElementById('wing-btn-play').textContent = '❚❚ 暫停';
+      } else {
+        playbackAudio.pause();
+        document.getElementById('wing-btn-play').textContent = '▶ 播放';
+      }
+    }
+
+    playbackAudio.addEventListener('ended', () => {
+      const btnPlay = document.getElementById('wing-btn-play');
+      if (btnPlay) btnPlay.textContent = '▶ 播放';
     });
 
     video.addEventListener('timeupdate', () => {
@@ -1097,8 +1190,6 @@
           video.pause();
           videoPausedAt = -1;
           video.currentTime = range.start;
-          btnGuideToggle.textContent = '背書';
-          btnGuideToggle.classList.remove('guide-active');
           handleTargetCycleDone();
         } else {
           videoPausedAt = -1;
@@ -1255,8 +1346,6 @@
       if (!isGuideActive && currentMode === 'pdf') {
         guideLine.style.display = 'none';
         redDot.style.display = 'none';
-        btnGuideToggle.textContent = '背書';
-        btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
       }
 
       const remain = Math.max(0, totalTargetCycles - completedCycles);
@@ -1264,7 +1353,7 @@
     }
 
     btnMarkA.addEventListener('click', () => {
-      if (isGuideActive) return;
+      if (isGuideActive || currentMode === 'record') return;
       if (parsedTextLines.length === 0) return;
       isManualSelected = true;
       markA_Index = getLineAtButtonBottom(btnMarkA);
@@ -1279,7 +1368,7 @@
     });
 
     btnMarkB.addEventListener('click', () => {
-      if (isGuideActive) return;
+      if (isGuideActive || currentMode === 'record') return;
       if (parsedTextLines.length === 0) return;
       const selectedB = getLineAtButtonBottom(btnMarkB);
       if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
@@ -1293,7 +1382,7 @@
     });
 
     btnRepeatCount.addEventListener('click', () => {
-      if (isGuideActive) return;
+      if (isGuideActive || currentMode === 'record') return;
       repeatModal.style.display = repeatModal.style.display === 'flex' ? 'none' : 'flex';
     });
 
@@ -1310,16 +1399,16 @@
     });
 
     // =========================================================================
-    // 【背書按鈕：模式啟動】
+    // 【背書按鈕點擊處理】
     // =========================================================================
-    btnGuideToggle.addEventListener('click', async () => {
+    function handleGuideToggleClick() {
       triggerAppFullscreen();
 
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioContext) audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') {
-          await audioContext.resume();
+          audioContext.resume();
         }
       } catch (e) {}
 
@@ -1357,11 +1446,6 @@
         return;
       }
 
-      if (currentMode === 'record') {
-        showToast('🎙️ 比對模式為錄音回放區，請直接點擊上方錄音按鈕', 3000);
-        return;
-      }
-
       if (markA_Index === -1 || markB_Index === -1) {
         speakPrompt("請先設定起點與終點");
         return;
@@ -1388,8 +1472,21 @@
       btnGuideToggle.classList.add('guide-waiting');
 
       startGuideRunner();
-      await startVoiceActivityDetection();
-    });
+      startVoiceActivityDetection();
+    }
+
+    const btnGuideToggleDom = document.getElementById('btn-guide-toggle');
+    if (btnGuideToggleDom) btnGuideToggleDom.addEventListener('click', handleGuideToggleClick);
+
+    function handleOfferingClick() {
+      if (isGuideActive) return;
+      displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
+      inputClassId.value = localStorage.getItem('user_class_id') || '';
+      inputUserName.value = localStorage.getItem('user_profile_name') || '';
+      offeringOverlay.style.display = 'flex';
+    }
+    const btnOfferingDom = document.getElementById('btn-offering');
+    if (btnOfferingDom) btnOfferingDom.addEventListener('click', handleOfferingClick);
 
     // =========================================================================
     // 🔒【麥克風調校核心：0.2s 最短發聲門檻 ＋ 句長+10s 超時關機機制】
@@ -1412,43 +1509,53 @@
       }, maxTimeoutMs);
     }
 
-    async function startVoiceActivityDetection() {
+    function startVoiceActivityDetection() {
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioContext) audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') {
-          await audioContext.resume();
+          audioContext.resume();
         }
 
         if (!micStream) {
-          micStream = await navigator.mediaDevices.getUserMedia({
+          navigator.mediaDevices.getUserMedia({
             audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
+          }).then(stream => {
+            micStream = stream;
+            connectMicStream();
+          }).catch(err => {
+            console.warn("麥克風啟動略過:", err);
+            btnGuideToggle.textContent = '靜止';
           });
+        } else {
+          connectMicStream();
         }
-
-        const source = audioContext.createMediaStreamSource(micStream);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.04;
-        source.connect(analyser);
-
-        isCalibrating = true;
-        calibrationSamples = [];
-        setTimeout(() => {
-          if (calibrationSamples.length > 0) {
-            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
-            baseNoiseLevel = sum / calibrationSamples.length;
-            dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
-          }
-          isCalibrating = false;
-        }, 350);
-
-        resetLineTimeoutSafetyTimer();
-        startVadMonitorLoop();
       } catch (err) {
         console.warn("麥克風啟動略過:", err);
-        btnGuideToggle.textContent = '靜止';
       }
+    }
+
+    function connectMicStream() {
+      if (!audioContext || !micStream) return;
+      const source = audioContext.createMediaStreamSource(micStream);
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.04;
+      source.connect(analyser);
+
+      isCalibrating = true;
+      calibrationSamples = [];
+      setTimeout(() => {
+        if (calibrationSamples.length > 0) {
+          const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+          baseNoiseLevel = sum / calibrationSamples.length;
+          dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
+        }
+        isCalibrating = false;
+      }, 350);
+
+      resetLineTimeoutSafetyTimer();
+      startVadMonitorLoop();
     }
 
     function startVadMonitorLoop() {
@@ -1496,9 +1603,12 @@
             silentFrameCount = 0;
             if (!isVoiceActive) {
               isVoiceActive = true;
-              btnGuideToggle.textContent = '背誦中';
-              btnGuideToggle.classList.remove('guide-waiting');
-              btnGuideToggle.classList.add('guide-active');
+              const btnGuide = document.getElementById('btn-guide-toggle');
+              if (btnGuide) {
+                btnGuide.textContent = '背誦中';
+                btnGuide.classList.remove('guide-waiting');
+                btnGuide.classList.add('guide-active');
+              }
               lastAnimTimestamp = performance.now();
             }
           } else {
@@ -1506,9 +1616,12 @@
             if (silentFrameCount >= 24) {
               if (isVoiceActive) {
                 isVoiceActive = false;
-                btnGuideToggle.textContent = '靜止';
-                btnGuideToggle.classList.remove('guide-active');
-                btnGuideToggle.classList.add('guide-waiting');
+                const btnGuide = document.getElementById('btn-guide-toggle');
+                if (btnGuide) {
+                  btnGuide.textContent = '靜止';
+                  btnGuide.classList.remove('guide-active');
+                  btnGuide.classList.add('guide-waiting');
+                }
               }
             }
           }
@@ -1532,9 +1645,12 @@
       isLineHeadLocked = false;
       if (!isVoiceActive) {
         isVoiceActive = true;
-        btnGuideToggle.textContent = '背誦中';
-        btnGuideToggle.classList.remove('guide-waiting');
-        btnGuideToggle.classList.add('guide-active');
+        const btnGuide = document.getElementById('btn-guide-toggle');
+        if (btnGuide) {
+          btnGuide.textContent = '背誦中';
+          btnGuide.classList.remove('guide-waiting');
+          btnGuide.classList.add('guide-active');
+        }
         lastAnimTimestamp = performance.now();
       }
     });
@@ -1740,9 +1856,12 @@
         lastAnimTimestamp = performance.now();
         isVoiceActive = false;
 
-        btnGuideToggle.textContent = '靜止';
-        btnGuideToggle.classList.remove('guide-active');
-        btnGuideToggle.classList.add('guide-waiting');
+        const btnGuide = document.getElementById('btn-guide-toggle');
+        if (btnGuide) {
+          btnGuide.textContent = '靜止';
+          btnGuide.classList.remove('guide-active');
+          btnGuide.classList.add('guide-waiting');
+        }
 
         if (guideAnimId) cancelAnimationFrame(guideAnimId);
         guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -1769,8 +1888,11 @@
 
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
-      btnGuideToggle.textContent = '背書';
-      btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
+      const btnGuide = document.getElementById('btn-guide-toggle');
+      if (btnGuide) {
+        btnGuide.textContent = '背書';
+        btnGuide.classList.remove('guide-active', 'guide-waiting');
+      }
 
       video.pause();
       updateVisualDisplay();
@@ -1927,10 +2049,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V181_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V182_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V181_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V182_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
