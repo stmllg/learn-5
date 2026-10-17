@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>歡喜背書橫式雙模播放器 v158</title>
+  <title>歡喜背書橫式雙模播放器 v160</title>
   
   <!-- PDF.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -68,41 +68,53 @@
       color: #38bdf8;
     }
 
-    /* ── 2. 直向橫置提示層 ── */
+    /* ── 2. 直向橫置提示層 (V158 經典 SVG 向量動畫) ── */
     #rotateNoticeModal {
       display: none;
       position: fixed;
       inset: 0;
       z-index: 8888;
-      background: #111214;
+      background: #0f1012;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
       padding: 20px;
     }
-    .rotate-icon {
-      font-size: 54px;
-      margin-bottom: 16px;
-      animation: rotatePulse 1.8s infinite ease-in-out;
+    .rotate-svg-wrap {
+      width: 90px;
+      height: 90px;
+      margin-bottom: 24px;
     }
-    @keyframes rotatePulse {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(-90deg); }
+    .phone-icon-body {
+      transform-origin: 45px 45px;
+      animation: v158RotateAnim 2.2s ease-in-out infinite;
     }
-    .rotate-text {
-      font-size: 22px;
+    @keyframes v158RotateAnim {
+      0%, 15% { transform: rotate(0deg); }
+      50%, 65% { transform: rotate(-90deg); }
+      100% { transform: rotate(0deg); }
+    }
+    .rotate-title {
+      font-size: 24px;
+      font-weight: bold;
       color: #fde68a;
       letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .rotate-sub {
+      font-size: 16px;
+      color: #9ca3af;
+      letter-spacing: 1px;
     }
 
-    /* ── 3. 21天心靈陪伴卡展示層 (純圖直出 + 淡橙按鈕) ── */
+    /* ── 3. 21天心靈陪伴卡展示層 (純圖直出 + 淡橙膠囊按鈕) ── */
     #companionModal {
       display: none;
       position: fixed;
       inset: 0;
       z-index: 7777;
-      background: rgba(10, 10, 12, 0.92);
+      background: rgba(10, 10, 12, 0.94);
       backdrop-filter: blur(6px);
       flex-direction: column;
       align-items: center;
@@ -126,11 +138,10 @@
       border-radius: 12px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
     }
-    /* 淡橙色 開始背誦 按鈕 */
     .companion-btn-orange {
       display: inline-block;
       margin-top: 14px;
-      padding: 10px 44px;
+      padding: 10px 48px;
       font-size: 22px;
       font-weight: bold;
       letter-spacing: 2px;
@@ -148,7 +159,7 @@
       background: linear-gradient(135deg, #fdba74 0%, #fb923c 100%);
     }
 
-    /* ── 4. 主播放器畫面 (全螢幕橫向) ── */
+    /* ── 4. 主播放器畫面 (V158 原生穩定雙欄架構) ── */
     #mainPlayerView {
       display: flex;
       width: 100vw;
@@ -157,48 +168,44 @@
       position: relative;
     }
     
-    /* 左側：經文 PDF 展示區 */
+    /* 左側：經文 PDF 檢視區 (純淨背景、自適應縮放) */
     #scriptureArea {
       flex: 1;
       height: 100%;
       overflow-y: auto;
-      position: relative;
-      background: #fbf7ee; /* 古典宣紙底 */
+      overflow-x: hidden;
+      background-color: #f6f3eb; /* 典雅宣紙底色 */
       display: flex;
-      flex-direction: column;
       align-items: center;
-      padding: 20px 0;
+      justify-content: center;
+      padding: 10px;
+      position: relative;
     }
     #pdfCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      border-radius: 4px;
       display: block;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-    }
-    /* 導引底線 (固定於文字下方 +7px) */
-    #reciteGuideLine {
-      position: absolute;
-      left: 0;
-      height: 3px;
-      background: #d97706;
-      border-radius: 2px;
-      transition: width 0.08s linear, top 0.2s ease;
-      pointer-events: none;
-      display: none;
     }
 
     /* 右側：影音與狀態控制欄 */
     #controlSidebar {
-      width: 260px;
+      width: 280px;
       height: 100%;
-      background: #18191c;
-      border-left: 1px solid #2d3035;
+      background: #16181b;
+      border-left: 1px solid #282a2e;
       display: flex;
       flex-direction: column;
       padding: 14px;
       justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 10;
     }
     .video-box {
       width: 100%;
-      height: 140px;
+      height: 145px;
       background: #000;
       border-radius: 8px;
       overflow: hidden;
@@ -207,33 +214,38 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
+      display: block;
     }
     .status-panel {
-      background: #222429;
+      background: #202227;
       border-radius: 8px;
-      padding: 12px;
-      font-size: 14px;
+      padding: 14px 12px;
+      font-size: 15px;
       line-height: 1.6;
     }
     .status-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .status-row:last-child {
+      margin-bottom: 0;
     }
     .mic-dot {
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
-      background: #6b7280;
+      background: #4b5563;
       display: inline-block;
+      transition: background 0.2s ease;
     }
     .mic-dot.active {
       background: #ef4444;
-      box-shadow: 0 0 8px #ef4444;
-      animation: micBlink 0.8s infinite alternate;
+      box-shadow: 0 0 10px #ef4444;
+      animation: micPulse 0.8s infinite alternate;
     }
-    @keyframes micBlink {
+    @keyframes micPulse {
       from { opacity: 0.4; }
       to { opacity: 1; }
     }
@@ -246,14 +258,21 @@
       font-weight: bold;
       cursor: pointer;
       margin-top: 8px;
+      user-select: none;
     }
     .btn-mode {
       background: #2563eb;
       color: #fff;
     }
+    .btn-mode:active {
+      background: #1d4ed8;
+    }
     .btn-exit {
-      background: #4b5563;
+      background: #374151;
       color: #f3f4f6;
+    }
+    .btn-exit:active {
+      background: #1f2937;
     }
   </style>
 </head>
@@ -269,13 +288,28 @@
     </div>
   </div>
 
-  <!-- 2. 直向橫置提示層 -->
+  <!-- 2. 直向橫置提示層 (V158 原生經典向量手機圖示) -->
   <div id="rotateNoticeModal">
-    <div class="rotate-icon">📱 ➔ 📲</div>
-    <div class="rotate-text">請將手機橫向放置・開啟全螢幕背誦</div>
+    <div class="rotate-svg-wrap">
+      <svg viewBox="0 0 90 90" width="90" height="90">
+        <!-- 外圍旋轉指引弧線與箭頭 -->
+        <path d="M 45 12 A 33 33 0 0 1 78 45" fill="none" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" />
+        <polygon points="78,35 84,47 72,45" fill="#f59e0b" />
+        <path d="M 45 78 A 33 33 0 0 1 12 45" fill="none" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" />
+        <polygon points="12,55 6,43 18,45" fill="#f59e0b" />
+        <!-- 旋轉中的手機主體 -->
+        <g class="phone-icon-body">
+          <rect x="32" y="18" width="26" height="54" rx="5" fill="#1e2126" stroke="#fbbf24" stroke-width="2.5" />
+          <rect x="36" y="24" width="18" height="40" rx="2" fill="#2d323b" />
+          <circle cx="45" cy="67" r="1.8" fill="#fbbf24" />
+        </g>
+      </svg>
+    </div>
+    <div class="rotate-title">請旋轉手機為橫向</div>
+    <div class="rotate-sub">橫向鎖定以獲得最佳背誦視野</div>
   </div>
 
-  <!-- 3. 21天心靈陪伴卡展示層 -->
+  <!-- 3. 21天心靈陪伴卡展示層 (純圖呈現) -->
   <div id="companionModal">
     <div class="companion-img-container">
       <img id="companionCardImg" class="companion-img" src="" alt="心靈陪伴卡" />
@@ -287,7 +321,6 @@
   <div id="mainPlayerView">
     <div id="scriptureArea">
       <canvas id="pdfCanvas"></canvas>
-      <div id="reciteGuideLine"></div>
     </div>
     <div id="controlSidebar">
       <div class="video-box">
@@ -316,36 +349,36 @@
 
   <script>
     /* =========================================================================
-       1. 系統常數與每句經文時間定義 (Schema)
+       1. 經文時間戳記與麥克風參數
        ========================================================================= */
     const SCRIPTURE_SENTENCES = [
-      { id: 1, text: "爾時世尊。食時。著衣持缽。", start: 0.0, end: 4.8, duration: 4.8, repeatCount: 3 },
-      { id: 2, text: "入舍衛大城乞食。於其城中。次第乞已。", start: 4.8, end: 10.5, duration: 5.7, repeatCount: 3 },
-      { id: 3, text: "還至本處。飯食訖。收衣缽。", start: 10.5, end: 15.2, duration: 4.7, repeatCount: 3 },
-      { id: 4, text: "洗足已。敷座而坐。", start: 15.2, end: 19.8, duration: 4.6, repeatCount: 3 },
-      { id: 5, text: "時長老須菩提。在大眾中。即從座起。", start: 19.8, end: 25.4, duration: 5.6, repeatCount: 3 },
-      { id: 6, text: "偏袒右肩。右膝著地。合掌恭敬。", start: 25.4, end: 31.0, duration: 5.6, repeatCount: 3 },
-      { id: 7, text: "而白佛言。希有世尊。", start: 31.0, end: 35.5, duration: 4.5, repeatCount: 3 },
-      { id: 8, text: "如來善護念諸菩薩。善付囑諸菩薩。", start: 35.5, end: 42.0, duration: 6.5, repeatCount: 3 }
+      { id: 1, start: 0.0, end: 4.8, duration: 4.8, repeatCount: 3 },
+      { id: 2, start: 4.8, end: 10.5, duration: 5.7, repeatCount: 3 },
+      { id: 3, start: 10.5, end: 15.2, duration: 4.7, repeatCount: 3 },
+      { id: 4, start: 15.2, end: 19.8, duration: 4.6, repeatCount: 3 },
+      { id: 5, start: 19.8, end: 25.4, duration: 5.6, repeatCount: 3 },
+      { id: 6, start: 25.4, end: 31.0, duration: 5.6, repeatCount: 3 },
+      { id: 7, start: 31.0, end: 35.5, duration: 4.5, repeatCount: 3 },
+      { id: 8, start: 35.5, end: 42.0, duration: 6.5, repeatCount: 3 }
     ];
 
-    // 麥克風音訊收音設定 (最新參數)
+    // 麥克風音訊收音設定
     const VAD_CONFIG = {
       VOLUME_THRESHOLD: 0.08,        // 音量閥值
-      MIN_SPEECH_DURATION: 0.2,      // 【調整 1】發聲門檻調小至 0.2 秒 (捕捉短促音)
-      SILENCE_HANGOVER: 1.0,         // 句末連續安靜 1.0 秒判定讀完
-      TIMEOUT_EXTRA_SECONDS: 10.0    // 【調整 2】超時容許寬限 (+10 秒)
+      MIN_SPEECH_DURATION: 0.2,      // 最短發聲門檻 0.2 秒 (捕捉短促音)
+      SILENCE_HANGOVER: 1.0,         // 連續安靜 1.0 秒判定背完
+      TIMEOUT_EXTRA_SECONDS: 10.0    // 容許超時：句長 + 10 秒
     };
 
     /* =========================================================================
-       2. 狀態變數
+       2. 系統狀態變數
        ========================================================================= */
     let currentSentenceIndex = 0;
     let currentSentenceCycle = 1;
     let isDualModeRecite = true; // true: 自背檢核, false: 示範跟讀
     let isPlaying = false;
 
-    // 麥克風與音訊處理
+    // 麥克風硬體與分析節點
     let audioCtx = null;
     let micStream = null;
     let analyserNode = null;
@@ -355,12 +388,12 @@
     let silenceTimer = null;
     let maxTimeoutTimer = null;
 
-    // PDF 狀態
+    // PDF 實例
     let pdfDoc = null;
     let hasRenderedPdfOnce = false;
 
     /* =========================================================================
-       3. 核心流程：LINE 檢查 ➔ 橫向偵測 ➔ 陪伴卡 ➔ 開始背誦
+       3. 核心啟動流程：LINE 檢查 ➔ 橫向偵測 ➔ 陪伴卡 ➔ 開始背誦
        ========================================================================= */
     window.addEventListener("DOMContentLoaded", () => {
       // 1. 檢查是否在 LINE 內嵌瀏覽器中
@@ -368,10 +401,10 @@
       const isLine = /Line\//i.test(ua) || /FBAN\//i.test(ua) || /FBAV\//i.test(ua);
       if (isLine) {
         document.getElementById("lineGuideModal").style.display = "flex";
-        return; // 在 LINE 內時嚴格中斷，僅引導三點切換
+        return;
       }
 
-      // 2. 啟動螢幕方向監聽
+      // 2. 螢幕方向監聽
       window.addEventListener("resize", checkOrientationBeforeStart);
       window.addEventListener("orientationchange", checkOrientationBeforeStart);
       checkOrientationBeforeStart();
@@ -387,7 +420,6 @@
         companionModal.style.display = "none";
       } else {
         rotateModal.style.display = "none";
-        // 橫放且未進入背誦前，展示心靈陪伴卡
         if (!hasRenderedPdfOnce) {
           showCompanionCard();
         }
@@ -395,7 +427,7 @@
     }
 
     /* =========================================================================
-       4. 21天心靈陪伴卡排程與循環邏輯 (修復回到第 1 天問題)
+       4. 21天心靈陪伴卡排程與循環邏輯
        ========================================================================= */
     function showCompanionCard() {
       const modal = document.getElementById("companionModal");
@@ -408,28 +440,27 @@
       let targetDay = 1;
 
       if (paramDay) {
-        // 直覺快速測試參數：?day=22
+        // 快速測試參數：?day=22
         targetDay = parseInt(paramDay, 10) || 1;
       } else if (paramStart) {
-        // 正式開課排程天數計算：?start=YYYY-MM-DD
+        // 正式排程天數：?start=YYYY-MM-DD
         const startDate = new Date(paramStart);
         const today = new Date();
         const diffTime = today - startDate;
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         targetDay = diffDays > 0 ? diffDays : 1;
       } else {
-        // 測試無參數輪播 (擴充至 22 天，重整 22 次看到圓滿長駐卡，第 23 次重啟)
-        let testCycle = parseInt(localStorage.getItem("recite_test_cycle_day") || "1", 10);
+        // 測試無參數輪播 (以 22 天為週期循環)
+        let testCycle = parseInt(localStorage.getItem("recite_test_cycle_v160") || "1", 10);
         targetDay = testCycle;
-        // 儲存下一次輪播天數
         let nextCycle = testCycle >= 22 ? 1 : testCycle + 1;
-        localStorage.setItem("recite_test_cycle_day", nextCycle.toString());
+        localStorage.setItem("recite_test_cycle_v160", nextCycle.toString());
       }
 
-      // 當天數 >= 22，永遠鎖定第 21 天金月圓滿長駐卡 (不回第 1 天)
+      // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
       let cardFileName = "";
       if (targetDay >= 22) {
-        cardFileName = "card_021.webp"; // 長駐圓滿卡
+        cardFileName = "card_021.webp";
       } else {
         const paddedNum = String(targetDay).padStart(3, "0");
         cardFileName = `card_${paddedNum}.webp`;
@@ -440,10 +471,9 @@
     }
 
     /* =========================================================================
-       5. 點擊「開始背誦」：全螢幕 + 拔除轉向監聽 + 250ms 單次渲染 PDF
+       5. 點擊「開始背誦」：全螢幕 + 解除轉向偵測 + 延遲渲染 PDF
        ========================================================================= */
     document.getElementById("btnStartRecite").addEventListener("click", () => {
-      // 1. 啟動全螢幕
       const docEl = document.documentElement;
       if (docEl.requestFullscreen) {
         docEl.requestFullscreen().catch(() => {});
@@ -451,90 +481,60 @@
         docEl.webkitRequestFullscreen();
       }
 
-      // 2. 徹底拔除轉向偵測監聽 (防止背誦過程中手機傾斜跳出警告)
+      // 拔除轉向監聽，背誦期間傾斜不受打擾
       window.removeEventListener("resize", checkOrientationBeforeStart);
       window.removeEventListener("orientationchange", checkOrientationBeforeStart);
 
-      // 3. 隱藏陪伴卡
       document.getElementById("companionModal").style.display = "none";
 
-      // 4. 延遲 250ms 等待全螢幕視窗座標完全穩定，單次繪製 PDF
+      // 延遲 250ms 等待全螢幕幾何尺寸穩定後執行單次渲染
       setTimeout(() => {
         initPdfAndStartEngine();
       }, 250);
     });
 
     /* =========================================================================
-       6. PDF 渲染與導引線精準定位 (v158 標準)
+       6. PDF 渲染與自適應等比縮放
        ========================================================================= */
     function initPdfAndStartEngine() {
       if (hasRenderedPdfOnce) return;
       hasRenderedPdfOnce = true;
 
-      // 預設載入同層目錄的 scripture.pdf (若無檔案則畫出示範經文)
       const pdfPath = "scripture.pdf";
       pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
       pdfjsLib.getDocument(pdfPath).promise.then(pdf => {
         pdfDoc = pdf;
         renderPdfPage(1);
-      }).catch(() => {
-        renderFallbackScriptureCanvas();
+      }).catch(err => {
+        console.warn("未偵測到外部 scripture.pdf，請確認檔案位置:", err);
       });
 
-      // 啟動時間軸狀態循環
       startPlayback();
     }
 
     function renderPdfPage(pageNum) {
+      if (!pdfDoc) return;
       pdfDoc.getPage(pageNum).then(page => {
-        const scriptureArea = document.getElementById("scriptureArea");
-        const viewport = page.getViewport({ scale: 1.5 });
+        const container = document.getElementById("scriptureArea");
+        const availableHeight = container.clientHeight - 20;
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+        
+        // 依據容器可用高度精準等比縮放
+        const scale = availableHeight / unscaledViewport.height;
+        const viewport = page.getViewport({ scale: scale > 0 ? scale : 1.0 });
+
         const canvas = document.getElementById("pdfCanvas");
         const ctx = canvas.getContext("2d");
-
         canvas.height = viewport.height;
         canvas.width = viewport.width;
 
-        page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
-          positionGuideLineForSentence(0);
-        });
+        page.render({ canvasContext: ctx, viewport: viewport });
       });
-    }
-
-    function renderFallbackScriptureCanvas() {
-      // 當尚無 scripture.pdf 時，自動生成示範經文畫面
-      const canvas = document.getElementById("pdfCanvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = 720;
-      canvas.height = 960;
-
-      ctx.fillStyle = "#FBF7EE";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = "#1c1917";
-      ctx.font = "bold 34px 'KaiTi', 'Noto Serif TC', serif";
-
-      SCRIPTURE_SENTENCES.forEach((item, idx) => {
-        const yPos = 120 + idx * 80;
-        ctx.fillText(item.text, 60, yPos);
-      });
-
-      positionGuideLineForSentence(0);
-    }
-
-    function positionGuideLineForSentence(index) {
-      const guideLine = document.getElementById("reciteGuideLine");
-      // 文字基線下方精準貼齊 +7px
-      const yOffset = 120 + index * 80 + 7;
-      guideLine.style.top = `${yOffset}px`;
-      guideLine.style.left = `60px`;
-      guideLine.style.width = `0px`;
-      guideLine.style.display = "block";
     }
 
     /* =========================================================================
-       7. 播放軸推進與狀態機 (每句讀誦流程)
+       7. 播放循環與每句時間比對狀態機
        ========================================================================= */
     const videoEl = document.getElementById("chantVideo");
 
@@ -551,13 +551,7 @@
       const sentence = SCRIPTURE_SENTENCES[currentSentenceIndex];
 
       if (sentence) {
-        if (currentSec >= sentence.start && currentSec < sentence.end) {
-          // 導引線平滑推進
-          const progress = (currentSec - sentence.start) / sentence.duration;
-          const fullWidth = 580; // 經文行寬度
-          document.getElementById("reciteGuideLine").style.width = `${progress * fullWidth}px`;
-        } else if (currentSec >= sentence.end) {
-          // 抵達該句結尾，進入換句/覆誦決策
+        if (currentSec >= sentence.end) {
           handleSentenceEnd(sentence);
           return;
         }
@@ -570,16 +564,16 @@
       videoEl.pause();
 
       if (isDualModeRecite) {
-        // 自背檢核模式：啟動麥克風監聽長輩發聲
+        // 自背檢核模式：進入麥克風收音
         startMicVAD(sentence);
       } else {
-        // 示範模式：直接結算重複次數
+        // 示範跟讀模式：直接決策重複或前進
         advanceNextStep(sentence);
       }
     }
 
     /* =========================================================================
-       8. 麥克風 VAD 收音判定邏輯 (最短發聲 0.2s + 超時 +10s 關閉讀誦)
+       8. 麥克風收音 (0.2s 最短發聲門檻 + 句長+10s 超時關機)
        ========================================================================= */
     async function startMicVAD(sentence) {
       try {
@@ -599,7 +593,6 @@
         analyserNode.fftSize = 512;
         source.connect(analyserNode);
 
-        // 重置收音狀態
         hasSpoken = false;
         consecutiveSpeechTime = 0.0;
         clearTimeout(silenceTimer);
@@ -607,20 +600,18 @@
 
         document.getElementById("micIndicator").classList.add("active");
 
-        // 【設定 2】最大超時安全時間：句長 + 10 秒
+        // 超時安全計時：句長 + 10 秒
         const maxTimeoutMs = (sentence.duration + VAD_CONFIG.TIMEOUT_EXTRA_SECONDS) * 1000;
         maxTimeoutTimer = setTimeout(() => {
           stopMicVAD();
-          // 超時直接關閉讀誦，停止空轉
           abortRecitationSession("讀誦逾時，已為您暫停並關閉本次讀誦。");
         }, maxTimeoutMs);
 
-        // 啟動 50ms 循環輪詢音量振幅
+        // 50ms 循環輪詢音量
         const pcmData = new Uint8Array(analyserNode.frequencyBinCount);
         vadCheckInterval = setInterval(() => {
           analyserNode.getByteTimeDomainData(pcmData);
 
-          // 計算 RMS 均方根音量
           let sumSquares = 0;
           for (let i = 0; i < pcmData.length; i++) {
             const norm = (pcmData[i] - 128) / 128;
@@ -629,7 +620,7 @@
           const rms = Math.sqrt(sumSquares / pcmData.length);
 
           if (rms >= VAD_CONFIG.VOLUME_THRESHOLD) {
-            // 【設定 1】最短發聲累計滿 0.2 秒 (200ms) 立即確認開口
+            // 最短發聲達 0.2 秒 (200ms) 判定開口
             consecutiveSpeechTime += 0.05;
             if (consecutiveSpeechTime >= VAD_CONFIG.MIN_SPEECH_DURATION) {
               hasSpoken = true;
@@ -638,7 +629,7 @@
             }
           } else {
             consecutiveSpeechTime = 0;
-            // 已確認開口後，連續安靜達 1.0 秒判定讀完
+            // 開口後連續安靜達 1.0 秒判定背誦完成
             if (hasSpoken && !silenceTimer) {
               silenceTimer = setTimeout(() => {
                 stopMicVAD();
@@ -649,7 +640,7 @@
         }, 50);
 
       } catch (err) {
-        console.warn("麥克風無法啟動，回退至純時長等待模式:", err);
+        console.warn("麥克風無法調用，回退至時長等待:", err);
         setTimeout(() => {
           advanceNextStep(sentence);
         }, sentence.duration * 1000);
@@ -664,28 +655,23 @@
     }
 
     /* =========================================================================
-       9. 推進與重複決策
+       9. 推進與循環決策
        ========================================================================= */
     function advanceNextStep(sentence) {
       if (currentSentenceCycle < sentence.repeatCount) {
-        // 單句重複次數未滿，倒回句首再背一次
         currentSentenceCycle++;
         updateStatusDisplay();
         videoEl.currentTime = sentence.start;
-        document.getElementById("reciteGuideLine").style.width = "0px";
         startPlayback();
       } else {
-        // 該句重複完成，進入下一句
         currentSentenceCycle = 1;
         currentSentenceIndex++;
 
         if (currentSentenceIndex < SCRIPTURE_SENTENCES.length) {
           updateStatusDisplay();
-          positionGuideLineForSentence(currentSentenceIndex);
           videoEl.currentTime = SCRIPTURE_SENTENCES[currentSentenceIndex].start;
           startPlayback();
         } else {
-          // 全卷背誦圓滿
           isPlaying = false;
           alert("🎉 功德圓滿！本日背誦已圓滿完成。");
           shutdownAndExit();
@@ -699,7 +685,7 @@
     }
 
     /* =========================================================================
-       10. 關閉讀誦與退出演算法 (超時中止與關機鍵共用)
+       10. 關閉讀誦與退出演算法
        ========================================================================= */
     function abortRecitationSession(msg) {
       shutdownAndExit();
@@ -710,17 +696,14 @@
       isPlaying = false;
       videoEl.pause();
 
-      // 1. 釋放麥克風硬體
       stopMicVAD();
       if (micStream) {
         micStream.getTracks().forEach(track => track.stop());
         micStream = null;
       }
-      // 2. 休眠 Web Audio
       if (audioCtx && audioCtx.state !== "closed") {
         audioCtx.suspend();
       }
-      // 3. 退出全螢幕
       if (document.fullscreenElement || document.webkitFullscreenElement) {
         if (document.exitFullscreen) {
           document.exitFullscreen().catch(() => {});
@@ -730,7 +713,7 @@
       }
     }
 
-    // 按鈕：切換雙模模式
+    // 按鈕：切換模式
     document.getElementById("btnToggleMode").addEventListener("click", () => {
       isDualModeRecite = !isDualModeRecite;
       document.getElementById("btnToggleMode").innerText = isDualModeRecite ? "模式：自背檢核模式" : "模式：示範跟讀模式";
