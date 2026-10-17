@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v185 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v186 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -520,8 +520,8 @@
     <div class="side-wing" id="right-wing">
       <div class="slot" id="slot-r1"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
       <div class="slot" id="slot-r2"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
-      <div class="slot" id="slot-r3"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button></div>
-      <div class="slot" id="slot-r4"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button></div>
+      <div class="slot" id="slot-r3"></div> <!-- 跟讀時隱藏 -->
+      <div class="slot" id="slot-r4"></div> <!-- 跟讀時隱藏 -->
     </div>
   </div>
 
@@ -624,11 +624,6 @@
     const btnRepeatCount = document.getElementById('btn-repeat-count');
     const btnShutdownExit = document.getElementById('btn-shutdown-exit');
     const repeatModal = document.getElementById('repeat-modal');
-
-    const btnGuideToggle = document.getElementById('btn-guide-toggle');
-    const btnOffering = document.getElementById('btn-offering');
-    const btnSpeedUp = document.getElementById('btn-speed-up');
-    const btnSpeedDown = document.getElementById('btn-speed-down');
 
     const slotR1 = document.getElementById('slot-r1');
     const slotR2 = document.getElementById('slot-r2');
@@ -794,6 +789,7 @@
         applyScheduleToState();
       }
       syncFiveFilesInBackground();
+      resetSideWingsForMode('mp4'); // 初始化跟讀模式翼鍵
     }
 
     async function renderPdfOnValidDimensions() {
@@ -891,9 +887,6 @@
       recordAudioElement.playbackRate = baseSpeed;
     }
 
-    btnSpeedUp.addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(+0.1); });
-    btnSpeedDown.addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(-0.1); });
-
     function speakPrompt(text) {
       try {
         if ('speechSynthesis' in window) {
@@ -977,7 +970,7 @@
       if (newIndex < 0) newIndex = 0;
       if (newIndex >= modeSequence.length) newIndex = modeSequence.length - 1;
 
-      if (newIndex === currentIndex) return; // 已經在邊界，不做任何事
+      if (newIndex === currentIndex) return;
 
       const targetMode = modeSequence[newIndex];
       setMode(targetMode);
@@ -989,8 +982,6 @@
 
       const btnMarkA = document.getElementById('btn-mark-a');
       const btnMarkB = document.getElementById('btn-mark-b');
-      const btnSpeedUp = document.getElementById('btn-speed-up');
-      const btnSpeedDown = document.getElementById('btn-speed-down');
 
       if (currentMode === 'mp4') {
         pdfContainerWrap.style.display = 'none';
@@ -999,8 +990,6 @@
 
         if (btnMarkA) btnMarkA.style.visibility = 'hidden';
         if (btnMarkB) btnMarkB.style.visibility = 'hidden';
-        if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
-        if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
         resetSideWingsForMode('mp4');
 
         const range = getActiveVideoRange();
@@ -1017,8 +1006,6 @@
 
         if (btnMarkA) btnMarkA.style.visibility = 'visible';
         if (btnMarkB) btnMarkB.style.visibility = 'visible';
-        if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
-        if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
         resetSideWingsForMode('pdf');
 
         scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
@@ -1031,8 +1018,6 @@
 
         if (btnMarkA) btnMarkA.style.visibility = 'hidden';
         if (btnMarkB) btnMarkB.style.visibility = 'hidden';
-        if (btnSpeedUp) btnSpeedUp.style.visibility = 'hidden';
-        if (btnSpeedDown) btnSpeedDown.style.visibility = 'hidden';
         resetSideWingsForMode('record');
 
         showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
@@ -1042,6 +1027,7 @@
 
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
+        // 左1: 語速調整按鈕
         btnMarkA.className = "circle-btn btn-color-speed-up";
         btnMarkA.textContent = `${baseSpeed.toFixed(1)}x`;
         btnMarkA.style.visibility = 'visible';
@@ -1054,6 +1040,7 @@
         btnMarkB.style.visibility = 'hidden';
         document.getElementById('btn-repeat-count').style.visibility = 'hidden';
 
+        // 右側翼鍵：右1&2 長方形錄音；右3&4 播放
         slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">🎙️ 錄音</button>`;
         slotR2.innerHTML = '';
 
@@ -1066,15 +1053,29 @@
         document.getElementById('wing-btn-play').addEventListener('click', () => {
           togglePlaybackAction();
         });
+      } else if (mode === 'mp4') {
+        // 跟讀模式：隱藏起點、終點，且隱藏語快語慢鍵 (R3, R4 留空)
+        btnMarkA.style.visibility = 'hidden';
+        btnMarkB.style.visibility = 'hidden';
+        document.getElementById('btn-repeat-count').style.visibility = 'hidden';
+
+        slotR1.innerHTML = `<button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button>`;
+        slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
+        slotR3.innerHTML = ''; // 隱藏語快
+        slotR4.innerHTML = ''; // 隱藏語慢
+
+        document.getElementById('btn-guide-toggle').addEventListener('click', handleGuideToggleClick);
+        document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
       } else {
+        // 自讀模式 (pdf)
         btnMarkA.className = "circle-btn btn-color-mark-a";
         btnMarkA.textContent = "起點";
-        btnMarkA.style.visibility = (mode === 'pdf') ? 'visible' : 'hidden';
+        btnMarkA.style.visibility = 'visible';
         btnMarkA.onclick = null;
 
         btnMarkB.className = "circle-btn btn-color-mark-b";
         btnMarkB.textContent = "終點";
-        btnMarkB.style.visibility = (mode === 'pdf') ? 'visible' : 'hidden';
+        btnMarkB.style.visibility = 'visible';
 
         document.getElementById('btn-repeat-count').style.visibility = 'visible';
 
@@ -1090,6 +1091,7 @@
       }
     }
 
+    // 🎙️ 智慧錄音核心：結合 VAD，有聲音才錄，靜音自動過濾！
     async function toggleSmartRecordAction() {
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
@@ -1132,7 +1134,7 @@
 
           mediaRecorder.start(100);
           isUserRecording = true;
-          wingBtnRecord.textContent = '⏹ 停止';
+          wingBtnRecord.textContent = '⏹ 結束';
           wingBtnRecord.style.background = 'linear-gradient(135deg, #64748B 0%, #475569 100%)';
           showToast('🔴 智慧錄音中（有聲音才錄）...', 3000);
         } catch (err) {
@@ -1149,17 +1151,21 @@
     }
 
     function togglePlaybackAction() {
+      const btnPlay = document.getElementById('wing-btn-play');
       if (!recordedAudioBlobUrl) {
         showToast('尚無錄音檔案可供播放', 2500);
         return;
       }
       if (recordAudioElement.paused) {
         recordAudioElement.playbackRate = baseSpeed;
-        recordAudioElement.play().catch(() => {});
-        document.getElementById('wing-btn-play').textContent = '❚❚ 暫停';
+        recordAudioElement.play().then(() => {
+          if (btnPlay) btnPlay.textContent = '❚❚ 暫停';
+        }).catch((err) => {
+          console.error("播放受阻:", err);
+        });
       } else {
         recordAudioElement.pause();
-        document.getElementById('wing-btn-play').textContent = '▶ 播放';
+        if (btnPlay) btnPlay.textContent = '▶ 播放';
       }
     }
 
@@ -1422,9 +1428,12 @@
           }
 
           video.play().then(() => {
-            btnGuideToggle.textContent = '暫停';
-            btnGuideToggle.classList.add('guide-active');
-            btnGuideToggle.classList.remove('guide-waiting');
+            const btnGuide = document.getElementById('btn-guide-toggle');
+            if (btnGuide) {
+              btnGuide.textContent = '暫停';
+              btnGuide.classList.add('guide-active');
+              btnGuide.classList.remove('guide-waiting');
+            }
             showToast(`▶ 播放中：第 ${range.sentenceA}～${range.sentenceB} 句`, 2000);
           }).catch((err) => {
             console.error("播放受阻:", err);
@@ -1434,8 +1443,11 @@
         } else {
           video.pause();
           videoPausedAt = video.currentTime;
-          btnGuideToggle.textContent = '背書';
-          btnGuideToggle.classList.remove('guide-active');
+          const btnGuide = document.getElementById('btn-guide-toggle');
+          if (btnGuide) {
+            btnGuide.textContent = '背書';
+            btnGuide.classList.remove('guide-active');
+          }
           showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒，再按背書接續播放`, 3000);
         }
         return;
@@ -1462,16 +1474,16 @@
       currentLineIndex = markA_Index;
       currentCharIndexFloat = 0.0;
 
-      btnGuideToggle.textContent = '靜止';
-      btnGuideToggle.classList.remove('guide-active');
-      btnGuideToggle.classList.add('guide-waiting');
+      const btnGuide = document.getElementById('btn-guide-toggle');
+      if (btnGuide) {
+        btnGuide.textContent = '靜止';
+        btnGuide.classList.remove('guide-active');
+        btnGuide.classList.add('guide-waiting');
+      }
 
       startGuideRunner();
       startVoiceActivityDetection();
     }
-
-    const btnGuideToggleDom = document.getElementById('btn-guide-toggle');
-    if (btnGuideToggleDom) btnGuideToggleDom.addEventListener('click', handleGuideToggleClick);
 
     function handleOfferingClick() {
       if (isGuideActive) return;
@@ -1480,8 +1492,6 @@
       inputUserName.value = localStorage.getItem('user_profile_name') || '';
       offeringOverlay.style.display = 'flex';
     }
-    const btnOfferingDom = document.getElementById('btn-offering');
-    if (btnOfferingDom) btnOfferingDom.addEventListener('click', handleOfferingClick);
 
     // =========================================================================
     // 🔒【麥克風調校核心：0.2s 最短發聲門檻 ＋ 句長+10s 超時關機機制】
@@ -1520,7 +1530,8 @@
             connectMicStream();
           }).catch(err => {
             console.warn("麥克風啟動略過:", err);
-            btnGuideToggle.textContent = '靜止';
+            const btnGuide = document.getElementById('btn-guide-toggle');
+            if (btnGuide) btnGuide.textContent = '靜止';
           });
         } else {
           connectMicStream();
@@ -1780,7 +1791,7 @@
           } else {
             const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
             redDot.style.left = `${offsetLeft + (curLine.x1 * scaleX)}px`;
-            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
+            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
           }
         }
 
@@ -1914,13 +1925,14 @@
       return Math.max(1, Math.abs(end - start) + 1);
     }
 
-    btnOffering.addEventListener('click', () => {
+    function handleOfferingClick() {
       if (isGuideActive) return;
       displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
       inputClassId.value = localStorage.getItem('user_class_id') || '';
       inputUserName.value = localStorage.getItem('user_profile_name') || '';
       offeringOverlay.style.display = 'flex';
-    });
+    }
+
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
 
     btnConfirmOffering.addEventListener('click', () => {
@@ -2044,10 +2056,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V185_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V186_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V185_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V186_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2358,6 +2370,7 @@
       if (window.innerWidth > window.innerHeight && isCompanionDismissed) {
         await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
         updateVisualDisplay();
+        resetSideWingsForMode('mp4'); // 初始化預設跟讀模式翼鍵
       }
     });
   </script>
