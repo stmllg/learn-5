@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v162 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v163 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1651,7 +1651,7 @@
     });
 
     // =========================================================================
-    // 【陪伴卡流程控制：純圖展示 card_001.webp ~ card_021.webp】
+    // 【陪伴卡流程控制：純圖展示 card_001.webp ~ card_021.webp（時區修復版）】
     // =========================================================================
     let currentCompanionSeenKey = null;
 
@@ -1659,8 +1659,8 @@
       const urlParams = new URLSearchParams(window.location.search);
       const paramDay = urlParams.get('day');
       const startStr = urlParams.get('start');
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
       let targetDay = 1;
 
@@ -1668,10 +1668,13 @@
       if (paramDay) {
         targetDay = parseInt(paramDay, 10) || 1;
       }
-      // 2. 正式排程模式：?start=YYYY-MM-DD
+      // 2. 正式排程模式：?start=YYYY-MM-DD（精準排除時區與小時誤差的本地日曆天計算）
       else if (startStr) {
-        const start = new Date(startStr);
-        const diffTime = today - start;
+        const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
+        const startDate = new Date(sYear, sMonth - 1, sDay); // 本地午夜起始日
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // 本地午夜今日
+
+        const diffTime = todayDate - startDate;
         const currentDay = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         targetDay = currentDay > 0 ? currentDay : 1;
 
@@ -1685,10 +1688,10 @@
       }
       // 3. 測試無參數輪播 (以 22 天為週期循環)
       else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V162_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V163_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V162_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V163_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
@@ -1729,9 +1732,11 @@
         const startStr = urlParams.get('start');
 
         if (startStr) {
-          const start = new Date(startStr);
+          const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
+          const startDate = new Date(sYear, sMonth - 1, sDay);
           const now = new Date();
-          const targetDay = Math.max(1, Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1);
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const targetDay = Math.max(1, Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
           targetPlan = scheduleData.find(item => item.day === targetDay) || scheduleData[scheduleData.length - 1];
         } else {
           const todayStr = getNormalizedDateStr();
