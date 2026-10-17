@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v170 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v171 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -240,24 +240,26 @@
       overflow: hidden;
     }
 
+    /* 🟢 綠色通知置中顯示 (不再擋住上方經文) */
     #schedule-toast {
       display: none;
-      position: absolute;
-      top: 10px;
+      position: fixed;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
-      background: #10B981;
-      color: #064E3B;
-      border: 2.5px solid #FFFFFF;
-      padding: 10px 24px;
-      border-radius: 30px;
-      font-size: 17px;
+      transform: translate(-50%, -50%);
+      background: rgba(16, 185, 129, 0.96);
+      color: #FFFFFF;
+      border: 3px solid #FFFFFF;
+      padding: 14px 32px;
+      border-radius: 40px;
+      font-size: 20px;
       font-weight: 900;
-      z-index: 9999;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75);
+      z-index: 100000;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
       pointer-events: none;
       transition: opacity 0.3s ease;
       white-space: nowrap;
+      text-align: center;
     }
 
     #speed-toast-badge {
@@ -375,6 +377,18 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
+    /* 🌸 天女散花全螢幕畫布層 */
+    #flowerCanvas {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 999999;
+    }
+
     .popup-modal { display: none; position: absolute; top: 50%; left: calc(76px + env(safe-area-inset-left, 0px)); transform: translateY(-50%); background: rgba(30, 41, 59, 0.98); border-radius: 18px; padding: 14px; z-index: 100; flex-direction: column; gap: 10px; border: 2px solid #6366F1; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
     .modal-option { padding: 10px 20px; font-size: 18px; font-weight: 800; color: #FFFFFF; background-color: #334155; border: none; border-radius: 10px; cursor: pointer; text-align: center; }
     .modal-option.active { background: #6366F1; }
@@ -414,7 +428,7 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        請留意畫面<strong>右下角或右上角</strong>的三點圖示「<strong>⋮</strong>」或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
+        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
       </div>
     </div>
   </div>
@@ -434,9 +448,12 @@
     <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
   </div>
 
-  <!-- 狀態浮標 -->
+  <!-- 狀態浮標 (已置中) -->
   <div id="schedule-toast">📅 載入進度中...</div>
   <div id="speed-toast-badge">【語速 1.5x】</div>
+
+  <!-- 🌸 天女散花畫布層 -->
+  <canvas id="flowerCanvas"></canvas>
 
   <!-- 4. 主視圖 (v158 原生橫式雙模核心，完全保留) -->
   <div id="landscape-container">
@@ -875,7 +892,7 @@
       }
     }, { passive: true });
 
-    // 🎯 模式切換：在影片模式下自動隱藏「起點、終點、語快、語慢」，切回 PDF 模式時自動恢復顯示
+    // 🎯 模式切換：在影片模式下自動隱藏「起點、終點、語快、語慢」
     function toggleModeSwitch() {
       haltGuideRunnerImmediately();
 
@@ -890,7 +907,6 @@
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
 
-        // 🎬 進入影片播放模式：隱藏用不到的 PDF 設定按鈕
         if (btnMarkA) btnMarkA.style.visibility = 'hidden';
         if (btnMarkB) btnMarkB.style.visibility = 'hidden';
         if (btnSpeedUp) btnSpeedUp.style.visibility = 'hidden';
@@ -912,7 +928,6 @@
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
-        // 📖 切回 PDF 模式：恢復顯示所有按鈕
         if (btnMarkA) btnMarkA.style.visibility = 'visible';
         if (btnMarkB) btnMarkB.style.visibility = 'visible';
         if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
@@ -953,11 +968,84 @@
       }
     });
 
+    // 🌸 執行完成遍數後的慶祝：取消語音朗讀，改為「天女散花」彩色花瓣落下動畫
     function handleTargetCycleDone() {
       const todayStr = getNormalizedDateStr();
       localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
-      speakPrompt("背誦圓滿，功德無量");
+      
+      // 🚫 不出聲音 (已移除 speakPrompt)
       showToast("🎉 背誦圓滿！已完成排定遍數，隨喜功德", 4500);
+      
+      // ✨ 觸發天女散花動畫
+      triggerFlowerRainAnimation();
+    }
+
+    function triggerFlowerRainAnimation() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const petals = [];
+      const colors = ['#ff7675', '#fab1a0', '#ffeaa7', '#55efc4', '#74b9ff', '#a29bfe', '#fd79a8', '#e17055', '#ffe066', '#a9efac'];
+      
+      for (let i = 0; i < 90; i++) {
+        petals.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 9 + 6,
+          speedY: Math.random() * 2.5 + 1.5,
+          speedX: (Math.random() - 0.5) * 2,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 5,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          opacity: Math.random() * 0.6 + 0.4
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5000; // 5秒花瓣雨
+
+      function animatePetals(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        petals.forEach(p => {
+          p.y += p.speedY;
+          p.x += p.speedX + Math.sin(p.y / 35) * 1.0;
+          p.rotation += p.rotationSpeed;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.opacity;
+
+          // 繪製優雅的花瓣形狀 (橢圓葉片狀)
+          ctx.beginPath();
+          ctx.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+
+          // 循環掉落
+          if (p.y > canvas.height + 25) {
+            p.y = -25;
+            p.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animatePetals);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animatePetals);
     }
 
     // =========================================================================
@@ -1458,7 +1546,7 @@
         } else {
           const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
           redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
-          redDot.style.top = `${offsetTop + (rawX * scaleX)}px`;
+          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
         }
       }
       guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -1707,10 +1795,10 @@
       }
       // 3. 測試無參數輪播 (以 22 天為週期循環)
       else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V170_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V171_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V170_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V171_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
