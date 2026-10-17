@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v182 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v183 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -401,7 +401,7 @@
       width: 100%;
       height: 100%;
       background-color: #000000;
-      display: none;
+      display: flex; /* 預設顯示跟讀模式 */
       justify-content: center;
       align-items: center;
       z-index: 55;
@@ -476,7 +476,7 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong><strong>以預設瀏覽器開啟</strong></strong>（Safari 或 Chrome）。
+        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
       </div>
     </div>
   </div>
@@ -501,7 +501,7 @@
 
   <!-- 狀態浮標 (置中) -->
   <div id="schedule-toast">📅 載入進度中...</div>
-  <div id="speed-toast-badge">【語速 2.0x】</div>
+  <div id="speed-toast-badge">【語速 1.0x】</div>
 
   <!-- 🌸 五瓣花天女散花畫布層 -->
   <canvas id="flowerCanvas"></canvas>
@@ -509,13 +509,9 @@
   <!-- 4. 主視圖 (v158 原生橫式雙模核心，完全保留) -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
-      <!-- Slot 1: 自讀/跟讀時為起點；比對模式時為語速調整 -->
-      <div class="slot"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起點</button></div>
-      <!-- Slot 2: 自讀/跟讀時為終點 -->
-      <div class="slot"><button class="circle-btn btn-color-mark-b" id="btn-mark-b">終點</button></div>
-      <!-- Slot 3: 重複次數 -->
+      <div class="slot"><button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: hidden;">起點</button></div>
+      <div class="slot"><button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: hidden;">終點</button></div>
       <div class="slot"><button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button></div>
-      <!-- Slot 4: 關機鍵（永遠保留） -->
       <div class="slot"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">關機</button></div>
     </div>
 
@@ -527,11 +523,12 @@
         <div id="red-dot"></div>
       </div>
 
-      <div id="pdf-container-wrap">
+      <div id="pdf-container-wrap" style="display: none;">
         <canvas id="pdf-canvas"></canvas>
       </div>
 
-      <div id="video-container-wrap">
+      <!-- 預設啟動：跟讀模式 -->
+      <div id="video-container-wrap" style="display: flex;">
         <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
       </div>
 
@@ -545,10 +542,8 @@
     </div>
 
     <div class="side-wing" id="right-wing">
-      <!-- Slot 1 & 2 區塊：在比對模式時合併為長方型錄音控制 -->
       <div class="slot" id="slot-r1"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
       <div class="slot" id="slot-r2"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
-      <!-- Slot 3 & 4 區塊：在比對模式時合併為播放控制 -->
       <div class="slot" id="slot-r3"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button></div>
       <div class="slot" id="slot-r4"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button></div>
     </div>
@@ -684,8 +679,8 @@
     let audioChunks = [];
     let isUserRecording = false;
 
-    // 三模式順序：'pdf' (自讀) -> 'mp4' (跟讀) -> 'record' (比對) -> 循環
-    let currentMode = 'pdf';
+    // ✨ 關鍵修正：預設啟動模式改為跟讀模式 ('mp4')
+    let currentMode = 'mp4';
     let scriptureData = [];
     let currentPdfDoc = null;
     let parsedTextLines = [];
@@ -884,7 +879,6 @@
       }, duration);
     }
 
-    // ✨ 模式切換開幕動畫 Banner (剛好 2 秒自動消失)
     function showModeBanner(title, subtitle) {
       if (!modeGrandBanner) return;
       modeGrandBanner.innerHTML = `<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">${title}</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">${subtitle}</div>`;
@@ -917,7 +911,6 @@
         setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
       }, 3000);
 
-      // 同步更新比對模式的語速
       playbackAudio.playbackRate = baseSpeed;
     }
 
@@ -991,7 +984,7 @@
       }
     }, { passive: true });
 
-    // 🎯 三段式循環切換：自讀模式 (pdf) ➔ 跟讀模式 (mp4) ➔ 比對模式 (record)
+    // 🎯 三段式循環切換：跟讀模式 (mp4) ➔ 比對模式 (record) ➔ 自讀模式 (pdf)
     function toggleModeSwitch() {
       haltGuideRunnerImmediately();
 
@@ -1000,8 +993,40 @@
       const btnSpeedUp = document.getElementById('btn-speed-up');
       const btnSpeedDown = document.getElementById('btn-speed-down');
 
-      if (currentMode === 'pdf') {
-        // 切換到跟讀模式 (mp4)
+      if (currentMode === 'mp4') {
+        // 從跟讀模式切換到比對模式 (record)
+        currentMode = 'record';
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'none';
+        guideStage.style.display = 'none';
+        recordWrap.style.display = 'flex';
+
+        if (btnMarkA) btnMarkA.style.visibility = 'hidden';
+        if (btnMarkB) btnMarkB.style.visibility = 'hidden';
+        if (btnSpeedUp) btnSpeedUp.style.visibility = 'hidden';
+        if (btnSpeedDown) btnSpeedDown.style.visibility = 'hidden';
+        resetSideWingsForMode('record');
+
+        showModeBanner('🎙️ 比對模式', '錄音比對・自我檢視');
+      } else if (currentMode === 'record') {
+        // 從比對模式切換到自讀模式 (pdf)
+        currentMode = 'pdf';
+        recordWrap.style.display = 'none';
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+        guideStage.style.display = 'block';
+
+        if (btnMarkA) btnMarkA.style.visibility = 'visible';
+        if (btnMarkB) btnMarkB.style.visibility = 'visible';
+        if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
+        if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
+        resetSideWingsForMode('pdf');
+
+        scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+        showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
+      } else {
+        // 從自讀模式切換回跟讀模式 (mp4)
         currentMode = 'mp4';
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
@@ -1020,47 +1045,12 @@
           video.currentTime = range.start;
         }
         showModeBanner('▶ 跟讀模式', `播放：第 ${range.sentenceA} ～ 第 ${range.sentenceB} 句`);
-      } else if (currentMode === 'mp4') {
-        // 切換到比對模式 (record)
-        currentMode = 'record';
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'none';
-        guideStage.style.display = 'none';
-        recordWrap.style.display = 'flex';
-
-        if (btnMarkA) btnMarkA.style.visibility = 'hidden';
-        if (btnMarkB) btnMarkB.style.visibility = 'hidden';
-        if (btnSpeedUp) btnSpeedUp.style.visibility = 'hidden';
-        if (btnSpeedDown) btnSpeedDown.style.visibility = 'hidden';
-        resetSideWingsForMode('record');
-
-        showModeBanner('🎙️ 比對模式', '錄音比對・自我檢視');
-      } else {
-        // 切換到自讀模式 (pdf)
-        currentMode = 'pdf';
-        video.pause();
-        recordWrap.style.display = 'none';
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-        guideStage.style.display = 'block';
-
-        if (btnMarkA) btnMarkA.style.visibility = 'visible';
-        if (btnMarkB) btnMarkB.style.visibility = 'visible';
-        if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
-        if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
-        resetSideWingsForMode('pdf');
-
-        scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-        showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
       }
       updateVisualDisplay();
     }
 
-    // 翼鍵動態佈局切換
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
-        // 左1: 語速調整按鈕
         btnMarkA.className = "circle-btn btn-color-speed-up";
         btnMarkA.textContent = `${baseSpeed.toFixed(1)}x`;
         btnMarkA.style.visibility = 'visible';
@@ -1070,19 +1060,15 @@
           btnMarkA.textContent = `${baseSpeed.toFixed(1)}x`;
         };
 
-        // 左2, 左3 隱藏
         btnMarkB.style.visibility = 'hidden';
         document.getElementById('btn-repeat-count').style.visibility = 'hidden';
 
-        // 右1 & 右2 區塊：長方型錄音按鈕
         slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">🎙️ 錄音</button>`;
         slotR2.innerHTML = '';
 
-        // 右3 & 右4 區塊：播放控制按鈕
         slotR3.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">▶ 播放</button>`;
         slotR4.innerHTML = '';
 
-        // 綁定比對模式按鈕事件
         document.getElementById('wing-btn-record').addEventListener('click', () => {
           toggleRecordAction();
         });
@@ -1090,15 +1076,14 @@
           togglePlaybackAction();
         });
       } else {
-        // 還原自讀/跟讀模式的翼鍵
         btnMarkA.className = "circle-btn btn-color-mark-a";
         btnMarkA.textContent = "起點";
-        btnMarkA.style.visibility = 'visible';
+        btnMarkA.style.visibility = (mode === 'pdf') ? 'visible' : 'hidden';
         btnMarkA.onclick = null;
 
         btnMarkB.className = "circle-btn btn-color-mark-b";
         btnMarkB.textContent = "終點";
-        btnMarkB.style.visibility = 'visible';
+        btnMarkB.style.visibility = (mode === 'pdf') ? 'visible' : 'hidden';
 
         document.getElementById('btn-repeat-count').style.visibility = 'visible';
 
@@ -1107,7 +1092,6 @@
         slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button>`;
         slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button>`;
 
-        // 重新綁定事件
         document.getElementById('btn-guide-toggle').addEventListener('click', handleGuideToggleClick);
         document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
         document.getElementById('btn-speed-up').addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(+0.1); });
@@ -1115,7 +1099,6 @@
       }
     }
 
-    // 比對模式錄音邏輯
     async function toggleRecordAction() {
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
@@ -1353,7 +1336,7 @@
     }
 
     btnMarkA.addEventListener('click', () => {
-      if (isGuideActive || currentMode === 'record') return;
+      if (isGuideActive || currentMode !== 'pdf') return;
       if (parsedTextLines.length === 0) return;
       isManualSelected = true;
       markA_Index = getLineAtButtonBottom(btnMarkA);
@@ -1368,7 +1351,7 @@
     });
 
     btnMarkB.addEventListener('click', () => {
-      if (isGuideActive || currentMode === 'record') return;
+      if (isGuideActive || currentMode !== 'pdf') return;
       if (parsedTextLines.length === 0) return;
       const selectedB = getLineAtButtonBottom(btnMarkB);
       if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
@@ -1785,7 +1768,7 @@
           } else {
             const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
             redDot.style.left = `${offsetLeft + (curLine.x1 * scaleX)}px`;
-            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
+            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
           }
         }
 
@@ -2049,10 +2032,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V182_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V183_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V182_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V183_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2124,7 +2107,7 @@
     }
 
     async function parseAndRenderPdfData(typedarray) {
-      pdfContainerWrap.style.display = 'flex';
+      pdfContainerWrap.style.display = 'none'; // 預設隱藏，由 mp4 優先
 
       const loadingTask = pdfjsLib.getDocument({
         data: typedarray,
@@ -2361,7 +2344,9 @@
       }
 
       if (window.innerWidth > window.innerHeight && isCompanionDismissed) {
-        renderPdfOnValidDimensions();
+        // 預設載入 PDF 解析供後續切換，但畫面直接停在 mp4 跟讀模式
+        await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
+        updateVisualDisplay();
       }
     });
   </script>
