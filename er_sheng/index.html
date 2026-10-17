@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v184 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v185 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -656,6 +656,8 @@
 
     // 預設啟動模式為跟讀模式 ('mp4')
     let currentMode = 'mp4';
+    const modeSequence = ['mp4', 'pdf', 'record']; // 0: 跟讀, 1: 自讀, 2: 比對
+
     let scriptureData = [];
     let currentPdfDoc = null;
     let parsedTextLines = [];
@@ -954,14 +956,36 @@
         const deltaY = e.changedTouches[0].clientY - touchStartY;
 
         if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-          toggleModeSwitch();
+          if (deltaX > 0) {
+            // 向右滑：前進 (跟讀 -> 自讀 -> 比對)
+            switchModeByDirection(1);
+          } else {
+            // 向左滑：後退 (比對 -> 自讀 -> 跟讀)
+            switchModeByDirection(-1);
+          }
         }
       }
     }, { passive: true });
 
-    // 🎯 三段式循環切換：跟讀模式 (mp4) ➔ 比對模式 (record，顯示 PDF 且不設定區段) ➔ 自讀模式 (pdf，設定區段)
-    function toggleModeSwitch() {
+    // 🎯 方向性直線切換（不循環繞圈）
+    function switchModeByDirection(direction) {
+      let currentIndex = modeSequence.indexOf(currentMode);
+      if (currentIndex === -1) currentIndex = 0;
+
+      let newIndex = currentIndex + direction;
+      // 鎖定邊界：不小於 0，不大於最大索引
+      if (newIndex < 0) newIndex = 0;
+      if (newIndex >= modeSequence.length) newIndex = modeSequence.length - 1;
+
+      if (newIndex === currentIndex) return; // 已經在邊界，不做任何事
+
+      const targetMode = modeSequence[newIndex];
+      setMode(targetMode);
+    }
+
+    function setMode(mode) {
       haltGuideRunnerImmediately();
+      currentMode = mode;
 
       const btnMarkA = document.getElementById('btn-mark-a');
       const btnMarkB = document.getElementById('btn-mark-b');
@@ -969,39 +993,6 @@
       const btnSpeedDown = document.getElementById('btn-speed-down');
 
       if (currentMode === 'mp4') {
-        // 1. 進入比對模式 (record)：顯示 PDF 檢視但不設定區段
-        currentMode = 'record';
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-        guideStage.style.display = 'none'; // 比對模式純瀏覽 PDF 與錄音，無小紅點追蹤
-
-        if (btnMarkA) btnMarkA.style.visibility = 'hidden';
-        if (btnMarkB) btnMarkB.style.visibility = 'hidden';
-        if (btnSpeedUp) btnSpeedUp.style.visibility = 'hidden';
-        if (btnSpeedDown) btnSpeedDown.style.visibility = 'hidden';
-        resetSideWingsForMode('record');
-
-        showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
-      } else if (currentMode === 'record') {
-        // 2. 進入自讀模式 (pdf)：顯示 PDF 且啟用起點、終點與小紅點背誦
-        currentMode = 'pdf';
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-        guideStage.style.display = 'block';
-
-        if (btnMarkA) btnMarkA.style.visibility = 'visible';
-        if (btnMarkB) btnMarkB.style.visibility = 'visible';
-        if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
-        if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
-        resetSideWingsForMode('pdf');
-
-        scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-        showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
-      } else {
-        // 3. 回到跟讀模式 (mp4)
-        currentMode = 'mp4';
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
@@ -1018,13 +1009,39 @@
           video.currentTime = range.start;
         }
         showModeBanner('▶ 跟讀模式', `播放：第 ${range.sentenceA} ～ 第 ${range.sentenceB} 句`);
+      } else if (currentMode === 'pdf') {
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+        guideStage.style.display = 'block';
+
+        if (btnMarkA) btnMarkA.style.visibility = 'visible';
+        if (btnMarkB) btnMarkB.style.visibility = 'visible';
+        if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
+        if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
+        resetSideWingsForMode('pdf');
+
+        scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+        showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
+      } else if (currentMode === 'record') {
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+        guideStage.style.display = 'none';
+
+        if (btnMarkA) btnMarkA.style.visibility = 'hidden';
+        if (btnMarkB) btnMarkB.style.visibility = 'hidden';
+        if (btnSpeedUp) btnSpeedUp.style.visibility = 'hidden';
+        if (btnSpeedDown) btnSpeedDown.style.visibility = 'hidden';
+        resetSideWingsForMode('record');
+
+        showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
       }
       updateVisualDisplay();
     }
 
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
-        // 左1: 語速調整按鈕
         btnMarkA.className = "circle-btn btn-color-speed-up";
         btnMarkA.textContent = `${baseSpeed.toFixed(1)}x`;
         btnMarkA.style.visibility = 'visible';
@@ -1037,7 +1054,6 @@
         btnMarkB.style.visibility = 'hidden';
         document.getElementById('btn-repeat-count').style.visibility = 'hidden';
 
-        // 右側翼鍵：右1&2 長方形錄音；右3&4 播放
         slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">🎙️ 錄音</button>`;
         slotR2.innerHTML = '';
 
@@ -1074,7 +1090,6 @@
       }
     }
 
-    // 🎙️ 智慧錄音核心：結合 VAD，有聲音才錄，靜音自動過濾！
     async function toggleSmartRecordAction() {
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
@@ -1084,7 +1099,6 @@
             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
           });
 
-          // 透過 AudioContext 與 Analyser 即時分析音量進行 VAD 過濾
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           const recordingAudioCtx = new AudioContextClass();
           const source = recordingAudioCtx.createMediaStreamSource(stream);
@@ -1096,13 +1110,11 @@
           mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
           mediaRecorder.ondataavailable = (e) => {
             if (e.data.size > 0) {
-              // 即時計算當前音量 RMS
               recordingAnalyser.getFloatTimeDomainData(dataArray);
               let sum = 0;
               for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
               const rms = Math.sqrt(sum / dataArray.length);
 
-              // 🛡️ 智慧判定：如果有聲音 (rms > 0.0020) 才保留此片段，靜音則過濾不錄！
               if (rms > 0.0020) {
                 audioChunks.push(e.data);
               }
@@ -1118,7 +1130,6 @@
             showToast('錄音完成！智慧過濾靜音，點右側播放聆聽', 4000);
           };
 
-          // 每 100ms 收集一次區塊以供 VAD 智慧過濾
           mediaRecorder.start(100);
           isUserRecording = true;
           wingBtnRecord.textContent = '⏹ 停止';
@@ -1769,7 +1780,7 @@
           } else {
             const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
             redDot.style.left = `${offsetLeft + (curLine.x1 * scaleX)}px`;
-            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
+            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
           }
         }
 
@@ -2033,10 +2044,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V184_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V185_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V184_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V185_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
