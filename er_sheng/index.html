@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v178 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v179 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -423,7 +423,7 @@
 </head>
 <body>
 
-  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 (純提示指引，無多餘按鈕) -->
+  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 (純指引、無按鈕) -->
   <div id="line-browser-overlay">
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
@@ -1290,7 +1290,8 @@
           if (calibrationSamples.length > 0) {
             const sum = calibrationSamples.reduce((a, b) => a + b, 0);
             baseNoiseLevel = sum / calibrationSamples.length;
-            dynamicThreshold = Math.max(0.0020, baseNoiseLevel * 1.12 + 0.0006);
+            // 🛡️ v179 高靈敏度設定：將底線降為 0.0012，乘數改為 1.05、加數改為 0.0003，完美契合安靜書房輕聲讀誦！
+            dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
           }
           isCalibrating = false;
         }, 350);
@@ -1355,7 +1356,6 @@
             }
           } else {
             silentFrameCount++;
-            // 🛡️ v178 關鍵調整：將無聲判定從 45 幀降為 24 幀（約 0.4 秒），讓故意停頓時紅點更快煞車停下！
             if (silentFrameCount >= 24) {
               if (isVoiceActive) {
                 isVoiceActive = false;
@@ -1780,10 +1780,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V178_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V179_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V178_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V179_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
