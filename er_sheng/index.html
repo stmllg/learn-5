@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v183 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v184 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -401,29 +401,12 @@
       width: 100%;
       height: 100%;
       background-color: #000000;
-      display: flex; /* 預設顯示跟讀模式 */
+      display: flex; /* 預設跟讀模式 */
       justify-content: center;
       align-items: center;
       z-index: 55;
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
-
-    /* 🎙️ 比對模式（錄音工作坊介面） */
-    #record-container-wrap {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle at center, #1E293B 0%, #0B0F19 100%);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 56;
-      flex-direction: column;
-      gap: 18px;
-      padding: 24px;
-    }
 
     /* 🌸 五瓣花天女散花全螢幕畫布層 */
     #flowerCanvas {
@@ -511,7 +494,7 @@
     <div class="side-wing" id="left-wing">
       <div class="slot"><button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: hidden;">起點</button></div>
       <div class="slot"><button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: hidden;">終點</button></div>
-      <div class="slot"><button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button></div>
+      <div class="slot"><button class="circle-btn btn-color-repeat" id="btn-repeat-count" style="visibility: hidden;">1次</button></div>
       <div class="slot"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">關機</button></div>
     </div>
 
@@ -523,21 +506,14 @@
         <div id="red-dot"></div>
       </div>
 
+      <!-- PDF 容器（自讀模式與比對模式共用，比對模式下不設定區段） -->
       <div id="pdf-container-wrap" style="display: none;">
         <canvas id="pdf-canvas"></canvas>
       </div>
 
       <!-- 預設啟動：跟讀模式 -->
-      <div id="video-container-wrap" style="display: flex;">
+      <div id="video-container-wrap">
         <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
-      </div>
-
-      <!-- 🎙️ 比對模式：錄音與回放工作坊介面 -->
-      <div id="record-container-wrap">
-        <div style="font-size: 26px; font-weight: 900; color: #FBBF24; letter-spacing: 2px;">🎙️ 比對模式・錄音工作坊</div>
-        <div style="font-size: 16px; color: #94A3B8; text-align: center; max-width: 420px; line-height: 1.6;">使用右側翼鍵進行錄音與回放比對，檢視您的誦讀發音與節奏。</div>
-        <div id="record-status" style="font-size: 18px; font-weight: bold; color: #38BDF8;">準備就緒</div>
-        <audio id="playback-audio" controls style="margin-top: 10px; display: none; width: 85%; max-width: 340px;"></audio>
       </div>
     </div>
 
@@ -639,7 +615,6 @@
     const pdfCanvas = document.getElementById('pdf-canvas');
     const videoWrap = document.getElementById('video-container-wrap');
     const video = document.getElementById('my-chant-video');
-    const recordWrap = document.getElementById('record-container-wrap');
 
     const scheduleToast = document.getElementById('schedule-toast');
     const speedToastBadge = document.getElementById('speed-toast-badge');
@@ -672,14 +647,14 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 比對模式相關 DOM
-    const recordStatus = document.getElementById('record-status');
-    const playbackAudio = document.getElementById('playback-audio');
+    // 比對模式錄音專用變數
     let mediaRecorder = null;
     let audioChunks = [];
     let isUserRecording = false;
+    let recordedAudioBlobUrl = null;
+    let recordAudioElement = new Audio();
 
-    // ✨ 關鍵修正：預設啟動模式改為跟讀模式 ('mp4')
+    // 預設啟動模式為跟讀模式 ('mp4')
     let currentMode = 'mp4';
     let scriptureData = [];
     let currentPdfDoc = null;
@@ -911,7 +886,7 @@
         setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
       }, 3000);
 
-      playbackAudio.playbackRate = baseSpeed;
+      recordAudioElement.playbackRate = baseSpeed;
     }
 
     btnSpeedUp.addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(+0.1); });
@@ -984,7 +959,7 @@
       }
     }, { passive: true });
 
-    // 🎯 三段式循環切換：跟讀模式 (mp4) ➔ 比對模式 (record) ➔ 自讀模式 (pdf)
+    // 🎯 三段式循環切換：跟讀模式 (mp4) ➔ 比對模式 (record，顯示 PDF 且不設定區段) ➔ 自讀模式 (pdf，設定區段)
     function toggleModeSwitch() {
       haltGuideRunnerImmediately();
 
@@ -994,13 +969,12 @@
       const btnSpeedDown = document.getElementById('btn-speed-down');
 
       if (currentMode === 'mp4') {
-        // 從跟讀模式切換到比對模式 (record)
+        // 1. 進入比對模式 (record)：顯示 PDF 檢視但不設定區段
         currentMode = 'record';
         video.pause();
         videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'none';
-        guideStage.style.display = 'none';
-        recordWrap.style.display = 'flex';
+        pdfContainerWrap.style.display = 'flex';
+        guideStage.style.display = 'none'; // 比對模式純瀏覽 PDF 與錄音，無小紅點追蹤
 
         if (btnMarkA) btnMarkA.style.visibility = 'hidden';
         if (btnMarkB) btnMarkB.style.visibility = 'hidden';
@@ -1008,11 +982,11 @@
         if (btnSpeedDown) btnSpeedDown.style.visibility = 'hidden';
         resetSideWingsForMode('record');
 
-        showModeBanner('🎙️ 比對模式', '錄音比對・自我檢視');
+        showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
       } else if (currentMode === 'record') {
-        // 從比對模式切換到自讀模式 (pdf)
+        // 2. 進入自讀模式 (pdf)：顯示 PDF 且啟用起點、終點與小紅點背誦
         currentMode = 'pdf';
-        recordWrap.style.display = 'none';
+        video.pause();
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
@@ -1026,11 +1000,10 @@
         scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
         showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
       } else {
-        // 從自讀模式切換回跟讀模式 (mp4)
+        // 3. 回到跟讀模式 (mp4)
         currentMode = 'mp4';
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
-        recordWrap.style.display = 'none';
         videoWrap.style.display = 'flex';
 
         if (btnMarkA) btnMarkA.style.visibility = 'hidden';
@@ -1051,6 +1024,7 @@
 
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
+        // 左1: 語速調整按鈕
         btnMarkA.className = "circle-btn btn-color-speed-up";
         btnMarkA.textContent = `${baseSpeed.toFixed(1)}x`;
         btnMarkA.style.visibility = 'visible';
@@ -1063,6 +1037,7 @@
         btnMarkB.style.visibility = 'hidden';
         document.getElementById('btn-repeat-count').style.visibility = 'hidden';
 
+        // 右側翼鍵：右1&2 長方形錄音；右3&4 播放
         slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">🎙️ 錄音</button>`;
         slotR2.innerHTML = '';
 
@@ -1070,7 +1045,7 @@
         slotR4.innerHTML = '';
 
         document.getElementById('wing-btn-record').addEventListener('click', () => {
-          toggleRecordAction();
+          toggleSmartRecordAction();
         });
         document.getElementById('wing-btn-play').addEventListener('click', () => {
           togglePlaybackAction();
@@ -1099,30 +1074,56 @@
       }
     }
 
-    async function toggleRecordAction() {
+    // 🎙️ 智慧錄音核心：結合 VAD，有聲音才錄，靜音自動過濾！
+    async function toggleSmartRecordAction() {
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
         try {
           audioChunks = [];
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          });
+
+          // 透過 AudioContext 與 Analyser 即時分析音量進行 VAD 過濾
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          const recordingAudioCtx = new AudioContextClass();
+          const source = recordingAudioCtx.createMediaStreamSource(stream);
+          const recordingAnalyser = recordingAudioCtx.createAnalyser();
+          recordingAnalyser.fftSize = 512;
+          source.connect(recordingAnalyser);
+          const dataArray = new Float32Array(recordingAnalyser.frequencyBinCount);
+
+          mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
           mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) audioChunks.push(e.data);
+            if (e.data.size > 0) {
+              // 即時計算當前音量 RMS
+              recordingAnalyser.getFloatTimeDomainData(dataArray);
+              let sum = 0;
+              for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
+              const rms = Math.sqrt(sum / dataArray.length);
+
+              // 🛡️ 智慧判定：如果有聲音 (rms > 0.0020) 才保留此片段，靜音則過濾不錄！
+              if (rms > 0.0020) {
+                audioChunks.push(e.data);
+              }
+            }
           };
+
           mediaRecorder.onstop = () => {
+            recordingAudioCtx.close();
             const recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            const audioUrl = URL.createObjectURL(recordedBlob);
-            playbackAudio.src = audioUrl;
-            playbackAudio.playbackRate = baseSpeed;
-            playbackAudio.style.display = 'block';
-            recordStatus.textContent = '錄音完成！可點擊右側「播放」聆聽比對';
+            recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
+            recordAudioElement.src = recordedAudioBlobUrl;
+            recordAudioElement.playbackRate = baseSpeed;
+            showToast('錄音完成！智慧過濾靜音，點右側播放聆聽', 4000);
           };
-          mediaRecorder.start();
+
+          // 每 100ms 收集一次區塊以供 VAD 智慧過濾
+          mediaRecorder.start(100);
           isUserRecording = true;
           wingBtnRecord.textContent = '⏹ 停止';
           wingBtnRecord.style.background = 'linear-gradient(135deg, #64748B 0%, #475569 100%)';
-          recordStatus.textContent = '🔴 正在錄音中... 請朗讀經文區段';
-          playbackAudio.style.display = 'none';
+          showToast('🔴 智慧錄音中（有聲音才錄）...', 3000);
         } catch (err) {
           alert('無法存取麥克風，請檢查裝置權限設定');
         }
@@ -1137,21 +1138,21 @@
     }
 
     function togglePlaybackAction() {
-      if (!playbackAudio.src) {
+      if (!recordedAudioBlobUrl) {
         showToast('尚無錄音檔案可供播放', 2500);
         return;
       }
-      if (playbackAudio.paused) {
-        playbackAudio.playbackRate = baseSpeed;
-        playbackAudio.play().catch(() => {});
+      if (recordAudioElement.paused) {
+        recordAudioElement.playbackRate = baseSpeed;
+        recordAudioElement.play().catch(() => {});
         document.getElementById('wing-btn-play').textContent = '❚❚ 暫停';
       } else {
-        playbackAudio.pause();
+        recordAudioElement.pause();
         document.getElementById('wing-btn-play').textContent = '▶ 播放';
       }
     }
 
-    playbackAudio.addEventListener('ended', () => {
+    recordAudioElement.addEventListener('ended', () => {
       const btnPlay = document.getElementById('wing-btn-play');
       if (btnPlay) btnPlay.textContent = '▶ 播放';
     });
@@ -2032,10 +2033,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V183_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V184_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V183_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V184_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2107,7 +2108,7 @@
     }
 
     async function parseAndRenderPdfData(typedarray) {
-      pdfContainerWrap.style.display = 'none'; // 預設隱藏，由 mp4 優先
+      pdfContainerWrap.style.display = 'none';
 
       const loadingTask = pdfjsLib.getDocument({
         data: typedarray,
@@ -2344,7 +2345,6 @@
       }
 
       if (window.innerWidth > window.innerHeight && isCompanionDismissed) {
-        // 預設載入 PDF 解析供後續切換，但畫面直接停在 mp4 跟讀模式
         await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
         updateVisualDisplay();
       }
