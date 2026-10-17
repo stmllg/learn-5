@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v175 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v176 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1355,7 +1355,6 @@
             }
           } else {
             silentFrameCount++;
-            // 🛡️ v175 關鍵調整：將原本容易斷開的 14 幀提高至 45 幀（約 0.75 秒），大幅增加換氣與短暫停頓的容錯空間！
             if (silentFrameCount >= 45) {
               if (isVoiceActive) {
                 isVoiceActive = false;
@@ -1449,10 +1448,14 @@
       return item.x0 + (item.x1 - item.x0) * intraCharFraction;
     }
 
+    // 🔒【v176 核心：句句獨立初始化，完全清除跨行累積誤差】
     function setupActiveLine(idx, initCurrent = 0.0) {
       if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
       const line = parsedTextLines[idx];
-      currentCharIndexFloat = initCurrent;
+      
+      // ✨ 關鍵修改：每次進入新的一行，強制將字元進度與鎖定狀態完全歸零重置，徹底阻斷累積誤差！
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
       lineActivationTimestamp = performance.now();
 
       if (isGuideActive) {
@@ -1556,8 +1559,6 @@
       const nextIndex = currentLineIndex + 1;
       hasPageFlipped = false;
       currentLineIndex = nextIndex;
-      currentCharIndexFloat = 0.0;
-      isLineHeadLocked = true;
       setupActiveLine(currentLineIndex, 0.0);
       resetLineTimeoutSafetyTimer();
       lastAnimTimestamp = performance.now();
@@ -1586,8 +1587,6 @@
         if (!isGuideActive) return;
         hasPageFlipped = false;
         currentLineIndex = markA_Index;
-        currentCharIndexFloat = 0.0;
-        isLineHeadLocked = true;
         scrollToAlignTop(currentLineIndex);
 
         setupActiveLine(currentLineIndex, 0.0);
@@ -1783,10 +1782,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V175_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V176_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V175_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V176_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
