@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v173 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v174 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -631,6 +631,7 @@
     let peakRmsAtLineEnd = 0.0;
     let prevRms = 0.0;
     let hasPageFlipped = false;
+    let lineActivationTimestamp = 0; // 🛡️ 換行冷卻保護期時間戳記
 
     // 音訊檢測核心參數 (融入 0.2s 短音 + 超時關閉計時器)
     let audioContext = null;
@@ -704,7 +705,6 @@
     function closeCompanionCard() {
       hasEnteredReciting = true;
 
-      // 🎯 徹底移除方向與尺寸監聽，背誦期間手機微斜絕不再彈出阻斷
       window.removeEventListener('resize', handleOrientationCheck);
       window.removeEventListener('orientationchange', orientationChangeWrapper);
       portraitBlocker.style.display = 'none';
@@ -723,7 +723,6 @@
         companionOverlay.style.opacity = '';
         activateMainReciteEntry();
 
-        // 🎯 全螢幕動畫展開後，執行唯一一次 PDF 繪製，底線精準貼合
         setTimeout(() => {
           renderPdfOnValidDimensions();
         }, 250);
@@ -892,7 +891,7 @@
       }
     }, { passive: true });
 
-    // 🎯 模式切換：修正提示文字為「播放 ：第...」並隱藏 PDF 設定按鈕
+    // 🎯 模式切換：提示改為「播放 ：第 X ～ 第 Y 句」
     function toggleModeSwitch() {
       haltGuideRunnerImmediately();
 
@@ -960,7 +959,7 @@
           btnGuideToggle.classList.remove('guide-active');
           handleTargetCycleDone();
         } else {
-          // 🚫 刪除影片循環次數計算的 toast 顯示
+          // 🚫 已刪除循環次數計算的 toast 顯示
           videoPausedAt = -1;
           video.currentTime = range.start;
           video.play().catch(() => {});
@@ -968,7 +967,7 @@
       }
     });
 
-    // 🌸 執行完成遍數後的慶祝：不發出語音、不顯示文字，改為五瓣花天女散花動畫
+    // 🌸 執行完成遍數後的慶祝：不發出語音、不顯示文字通知，直接觸發五瓣花動畫
     function handleTargetCycleDone() {
       const todayStr = getNormalizedDateStr();
       localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
@@ -1038,7 +1037,6 @@
 
           ctx.restore();
 
-          // 循環掉落
           if (f.y > canvas.height + 30) {
             f.y = -30;
             f.x = Math.random() * canvas.width;
@@ -1253,7 +1251,7 @@
     });
 
     // =========================================================================
-    // 🔒【麥克風調校核心：0.2s 最短發聲門檻 ＋ 句長+10s 超時關機退出機制】
+    // 🔒【麥克風調校核心：0.2s 最短發聲門檻 ＋ 句長+10s 超時關機機制】
     // =========================================================================
     function resetLineTimeoutSafetyTimer() {
       if (maxTimeoutSafetyTimer) clearTimeout(maxTimeoutSafetyTimer);
@@ -1335,12 +1333,14 @@
           const deltaRms = rms - prevRms;
           const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
 
-          // 1. 【微調 1】起句波峰解鎖：0.2 秒級別快速起跑，短促音不漏判
-          if (isLineHeadLocked && deltaRms > (dynamicThreshold * 0.25)) {
+          // 🛡️ 換行冷卻保護期：剛切換到新行時的 250ms 內，不允許行首解鎖，防止上一句尾音誤觸
+          const timeSinceLineStart = performance.now() - lineActivationTimestamp;
+          const isInsideCooldown = (timeSinceLineStart < 250);
+
+          if (isLineHeadLocked && !isInsideCooldown && deltaRms > (dynamicThreshold * 0.25)) {
             isLineHeadLocked = false;
           }
 
-          // 2. 換行靈活監聽狀態機
           if (isTransitioningLine) {
             const elapsed = performance.now() - lineEndTime;
             if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
@@ -1352,7 +1352,6 @@
             }
           }
 
-          // 3. 換氣緩衝鎖定
           if (hasVoiceEnergy) {
             silentFrameCount = 0;
             if (!isVoiceActive) {
@@ -1457,11 +1456,12 @@
       return item.x0 + (item.x1 - item.x0) * intraCharFraction;
     }
 
-    // 🔒【嚴格保留：setupActiveLine 的雙軌座標運算】
+    // 🔒【設定當前行並記錄換行時間戳記】
     function setupActiveLine(idx, initCurrent = 0.0) {
       if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
       const line = parsedTextLines[idx];
       currentCharIndexFloat = initCurrent;
+      lineActivationTimestamp = performance.now(); // 🛡️ 記錄進入該行時的時間點
 
       if (isGuideActive) {
         if (!isAppleDevice) {
@@ -1803,10 +1803,10 @@
       }
       // 3. 測試無參數輪播 (以 22 天為週期循環)
       else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V173_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V174_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V173_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V174_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
