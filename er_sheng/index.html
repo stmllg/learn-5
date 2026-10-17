@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v164 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v165 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -367,7 +367,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: #000000;
+      background-color: #000000; /* 🎬 動態影片維持純黑背景，與靜態 PDF 形成強烈對比 */
       display: none;
       justify-content: center;
       align-items: center;
@@ -414,7 +414,7 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        請留意畫面<strong>右下角或右上角</strong>的三點圖示「<strong>⋮</strong>」或「<strong>⋯</strong>」，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
+        請留意畫面<strong>右下角或右上角</strong>的三點圖示「<strong>⋮</strong>」或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
       </div>
     </div>
   </div>
@@ -1439,7 +1439,7 @@
         } else {
           const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
           redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
-          redDot.style.top = `${offsetTop + (rawX * scaleX)}px`;
+          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
         }
       }
       guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -1688,10 +1688,10 @@
       }
       // 3. 測試無參數輪播 (以 22 天為週期循環)
       else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V164_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V165_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V164_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V165_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
@@ -1768,7 +1768,7 @@
     }
 
     // =========================================================================
-    // 🔒【嚴格保留：PDF 渲染與文字結構抽取（v158 精確原版底層）】
+    // 🔒【嚴格保留：PDF 渲染與像素背景替換（綠豆沙色 #EAF2EC）】
     // =========================================================================
     async function parseAndRenderPdfData(typedarray) {
       pdfContainerWrap.style.display = 'flex';
@@ -1796,6 +1796,23 @@
       const ctx = pdfCanvas.getContext('2d');
 
       await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+      // 🟢 智慧像素處理：將 PDF 底部的白色像素轉為柔和的綠豆沙色 #EAF2EC (RGB: 234, 242, 236)
+      try {
+        const imgData = ctx.getImageData(0, 0, pdfCanvas.width, pdfCanvas.height);
+        const data = imgData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          // 若像素接近純白 (R > 235, G > 235, B > 235)
+          if (data[i] > 235 && data[i + 1] > 235 && data[i + 2] > 235) {
+            data[i]     = 234; // R
+            data[i + 1] = 242; // G
+            data[i + 2] = 236; // B
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      } catch (e) {
+        console.warn("Canvas pixel replacement warning:", e);
+      }
 
       const textContent = await page.getTextContent();
       const items = textContent.items;
