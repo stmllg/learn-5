@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v179 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v181 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -227,7 +227,38 @@
     }
 
     /* =========================================================================
-       4. 核心主架構 (v158 原生橫式雙模視圖，百分之百嚴格保留)
+       ✨ 4. 模式切換開幕大圖示動畫 Banner (展示 2 秒自動消失)
+       ========================================================================= */
+    #mode-grand-banner {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.85);
+      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
+      color: #FBBF24;
+      border: 3px solid #F59E0B;
+      padding: 26px 52px;
+      border-radius: 24px;
+      z-index: 150000;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease;
+      letter-spacing: 2px;
+    }
+    #mode-grand-banner.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
+    /* =========================================================================
+       5. 核心主架構 (v158 原生橫式雙模視圖，百分之百嚴格保留)
        ========================================================================= */
     #landscape-container {
       width: 100vw;
@@ -377,6 +408,23 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
+    /* 🎙️ 比對模式（錄音工作坊介面） */
+    #record-container-wrap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, #1E293B 0%, #0B0F19 100%);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 56;
+      flex-direction: column;
+      gap: 18px;
+      padding: 24px;
+    }
+
     /* 🌸 五瓣花天女散花全螢幕畫布層 */
     #flowerCanvas {
       display: none;
@@ -423,7 +471,7 @@
 </head>
 <body>
 
-  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 (純指引、無按鈕) -->
+  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 (純提示指引，無多餘按鈕) -->
   <div id="line-browser-overlay">
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
@@ -448,9 +496,12 @@
     <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
   </div>
 
+  <!-- ✨ 開幕大圖示動畫 Banner -->
+  <div id="mode-grand-banner"></div>
+
   <!-- 狀態浮標 (置中) -->
   <div id="schedule-toast">📅 載入進度中...</div>
-  <div id="speed-toast-badge">【語速 1.5x】</div>
+  <div id="speed-toast-badge">【語速 2.0x】</div>
 
   <!-- 🌸 五瓣花天女散花畫布層 -->
   <canvas id="flowerCanvas"></canvas>
@@ -478,6 +529,18 @@
 
       <div id="video-container-wrap">
         <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
+      </div>
+
+      <!-- 🎙️ 比對模式：錄音與回放工作坊介面 -->
+      <div id="record-container-wrap">
+        <div style="font-size: 26px; font-weight: 900; color: #FBBF24; letter-spacing: 2px;">🎙️ 比對模式・錄音工作坊</div>
+        <div style="font-size: 16px; color: #94A3B8; text-align: center; max-width: 420px; line-height: 1.6;">點擊下方紅色按鈕開始錄製您的誦讀聲音，錄製完畢後可直接點擊播放來自我比對發音與節奏。</div>
+        <div id="record-status" style="font-size: 18px; font-weight: bold; color: #38BDF8;">準備就緒</div>
+        <div style="display: flex; gap: 20px; align-items: center; margin-top: 10px;">
+          <button id="btn-start-record" class="circle-btn" style="width: 72px !important; height: 72px !important; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); font-size: 16px !important;">錄音</button>
+          <button id="btn-stop-record" class="circle-btn" style="width: 72px !important; height: 72px !important; background: linear-gradient(135deg, #64748B 0%, #475569 100%); font-size: 16px !important; opacity: 0.5;" disabled>停止</button>
+        </div>
+        <audio id="playback-audio" controls style="margin-top: 14px; display: none; width: 85%; max-width: 340px;"></audio>
       </div>
     </div>
 
@@ -557,7 +620,7 @@
     }
 
     let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
-    if (isNaN(baseSpeed) || baseSpeed < 0.5 || baseSpeed > 4.0) baseSpeed = 1.5;
+    if (isNaN(baseSpeed) || baseSpeed < 0.5 || baseSpeed > 2.0) baseSpeed = 1.5;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
@@ -566,6 +629,7 @@
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
     const companionOverlay = document.getElementById('companion-overlay');
     const companionImgDisplay = document.getElementById('companion-img-display');
+    const modeGrandBanner = document.getElementById('mode-grand-banner');
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -578,6 +642,7 @@
     const pdfCanvas = document.getElementById('pdf-canvas');
     const videoWrap = document.getElementById('video-container-wrap');
     const video = document.getElementById('my-chant-video');
+    const recordWrap = document.getElementById('record-container-wrap');
 
     const scheduleToast = document.getElementById('schedule-toast');
     const speedToastBadge = document.getElementById('speed-toast-badge');
@@ -605,6 +670,15 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
+    // 錄音比對相關 DOM
+    const btnStartRecord = document.getElementById('btn-start-record');
+    const btnStopRecord = document.getElementById('btn-stop-record');
+    const recordStatus = document.getElementById('record-status');
+    const playbackAudio = document.getElementById('playback-audio');
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    // 模式順序：'pdf' (自讀) -> 'mp4' (跟讀) -> 'record' (比對) -> 循環
     let currentMode = 'pdf';
     let scriptureData = [];
     let currentPdfDoc = null;
@@ -804,9 +878,26 @@
       }, duration);
     }
 
+    // ✨ 模式切換開幕動畫 Banner (剛好 2 秒自動消失)
+    function showModeBanner(title, subtitle) {
+      if (!modeGrandBanner) return;
+      modeGrandBanner.innerHTML = `<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">${title}</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">${subtitle}</div>`;
+      modeGrandBanner.classList.add('active');
+      clearTimeout(modeGrandBanner._timer);
+      modeGrandBanner._timer = setTimeout(() => {
+        modeGrandBanner.style.opacity = '0';
+        modeGrandBanner.style.transform = 'translate(-50%, -50%) scale(0.9)';
+        setTimeout(() => {
+          modeGrandBanner.classList.remove('active');
+          modeGrandBanner.style.opacity = '';
+          modeGrandBanner.style.transform = '';
+        }, 350);
+      }, 2000); // 2秒精準停留
+    }
+
     function triggerSpeedChange(delta) {
       let newSpeed = Math.round((baseSpeed + delta) * 10) / 10;
-      newSpeed = Math.max(0.5, Math.min(4.0, newSpeed));
+      newSpeed = Math.max(0.5, Math.min(2.0, newSpeed));
       baseSpeed = newSpeed;
       localStorage.setItem('user_speed_preference', baseSpeed.toFixed(1));
 
@@ -891,6 +982,7 @@
       }
     }, { passive: true });
 
+    // 🎯 三段式循環切換：自讀模式 (pdf) ➔ 跟讀模式 (mp4) ➔ 比對模式 (record)
     function toggleModeSwitch() {
       haltGuideRunnerImmediately();
 
@@ -903,6 +995,7 @@
         currentMode = 'mp4';
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
+        recordWrap.style.display = 'none';
         videoWrap.style.display = 'flex';
 
         if (btnMarkA) btnMarkA.style.visibility = 'hidden';
@@ -912,16 +1005,28 @@
 
         const range = getActiveVideoRange();
         videoPausedAt = -1;
-
         if (range.valid) {
           video.currentTime = range.start;
-          showToast(`播放 ：第 ${range.sentenceA} ～ 第 ${range.sentenceB} 句`, 4500);
-        } else {
-          showToast(`⚠️ 句數秒數尚未載入完畢，請稍候`, 3000);
         }
+        showModeBanner('▶ 跟讀模式', `播放：第 ${range.sentenceA} ～ 第 ${range.sentenceB} 句`);
+      } else if (currentMode === 'mp4') {
+        currentMode = 'record';
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'none';
+        guideStage.style.display = 'none';
+        recordWrap.style.display = 'flex';
+
+        if (btnMarkA) btnMarkA.style.visibility = 'hidden';
+        if (btnMarkB) btnMarkB.style.visibility = 'hidden';
+        if (btnSpeedUp) btnSpeedUp.style.visibility = 'hidden';
+        if (btnSpeedDown) btnSpeedDown.style.visibility = 'hidden';
+
+        showModeBanner('🎙️ 比對模式', '錄音比對・自我檢視');
       } else {
         currentMode = 'pdf';
         video.pause();
+        recordWrap.style.display = 'none';
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
@@ -931,11 +1036,49 @@
         if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
         if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
 
-        showToast('經文默背模式', 2500);
         scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+        showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
       }
       updateVisualDisplay();
     }
+
+    // 🎙️ 錄音比對功能互動邏輯
+    btnStartRecord.addEventListener('click', async () => {
+      try {
+        audioChunks = [];
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+        mediaRecorder.onstop = () => {
+          const recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const audioUrl = URL.createObjectURL(recordedBlob);
+          playbackAudio.src = audioUrl;
+          playbackAudio.style.display = 'block';
+          recordStatus.textContent = '錄音完成！可點擊下方播放比對發音';
+          btnStartRecord.disabled = false;
+          btnStopRecord.disabled = true;
+          btnStartRecord.style.opacity = '1';
+          btnStopRecord.style.opacity = '0.5';
+        };
+        mediaRecorder.start();
+        recordStatus.textContent = '🔴 正在錄音中... 請朗讀經文';
+        btnStartRecord.disabled = true;
+        btnStopRecord.disabled = false;
+        btnStartRecord.style.opacity = '0.5';
+        btnStopRecord.style.opacity = '1';
+        playbackAudio.style.display = 'none';
+      } catch (err) {
+        alert('無法存取麥克風，請檢查裝置權限設定');
+      }
+    });
+
+    btnStopRecord.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    });
 
     video.addEventListener('timeupdate', () => {
       if (currentMode !== 'mp4') return;
@@ -1214,6 +1357,11 @@
         return;
       }
 
+      if (currentMode === 'record') {
+        showToast('🎙️ 比對模式為錄音回放區，請直接點擊上方錄音按鈕', 3000);
+        return;
+      }
+
       if (markA_Index === -1 || markB_Index === -1) {
         speakPrompt("請先設定起點與終點");
         return;
@@ -1290,7 +1438,6 @@
           if (calibrationSamples.length > 0) {
             const sum = calibrationSamples.reduce((a, b) => a + b, 0);
             baseNoiseLevel = sum / calibrationSamples.length;
-            // 🛡️ v179 高靈敏度設定：將底線降為 0.0012，乘數改為 1.05、加數改為 0.0003，完美契合安靜書房輕聲讀誦！
             dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
           }
           isCalibrating = false;
@@ -1780,10 +1927,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V179_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V181_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V179_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V181_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -1943,7 +2090,6 @@
         g.spans.sort((a, b) => a.x0 - b.x0);
         const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
         const minTop = Math.min(...g.spans.map(s => s.topY));
-        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
         const lineX0 = g.spans[0].x0;
         const lineX1 = g.spans[g.spans.length - 1].x1;
 
@@ -1952,11 +2098,14 @@
           chineseCount: g.spans.length,
           avgFs: avgFs,
           minTop: minTop,
-          maxBottom: maxBottom,
           lineX0: lineX0,
-          lineX1: lineX1,
-          underLineY: maxBottom + 7
+          lineX1: lineX1
         };
+      });
+
+      analyzedRows.forEach(r => {
+        r.maxBottom = Math.max(...r.spans.map(s => s.bottomY));
+        r.underLineY = r.maxBottom + 7;
       });
 
       const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
