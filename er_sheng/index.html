@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v169 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v170 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -280,7 +280,7 @@
     .side-wing {
       flex-shrink: 0;
       height: 100%;
-      background-color: #000000; /* 預設 PDF 模式底色：純黑 */
+      background-color: #000000;
       display: flex;
       flex-direction: column;
       justify-content: space-evenly;
@@ -289,14 +289,7 @@
       padding-bottom: 4px;
       z-index: 60;
       box-sizing: border-box;
-      transition: background-color 0.3s ease;
     }
-
-    /* 🎨 當容器進入 mp4 模式時，兩側翼欄自動切換為沉穩深藍灰色 (#1B2A4A) */
-    #landscape-container.mp4-mode .side-wing {
-      background-color: #1B2A4A !important;
-    }
-
     #left-wing { width: calc(64px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 6px); padding-right: 6px; }
     #right-wing { width: calc(64px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 6px); padding-left: 6px; }
     .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
@@ -421,7 +414,7 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        請留意畫面<strong>右下角或右上角</strong>的三點圖示「<strong>⋮</strong>」或「<strong>⋯</strong>」，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
+        請留意畫面<strong>右下角或右上角</strong>的三點圖示「<strong>⋮</strong>」或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
       </div>
     </div>
   </div>
@@ -882,11 +875,14 @@
       }
     }, { passive: true });
 
-    // 🎨 模式切換：透過 CSS 類別動態切換兩側翼欄底色
+    // 🎯 模式切換：在影片模式下自動隱藏「起點、終點、語快、語慢」，切回 PDF 模式時自動恢復顯示
     function toggleModeSwitch() {
       haltGuideRunnerImmediately();
 
-      const landscapeContainer = document.getElementById('landscape-container');
+      const btnMarkA = document.getElementById('btn-mark-a');
+      const btnMarkB = document.getElementById('btn-mark-b');
+      const btnSpeedUp = document.getElementById('btn-speed-up');
+      const btnSpeedDown = document.getElementById('btn-speed-down');
 
       if (currentMode === 'pdf') {
         currentMode = 'mp4';
@@ -894,8 +890,11 @@
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
 
-        // 🎬 切換至影片播放模式：加上 mp4-mode 類別，翼欄底色變為深藍灰
-        landscapeContainer.classList.add('mp4-mode');
+        // 🎬 進入影片播放模式：隱藏用不到的 PDF 設定按鈕
+        if (btnMarkA) btnMarkA.style.visibility = 'hidden';
+        if (btnMarkB) btnMarkB.style.visibility = 'hidden';
+        if (btnSpeedUp) btnSpeedUp.style.visibility = 'hidden';
+        if (btnSpeedDown) btnSpeedDown.style.visibility = 'hidden';
 
         const range = getActiveVideoRange();
         videoPausedAt = -1;
@@ -913,8 +912,11 @@
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
-        // 📖 切換回 PDF 模式：移除 mp4-mode 類別，翼欄恢復純黑
-        landscapeContainer.classList.remove('mp4-mode');
+        // 📖 切回 PDF 模式：恢復顯示所有按鈕
+        if (btnMarkA) btnMarkA.style.visibility = 'visible';
+        if (btnMarkB) btnMarkB.style.visibility = 'visible';
+        if (btnSpeedUp) btnSpeedUp.style.visibility = 'visible';
+        if (btnSpeedDown) btnSpeedDown.style.visibility = 'visible';
 
         showToast('📖 切換為：經文默背模式', 2500);
         scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
@@ -1705,10 +1707,10 @@
       }
       // 3. 測試無參數輪播 (以 22 天為週期循環)
       else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V169_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V170_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V169_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V170_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
