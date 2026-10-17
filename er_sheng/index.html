@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v174 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v175 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -423,7 +423,7 @@
 </head>
 <body>
 
-  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 (純指引、無按鈕) -->
+  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 (純提示指引，無多餘按鈕) -->
   <div id="line-browser-overlay">
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
@@ -631,9 +631,9 @@
     let peakRmsAtLineEnd = 0.0;
     let prevRms = 0.0;
     let hasPageFlipped = false;
-    let lineActivationTimestamp = 0; // 🛡️ 換行冷卻保護期時間戳記
+    let lineActivationTimestamp = 0;
 
-    // 音訊檢測核心參數 (融入 0.2s 短音 + 超時關閉計時器)
+    // 音訊檢測核心參數
     let audioContext = null;
     let analyser = null;
     let micStream = null;
@@ -891,7 +891,6 @@
       }
     }, { passive: true });
 
-    // 🎯 模式切換：提示改為「播放 ：第 X ～ 第 Y 句」
     function toggleModeSwitch() {
       haltGuideRunnerImmediately();
 
@@ -959,7 +958,6 @@
           btnGuideToggle.classList.remove('guide-active');
           handleTargetCycleDone();
         } else {
-          // 🚫 已刪除循環次數計算的 toast 顯示
           videoPausedAt = -1;
           video.currentTime = range.start;
           video.play().catch(() => {});
@@ -967,15 +965,12 @@
       }
     });
 
-    // 🌸 執行完成遍數後的慶祝：不發出語音、不顯示文字通知，直接觸發五瓣花動畫
     function handleTargetCycleDone() {
       const todayStr = getNormalizedDateStr();
       localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
-      
       triggerFivePetalFlowerRain();
     }
 
-    // ✨ 五瓣花天女散花動畫核心
     function triggerFivePetalFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1002,7 +997,7 @@
       }
 
       let startTime = performance.now();
-      const duration = 5500; // 5.5秒花瓣雨
+      const duration = 5500;
 
       function animateFlowers(now) {
         let elapsed = now - startTime;
@@ -1018,7 +1013,6 @@
           ctx.rotate((f.rotation * Math.PI) / 180);
           ctx.globalAlpha = f.opacity;
 
-          // 🌸 繪製 5 個花瓣組成的立體花朵
           for (let j = 0; j < 5; j++) {
             const angle = (j * 2 * Math.PI) / 5;
             const dist = f.size * 0.38;
@@ -1029,7 +1023,6 @@
             ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
             ctx.fill();
           }
-          // 中央柔和花蕊
           ctx.fillStyle = '#FFF9C4';
           ctx.beginPath();
           ctx.arc(0, 0, f.size * 0.28, 0, Math.PI * 2);
@@ -1333,7 +1326,6 @@
           const deltaRms = rms - prevRms;
           const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
 
-          // 🛡️ 換行冷卻保護期：剛切換到新行時的 250ms 內，不允許行首解鎖，防止上一句尾音誤觸
           const timeSinceLineStart = performance.now() - lineActivationTimestamp;
           const isInsideCooldown = (timeSinceLineStart < 250);
 
@@ -1363,7 +1355,8 @@
             }
           } else {
             silentFrameCount++;
-            if (silentFrameCount >= 14) {
+            // 🛡️ v175 關鍵調整：將原本容易斷開的 14 幀提高至 45 幀（約 0.75 秒），大幅增加換氣與短暫停頓的容錯空間！
+            if (silentFrameCount >= 45) {
               if (isVoiceActive) {
                 isVoiceActive = false;
                 btnGuideToggle.textContent = '靜止';
@@ -1456,12 +1449,11 @@
       return item.x0 + (item.x1 - item.x0) * intraCharFraction;
     }
 
-    // 🔒【設定當前行並記錄換行時間戳記】
     function setupActiveLine(idx, initCurrent = 0.0) {
       if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
       const line = parsedTextLines[idx];
       currentCharIndexFloat = initCurrent;
-      lineActivationTimestamp = performance.now(); // 🛡️ 記錄進入該行時的時間點
+      lineActivationTimestamp = performance.now();
 
       if (isGuideActive) {
         if (!isAppleDevice) {
@@ -1486,7 +1478,6 @@
       isTransitioningLine = false;
     }
 
-    // 🔒【嚴格保留：stepGuideMovement 的雙軌座標運算與行尾慣性】
     function stepGuideMovement(now) {
       if (!isGuideActive || isTransitioningLine) return;
       let delta = now - lastAnimTimestamp;
@@ -1737,9 +1728,6 @@
 
     btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
 
-    // =========================================================================
-    // 🎯 關機按鈕：中止動畫 ＋ 切斷麥克風 ＋ 退出全螢幕還原視窗
-    // =========================================================================
     btnShutdownExit.addEventListener('click', () => {
       haltGuideRunnerImmediately();
 
@@ -1765,9 +1753,6 @@
       showToast("已關機退出全螢幕，釋放麥克風資源", 3000);
     });
 
-    // =========================================================================
-    // 【陪伴卡流程控制：純圖展示 card_001.webp ~ card_021.webp（V163 時區修復版）】
-    // =========================================================================
     let currentCompanionSeenKey = null;
 
     async function evaluateWarmCompanionCard() {
@@ -1779,15 +1764,12 @@
 
       let targetDay = 1;
 
-      // 1. 快速測試參數：?day=22 直接指定天數
       if (paramDay) {
         targetDay = parseInt(paramDay, 10) || 1;
-      }
-      // 2. 正式排程模式：?start=YYYY-MM-DD（精準排除時區與小時誤差的本地日曆天計算）
-      else if (startStr) {
+      } else if (startStr) {
         const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
-        const startDate = new Date(sYear, sMonth - 1, sDay); // 本地午夜起始日
-        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // 本地午夜今日
+        const startDate = new Date(sYear, sMonth - 1, sDay);
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
         const diffTime = todayDate - startDate;
         const currentDay = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
@@ -1800,16 +1782,13 @@
           return;
         }
         currentCompanionSeenKey = seenKey;
-      }
-      // 3. 測試無參數輪播 (以 22 天為週期循環)
-      else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V174_' + CURRENT_CLASSIC_ID) || '1', 10);
+      } else {
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V175_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V174_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V175_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
-      // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
       let cardFileName = "";
       if (targetDay >= 22) {
         cardFileName = "card_021.webp";
@@ -1818,7 +1797,6 @@
         cardFileName = `card_${paddedNum}.webp`;
       }
 
-      // 載入純圖
       const fileKey = 'card_img_' + cardFileName.replace('.webp', '');
       const localFile = await getLocalFile(fileKey);
       if (localFile && localFile.data) {
@@ -1829,9 +1807,6 @@
       companionOverlay.setAttribute('data-needed', 'true');
     }
 
-    // =========================================================================
-    // 【排程套用核心】
-    // =========================================================================
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -1882,9 +1857,6 @@
       return false;
     }
 
-    // =========================================================================
-    // 🔒【嚴格保留：PDF 渲染與文字結構抽取（V163 黃金原版底層）】
-    // =========================================================================
     async function parseAndRenderPdfData(typedarray) {
       pdfContainerWrap.style.display = 'flex';
 
@@ -2019,9 +1991,6 @@
       guideStage.style.height = `${viewport.height}px`;
     }
 
-    // =========================================================================
-    // 【五檔案背景更新】
-    // =========================================================================
     async function syncFiveFilesInBackground() {
       if (!navigator.onLine) return;
 
@@ -2078,21 +2047,15 @@
       } catch (e) {}
     }
 
-    // =========================================================================
-    // 【開機總入口】
-    // =========================================================================
     window.addEventListener('DOMContentLoaded', async () => {
-      // 1. 陪伴卡資料評估
       await evaluateWarmCompanionCard();
 
-      // 2. 初始流程：依據是否在 LINE 中自動分流
       if (!isLineGuideDismissed) {
         lineBrowserOverlay.classList.add('active');
       } else {
         handleOrientationCheck();
       }
 
-      // 3. 離線快取初始化
       const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
       if (localSent) {
         try { scriptureData = JSON.parse(localSent); } catch (e) {}
