@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v161 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v162 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1685,10 +1685,10 @@
       }
       // 3. 測試無參數輪播 (以 22 天為週期循環)
       else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V161_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V162_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V161_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V162_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
@@ -1701,7 +1701,13 @@
       }
 
       // 載入純圖
-      companionImgDisplay.src = `cards/${cardFileName}`;
+      const fileKey = 'card_img_' + cardFileName.replace('.webp', '');
+      const localFile = await getLocalFile(fileKey);
+      if (localFile && localFile.data) {
+        companionImgDisplay.src = URL.createObjectURL(new Blob([localFile.data], { type: 'image/webp' }));
+      } else {
+        companionImgDisplay.src = `cards/${cardFileName}`;
+      }
       companionOverlay.setAttribute('data-needed', 'true');
     }
 
@@ -1813,3 +1819,200 @@
 
         const charWidth = fontWidth / Math.max(1, str.length);
         for (let c = 0; c < str.length; c++) {
+          const char = str[c];
+          if (chineseCharRegex.test(char)) {
+            const charX0 = screenX0 + (c * charWidth);
+            const charX1 = charX0 + charWidth;
+            validSpans.push({
+              x0: charX0,
+              x1: charX1,
+              topY: realTop,
+              bottomY: realBottom,
+              fs: fontScale,
+              char: char
+            });
+          }
+        }
+      });
+
+      validSpans.sort((a, b) => a.topY - b.topY);
+      const rowGroups = [];
+
+      validSpans.forEach(span => {
+        let matched = false;
+        for (let g of rowGroups) {
+          if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
+            g.spans.push(span);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
+      });
+
+      const analyzedRows = rowGroups.map(g => {
+        g.spans.sort((a, b) => a.x0 - b.x0);
+        const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
+        const minTop = Math.min(...g.spans.map(s => s.topY));
+        const maxBottom = Math.max(...g.spans.map(s => s.bottomY));
+        const lineX0 = g.spans[0].x0;
+        const lineX1 = g.spans[g.spans.length - 1].x1;
+
+        return {
+          spans: g.spans,
+          chineseCount: g.spans.length,
+          avgFs: avgFs,
+          minTop: minTop,
+          maxBottom: maxBottom,
+          lineX0: lineX0,
+          lineX1: lineX1,
+          underLineY: maxBottom + 7
+        };
+      });
+
+      const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
+      let mainTextFontSize = 0;
+      if (candidateLargeRows.length > 0) {
+        const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
+        mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
+      }
+
+      parsedTextLines = [];
+      let internalIndex = 0;
+
+      analyzedRows.forEach(r => {
+        const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
+        if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
+          parsedTextLines.push({
+            lineIndex: internalIndex++,
+            x0: r.lineX0,
+            x1: r.lineX1,
+            topGlobal: r.minTop,
+            bottomGlobal: r.maxBottom,
+            underLineY: r.underLineY,
+            charItems: r.spans
+          });
+        }
+      });
+
+      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+      guideStage.style.height = `${viewport.height}px`;
+    }
+
+    // =========================================================================
+    // 【五檔案背景更新】
+    // =========================================================================
+    async function syncFiveFilesInBackground() {
+      if (!navigator.onLine) return;
+
+      try {
+        const res = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const fresh = await res.json();
+          const old = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
+          if (JSON.stringify(fresh) !== old) {
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(fresh));
+            if (!isGuideActive && !isManualSelected) applyScheduleToState();
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const res = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const fresh = await res.json();
+          const old = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+          if (JSON.stringify(fresh) !== old) {
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(fresh));
+            scriptureData = fresh;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const head = await fetch('./scripture.pdf', { method: 'HEAD', cache: 'no-store' });
+        if (head.ok) {
+          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
+          const saved = await getLocalFile('pdf_file');
+          if (!saved || saved.tag !== tag) {
+            const getRes = await fetch('./scripture.pdf?nocache=' + Date.now());
+            const buf = await getRes.arrayBuffer();
+            await saveLocalFile('pdf_file', buf, tag);
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const head = await fetch('./chant_video.mp4', { method: 'HEAD', cache: 'no-store' });
+        if (head.ok) {
+          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
+          const saved = await getLocalFile('video_file');
+          if (!saved || saved.tag !== tag) {
+            const getRes = await fetch('./chant_video.mp4?nocache=' + Date.now());
+            const buf = await getRes.arrayBuffer();
+            await saveLocalFile('video_file', buf, tag);
+            const blob = new Blob([buf], { type: 'video/mp4' });
+            video.src = URL.createObjectURL(blob);
+          }
+        }
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // 【開機總入口】
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', async () => {
+      // 1. 陪伴卡資料評估
+      await evaluateWarmCompanionCard();
+
+      // 2. 初始流程：依據是否在 LINE 中自動分流
+      if (!isLineGuideDismissed) {
+        lineBrowserOverlay.classList.add('active');
+      } else {
+        handleOrientationCheck();
+      }
+
+      // 3. 離線快取初始化
+      const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+      if (localSent) {
+        try { scriptureData = JSON.parse(localSent); } catch (e) {}
+      }
+      if (!scriptureData || scriptureData.length === 0) {
+        try {
+          const sRes = await fetch('./sentences.json');
+          if (sRes.ok) {
+            scriptureData = await sRes.json();
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(scriptureData));
+          }
+        } catch (e) {}
+      }
+
+      const localVideo = await getLocalFile('video_file');
+      if (localVideo && localVideo.data) {
+        const blob = new Blob([localVideo.data], { type: 'video/mp4' });
+        video.src = URL.createObjectURL(blob);
+      } else {
+        video.src = './chant_video.mp4';
+      }
+
+      const localPdf = await getLocalFile('pdf_file');
+      if (localPdf && localPdf.data) {
+        cachedPdfBuffer = localPdf.data;
+      } else {
+        try {
+          const pRes = await fetch('./scripture.pdf');
+          if (pRes.ok) {
+            const buf = await pRes.arrayBuffer();
+            await saveLocalFile('pdf_file', buf, 'init_pdf');
+            cachedPdfBuffer = buf;
+          }
+        } catch (e) {}
+      }
+
+      if (window.innerWidth > window.innerHeight && isCompanionDismissed) {
+        renderPdfOnValidDimensions();
+      }
+    });
+  </script>
+</body>
+</html>
