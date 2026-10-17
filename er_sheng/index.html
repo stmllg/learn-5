@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v171 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v172 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -240,7 +240,7 @@
       overflow: hidden;
     }
 
-    /* 🟢 綠色通知置中顯示 (不再擋住上方經文) */
+    /* 🟢 綠色通知置中顯示 (清晰不擋經文) */
     #schedule-toast {
       display: none;
       position: fixed;
@@ -377,7 +377,7 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
-    /* 🌸 天女散花全螢幕畫布層 */
+    /* 🌸 五瓣花天女散花全螢幕畫布層 */
     #flowerCanvas {
       display: none;
       position: fixed;
@@ -448,11 +448,11 @@
     <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
   </div>
 
-  <!-- 狀態浮標 (已置中) -->
+  <!-- 狀態浮標 (置中) -->
   <div id="schedule-toast">📅 載入進度中...</div>
   <div id="speed-toast-badge">【語速 1.5x】</div>
 
-  <!-- 🌸 天女散花畫布層 -->
+  <!-- 🌸 五瓣花天女散花畫布層 -->
   <canvas id="flowerCanvas"></canvas>
 
   <!-- 4. 主視圖 (v158 原生橫式雙模核心，完全保留) -->
@@ -892,7 +892,7 @@
       }
     }, { passive: true });
 
-    // 🎯 模式切換：在影片模式下自動隱藏「起點、終點、語快、語慢」
+    // 🎯 模式切換：在影片模式下隱藏 PDF 設定按鈕，且顯示純「第幾句～第幾句」無時間數據
     function toggleModeSwitch() {
       haltGuideRunnerImmediately();
 
@@ -917,7 +917,7 @@
 
         if (range.valid) {
           video.currentTime = range.start;
-          showToast(`🎬【區段已鎖定】第 ${range.sentenceA}～${range.sentenceB} 句（${range.start.toFixed(1)}s～${range.end.toFixed(1)}s）`, 4500);
+          showToast(`🎬【區段已鎖定】第 ${range.sentenceA} ～ 第 ${range.sentenceB} 句`, 4500);
         } else {
           showToast(`⚠️ 句數秒數尚未載入完畢，請稍候`, 3000);
         }
@@ -968,19 +968,17 @@
       }
     });
 
-    // 🌸 執行完成遍數後的慶祝：取消語音朗讀，改為「天女散花」彩色花瓣落下動畫
+    // 🌸 執行完成遍數後的慶祝：不發出語音，改為五瓣花天女散花動畫
     function handleTargetCycleDone() {
       const todayStr = getNormalizedDateStr();
       localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
       
-      // 🚫 不出聲音 (已移除 speakPrompt)
       showToast("🎉 背誦圓滿！已完成排定遍數，隨喜功德", 4500);
-      
-      // ✨ 觸發天女散花動畫
-      triggerFlowerRainAnimation();
+      triggerFivePetalFlowerRain();
     }
 
-    function triggerFlowerRainAnimation() {
+    // ✨ 五瓣花天女散花動畫核心
+    function triggerFivePetalFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
       canvas.style.display = 'block';
@@ -988,64 +986,75 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      const petals = [];
+      const flowers = [];
       const colors = ['#ff7675', '#fab1a0', '#ffeaa7', '#55efc4', '#74b9ff', '#a29bfe', '#fd79a8', '#e17055', '#ffe066', '#a9efac'];
       
-      for (let i = 0; i < 90; i++) {
-        petals.push({
+      for (let i = 0; i < 70; i++) {
+        flowers.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 9 + 6,
-          speedY: Math.random() * 2.5 + 1.5,
-          speedX: (Math.random() - 0.5) * 2,
+          size: Math.random() * 8 + 7,
+          speedY: Math.random() * 2.0 + 1.2,
+          speedX: (Math.random() - 0.5) * 1.5,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 5,
+          rotationSpeed: (Math.random() - 0.5) * 3,
           color: colors[Math.floor(Math.random() * colors.length)],
-          opacity: Math.random() * 0.6 + 0.4
+          opacity: Math.random() * 0.5 + 0.5
         });
       }
 
       let startTime = performance.now();
-      const duration = 5000; // 5秒花瓣雨
+      const duration = 5500; // 5.5秒花瓣雨
 
-      function animatePetals(now) {
+      function animateFlowers(now) {
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        petals.forEach(p => {
-          p.y += p.speedY;
-          p.x += p.speedX + Math.sin(p.y / 35) * 1.0;
-          p.rotation += p.rotationSpeed;
+        flowers.forEach(f => {
+          f.y += f.speedY;
+          f.x += f.speedX + Math.sin(f.y / 40) * 0.8;
+          f.rotation += f.rotationSpeed;
 
           ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate((p.rotation * Math.PI) / 180);
-          ctx.fillStyle = p.color;
-          ctx.globalAlpha = p.opacity;
+          ctx.translate(f.x, f.y);
+          ctx.rotate((f.rotation * Math.PI) / 180);
+          ctx.globalAlpha = f.opacity;
 
-          // 繪製優雅的花瓣形狀 (橢圓葉片狀)
+          // 🌸 繪製 5 個花瓣組成的立體花朵
+          for (let j = 0; j < 5; j++) {
+            const angle = (j * 2 * Math.PI) / 5;
+            const dist = f.size * 0.38;
+            const cx = Math.cos(angle) * dist;
+            const cy = Math.sin(angle) * dist;
+            ctx.fillStyle = f.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          // 中央柔和花蕊
+          ctx.fillStyle = '#FFF9C4';
           ctx.beginPath();
-          ctx.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
+          ctx.arc(0, 0, f.size * 0.28, 0, Math.PI * 2);
           ctx.fill();
 
           ctx.restore();
 
           // 循環掉落
-          if (p.y > canvas.height + 25) {
-            p.y = -25;
-            p.x = Math.random() * canvas.width;
+          if (f.y > canvas.height + 30) {
+            f.y = -30;
+            f.x = Math.random() * canvas.width;
           }
         });
 
         if (elapsed < duration) {
-          requestAnimationFrame(animatePetals);
+          requestAnimationFrame(animateFlowers);
         } else {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           canvas.style.display = 'none';
         }
       }
 
-      requestAnimationFrame(animatePetals);
+      requestAnimationFrame(animateFlowers);
     }
 
     // =========================================================================
@@ -1546,7 +1555,7 @@
         } else {
           const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
           redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
-          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
+          redDot.style.top = `${offsetTop + (rawX * scaleX)}px`;
         }
       }
       guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -1795,10 +1804,10 @@
       }
       // 3. 測試無參數輪播 (以 22 天為週期循環)
       else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V171_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V172_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V171_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V172_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
