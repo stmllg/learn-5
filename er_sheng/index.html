@@ -1,460 +1,1694 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>歡喜背書橫式雙模播放器 v160</title>
-  
-  <!-- PDF.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>歡喜背書橫式雙模播放器 v161 (宣紙水墨禪意精確版)</title>
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="歡喜背書">
+  <meta name="theme-color" content="#0B0F19">
+
+  <!-- ========================================================================== -->
+  <!-- 📌【核心唯一設定】複製此資料夾為新經典時，打開檔案只改此代碼！                -->
+  <!-- ========================================================================== -->
+  <script>
+    const CURRENT_CLASSIC_ID = 'er_sheng'; // ⚠️ 新經典請改此英文代碼：如 'bo_re'、'fa_hua'
+    const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+
   <style>
     * {
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
       margin: 0;
       padding: 0;
-      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
-    
+
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background-color: #0B0F19;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", serif;
       overflow: hidden;
-      background-color: #0c0d0e;
-      color: #f4ede2;
-      font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      position: fixed;
+      top: 0;
+      left: 0;
     }
 
-    /* ── 1. LINE 外部瀏覽器導引提示層 (無多餘按鈕) ── */
-    #lineGuideModal {
+    /* =========================================================================
+       1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 (純提示指引，無多餘按鈕)
+       ========================================================================= */
+    #line-browser-overlay {
       display: none;
       position: fixed;
-      inset: 0;
-      z-index: 9999;
-      background: rgba(12, 13, 14, 0.96);
+      top: 0; left: 0;
+      width: 100vw; height: 100vh; height: 100dvh;
+      z-index: 100000;
+      background: rgba(4, 7, 15, 0.94);
       backdrop-filter: blur(8px);
-      align-items: center;
       justify-content: center;
-      padding: 24px;
+      align-items: center;
+      padding: 16px;
+      box-sizing: border-box;
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
-    .guide-card {
-      width: 100%;
-      max-width: 360px;
-      background: #181a1d;
-      border: 1.5px solid #d97706;
-      border-radius: 16px;
-      padding: 28px 22px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-    }
-    .guide-title {
-      font-size: 24px;
-      font-weight: bold;
-      color: #fbbf24;
-      margin-bottom: 20px;
-      letter-spacing: 1.5px;
-    }
-    .guide-body {
-      font-size: 18px;
-      line-height: 1.8;
-      color: #e5e7eb;
-      text-align: justify;
-      background: rgba(255, 255, 255, 0.04);
-      padding: 18px;
-      border-radius: 10px;
-      border: 1px dashed #4b5563;
-    }
-    .guide-body b {
-      color: #38bdf8;
+    #line-browser-overlay.active {
+      display: flex;
+      opacity: 1;
     }
 
-    /* ── 2. 直向橫置提示層 (V158 經典 SVG 向量動畫) ── */
-    #rotateNoticeModal {
+    .line-guide-card {
+      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
+      border: 2px solid #D97706;
+      border-radius: 18px;
+      max-width: 420px;
+      width: 90%;
+      padding: 24px 22px;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-sizing: border-box;
+    }
+    .line-guide-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #FBBF24;
+      letter-spacing: 2px;
+    }
+    .line-guide-content {
+      font-size: 16px;
+      line-height: 1.8;
+      color: #E2E8F0;
+      text-align: left;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 16px 18px;
+      border-radius: 12px;
+      border: 1px dashed rgba(245, 158, 11, 0.45);
+    }
+    .line-guide-content strong {
+      color: #38BDF8;
+    }
+
+    /* =========================================================================
+       2. 第二順位層：物理直立螢幕旋轉鎖定層 (v158 原生經典向量動畫)
+       ========================================================================= */
+    #portrait-blocker-overlay {
       display: none;
       position: fixed;
-      inset: 0;
-      z-index: 8888;
-      background: #0f1012;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: radial-gradient(circle at center, #1E293B 0%, #080D1A 100%);
+      z-index: 99999;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      padding: 24px;
       text-align: center;
-      padding: 20px;
+      pointer-events: all;
+      box-sizing: border-box;
+      gap: 16px;
     }
-    .rotate-svg-wrap {
-      width: 90px;
-      height: 90px;
-      margin-bottom: 24px;
+
+    .rotate-phone-icon {
+      width: 62px;
+      height: 100px;
+      border: 3px solid #F59E0B;
+      border-radius: 12px;
+      position: relative;
+      margin-bottom: 8px;
+      animation: rotatePhoneAnim 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+      flex-shrink: 0;
     }
-    .phone-icon-body {
-      transform-origin: 45px 45px;
-      animation: v158RotateAnim 2.2s ease-in-out infinite;
+    .rotate-phone-icon::after {
+      content: '';
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #F59E0B;
     }
-    @keyframes v158RotateAnim {
-      0%, 15% { transform: rotate(0deg); }
-      50%, 65% { transform: rotate(-90deg); }
+
+    @keyframes rotatePhoneAnim {
+      0%   { transform: rotate(0deg); }
+      35%  { transform: rotate(-90deg); }
+      70%  { transform: rotate(-90deg); }
       100% { transform: rotate(0deg); }
     }
-    .rotate-title {
-      font-size: 24px;
-      font-weight: bold;
-      color: #fde68a;
+
+    .rotate-hint-title {
+      font-size: 25px;
+      font-weight: 900;
+      color: #FBBF24;
       letter-spacing: 2px;
-      margin-bottom: 8px;
     }
-    .rotate-sub {
+    .rotate-hint-subtitle {
       font-size: 16px;
-      color: #9ca3af;
-      letter-spacing: 1px;
+      color: #CBD5E1;
+      letter-spacing: 1.5px;
+      line-height: 1.6;
     }
 
-    /* ── 3. 21天心靈陪伴卡展示層 (純圖直出 + 淡橙膠囊按鈕) ── */
-    #companionModal {
+    /* =========================================================================
+       🌟 3. 21 天心靈陪伴卡：純圖展示 + 溫暖淡橙「開始背誦」按鈕
+       ========================================================================= */
+    #companion-overlay {
       display: none;
       position: fixed;
-      inset: 0;
-      z-index: 7777;
-      background: rgba(10, 10, 12, 0.94);
-      backdrop-filter: blur(6px);
+      top: 0; left: 0;
+      width: 100vw; height: 100vh; height: 100dvh;
+      z-index: 20000;
+      background: rgba(4, 7, 15, 0.92);
+      backdrop-filter: blur(8px);
       flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.35s ease;
       padding: 12px;
+      box-sizing: border-box;
     }
-    .companion-img-container {
-      position: relative;
-      max-height: 80vh;
-      max-width: 92vw;
+    #companion-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .companion-img-box {
+      max-height: 78vh;
+      max-width: 90vw;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .companion-img {
-      max-height: 78vh;
-      max-width: 90vw;
+    #companion-img-display {
+      max-height: 76vh;
+      max-width: 88vw;
       width: auto;
       height: auto;
       object-fit: contain;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+      border-radius: 14px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8);
     }
-    .companion-btn-orange {
-      display: inline-block;
-      margin-top: 14px;
+
+    .btn-card-orange {
+      margin-top: 12px;
       padding: 10px 48px;
       font-size: 22px;
-      font-weight: bold;
+      font-weight: 900;
       letter-spacing: 2px;
       color: #431407;
-      background: linear-gradient(135deg, #ffedd5 0%, #fdba74 100%);
-      border: 1.5px solid #f97316;
+      background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%);
+      border: 1.5px solid #F97316;
       border-radius: 30px;
-      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.28);
+      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
       cursor: pointer;
       user-select: none;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      transition: transform 0.15s ease-out;
     }
-    .companion-btn-orange:active {
-      transform: scale(0.96);
-      background: linear-gradient(135deg, #fdba74 0%, #fb923c 100%);
+    .btn-card-orange:active {
+      transform: scale(0.95);
+      background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
     }
 
-    /* ── 4. 主播放器畫面 (V158 原生穩定雙欄架構) ── */
-    #mainPlayerView {
-      display: flex;
+    /* =========================================================================
+       4. 核心主架構 (v158 原生橫式雙模視圖，百分之百嚴格保留)
+       ========================================================================= */
+    #landscape-container {
       width: 100vw;
       height: 100vh;
-      background: #0f1012;
-      position: relative;
-    }
-    
-    /* 左側：經文 PDF 檢視區 (純淨背景、自適應縮放) */
-    #scriptureArea {
-      flex: 1;
-      height: 100%;
-      overflow-y: auto;
-      overflow-x: hidden;
-      background-color: #f6f3eb; /* 典雅宣紙底色 */
+      height: 100dvh;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
+      flex-direction: row;
+      align-items: stretch;
       position: relative;
-    }
-    #pdfCanvas {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-      border-radius: 4px;
-      display: block;
-    }
-
-    /* 右側：影音與狀態控制欄 */
-    #controlSidebar {
-      width: 280px;
-      height: 100%;
-      background: #16181b;
-      border-left: 1px solid #282a2e;
-      display: flex;
-      flex-direction: column;
-      padding: 14px;
-      justify-content: space-between;
-      flex-shrink: 0;
-      z-index: 10;
-    }
-    .video-box {
-      width: 100%;
-      height: 145px;
-      background: #000;
-      border-radius: 8px;
       overflow: hidden;
     }
-    video {
+
+    #schedule-toast {
+      display: none;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #10B981;
+      color: #064E3B;
+      border: 2.5px solid #FFFFFF;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-size: 17px;
+      font-weight: 900;
+      z-index: 9999;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75);
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      white-space: nowrap;
+    }
+
+    #speed-toast-badge {
+      display: none;
+      position: absolute;
+      top: 14px;
+      right: calc(76px + env(safe-area-inset-right, 0px));
+      background: rgba(15, 23, 42, 0.96);
+      color: #34D399;
+      border: 2px solid #10B981;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 16px;
+      font-weight: 900;
+      z-index: 120;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .side-wing {
+      flex-shrink: 0;
+      height: 100%;
+      background-color: #000000;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      align-items: center;
+      padding-top: 4px;
+      padding-bottom: 4px;
+      z-index: 60;
+      box-sizing: border-box;
+    }
+    #left-wing { width: calc(64px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 6px); padding-right: 6px; }
+    #right-wing { width: calc(64px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 6px); padding-left: 6px; }
+    .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
+
+    .circle-btn {
+      width: 52px !important;
+      height: 52px !important;
+      border-radius: 50%;
+      border: 2.5px solid #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px !important;
+      font-weight: 900;
+      color: #FFFFFF;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+      transition: transform 0.15s ease-out;
+      text-align: center;
+      line-height: 1.1;
+      touch-action: manipulation;
+    }
+    .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
+
+    .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
+    #btn-mark-a.active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF; }
+    .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
+    #btn-mark-b.active-mark { box-shadow: 0 0 18px #FB923C, inset 0 0 8px #FFFFFF; }
+    .btn-color-repeat { background: linear-gradient(135deg, #6366F1 0%, #4338CA 100%); border-color: #E0E7FF; font-size: 15px !important; }
+    .btn-color-shutdown { background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); border-color: #FECACA; }
+
+    .btn-color-guide { background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%); border-color: #FECACA; }
+    #btn-guide-toggle.guide-waiting { background: radial-gradient(circle, #EAB308 0%, #CA8A04 100%) !important; border-color: #FEF08A !important; }
+    #btn-guide-toggle.guide-active { background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important; border-color: #DCFCE7 !important; animation: voiceBreathing 1.25s infinite ease-in-out !important; }
+    @keyframes voiceBreathing {
+      0% { transform: scale(1.0); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1.0); }
+    }
+
+    .btn-color-offering { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border-color: #FDE68A; color: #78350F; }
+    .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
+    .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
+
+    #center-core {
+      flex: 1;
+      height: 100%;
+      background-color: #FFFFFF;
+      position: relative;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-left: 2px solid #1E293B;
+      border-right: 2px solid #1E293B;
+      scroll-behavior: smooth;
+      touch-action: pan-y;
+    }
+
+    #guide-stage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: block; }
+    #guide-line { position: absolute; height: 6px; background-color: #00E676; border-radius: 3px; box-shadow: 0 0 10px rgba(0, 230, 118, 0.9); display: none; }
+    #red-dot { position: absolute; width: min(22px, 6vh); height: min(22px, 6vh); background: radial-gradient(circle, #FF5252 20%, #FF1744 100%); border: 2.5px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 12px rgba(255, 23, 68, 0.8); transform: translate(-50%, -50%); display: none; }
+    #mark-a-line { position: absolute; height: 6px; background-color: #0284C7; border-radius: 3px; box-shadow: 0 0 12px #38BDF8; z-index: 48; display: none; }
+    #mark-b-line { position: absolute; height: 6px; background-color: #EA580C; border-radius: 3px; box-shadow: 0 0 12px #FB923C; z-index: 48; display: none; }
+
+    #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; pointer-events: none; display: flex; justify-content: center; }
+    #pdf-canvas { display: block; width: 100% !important; height: auto !important; image-rendering: -webkit-optimize-contrast; transform: translateZ(0); }
+
+    #video-container-wrap {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain;
-      display: block;
-    }
-    .status-panel {
-      background: #202227;
-      border-radius: 8px;
-      padding: 14px 12px;
-      font-size: 15px;
-      line-height: 1.6;
-    }
-    .status-row {
-      display: flex;
+      background-color: #000000;
+      display: none;
+      justify-content: center;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
+      z-index: 55;
     }
-    .status-row:last-child {
-      margin-bottom: 0;
-    }
-    .mic-dot {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #4b5563;
-      display: inline-block;
-      transition: background 0.2s ease;
-    }
-    .mic-dot.active {
-      background: #ef4444;
-      box-shadow: 0 0 10px #ef4444;
-      animation: micPulse 0.8s infinite alternate;
-    }
-    @keyframes micPulse {
-      from { opacity: 0.4; }
-      to { opacity: 1; }
-    }
-    .btn-action {
-      width: 100%;
-      height: 48px;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 8px;
-      user-select: none;
-    }
-    .btn-mode {
-      background: #2563eb;
-      color: #fff;
-    }
-    .btn-mode:active {
-      background: #1d4ed8;
-    }
-    .btn-exit {
-      background: #374151;
-      color: #f3f4f6;
-    }
-    .btn-exit:active {
-      background: #1f2937;
-    }
+    #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
+
+    .popup-modal { display: none; position: absolute; top: 50%; left: calc(76px + env(safe-area-inset-left, 0px)); transform: translateY(-50%); background: rgba(30, 41, 59, 0.98); border-radius: 18px; padding: 14px; z-index: 100; flex-direction: column; gap: 10px; border: 2px solid #6366F1; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+    .modal-option { padding: 10px 20px; font-size: 18px; font-weight: 800; color: #FFFFFF; background-color: #334155; border: none; border-radius: 10px; cursor: pointer; text-align: center; }
+    .modal-option.active { background: #6366F1; }
+
+    /* 供養與功德榜 */
+    #offering-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 999; justify-content: center; align-items: center; padding: 12px; }
+    .offering-card { background: #FFFFFF; color: #1E293B; border-radius: 18px; width: 92%; max-width: 460px; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
+    .offering-header { font-size: 20px; font-weight: 900; color: #D97706; text-align: center; }
+    .offering-row { display: flex; flex-direction: row; gap: 12px; width: 100%; }
+    .offering-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .offering-field label { font-size: 14px; font-weight: 800; color: #475569; }
+    .offering-input { width: 100%; padding: 8px 12px; border-radius: 10px; border: 2px solid #CBD5E1; font-size: 16px; font-weight: 700; color: #0F172A; }
+    .coins-display-box { background: #FEF3C7; border: 2px dashed #F59E0B; border-radius: 12px; padding: 10px; text-align: center; }
+    .coins-label { font-size: 13px; font-weight: 800; color: #92400E; }
+    .coins-value { font-size: 28px; font-weight: 900; color: #B45309; }
+    .offering-actions { display: flex; gap: 12px; margin-top: 4px; }
+    .offering-btn { flex: 1; padding: 10px 14px; font-size: 17px; font-weight: 800; border-radius: 12px; border: none; cursor: pointer; }
+    #btn-confirm-offering { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; }
+    #btn-cancel-offering { background: #F1F5F9; color: #475569; }
+
+    #leaderboard-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 15, 29, 0.92); z-index: 1000; justify-content: center; align-items: center; padding: 10px 14px; }
+    .leaderboard-card { background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%); border: 2px solid #F59E0B; color: #FFFFFF; border-radius: 20px; width: 96vw; height: 94vh; padding: 12px 18px; display: flex; flex-direction: column; justify-content: space-between; }
+    .leaderboard-header { text-align: center; font-size: 20px; font-weight: 900; color: #FBBF24; }
+    .rank-wrap { display: flex; flex-direction: row; gap: 14px; width: 100%; flex: 1; align-items: stretch; margin: 8px 0; }
+    .rank-section { flex: 1; background: rgba(30, 41, 59, 0.7); border: 1.5px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 10px 16px; display: flex; flex-direction: column; justify-content: space-between; }
+    .rank-section-title { font-size: 17px; font-weight: 900; color: #38BDF8; padding-bottom: 6px; border-bottom: 1.5px solid rgba(255, 255, 255, 0.12); }
+    .rank-list { display: flex; flex-direction: column; flex: 1; justify-content: space-evenly; }
+    .rank-item { display: flex; justify-content: space-between; align-items: center; font-size: 17px; font-weight: 800; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); padding: 6px 0; }
+    .rank-coins { color: #F59E0B; font-weight: 900; }
+    .btn-rejoice { width: 100%; height: 46px; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; font-size: 18px; font-weight: 900; border: none; border-radius: 14px; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <!-- 1. LINE 外部瀏覽器導引提示層 -->
-  <div id="lineGuideModal">
-    <div class="guide-card">
-      <div class="guide-title">📌 瀏覽器設定・溫馨提示</div>
-      <div class="guide-body">
-        請留意畫面<b>右下角或右上角</b>的三點圖示「<b>⋮</b>」或「<b>…</b>」，點選「<b>以預設瀏覽器開啟</b>」（Safari 或 Chrome）。
+  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 (純指引、無按鈕) -->
+  <div id="line-browser-overlay">
+    <div class="line-guide-card">
+      <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
+      <div class="line-guide-content">
+        請留意畫面<strong>右下角或右上角</strong>的三點圖示「<strong>⋮</strong>」或「<strong>⋯</strong>」，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
       </div>
     </div>
   </div>
 
-  <!-- 2. 直向橫置提示層 (V158 原生經典向量手機圖示) -->
-  <div id="rotateNoticeModal">
-    <div class="rotate-svg-wrap">
-      <svg viewBox="0 0 90 90" width="90" height="90">
-        <!-- 外圍旋轉指引弧線與箭頭 -->
-        <path d="M 45 12 A 33 33 0 0 1 78 45" fill="none" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" />
-        <polygon points="78,35 84,47 72,45" fill="#f59e0b" />
-        <path d="M 45 78 A 33 33 0 0 1 12 45" fill="none" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round" />
-        <polygon points="12,55 6,43 18,45" fill="#f59e0b" />
-        <!-- 旋轉中的手機主體 -->
-        <g class="phone-icon-body">
-          <rect x="32" y="18" width="26" height="54" rx="5" fill="#1e2126" stroke="#fbbf24" stroke-width="2.5" />
-          <rect x="36" y="24" width="18" height="40" rx="2" fill="#2d323b" />
-          <circle cx="45" cy="67" r="1.8" fill="#fbbf24" />
-        </g>
-      </svg>
-    </div>
-    <div class="rotate-title">請旋轉手機為橫向</div>
-    <div class="rotate-sub">橫向鎖定以獲得最佳背誦視野</div>
+  <!-- 2. 第二順位層：物理直立螢幕旋轉鎖定層 (v158 原生經典向量動畫) -->
+  <div id="portrait-blocker-overlay">
+    <div class="rotate-phone-icon"></div>
+    <div class="rotate-hint-title">請將手機橫放</div>
+    <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 3. 21天心靈陪伴卡展示層 (純圖呈現) -->
-  <div id="companionModal">
-    <div class="companion-img-container">
-      <img id="companionCardImg" class="companion-img" src="" alt="心靈陪伴卡" />
+  <!-- 🌟 3. 21 天心靈陪伴卡 (純圖展示 + 淡橙按鈕) -->
+  <div id="companion-overlay">
+    <div class="companion-img-box">
+      <img id="companion-img-display" src="" alt="心靈陪伴卡" />
     </div>
-    <button id="btnStartRecite" class="companion-btn-orange">開始背誦</button>
+    <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
   </div>
 
-  <!-- 4. 主播放器畫面 -->
-  <div id="mainPlayerView">
-    <div id="scriptureArea">
-      <canvas id="pdfCanvas"></canvas>
+  <!-- 狀態浮標 -->
+  <div id="schedule-toast">📅 載入進度中...</div>
+  <div id="speed-toast-badge">【語速 1.5x】</div>
+
+  <!-- 4. 主視圖 (v158 原生橫式雙模核心，完全保留) -->
+  <div id="landscape-container">
+    <div class="side-wing" id="left-wing">
+      <div class="slot"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起點</button></div>
+      <div class="slot"><button class="circle-btn btn-color-mark-b" id="btn-mark-b">終點</button></div>
+      <div class="slot"><button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button></div>
+      <div class="slot"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">關機</button></div>
     </div>
-    <div id="controlSidebar">
-      <div class="video-box">
-        <video id="chantVideo" playsinline preload="auto" src="chant_video.mp4"></video>
+
+    <div id="center-core">
+      <div id="guide-stage">
+        <div id="mark-a-line"></div>
+        <div id="mark-b-line"></div>
+        <div id="guide-line"></div>
+        <div id="red-dot"></div>
       </div>
-      <div class="status-panel">
-        <div class="status-row">
-          <span>讀誦收音狀態</span>
-          <span id="micIndicator" class="mic-dot"></span>
+
+      <div id="pdf-container-wrap">
+        <canvas id="pdf-canvas"></canvas>
+      </div>
+
+      <div id="video-container-wrap">
+        <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
+      </div>
+    </div>
+
+    <div class="side-wing" id="right-wing">
+      <div class="slot"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
+      <div class="slot"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
+      <div class="slot"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button></div>
+      <div class="slot"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button></div>
+    </div>
+  </div>
+
+  <div id="repeat-modal" class="popup-modal">
+    <button class="modal-option active" data-count="1">1 次</button>
+    <button class="modal-option" data-count="3">3 次</button>
+    <button class="modal-option" data-count="5">5 次</button>
+    <button class="modal-option" data-count="7">7 次</button>
+    <button class="modal-option" data-count="10">10 次</button>
+  </div>
+
+  <!-- 供養彈窗 -->
+  <div id="offering-modal-overlay">
+    <div class="offering-card">
+      <div class="offering-header"><span>🙏</span> 功德供養</div>
+      <div class="offering-row">
+        <div class="offering-field"><label>班號：</label><input type="text" id="input-class-id" class="offering-input" placeholder="例: 22宗009"></div>
+        <div class="offering-field"><label>姓名：</label><input type="text" id="input-user-name" class="offering-input" placeholder="請輸入姓名"></div>
+      </div>
+      <div class="coins-display-box">
+        <div class="coins-label">今日累計福慧幣</div>
+        <div class="coins-value" id="display-coins-count">0 枚</div>
+      </div>
+      <div class="offering-actions">
+        <button id="btn-cancel-offering" class="offering-btn">稍後</button>
+        <button id="btn-confirm-offering" class="offering-btn">確認供養</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 排行榜彈窗 -->
+  <div id="leaderboard-modal-overlay">
+    <div class="leaderboard-card">
+      <div class="leaderboard-header"><span>🏆</span> 功德圓滿・隨喜大眾</div>
+      <div class="rank-wrap">
+        <div class="rank-section">
+          <div class="rank-section-title">📅 今日精進榜</div>
+          <div class="rank-list" id="today-rank-list"></div>
         </div>
-        <div class="status-row">
-          <span>當前進度</span>
-          <span id="txtCurrentProgress" style="color: #fbbf24;">第 1 句 / 共 8 句</span>
-        </div>
-        <div class="status-row">
-          <span>單句循環</span>
-          <span id="txtSentenceCycle">第 1 / 3 遍</span>
+        <div class="rank-section">
+          <div class="rank-section-title" style="color: #FBBF24;">🌟 總累積功德榜</div>
+          <div class="rank-list" id="total-rank-list"></div>
         </div>
       </div>
-      <div>
-        <button id="btnToggleMode" class="btn-action btn-mode">模式：自背檢核模式</button>
-        <button id="btnExitPlayer" class="btn-action btn-exit">關機 / 退出全螢幕</button>
-      </div>
+      <button class="btn-rejoice" id="btn-rejoice-close">🙏 隨喜讚嘆</button>
     </div>
   </div>
 
   <script>
-    /* =========================================================================
-       1. 經文時間戳記與麥克風參數
-       ========================================================================= */
-    const SCRIPTURE_SENTENCES = [
-      { id: 1, start: 0.0, end: 4.8, duration: 4.8, repeatCount: 3 },
-      { id: 2, start: 4.8, end: 10.5, duration: 5.7, repeatCount: 3 },
-      { id: 3, start: 10.5, end: 15.2, duration: 4.7, repeatCount: 3 },
-      { id: 4, start: 15.2, end: 19.8, duration: 4.6, repeatCount: 3 },
-      { id: 5, start: 19.8, end: 25.4, duration: 5.6, repeatCount: 3 },
-      { id: 6, start: 25.4, end: 31.0, duration: 5.6, repeatCount: 3 },
-      { id: 7, start: 31.0, end: 35.5, duration: 4.5, repeatCount: 3 },
-      { id: 8, start: 35.5, end: 42.0, duration: 6.5, repeatCount: 3 }
-    ];
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    }
 
-    // 麥克風音訊收音設定
-    const VAD_CONFIG = {
-      VOLUME_THRESHOLD: 0.08,        // 音量閥值
-      MIN_SPEECH_DURATION: 0.2,      // 最短發聲門檻 0.2 秒 (捕捉短促音)
-      SILENCE_HANGOVER: 1.0,         // 連續安靜 1.0 秒判定背完
-      TIMEOUT_EXTRA_SECONDS: 10.0    // 容許超時：句長 + 10 秒
-    };
+    // =========================================================================
+    // 🔒【嚴格保留：Apple 與 Android 雙軌架構與縮放補償】
+    // =========================================================================
+    const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    /* =========================================================================
-       2. 系統狀態變數
-       ========================================================================= */
-    let currentSentenceIndex = 0;
-    let currentSentenceCycle = 1;
-    let isDualModeRecite = true; // true: 自背檢核, false: 示範跟讀
-    let isPlaying = false;
+    function getAppleCanvasScale() {
+      if (!isAppleDevice) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
+      if (!pdfCanvas || pdfCanvas.height === 0 || pdfCanvas.width === 0) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      const scaleY = canvasRect.height / pdfCanvas.height;
+      const scaleX = canvasRect.width / pdfCanvas.width;
+      const offsetTop = pdfCanvas.offsetTop || 0;
+      const offsetLeft = pdfCanvas.offsetLeft || 0;
+      return { scaleX, scaleY, offsetTop, offsetLeft };
+    }
 
-    // 麥克風硬體與分析節點
-    let audioCtx = null;
+    let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.5');
+    if (isNaN(baseSpeed) || baseSpeed < 0.5 || baseSpeed > 4.0) baseSpeed = 1.5;
+
+    const APPS_SCRIPT_URL = GAS_BACKEND_URL;
+
+    // DOM 快取
+    const lineBrowserOverlay = document.getElementById('line-browser-overlay');
+    const portraitBlocker = document.getElementById('portrait-blocker-overlay');
+    const companionOverlay = document.getElementById('companion-overlay');
+    const companionImgDisplay = document.getElementById('companion-img-display');
+
+    const centerCore = document.getElementById('center-core');
+    const guideStage = document.getElementById('guide-stage');
+    const guideLine = document.getElementById('guide-line');
+    const redDot = document.getElementById('red-dot');
+    const markALine = document.getElementById('mark-a-line');
+    const markBLine = document.getElementById('mark-b-line');
+
+    const pdfContainerWrap = document.getElementById('pdf-container-wrap');
+    const pdfCanvas = document.getElementById('pdf-canvas');
+    const videoWrap = document.getElementById('video-container-wrap');
+    const video = document.getElementById('my-chant-video');
+
+    const scheduleToast = document.getElementById('schedule-toast');
+    const speedToastBadge = document.getElementById('speed-toast-badge');
+
+    const btnMarkA = document.getElementById('btn-mark-a');
+    const btnMarkB = document.getElementById('btn-mark-b');
+    const btnRepeatCount = document.getElementById('btn-repeat-count');
+    const btnShutdownExit = document.getElementById('btn-shutdown-exit');
+    const repeatModal = document.getElementById('repeat-modal');
+
+    const btnGuideToggle = document.getElementById('btn-guide-toggle');
+    const btnOffering = document.getElementById('btn-offering');
+    const btnSpeedUp = document.getElementById('btn-speed-up');
+    const btnSpeedDown = document.getElementById('btn-speed-down');
+
+    const offeringOverlay = document.getElementById('offering-modal-overlay');
+    const inputClassId = document.getElementById('input-class-id');
+    const inputUserName = document.getElementById('input-user-name');
+    const displayCoinsCount = document.getElementById('display-coins-count');
+    const btnConfirmOffering = document.getElementById('btn-confirm-offering');
+    const btnCancelOffering = document.getElementById('btn-cancel-offering');
+
+    const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
+    const todayRankList = document.getElementById('today-rank-list');
+    const totalRankList = document.getElementById('total-rank-list');
+    const btnRejoiceClose = document.getElementById('btn-rejoice-close');
+
+    let currentMode = 'pdf';
+    let scriptureData = [];
+    let currentPdfDoc = null;
+    let parsedTextLines = [];
+    let cachedPdfBuffer = null;
+
+    let isManualSelected = false;
+    let markA_Index = -1;
+    let markB_Index = -1;
+    let totalTargetCycles = 1;
+    let completedCycles = 0;
+    let videoPausedAt = -1;
+
+    let guideAnimId = null;
+    let cycleWaitTimer = null;
+    let isGuideActive = false;
+    let currentLineIndex = 0;
+
+    let currentCharIndexFloat = 0.0;
+    let lastAnimTimestamp = 0;
+    let isTransitioningLine = false;
+    let isLineHeadLocked = true;
+    let lineEndTime = 0;
+    let peakRmsAtLineEnd = 0.0;
+    let prevRms = 0.0;
+    let hasPageFlipped = false;
+
+    // 音訊檢測核心參數 (融入 0.2s 短音 + 超時關閉計時器)
+    let audioContext = null;
+    let analyser = null;
     let micStream = null;
-    let analyserNode = null;
-    let vadCheckInterval = null;
-    let consecutiveSpeechTime = 0.0;
-    let hasSpoken = false;
-    let silenceTimer = null;
-    let maxTimeoutTimer = null;
+    let vadCheckTimer = null;
+    let maxTimeoutSafetyTimer = null;
+    let isVoiceActive = false;
+    let isTouchingDisplay = false;
+    let baseNoiseLevel = 0.0015;
+    let dynamicThreshold = 0.0020;
+    let calibrationSamples = [];
+    let isCalibrating = false;
+    let silentFrameCount = 0;
 
-    // PDF 實例
-    let pdfDoc = null;
-    let hasRenderedPdfOnce = false;
+    // =========================================================================
+    // 【流程狀態機：三點提示優先 ➔ 橫放引導 ➔ 直出陪伴卡 ➔ 點擊背誦始繪 PDF】
+    // =========================================================================
+    const isLineApp = /Line\//i.test(navigator.userAgent);
+    let isLineGuideDismissed = !isLineApp;
+    let isCompanionDismissed = false;
+    let hasEnteredReciting = false;
 
-    /* =========================================================================
-       3. 核心啟動流程：LINE 檢查 ➔ 橫向偵測 ➔ 陪伴卡 ➔ 開始背誦
-       ========================================================================= */
-    window.addEventListener("DOMContentLoaded", () => {
-      // 1. 檢查是否在 LINE 內嵌瀏覽器中
-      const ua = navigator.userAgent || navigator.vendor || window.opera;
-      const isLine = /Line\//i.test(ua) || /FBAN\//i.test(ua) || /FBAV\//i.test(ua);
-      if (isLine) {
-        document.getElementById("lineGuideModal").style.display = "flex";
+    function handleOrientationCheck() {
+      if (hasEnteredReciting) return;
+
+      if (!isLineGuideDismissed) {
+        lineBrowserOverlay.classList.add('active');
+        portraitBlocker.style.display = 'none';
+        companionOverlay.classList.remove('active');
         return;
       }
 
-      // 2. 螢幕方向監聽
-      window.addEventListener("resize", checkOrientationBeforeStart);
-      window.addEventListener("orientationchange", checkOrientationBeforeStart);
-      checkOrientationBeforeStart();
-    });
+      const isPortrait = window.innerHeight > window.innerWidth;
 
-    function checkOrientationBeforeStart() {
-      const isLandscape = window.innerWidth > window.innerHeight;
-      const rotateModal = document.getElementById("rotateNoticeModal");
-      const companionModal = document.getElementById("companionModal");
-
-      if (!isLandscape) {
-        rotateModal.style.display = "flex";
-        companionModal.style.display = "none";
+      if (isPortrait) {
+        portraitBlocker.style.display = 'flex';
+        companionOverlay.classList.remove('active');
+        haltGuideRunnerImmediately();
       } else {
-        rotateModal.style.display = "none";
-        if (!hasRenderedPdfOnce) {
-          showCompanionCard();
+        portraitBlocker.style.display = 'none';
+
+        if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
+          companionOverlay.classList.add('active');
+        } else if (!hasEnteredReciting && cachedPdfBuffer && parsedTextLines.length === 0) {
+          renderPdfOnValidDimensions();
         }
       }
     }
 
-    /* =========================================================================
-       4. 21天心靈陪伴卡排程與循環邏輯
-       ========================================================================= */
-    function showCompanionCard() {
-      const modal = document.getElementById("companionModal");
-      const img = document.getElementById("companionCardImg");
+    function orientationChangeWrapper() {
+      setTimeout(handleOrientationCheck, 150);
+    }
 
+    window.addEventListener('resize', handleOrientationCheck);
+    window.addEventListener('orientationchange', orientationChangeWrapper);
+
+    function triggerAppFullscreen() {
+      const el = document.documentElement;
+      try {
+        if (el.requestFullscreen) {
+          el.requestFullscreen().catch(() => {});
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen().catch(() => {});
+        } else if (el.msRequestFullscreen) {
+          el.msRequestFullscreen().catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    function closeCompanionCard() {
+      hasEnteredReciting = true;
+
+      // 🎯 徹底移除方向與尺寸監聽，背誦期間手機微斜絕不再彈出阻斷
+      window.removeEventListener('resize', handleOrientationCheck);
+      window.removeEventListener('orientationchange', orientationChangeWrapper);
+      portraitBlocker.style.display = 'none';
+
+      triggerAppFullscreen();
+
+      if (currentCompanionSeenKey) {
+        localStorage.setItem(currentCompanionSeenKey, 'true');
+      }
+      isCompanionDismissed = true;
+      companionOverlay.setAttribute('data-needed', 'false');
+      companionOverlay.style.opacity = '0';
+
+      setTimeout(() => {
+        companionOverlay.classList.remove('active');
+        companionOverlay.style.opacity = '';
+        activateMainReciteEntry();
+
+        // 🎯 全螢幕動畫展開後，執行唯一一次 PDF 繪製，底線精準貼合
+        setTimeout(() => {
+          renderPdfOnValidDimensions();
+        }, 250);
+      }, 350);
+    }
+
+    function activateMainReciteEntry() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+      } catch (err) {}
+
+      if (!isManualSelected) {
+        applyScheduleToState();
+      }
+      syncFiveFilesInBackground();
+    }
+
+    async function renderPdfOnValidDimensions() {
+      if (!cachedPdfBuffer) return;
+      await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
+      updateVisualDisplay();
+      scrollToAlignTop(0);
+      if (!isManualSelected) applyScheduleToState();
+    }
+
+    // =========================================================================
+    // 【本機離線快取引擎 (IndexedDB)】
+    // =========================================================================
+    const DB_NAME = 'HappyReciteDB_' + CURRENT_CLASSIC_ID;
+    const STORE_NAME = 'app_offline_files';
+
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        try {
+          const req = indexedDB.open(DB_NAME, 1);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        } catch (e) { reject(e); }
+      });
+    }
+
+    async function getLocalFile(key) {
+      try {
+        const db = await openDatabase();
+        return new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const req = tx.objectStore(STORE_NAME).get(key);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) { return null; }
+    }
+
+    async function saveLocalFile(key, data, tag) {
+      try {
+        const db = await openDatabase();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put({ data: data, tag: tag }, key);
+      } catch (e) {}
+    }
+
+    function showToast(msg, duration = 4000) {
+      if (!scheduleToast) return;
+      scheduleToast.textContent = msg;
+      scheduleToast.style.display = 'block';
+      scheduleToast.style.opacity = '1';
+      clearTimeout(scheduleToast._timer);
+      scheduleToast._timer = setTimeout(() => {
+        scheduleToast.style.opacity = '0';
+        setTimeout(() => { scheduleToast.style.display = 'none'; }, 300);
+      }, duration);
+    }
+
+    function triggerSpeedChange(delta) {
+      let newSpeed = Math.round((baseSpeed + delta) * 10) / 10;
+      newSpeed = Math.max(0.5, Math.min(4.0, newSpeed));
+      baseSpeed = newSpeed;
+      localStorage.setItem('user_speed_preference', baseSpeed.toFixed(1));
+
+      speedToastBadge.textContent = `【語速 ${baseSpeed.toFixed(1)}x】`;
+      speedToastBadge.style.display = 'block';
+      speedToastBadge.style.opacity = '1';
+
+      clearTimeout(speedToastBadge._t);
+      speedToastBadge._t = setTimeout(() => {
+        speedToastBadge.style.opacity = '0';
+        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
+      }, 3000);
+    }
+
+    btnSpeedUp.addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(+0.1); });
+    btnSpeedDown.addEventListener('click', (e) => { e.stopPropagation(); triggerSpeedChange(-0.1); });
+
+    function speakPrompt(text) {
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'zh-TW';
+          utterance.rate = 1.1;
+          window.speechSynthesis.speak(utterance);
+        }
+      } catch (e) {}
+    }
+
+    function getNormalizedDateStr() {
+      const now = new Date();
+      return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    function getActiveVideoRange() {
+      if (!scriptureData || scriptureData.length === 0) {
+        return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
+      }
+
+      let aIdx = markA_Index >= 0 ? markA_Index : 0;
+      let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
+
+      if (bIdx < aIdx) bIdx = aIdx;
+
+      aIdx = Math.min(aIdx, scriptureData.length - 1);
+      bIdx = Math.min(bIdx, scriptureData.length - 1);
+
+      const startObj = scriptureData[aIdx];
+      const endObj = scriptureData[bIdx];
+
+      if (!startObj || typeof startObj.start !== 'number' || !endObj || typeof endObj.end !== 'number') {
+        return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
+      }
+
+      return {
+        start: startObj.start,
+        end: endObj.end,
+        sentenceA: aIdx + 1,
+        sentenceB: bIdx + 1,
+        valid: true
+      };
+    }
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        const deltaY = e.changedTouches[0].clientY - touchStartY;
+
+        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+          toggleModeSwitch();
+        }
+      }
+    }, { passive: true });
+
+    function toggleModeSwitch() {
+      haltGuideRunnerImmediately();
+
+      if (currentMode === 'pdf') {
+        currentMode = 'mp4';
+        pdfContainerWrap.style.display = 'none';
+        guideStage.style.display = 'none';
+        videoWrap.style.display = 'flex';
+
+        const range = getActiveVideoRange();
+        videoPausedAt = -1;
+
+        if (range.valid) {
+          video.currentTime = range.start;
+          showToast(`🎬【區段已鎖定】第 ${range.sentenceA}～${range.sentenceB} 句（${range.start.toFixed(1)}s～${range.end.toFixed(1)}s）`, 4500);
+        } else {
+          showToast(`⚠️ 句數秒數尚未載入完畢，請稍候`, 3000);
+        }
+      } else {
+        currentMode = 'pdf';
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+        guideStage.style.display = 'block';
+        showToast('📖 切換為：經文默背模式', 2500);
+        scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+      }
+      updateVisualDisplay();
+    }
+
+    video.addEventListener('timeupdate', () => {
+      if (currentMode !== 'mp4') return;
+
+      const range = getActiveVideoRange();
+      if (!range.valid) return;
+
+      if (video.currentTime >= range.end) {
+        completedCycles++;
+        const remain = Math.max(0, totalTargetCycles - completedCycles);
+        btnRepeatCount.textContent = `${remain}次`;
+
+        addCoins(calculateSentenceCount());
+
+        if (completedCycles >= totalTargetCycles) {
+          video.pause();
+          videoPausedAt = -1;
+          video.currentTime = range.start;
+          btnGuideToggle.textContent = '背書';
+          btnGuideToggle.classList.remove('guide-active');
+          handleTargetCycleDone();
+        } else {
+          showToast(`已完成 ${completedCycles} 遍，繼續循環`);
+          videoPausedAt = -1;
+          video.currentTime = range.start;
+          video.play().catch(() => {});
+        }
+      }
+    });
+
+    function handleTargetCycleDone() {
+      const todayStr = getNormalizedDateStr();
+      localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
+      speakPrompt("背誦圓滿，功德無量");
+      showToast("🎉 背誦圓滿！已完成排定遍數，隨喜功德", 4500);
+    }
+
+    // =========================================================================
+    // 🔒【嚴格保留：標記線與按鈕定位的 Apple 與 Android 獨立分流運算】
+    // =========================================================================
+    function renderMarkerLine(lineElement, lineObj) {
+      if (!lineObj) return;
+      if (!isAppleDevice) {
+        lineElement.style.top = `${lineObj.underLineY}px`;
+        lineElement.style.left = `${lineObj.x0}px`;
+        lineElement.style.width = `${lineObj.x1 - lineObj.x0}px`;
+        lineElement.style.display = 'block';
+        return;
+      }
+      const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+      lineElement.style.top = `${offsetTop + (lineObj.underLineY * scaleY)}px`;
+      lineElement.style.left = `${offsetLeft + (lineObj.x0 * scaleX)}px`;
+      lineElement.style.width = `${(lineObj.x1 - lineObj.x0) * scaleX}px`;
+      lineElement.style.display = 'block';
+    }
+
+    function getLineAtButtonBottom(buttonElement) {
+      if (parsedTextLines.length === 0) return 0;
+      const btnRect = buttonElement.getBoundingClientRect();
+      if (!isAppleDevice) {
+        const centerRect = centerCore.getBoundingClientRect();
+        const targetAbsoluteY = centerCore.scrollTop + (btnRect.bottom - centerRect.top);
+        let closestIdx = 0, minDiff = Infinity;
+        for (let i = 0; i < parsedTextLines.length; i++) {
+          const diff = Math.abs(parsedTextLines[i].underLineY - targetAbsoluteY);
+          if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+        }
+        return closestIdx;
+      }
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      const { scaleY } = getAppleCanvasScale();
+      const targetCanvasY = (btnRect.bottom - canvasRect.top) / scaleY;
+      let closestIdx = 0, minDiff = Infinity;
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const diff = Math.abs(parsedTextLines[i].underLineY - targetCanvasY);
+        if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+      }
+      return closestIdx;
+    }
+
+    function updateVisualDisplay() {
+      if (currentMode === 'pdf') {
+        if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
+          btnMarkA.classList.add('active-mark');
+          renderMarkerLine(markALine, parsedTextLines[markA_Index]);
+        } else {
+          btnMarkA.classList.remove('active-mark');
+          markALine.style.display = 'none';
+        }
+
+        if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
+          btnMarkB.classList.add('active-mark');
+          renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
+        } else {
+          btnMarkB.classList.remove('active-mark');
+          markBLine.style.display = 'none';
+        }
+      }
+
+      if (!isGuideActive && currentMode === 'pdf') {
+        guideLine.style.display = 'none';
+        redDot.style.display = 'none';
+        btnGuideToggle.textContent = '背書';
+        btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
+      }
+
+      const remain = Math.max(0, totalTargetCycles - completedCycles);
+      btnRepeatCount.textContent = `${remain}次`;
+    }
+
+    btnMarkA.addEventListener('click', () => {
+      if (isGuideActive) return;
+      if (parsedTextLines.length === 0) return;
+      isManualSelected = true;
+      markA_Index = getLineAtButtonBottom(btnMarkA);
+      if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
+      currentLineIndex = markA_Index;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      completedCycles = 0;
+      videoPausedAt = -1;
+      updateVisualDisplay();
+      speakPrompt(`起點設定在第 ${markA_Index + 1} 句`);
+    });
+
+    btnMarkB.addEventListener('click', () => {
+      if (isGuideActive) return;
+      if (parsedTextLines.length === 0) return;
+      const selectedB = getLineAtButtonBottom(btnMarkB);
+      if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
+      
+      isManualSelected = true;
+      markB_Index = selectedB;
+      completedCycles = 0;
+      videoPausedAt = -1;
+      updateVisualDisplay();
+      speakPrompt(`終點設定在第 ${markB_Index + 1} 句`);
+    });
+
+    btnRepeatCount.addEventListener('click', () => {
+      if (isGuideActive) return;
+      repeatModal.style.display = repeatModal.style.display === 'flex' ? 'none' : 'flex';
+    });
+
+    document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        totalTargetCycles = parseInt(btn.dataset.count, 10);
+        completedCycles = 0;
+        btnRepeatCount.textContent = `${totalTargetCycles}次`;
+        document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateVisualDisplay();
+        repeatModal.style.display = 'none';
+      });
+    });
+
+    // =========================================================================
+    // 【背書按鈕：模式啟動】
+    // =========================================================================
+    btnGuideToggle.addEventListener('click', async () => {
+      triggerAppFullscreen();
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+      } catch (e) {}
+
+      if (currentMode === 'mp4') {
+        const range = getActiveVideoRange();
+        if (!range.valid) {
+          showToast('⚠️ 秒數資料不完整，無法播放', 3000);
+          return;
+        }
+
+        if (video.paused) {
+          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
+            video.currentTime = videoPausedAt;
+          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
+            video.currentTime = range.start;
+          }
+
+          video.play().then(() => {
+            btnGuideToggle.textContent = '暫停';
+            btnGuideToggle.classList.add('guide-active');
+            btnGuideToggle.classList.remove('guide-waiting');
+            showToast(`▶ 播放中：第 ${range.sentenceA}～${range.sentenceB} 句`, 2000);
+          }).catch((err) => {
+            console.error("播放受阻:", err);
+            video.currentTime = range.start;
+            video.play().catch(() => {});
+          });
+        } else {
+          video.pause();
+          videoPausedAt = video.currentTime;
+          btnGuideToggle.textContent = '背書';
+          btnGuideToggle.classList.remove('guide-active');
+          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒，再按背書接續播放`, 3000);
+        }
+        return;
+      }
+
+      if (markA_Index === -1 || markB_Index === -1) {
+        speakPrompt("請先設定起點與終點");
+        return;
+      }
+      if (isGuideActive) return;
+      isGuideActive = true;
+
+      if (parsedTextLines.length === 0) { isGuideActive = false; return; }
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+
+      isVoiceActive = false;
+      isTouchingDisplay = false;
+      isTransitioningLine = false;
+      hasPageFlipped = false;
+      isLineHeadLocked = true;
+      completedCycles = 0;
+
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+      currentLineIndex = markA_Index;
+      currentCharIndexFloat = 0.0;
+
+      btnGuideToggle.textContent = '靜止';
+      btnGuideToggle.classList.remove('guide-active');
+      btnGuideToggle.classList.add('guide-waiting');
+
+      startGuideRunner();
+      await startVoiceActivityDetection();
+    });
+
+    // =========================================================================
+    // 🔒【麥克風調校核心：0.2s 最短發聲門檻 ＋ 句長+10s 超時關機退出機制】
+    // =========================================================================
+    function resetLineTimeoutSafetyTimer() {
+      if (maxTimeoutSafetyTimer) clearTimeout(maxTimeoutSafetyTimer);
+      if (!isGuideActive) return;
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const charCount = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const lineDurationSec = (charCount / (2.8 * baseSpeed));
+      const maxTimeoutMs = (lineDurationSec + 10.0) * 1000;
+
+      maxTimeoutSafetyTimer = setTimeout(() => {
+        if (isGuideActive) {
+          haltGuideRunnerImmediately();
+          btnShutdownExit.click();
+          showToast("讀誦逾時，已為您自動關機釋放資源", 4500);
+        }
+      }, maxTimeoutMs);
+    }
+
+    async function startVoiceActivityDetection() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        if (!micStream) {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
+          });
+        }
+
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.04;
+        source.connect(analyser);
+
+        isCalibrating = true;
+        calibrationSamples = [];
+        setTimeout(() => {
+          if (calibrationSamples.length > 0) {
+            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+            baseNoiseLevel = sum / calibrationSamples.length;
+            dynamicThreshold = Math.max(0.0020, baseNoiseLevel * 1.12 + 0.0006);
+          }
+          isCalibrating = false;
+        }, 350);
+
+        resetLineTimeoutSafetyTimer();
+        startVadMonitorLoop();
+      } catch (err) {
+        console.warn("麥克風啟動略過:", err);
+        btnGuideToggle.textContent = '靜止';
+      }
+    }
+
+    function startVadMonitorLoop() {
+      if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
+      const bufferLength = analyser ? analyser.frequencyBinCount : 0;
+      const dataArray = new Float32Array(bufferLength);
+
+      function checkVolume() {
+        if (!isGuideActive) return;
+
+        if (analyser) {
+          analyser.getFloatTimeDomainData(dataArray);
+
+          let sumSquares = 0.0;
+          for (let i = 0; i < bufferLength; i++) {
+            const val = dataArray[i];
+            sumSquares += val * val;
+          }
+          const rms = Math.sqrt(sumSquares / bufferLength);
+
+          if (isCalibrating) calibrationSamples.push(rms);
+
+          const deltaRms = rms - prevRms;
+          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
+
+          // 1. 【微調 1】起句波峰解鎖：0.2 秒級別快速起跑，短促音不漏判
+          if (isLineHeadLocked && deltaRms > (dynamicThreshold * 0.25)) {
+            isLineHeadLocked = false;
+          }
+
+          // 2. 換行靈活監聽狀態機
+          if (isTransitioningLine) {
+            const elapsed = performance.now() - lineEndTime;
+            if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
+              proceedToNextLineImmediately();
+            } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
+              proceedToNextLineImmediately();
+            } else if (elapsed >= 200) {
+              proceedToNextLineImmediately();
+            }
+          }
+
+          // 3. 換氣緩衝鎖定
+          if (hasVoiceEnergy) {
+            silentFrameCount = 0;
+            if (!isVoiceActive) {
+              isVoiceActive = true;
+              btnGuideToggle.textContent = '背誦中';
+              btnGuideToggle.classList.remove('guide-waiting');
+              btnGuideToggle.classList.add('guide-active');
+              lastAnimTimestamp = performance.now();
+            }
+          } else {
+            silentFrameCount++;
+            if (silentFrameCount >= 14) {
+              if (isVoiceActive) {
+                isVoiceActive = false;
+                btnGuideToggle.textContent = '靜止';
+                btnGuideToggle.classList.remove('guide-active');
+                btnGuideToggle.classList.add('guide-waiting');
+              }
+            }
+          }
+          prevRms = rms;
+        }
+        vadCheckTimer = requestAnimationFrame(checkVolume);
+      }
+      vadCheckTimer = requestAnimationFrame(checkVolume);
+    }
+
+    function stopVoiceActivityDetection() {
+      if (vadCheckTimer) { cancelAnimationFrame(vadCheckTimer); vadCheckTimer = null; }
+      if (maxTimeoutSafetyTimer) { clearTimeout(maxTimeoutSafetyTimer); maxTimeoutSafetyTimer = null; }
+      isVoiceActive = false;
+      isTouchingDisplay = false;
+    }
+
+    centerCore.addEventListener('pointerdown', () => {
+      if (!isGuideActive) return;
+      isTouchingDisplay = true;
+      isLineHeadLocked = false;
+      if (!isVoiceActive) {
+        isVoiceActive = true;
+        btnGuideToggle.textContent = '背誦中';
+        btnGuideToggle.classList.remove('guide-waiting');
+        btnGuideToggle.classList.add('guide-active');
+        lastAnimTimestamp = performance.now();
+      }
+    });
+    const stopTouchDrive = () => { if (isGuideActive) isTouchingDisplay = false; };
+    centerCore.addEventListener('pointerup', stopTouchDrive);
+    centerCore.addEventListener('pointercancel', stopTouchDrive);
+    centerCore.addEventListener('pointerleave', stopTouchDrive);
+
+    function startGuideRunner() {
+      if (parsedTextLines.length === 0) return;
+      guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
+      scrollToAlignTop(currentLineIndex);
+      setupActiveLine(currentLineIndex, currentCharIndexFloat);
+      lastAnimTimestamp = performance.now();
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function scrollToAlignTop(idx) {
+      const line = parsedTextLines[idx];
+      if (line) centerCore.scrollTop = Math.max(0, line.topGlobal - 18);
+    }
+
+    function getVisibleBottomLineIndex() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      let lastVisibleIdx = currentLineIndex;
+      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
+        if (parsedTextLines[i].underLineY <= viewportBottom - 16) lastVisibleIdx = i;
+        else break;
+      }
+      return lastVisibleIdx;
+    }
+
+    function checkAndTriggerPageFlip() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      if (markA_Index !== -1 && markB_Index !== -1) {
+        const lineA = parsedTextLines[markA_Index];
+        const lineB = parsedTextLines[markB_Index];
+        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) return;
+      }
+      const nextIndex = currentLineIndex + 1;
+      if (nextIndex < parsedTextLines.length) {
+        const nextLine = parsedTextLines[nextIndex];
+        if (nextLine.underLineY > (viewportBottom - 18)) scrollToAlignTop(nextIndex);
+      }
+    }
+
+    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
+      if (!line) return 0;
+      if (!line.charItems || line.charItems.length === 0) return line.x0;
+      const items = line.charItems;
+      const totalChars = items.length;
+      if (charProgressFloat <= 0) return items[0].x0;
+      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
+
+      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
+      const intraCharFraction = charProgressFloat - charIdx;
+      const item = items[charIdx];
+      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
+    }
+
+    // 🔒【嚴格保留：setupActiveLine 的雙軌座標運算】
+    function setupActiveLine(idx, initCurrent = 0.0) {
+      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
+      const line = parsedTextLines[idx];
+      currentCharIndexFloat = initCurrent;
+
+      if (isGuideActive) {
+        if (!isAppleDevice) {
+          guideLine.style.top = `${line.underLineY}px`;
+          guideLine.style.left = `${line.x0}px`;
+          guideLine.style.width = `${line.x1 - line.x0}px`;
+          const curX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+          redDot.style.top = `${line.underLineY}px`;
+          redDot.style.left = `${curX}px`;
+        } else {
+          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+          guideLine.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
+          guideLine.style.left = `${offsetLeft + (line.x0 * scaleX)}px`;
+          guideLine.style.width = `${(line.x1 - line.x0) * scaleX}px`;
+          const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+          redDot.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
+          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
+        }
+        guideLine.style.display = 'block';
+        redDot.style.display = 'block';
+      }
+      isTransitioningLine = false;
+    }
+
+    // 🔒【嚴格保留：stepGuideMovement 的雙軌座標運算與行尾慣性】
+    function stepGuideMovement(now) {
+      if (!isGuideActive || isTransitioningLine) return;
+      let delta = now - lastAnimTimestamp;
+      if (delta <= 0 || delta > 120) delta = 16.6;
+      lastAnimTimestamp = now;
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const inertiaStartIndex = Math.max(1, totalChars - 2);
+      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
+
+      if (isVoiceActive || isInTailZone) {
+        const charPerMs = (2.8 * baseSpeed) / 1000;
+        if (isLineHeadLocked) {
+          if (currentCharIndexFloat < 0.5) {
+            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
+          }
+        } else {
+          currentCharIndexFloat += charPerMs * delta;
+        }
+        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
+      }
+
+      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
+        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
+        if (!isCurrentLineAtTargetEnd) {
+          const visibleBottomIdx = getVisibleBottomLineIndex();
+          if (currentLineIndex === visibleBottomIdx) {
+            checkAndTriggerPageFlip();
+            hasPageFlipped = true;
+          }
+        }
+      }
+
+      if (currentCharIndexFloat >= totalChars) {
+        currentCharIndexFloat = totalChars;
+        if (curLine) {
+          if (!isAppleDevice) {
+            redDot.style.left = `${curLine.x1}px`;
+            redDot.style.top = `${curLine.underLineY}px`;
+          } else {
+            const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+            redDot.style.left = `${offsetLeft + (curLine.x1 * scaleX)}px`;
+            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
+          }
+        }
+
+        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
+        const nextIndex = currentLineIndex + 1;
+        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+        isTransitioningLine = true;
+        lineEndTime = performance.now();
+        peakRmsAtLineEnd = prevRms;
+        guideLine.style.display = 'none';
+        return;
+      }
+
+      if (curLine) {
+        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+        if (!isAppleDevice) {
+          redDot.style.left = `${rawX}px`;
+          redDot.style.top = `${curLine.underLineY}px`;
+        } else {
+          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
+          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
+        }
+      }
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function proceedToNextLineImmediately() {
+      if (!isTransitioningLine || !isGuideActive) return;
+      const nextIndex = currentLineIndex + 1;
+      hasPageFlipped = false;
+      currentLineIndex = nextIndex;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      setupActiveLine(currentLineIndex, 0.0);
+      resetLineTimeoutSafetyTimer();
+      lastAnimTimestamp = performance.now();
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function handleCycleCompletion() {
+      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+      completedCycles += 1;
+      const remain = Math.max(0, totalTargetCycles - completedCycles);
+      btnRepeatCount.textContent = `${remain}次`;
+
+      addCoins(calculateSentenceCount());
+
+      if (completedCycles >= totalTargetCycles) {
+        handleTargetCycleDone();
+        finishAndStopPermanently();
+        return;
+      }
+
+      isTransitioningLine = true;
+      guideLine.style.display = 'none';
+
+      if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
+      cycleWaitTimer = setTimeout(() => {
+        if (!isGuideActive) return;
+        hasPageFlipped = false;
+        currentLineIndex = markA_Index;
+        currentCharIndexFloat = 0.0;
+        isLineHeadLocked = true;
+        scrollToAlignTop(currentLineIndex);
+
+        setupActiveLine(currentLineIndex, 0.0);
+        resetLineTimeoutSafetyTimer();
+        isTransitioningLine = false;
+        lastAnimTimestamp = performance.now();
+        isVoiceActive = false;
+
+        btnGuideToggle.textContent = '靜止';
+        btnGuideToggle.classList.remove('guide-active');
+        btnGuideToggle.classList.add('guide-waiting');
+
+        if (guideAnimId) cancelAnimationFrame(guideAnimId);
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+      }, 1500);
+    }
+
+    function finishAndStopPermanently() {
+      haltGuideRunnerImmediately();
+      completedCycles = 0;
+      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      btnRepeatCount.textContent = `${totalTargetCycles}次`;
+    }
+
+    function haltGuideRunnerImmediately() {
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+
+      isGuideActive = false;
+      isTransitioningLine = false;
+      stopVoiceActivityDetection();
+
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+      btnGuideToggle.textContent = '背書';
+      btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
+
+      video.pause();
+      updateVisualDisplay();
+    }
+
+    // =========================================================================
+    // 【供養功德與福慧幣上傳】
+    // =========================================================================
+    function getStoredCoins() {
+      return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
+    }
+    function addCoins(amount) {
+      const total = getStoredCoins() + amount;
+      localStorage.setItem('user_accumulated_coins', total.toString());
+      return total;
+    }
+    function resetCoins() {
+      localStorage.setItem('user_accumulated_coins', '0');
+    }
+    function calculateSentenceCount() {
+      if (parsedTextLines.length === 0) return 0;
+      const start = (markA_Index !== -1) ? markA_Index : 0;
+      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
+      return Math.max(1, Math.abs(end - start) + 1);
+    }
+
+    btnOffering.addEventListener('click', () => {
+      if (isGuideActive) return;
+      displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
+      inputClassId.value = localStorage.getItem('user_class_id') || '';
+      inputUserName.value = localStorage.getItem('user_profile_name') || '';
+      offeringOverlay.style.display = 'flex';
+    });
+    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
+
+    btnConfirmOffering.addEventListener('click', () => {
+      const classId = inputClassId.value.trim();
+      const userName = inputUserName.value.trim();
+      if (!classId || !userName) { alert("請輸入班號與姓名！"); return; }
+
+      localStorage.setItem('user_class_id', classId);
+      localStorage.setItem('user_profile_name', userName);
+
+      const coinsToOffer = getStoredCoins();
+      if (coinsToOffer <= 0) { alert("目前福慧幣為 0 枚，請先精進背誦！"); return; }
+
+      btnConfirmOffering.disabled = true;
+      btnConfirmOffering.textContent = '連線供養中...';
+
+      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
+      let isDone = false;
+
+      function handleSuccess(data) {
+        if (isDone) return;
+        isDone = true;
+        clearTimeout(timeoutTimer);
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+
+        resetCoins();
+        displayCoinsCount.textContent = '0 枚';
+        offeringOverlay.style.display = 'none';
+
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+
+        renderLeaderboards(data, classId, userName, coinsToOffer);
+        leaderboardOverlay.style.display = 'flex';
+      }
+
+      const timeoutTimer = setTimeout(() => { if (!isDone) handleSuccess(null); }, 10000);
+      window[callbackName] = (res) => handleSuccess(res);
+
+      const scriptTag = document.createElement('script');
+      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&callback=${callbackName}&t=${Date.now()}`;
+      scriptTag.onerror = () => { if (!isDone) handleSuccess(null); };
+      document.body.appendChild(scriptTag);
+    });
+
+    function renderLeaderboards(data, curClass, curName, curCoins) {
+      const medals = ['🥇', '🥈', '🥉'];
+      function buildListHtml(list) {
+        const fullList = (list && Array.isArray(list)) ? [...list] : [];
+        while (fullList.length < 3) fullList.push({ isPlaceholder: true });
+        return fullList.slice(0, 3).map((item, idx) => {
+          const medal = medals[idx] || `第${idx + 1}名`;
+          if (item.isPlaceholder) {
+            return `<div class="rank-item"><span>${medal} <i style="color:#94A3B8;">虛位以待</i></span><span class="rank-coins">--</span></div>`;
+          }
+          const displayName = item.maskName || item.name || curName;
+          const displayClass = item.classId ? `(${item.classId})` : '';
+          const coinsVal = (typeof item.coins === 'number') ? item.coins : curCoins;
+          return `<div class="rank-item"><span>${medal} ${displayName} <small style="color:#94A3B8;">${displayClass}</small></span><span class="rank-coins">${coinsVal} 枚</span></div>`;
+        }).join('');
+      }
+      todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
+      totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
+    }
+
+    btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
+
+    // =========================================================================
+    // 🎯 關機按鈕：中止動畫 ＋ 切斷麥克風 ＋ 退出全螢幕還原視窗
+    // =========================================================================
+    btnShutdownExit.addEventListener('click', () => {
+      haltGuideRunnerImmediately();
+
+      if (micStream) {
+        try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
+        micStream = null;
+      }
+
+      if (audioContext && audioContext.state !== 'closed') {
+        try { audioContext.suspend(); } catch (e) {}
+      }
+
+      try {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen().catch(() => {});
+          }
+        }
+      } catch (e) {}
+
+      showToast("已關機退出全螢幕，釋放麥克風資源", 3000);
+    });
+
+    // =========================================================================
+    // 【陪伴卡流程控制：純圖展示 card_001.webp ~ card_021.webp】
+    // =========================================================================
+    let currentCompanionSeenKey = null;
+
+    async function evaluateWarmCompanionCard() {
       const urlParams = new URLSearchParams(window.location.search);
-      const paramDay = urlParams.get("day");
-      const paramStart = urlParams.get("start");
+      const paramDay = urlParams.get('day');
+      const startStr = urlParams.get('start');
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
       let targetDay = 1;
 
+      // 1. 快速測試參數：?day=22 直接指定天數
       if (paramDay) {
-        // 快速測試參數：?day=22
         targetDay = parseInt(paramDay, 10) || 1;
-      } else if (paramStart) {
-        // 正式排程天數：?start=YYYY-MM-DD
-        const startDate = new Date(paramStart);
-        const today = new Date();
-        const diffTime = today - startDate;
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        targetDay = diffDays > 0 ? diffDays : 1;
-      } else {
-        // 測試無參數輪播 (以 22 天為週期循環)
-        let testCycle = parseInt(localStorage.getItem("recite_test_cycle_v160") || "1", 10);
-        targetDay = testCycle;
-        let nextCycle = testCycle >= 22 ? 1 : testCycle + 1;
-        localStorage.setItem("recite_test_cycle_v160", nextCycle.toString());
+      }
+      // 2. 正式排程模式：?start=YYYY-MM-DD
+      else if (startStr) {
+        const start = new Date(startStr);
+        const diffTime = today - start;
+        const currentDay = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        targetDay = currentDay > 0 ? currentDay : 1;
+
+        const seenKey = `CARD_SEEN_${CURRENT_CLASSIC_ID}_${todayStr}`;
+        if (localStorage.getItem(seenKey)) {
+          isCompanionDismissed = true;
+          companionOverlay.setAttribute('data-needed', 'false');
+          return;
+        }
+        currentCompanionSeenKey = seenKey;
+      }
+      // 3. 測試無參數輪播 (以 22 天為週期循環)
+      else {
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V161_' + CURRENT_CLASSIC_ID) || '1', 10);
+        targetDay = tIdx;
+        let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
+        localStorage.setItem('TEST_CARD_INDEX_V161_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       // 天數 >= 22 永遠鎖定第 21 天圓滿長駐卡
@@ -466,263 +1700,116 @@
         cardFileName = `card_${paddedNum}.webp`;
       }
 
-      img.src = `cards/${cardFileName}`;
-      modal.style.display = "flex";
+      // 載入純圖
+      companionImgDisplay.src = `cards/${cardFileName}`;
+      companionOverlay.setAttribute('data-needed', 'true');
     }
 
-    /* =========================================================================
-       5. 點擊「開始背誦」：全螢幕 + 解除轉向偵測 + 延遲渲染 PDF
-       ========================================================================= */
-    document.getElementById("btnStartRecite").addEventListener("click", () => {
-      const docEl = document.documentElement;
-      if (docEl.requestFullscreen) {
-        docEl.requestFullscreen().catch(() => {});
-      } else if (docEl.webkitRequestFullscreen) {
-        docEl.webkitRequestFullscreen();
-      }
+    // =========================================================================
+    // 【排程套用核心】
+    // =========================================================================
+    function applyScheduleToState() {
+      if (isManualSelected) return false;
 
-      // 拔除轉向監聽，背誦期間傾斜不受打擾
-      window.removeEventListener("resize", checkOrientationBeforeStart);
-      window.removeEventListener("orientationchange", checkOrientationBeforeStart);
-
-      document.getElementById("companionModal").style.display = "none";
-
-      // 延遲 250ms 等待全螢幕幾何尺寸穩定後執行單次渲染
-      setTimeout(() => {
-        initPdfAndStartEngine();
-      }, 250);
-    });
-
-    /* =========================================================================
-       6. PDF 渲染與自適應等比縮放
-       ========================================================================= */
-    function initPdfAndStartEngine() {
-      if (hasRenderedPdfOnce) return;
-      hasRenderedPdfOnce = true;
-
-      const pdfPath = "scripture.pdf";
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-      pdfjsLib.getDocument(pdfPath).promise.then(pdf => {
-        pdfDoc = pdf;
-        renderPdfPage(1);
-      }).catch(err => {
-        console.warn("未偵測到外部 scripture.pdf，請確認檔案位置:", err);
-      });
-
-      startPlayback();
-    }
-
-    function renderPdfPage(pageNum) {
-      if (!pdfDoc) return;
-      pdfDoc.getPage(pageNum).then(page => {
-        const container = document.getElementById("scriptureArea");
-        const availableHeight = container.clientHeight - 20;
-        const unscaledViewport = page.getViewport({ scale: 1.0 });
-        
-        // 依據容器可用高度精準等比縮放
-        const scale = availableHeight / unscaledViewport.height;
-        const viewport = page.getViewport({ scale: scale > 0 ? scale : 1.0 });
-
-        const canvas = document.getElementById("pdfCanvas");
-        const ctx = canvas.getContext("2d");
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        page.render({ canvasContext: ctx, viewport: viewport });
-      });
-    }
-
-    /* =========================================================================
-       7. 播放循環與每句時間比對狀態機
-       ========================================================================= */
-    const videoEl = document.getElementById("chantVideo");
-
-    function startPlayback() {
-      isPlaying = true;
-      videoEl.play().catch(() => {});
-      requestAnimationFrame(playbackLoop);
-    }
-
-    function playbackLoop() {
-      if (!isPlaying) return;
-
-      const currentSec = videoEl.currentTime;
-      const sentence = SCRIPTURE_SENTENCES[currentSentenceIndex];
-
-      if (sentence) {
-        if (currentSec >= sentence.end) {
-          handleSentenceEnd(sentence);
-          return;
-        }
-      }
-
-      requestAnimationFrame(playbackLoop);
-    }
-
-    function handleSentenceEnd(sentence) {
-      videoEl.pause();
-
-      if (isDualModeRecite) {
-        // 自背檢核模式：進入麥克風收音
-        startMicVAD(sentence);
-      } else {
-        // 示範跟讀模式：直接決策重複或前進
-        advanceNextStep(sentence);
-      }
-    }
-
-    /* =========================================================================
-       8. 麥克風收音 (0.2s 最短發聲門檻 + 句長+10s 超時關機)
-       ========================================================================= */
-    async function startMicVAD(sentence) {
       try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === "suspended") {
-          await audioCtx.resume();
-        }
+        let scheduleData = null;
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
+        if (localSched) scheduleData = JSON.parse(localSched);
 
-        if (!micStream) {
-          micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        }
+        if (!scheduleData || !Array.isArray(scheduleData)) return false;
+        
+        let targetPlan = null;
+        const urlParams = new URLSearchParams(window.location.search);
+        const startStr = urlParams.get('start');
 
-        const source = audioCtx.createMediaStreamSource(micStream);
-        analyserNode = audioCtx.createAnalyser();
-        analyserNode.fftSize = 512;
-        source.connect(analyserNode);
-
-        hasSpoken = false;
-        consecutiveSpeechTime = 0.0;
-        clearTimeout(silenceTimer);
-        clearTimeout(maxTimeoutTimer);
-
-        document.getElementById("micIndicator").classList.add("active");
-
-        // 超時安全計時：句長 + 10 秒
-        const maxTimeoutMs = (sentence.duration + VAD_CONFIG.TIMEOUT_EXTRA_SECONDS) * 1000;
-        maxTimeoutTimer = setTimeout(() => {
-          stopMicVAD();
-          abortRecitationSession("讀誦逾時，已為您暫停並關閉本次讀誦。");
-        }, maxTimeoutMs);
-
-        // 50ms 循環輪詢音量
-        const pcmData = new Uint8Array(analyserNode.frequencyBinCount);
-        vadCheckInterval = setInterval(() => {
-          analyserNode.getByteTimeDomainData(pcmData);
-
-          let sumSquares = 0;
-          for (let i = 0; i < pcmData.length; i++) {
-            const norm = (pcmData[i] - 128) / 128;
-            sumSquares += norm * norm;
-          }
-          const rms = Math.sqrt(sumSquares / pcmData.length);
-
-          if (rms >= VAD_CONFIG.VOLUME_THRESHOLD) {
-            // 最短發聲達 0.2 秒 (200ms) 判定開口
-            consecutiveSpeechTime += 0.05;
-            if (consecutiveSpeechTime >= VAD_CONFIG.MIN_SPEECH_DURATION) {
-              hasSpoken = true;
-              clearTimeout(silenceTimer);
-              silenceTimer = null;
-            }
-          } else {
-            consecutiveSpeechTime = 0;
-            // 開口後連續安靜達 1.0 秒判定背誦完成
-            if (hasSpoken && !silenceTimer) {
-              silenceTimer = setTimeout(() => {
-                stopMicVAD();
-                advanceNextStep(sentence);
-              }, VAD_CONFIG.SILENCE_HANGOVER * 1000);
-            }
-          }
-        }, 50);
-
-      } catch (err) {
-        console.warn("麥克風無法調用，回退至時長等待:", err);
-        setTimeout(() => {
-          advanceNextStep(sentence);
-        }, sentence.duration * 1000);
-      }
-    }
-
-    function stopMicVAD() {
-      clearInterval(vadCheckInterval);
-      clearTimeout(silenceTimer);
-      clearTimeout(maxTimeoutTimer);
-      document.getElementById("micIndicator").classList.remove("active");
-    }
-
-    /* =========================================================================
-       9. 推進與循環決策
-       ========================================================================= */
-    function advanceNextStep(sentence) {
-      if (currentSentenceCycle < sentence.repeatCount) {
-        currentSentenceCycle++;
-        updateStatusDisplay();
-        videoEl.currentTime = sentence.start;
-        startPlayback();
-      } else {
-        currentSentenceCycle = 1;
-        currentSentenceIndex++;
-
-        if (currentSentenceIndex < SCRIPTURE_SENTENCES.length) {
-          updateStatusDisplay();
-          videoEl.currentTime = SCRIPTURE_SENTENCES[currentSentenceIndex].start;
-          startPlayback();
+        if (startStr) {
+          const start = new Date(startStr);
+          const now = new Date();
+          const targetDay = Math.max(1, Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1);
+          targetPlan = scheduleData.find(item => item.day === targetDay) || scheduleData[scheduleData.length - 1];
         } else {
-          isPlaying = false;
-          alert("🎉 功德圓滿！本日背誦已圓滿完成。");
-          shutdownAndExit();
+          const todayStr = getNormalizedDateStr();
+          targetPlan = scheduleData.find(item => item.date === todayStr) || scheduleData[0];
         }
-      }
-    }
 
-    function updateStatusDisplay() {
-      document.getElementById("txtCurrentProgress").innerText = `第 ${currentSentenceIndex + 1} 句 / 共 ${SCRIPTURE_SENTENCES.length} 句`;
-      document.getElementById("txtSentenceCycle").innerText = `第 ${currentSentenceCycle} / ${SCRIPTURE_SENTENCES[currentSentenceIndex].repeatCount} 遍`;
-    }
+        if (targetPlan && typeof targetPlan.start === 'number' && typeof targetPlan.end === 'number') {
+          markA_Index = Math.max(0, targetPlan.start - 1);
+          markB_Index = Math.min(36, targetPlan.end - 1);
+          currentLineIndex = markA_Index;
+          currentCharIndexFloat = 0.0;
+          isLineHeadLocked = true;
+          completedCycles = 0;
+          videoPausedAt = -1;
 
-    /* =========================================================================
-       10. 關閉讀誦與退出演算法
-       ========================================================================= */
-    function abortRecitationSession(msg) {
-      shutdownAndExit();
-      if (msg) alert(msg);
-    }
+          if (typeof targetPlan.repeat === 'number' && targetPlan.repeat > 0) {
+            totalTargetCycles = targetPlan.repeat;
+            btnRepeatCount.textContent = `${totalTargetCycles}次`;
+          }
 
-    function shutdownAndExit() {
-      isPlaying = false;
-      videoEl.pause();
-
-      stopMicVAD();
-      if (micStream) {
-        micStream.getTracks().forEach(track => track.stop());
-        micStream = null;
-      }
-      if (audioCtx && audioCtx.state !== "closed") {
-        audioCtx.suspend();
-      }
-      if (document.fullscreenElement || document.webkitFullscreenElement) {
-        if (document.exitFullscreen) {
-          document.exitFullscreen().catch(() => {});
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
+          updateVisualDisplay();
+          scrollToAlignTop(markA_Index);
+          const repeatText = targetPlan.repeat ? `（共 ${targetPlan.repeat} 遍）` : '';
+          showToast(`📖 今日進度：第 ${targetPlan.start}～${targetPlan.end} 句${repeatText}`, 4500);
+          return true;
         }
-      }
+      } catch (err) {}
+      return false;
     }
 
-    // 按鈕：切換模式
-    document.getElementById("btnToggleMode").addEventListener("click", () => {
-      isDualModeRecite = !isDualModeRecite;
-      document.getElementById("btnToggleMode").innerText = isDualModeRecite ? "模式：自背檢核模式" : "模式：示範跟讀模式";
-    });
+    // =========================================================================
+    // 🔒【嚴格保留：PDF 渲染與文字結構抽取（v158 精確原版底層）】
+    // =========================================================================
+    async function parseAndRenderPdfData(typedarray) {
+      pdfContainerWrap.style.display = 'flex';
 
-    // 按鈕：關機退出
-    document.getElementById("btnExitPlayer").addEventListener("click", () => {
-      shutdownAndExit();
-    });
-  </script>
-</body>
-</html>
+      const loadingTask = pdfjsLib.getDocument({
+        data: typedarray,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+        cMapPacked: true
+      });
+
+      currentPdfDoc = await loadingTask.promise;
+      const page = await currentPdfDoc.getPage(1);
+
+      pdfCanvas.width = 0;
+      pdfCanvas.height = 0;
+
+      const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
+      const pageRotation = page.rotate || 0;
+      const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
+      const pageScale = availableWidth / unscaledViewport.width;
+      const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
+
+      pdfCanvas.width = viewport.width;
+      pdfCanvas.height = viewport.height;
+      const ctx = pdfCanvas.getContext('2d');
+
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+      const textContent = await page.getTextContent();
+      const items = textContent.items;
+      const validSpans = [];
+      const chineseCharRegex = /[\u4e00-\u9fa5]/;
+
+      items.forEach(it => {
+        const str = it.str || '';
+        if (!str.trim()) return;
+
+        const tx = it.transform;
+        const pdfX = tx[4];
+        const pdfY = tx[5];
+
+        const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
+        const fontWidth = it.width * pageScale;
+
+        const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
+        const screenX0 = p0[0];
+
+        const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
+        const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+
+        const realTop = Math.min(p0[1], pTop[1]);
+        const realBottom = Math.max(p0[1], pTop[1]);
+
+        const charWidth = fontWidth / Math.max(1, str.length);
+        for (let c = 0; c < str.length; c++) {
