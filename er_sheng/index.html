@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v194 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v197 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 21 天心靈陪伴卡 (圖上右下角自適應按鈕版)
+       🌟 3. 21 天心靈陪伴卡
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -489,7 +489,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 21 天心靈陪伴卡 (圖上右下角自適應按鈕版) -->
+  <!-- 🌟 3. 21 天心靈陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -892,7 +892,7 @@
       baseSpeed = val;
       localStorage.setItem('user_speed_preference', baseSpeed.toFixed(2));
       recordAudioElement.playbackRate = baseSpeed;
-      video.playbackRate = baseSpeed; // 確保跟讀影片同步套用快轉倍數
+      video.playbackRate = baseSpeed;
 
       speedToastBadge.textContent = `【快轉 ${baseSpeed}x】`;
       speedToastBadge.style.display = 'block';
@@ -906,6 +906,23 @@
 
       const speedBtn = document.getElementById('wing-btn-speed');
       if (speedBtn) speedBtn.textContent = `快轉 ${baseSpeed}x`;
+    }
+
+    function triggerBaseSpeedChange(delta) {
+      let newSpeed = Math.round((baseSpeed + delta) * 10) / 10;
+      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
+      baseSpeed = newSpeed;
+      localStorage.setItem('user_speed_preference', baseSpeed.toFixed(1));
+
+      speedToastBadge.textContent = `【導覽基速 ${baseSpeed.toFixed(1)}x】`;
+      speedToastBadge.style.display = 'block';
+      speedToastBadge.style.opacity = '1';
+
+      clearTimeout(speedToastBadge._t);
+      speedToastBadge._t = setTimeout(() => {
+        speedToastBadge.style.opacity = '0';
+        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
+      }, 3000);
     }
 
     function speakPrompt(text) {
@@ -1015,7 +1032,7 @@
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
-        centerCore.scrollTop = 0; // ✨ 強制跟讀模式捲軸歸零，確保影片完美置中不位移
+        centerCore.scrollTop = 0;
         resetSideWingsForMode('mp4');
 
         const range = getActiveVideoRange();
@@ -1047,6 +1064,7 @@
 
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
+        // 比對模式左側：快轉倍數選單與統一關機鍵
         slotL1.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${baseSpeed}x</button>`;
         slotL2.innerHTML = '';
 
@@ -1061,6 +1079,7 @@
           handleShutdownClick();
         });
 
+        // 比對模式右側：純文字錄音與播放
         slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
         slotR2.innerHTML = '';
 
@@ -1074,6 +1093,7 @@
           togglePlaybackAction();
         });
       } else {
+        // 標準左側翼鍵（四個鍵：起點、終點、遍數、關機）
         slotL1.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">起點</button>`;
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">終點</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button>`;
@@ -1085,20 +1105,20 @@
         document.getElementById('btn-shutdown-exit').addEventListener('click', handleShutdownClick);
 
         if (mode === 'mp4') {
+          // 跟讀模式右側：背書、供養
           slotR1.innerHTML = `<button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button>`;
           slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
           slotR3.innerHTML = '';
           slotR4.innerHTML = '';
         } else {
+          // 自讀模式右側：背書、供養、語快、語慢
           slotR1.innerHTML = `<button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button>`;
           slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
-          slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉</button>`;
-          slotR4.innerHTML = '';
+          slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button>`;
+          slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button>`;
 
-          document.getElementById('btn-speed-up').addEventListener('click', (e) => {
-            e.stopPropagation();
-            speedModal.style.display = speedModal.style.display === 'flex' ? 'none' : 'flex';
-          });
+          document.getElementById('btn-speed-up').addEventListener('click', (e) => { e.stopPropagation(); triggerBaseSpeedChange(+0.1); });
+          document.getElementById('btn-speed-down').addEventListener('click', (e) => { e.stopPropagation(); triggerBaseSpeedChange(-0.1); });
         }
 
         document.getElementById('btn-guide-toggle').addEventListener('click', handleGuideToggleClick);
@@ -1483,8 +1503,8 @@
       } catch (e) {}
 
       if (currentMode === 'mp4') {
-        centerCore.scrollTop = 0; // ✨ 確保點擊背書播放跟讀影片時，視圖絕對置頂，影片完美置中
-        video.playbackRate = baseSpeed; // 同步套用當前快轉倍數
+        centerCore.scrollTop = 0;
+        video.playbackRate = baseSpeed;
 
         const range = getActiveVideoRange();
         if (!range.valid) {
@@ -2092,10 +2112,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V194_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V197_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V194_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V197_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
