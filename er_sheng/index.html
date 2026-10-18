@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v187 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v188 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -397,7 +397,7 @@
     #mark-a-line { position: absolute; height: 6px; background-color: #0284C7; border-radius: 3px; box-shadow: 0 0 12px #38BDF8; z-index: 48; display: none; }
     #mark-b-line { position: absolute; height: 6px; background-color: #EA580C; border-radius: 3px; box-shadow: 0 0 12px #FB923C; z-index: 48; display: none; }
 
-    #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; pointer-events: none; display: flex; justify-content: center; }
+    #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; display: none; justify-content: center; }
     #pdf-canvas { display: block; width: 100% !important; height: auto !important; image-rendering: -webkit-optimize-contrast; transform: translateZ(0); }
 
     #video-container-wrap {
@@ -460,7 +460,7 @@
 </head>
 <body>
 
-  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 (純提示指引，無多餘按鈕) -->
+  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 -->
   <div id="line-browser-overlay">
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
@@ -470,7 +470,7 @@
     </div>
   </div>
 
-  <!-- 2. 第二順位層：物理直立螢幕旋轉鎖定層 (v158 原生經典向量動畫) -->
+  <!-- 2. 第二順位層：物理直立螢幕旋轉鎖定層 -->
   <div id="portrait-blocker-overlay">
     <div class="rotate-phone-icon"></div>
     <div class="rotate-hint-title">請將手機橫放</div>
@@ -495,7 +495,7 @@
   <!-- 🌸 五瓣花天女散花畫布層 -->
   <canvas id="flowerCanvas"></canvas>
 
-  <!-- 4. 主視圖 (v158 原生橫式雙模核心，完全保留) -->
+  <!-- 4. 主視圖 -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
       <div class="slot" id="slot-l1"><button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: hidden;">起點</button></div>
@@ -512,8 +512,8 @@
         <div id="red-dot"></div>
       </div>
 
-      <!-- PDF 容器（自讀模式與比對模式共用，比對模式下不設定區段） -->
-      <div id="pdf-container-wrap" style="display: none;">
+      <!-- PDF 容器（自讀與比對模式共用） -->
+      <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
       </div>
 
@@ -526,8 +526,8 @@
     <div class="side-wing" id="right-wing">
       <div class="slot" id="slot-r1"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
       <div class="slot" id="slot-r2"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
-      <div class="slot" id="slot-r3"></div> <!-- 跟讀時隱藏 -->
-      <div class="slot" id="slot-r4"></div> <!-- 跟讀時隱藏 -->
+      <div class="slot" id="slot-r3"></div>
+      <div class="slot" id="slot-r4"></div>
     </div>
   </div>
 
@@ -535,7 +535,7 @@
     <button class="modal-option active" data-count="1">1 次</button>
     <button class="modal-option" data-count="3">3 次</button>
     <button class="modal-option" data-count="5">5 次</button>
-    <button class="modal-option" data-count="7">7 次</button>
+    <button class="modal-option" data-option="7">7 次</button>
     <button class="modal-option" data-count="10">10 次</button>
   </div>
 
@@ -581,9 +581,6 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
-    // =========================================================================
-    // 🔒【嚴格保留：Apple 與 Android 雙軌架構與縮放補償】
-    // =========================================================================
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -603,7 +600,6 @@
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
-    // DOM 快取
     const lineBrowserOverlay = document.getElementById('line-browser-overlay');
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
     const companionOverlay = document.getElementById('companion-overlay');
@@ -625,8 +621,6 @@
     const scheduleToast = document.getElementById('schedule-toast');
     const speedToastBadge = document.getElementById('speed-toast-badge');
 
-    const btnRepeatCount = document.getElementById('btn-repeat-count');
-    const btnShutdownExit = document.getElementById('btn-shutdown-exit');
     const repeatModal = document.getElementById('repeat-modal');
 
     const slotL1 = document.getElementById('slot-l1');
@@ -658,9 +652,8 @@
     let recordedAudioBlobUrl = null;
     let recordAudioElement = new Audio();
 
-    // 預設啟動模式為跟讀模式 ('mp4')
     let currentMode = 'mp4';
-    const modeSequence = ['mp4', 'pdf', 'record']; // 0: 跟讀, 1: 自讀, 2: 比對
+    const modeSequence = ['mp4', 'pdf', 'record'];
 
     let scriptureData = [];
     let currentPdfDoc = null;
@@ -689,7 +682,6 @@
     let hasPageFlipped = false;
     let lineActivationTimestamp = 0;
 
-    // 音訊檢測核心參數
     let audioContext = null;
     let analyser = null;
     let micStream = null;
@@ -703,9 +695,6 @@
     let isCalibrating = false;
     let silentFrameCount = 0;
 
-    // =========================================================================
-    // 【流程狀態機：三點提示優先 ➔ 橫放引導 ➔ 直出陪伴卡 ➔ 點擊背誦始繪 PDF】
-    // =========================================================================
     const isLineApp = /Line\//i.test(navigator.userAgent);
     let isLineGuideDismissed = !isLineApp;
     let isCompanionDismissed = false;
@@ -809,9 +798,6 @@
       if (!isManualSelected) applyScheduleToState();
     }
 
-    // =========================================================================
-    // 【本機離線快取引擎 (IndexedDB)】
-    // =========================================================================
     const DB_NAME = 'HappyReciteDB_' + CURRENT_CLASSIC_ID;
     const STORE_NAME = 'app_offline_files';
 
@@ -969,7 +955,6 @@
       }
     }, { passive: true });
 
-    // 🎯 方向性直線切換（不循環繞圈）
     function switchModeByDirection(direction) {
       let currentIndex = modeSequence.indexOf(currentMode);
       if (currentIndex === -1) currentIndex = 0;
@@ -1003,7 +988,7 @@
       } else if (currentMode === 'pdf') {
         video.pause();
         videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
+        pdfContainerWrap.style.display = 'flex'; // ✨ 修復：確保自讀模式 PDF 容器正確顯示
         guideStage.style.display = 'block';
         resetSideWingsForMode('pdf');
 
@@ -1012,7 +997,7 @@
       } else if (currentMode === 'record') {
         video.pause();
         videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
+        pdfContainerWrap.style.display = 'flex'; // ✨ 修復：確保比對模式 PDF 容器正確顯示
         guideStage.style.display = 'none';
         resetSideWingsForMode('record');
 
@@ -1021,14 +1006,11 @@
       updateVisualDisplay();
     }
 
-    // 翼鍵動態配置
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
-        // 左1 & 左2 槽位合併為長方形調速按鈕
         slotL1.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">語速 ${baseSpeed.toFixed(1)}x</button>`;
         slotL2.innerHTML = '';
 
-        // 左3 & 左4 槽位合併為長方形關機按鈕
         slotL3.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">關機</button>`;
         slotL4.innerHTML = '';
 
@@ -1037,10 +1019,10 @@
           triggerSpeedChange(+0.1);
         });
         document.getElementById('wing-btn-shutdown').addEventListener('click', () => {
-          document.getElementById('btn-shutdown-exit').click();
+          const shutdownBtn = document.getElementById('btn-shutdown-exit');
+          if (shutdownBtn) shutdownBtn.click();
         });
 
-        // 右側翼鍵：右1&2 錄音；右3&4 播放
         slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">🎙️ 錄音</button>`;
         slotR2.innerHTML = '';
 
@@ -1054,26 +1036,22 @@
           togglePlaybackAction();
         });
       } else {
-        // 還原標準左翼槽位
         slotL1.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">起點</button>`;
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">終點</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button>`;
         slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">關機</button>`;
 
-        // 重新綁定左翼按鈕事件
         document.getElementById('btn-mark-a').addEventListener('click', handleMarkAClck);
         document.getElementById('btn-mark-b').addEventListener('click', handleMarkBClick);
         document.getElementById('btn-repeat-count').addEventListener('click', handleRepeatCountClick);
         document.getElementById('btn-shutdown-exit').addEventListener('click', handleShutdownClick);
 
         if (mode === 'mp4') {
-          // 跟讀模式：保留遍數鍵與背書/供養，隱藏語快語慢
           slotR1.innerHTML = `<button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button>`;
           slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
-          slotR3.innerHTML = ''; // 隱藏語快
-          slotR4.innerHTML = ''; // 隱藏語慢
+          slotR3.innerHTML = '';
+          slotR4.innerHTML = '';
         } else {
-          // 自讀模式 (pdf)
           slotR1.innerHTML = `<button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button>`;
           slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
           slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button>`;
@@ -1088,7 +1066,6 @@
       }
     }
 
-    // 🎙️ 智慧錄音核心
     async function toggleSmartRecordAction() {
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
@@ -1281,9 +1258,6 @@
       requestAnimationFrame(animateFlowers);
     }
 
-    // =========================================================================
-    // 🔒【嚴格保留：標記線與按鈕定位的 Apple 與 Android 獨立分流運算】
-    // =========================================================================
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
@@ -1432,9 +1406,6 @@
       });
     });
 
-    // =========================================================================
-    // 【背書按鈕點擊處理】
-    // =========================================================================
     function handleGuideToggleClick() {
       triggerAppFullscreen();
 
@@ -1519,9 +1490,14 @@
       startVoiceActivityDetection();
     }
 
-    // =========================================================================
-    // 🔒【麥克風調校核心：0.2s 最短發聲門檻 ＋ 句長+10s 超時關機機制】
-    // =========================================================================
+    function handleOfferingClick() {
+      if (isGuideActive) return;
+      displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
+      inputClassId.value = localStorage.getItem('user_class_id') || '';
+      inputUserName.value = localStorage.getItem('user_profile_name') || '';
+      offeringOverlay.style.display = 'flex';
+    }
+
     function resetLineTimeoutSafetyTimer() {
       if (maxTimeoutSafetyTimer) clearTimeout(maxTimeoutSafetyTimer);
       if (!isGuideActive) return;
@@ -1933,9 +1909,6 @@
       updateVisualDisplay();
     }
 
-    // =========================================================================
-    // 【供養功德與福慧幣上傳】
-    // =========================================================================
     function getStoredCoins() {
       return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
     }
@@ -2052,10 +2025,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V187_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V188_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V187_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V188_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2128,8 +2101,6 @@
     }
 
     async function parseAndRenderPdfData(typedarray) {
-      pdfContainerWrap.style.display = 'none';
-
       const loadingTask = pdfjsLib.getDocument({
         data: typedarray,
         cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
