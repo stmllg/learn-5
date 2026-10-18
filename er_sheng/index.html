@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v201 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v200 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1065,11 +1065,12 @@
 
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
-        // 4. 比對模式左側排版（對應 slot-2 與 slot-4，整體向下平衡）
-        slotL1.innerHTML = '';
-        slotL2.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${baseSpeed}x</button>`;
-        slotL3.innerHTML = '';
-        slotL4.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">關機</button>`;
+        // 比對模式左側：快轉倍數選單與統一關機鍵
+        slotL1.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${baseSpeed}x</button>`;
+        slotL2.innerHTML = '';
+
+        slotL3.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">關機</button>`;
+        slotL4.innerHTML = '';
 
         document.getElementById('wing-btn-speed').addEventListener('click', (e) => {
           e.stopPropagation();
@@ -1079,11 +1080,11 @@
           handleShutdownClick();
         });
 
-        // 4. 比對模式右側：對應 slot-2 與 slot-4，與左側完美對稱且整體下移
+        // 4. 比對模式右側：上下置中平衡排版（配置於 slot-r2 與 slot-r3）
         slotR1.innerHTML = '';
         slotR2.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
-        slotR3.innerHTML = '';
-        slotR4.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
+        slotR3.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
+        slotR4.innerHTML = '';
 
         document.getElementById('wing-btn-record').addEventListener('click', () => {
           toggleReliableRecordAction();
@@ -1133,7 +1134,7 @@
       });
     });
 
-    // 5. 錄音鍵專屬大金幣噴發特效（從錄音按鈕位置向中心噴發超大金幣）
+    // 5. 錄音鍵點擊時：從錄音按鈕位置向中心噴發專屬大尺寸金幣特效
     function triggerRecordCoinSplash() {
       const btn = document.getElementById('wing-btn-record');
       if (!btn) return;
@@ -1159,7 +1160,7 @@
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed - 2.5,
           gravity: 0.35,
-          radius: Math.random() * 12 + 15, // 尺寸大於花朵很多
+          radius: Math.random() * 12 + 15, // 比花朵尺寸大很多
           rotation: Math.random() * Math.PI,
           vRot: (Math.random() - 0.5) * 0.2,
           opacity: 1.0
@@ -1185,6 +1186,7 @@
           ctx.rotate(c.rotation);
           ctx.globalAlpha = c.opacity;
 
+          // 繪製大金幣外圈
           ctx.beginPath();
           ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
           ctx.fillStyle = '#FFD700';
@@ -1193,6 +1195,7 @@
           ctx.strokeStyle = '#FFA000';
           ctx.stroke();
 
+          // 金幣內環與圖示
           ctx.beginPath();
           ctx.arc(0, 0, c.radius * 0.72, 0, Math.PI * 2);
           ctx.strokeStyle = '#FFC107';
@@ -1323,7 +1326,12 @@
       if (!range.valid) return;
 
       if (video.currentTime >= range.end) {
-        recordCycleCompletion(); // 1. 累加跟讀完成遍數
+        completedCycles++;
+        const btnRepeatCountDom = document.getElementById('btn-repeat-count');
+        const remain = Math.max(0, totalTargetCycles - completedCycles);
+        if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
+
+        addCoins(calculateSentenceCount());
 
         if (completedCycles >= totalTargetCycles) {
           video.pause();
@@ -1331,7 +1339,6 @@
           video.currentTime = range.start;
           completedCycles = 0;
           const remainReset = Math.max(0, totalTargetCycles - completedCycles);
-          const btnRepeatCountDom = document.getElementById('btn-repeat-count');
           if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remainReset}次`;
 
           const btnGuide = document.getElementById('btn-guide-toggle');
@@ -1348,31 +1355,13 @@
       }
     });
 
-    // 1. 記錄遍數完成並支援跟讀與自讀相加、解鎖判定
-    function recordCycleCompletion() {
-      completedCycles += 1;
-      const todayStr = getNormalizedDateStr();
-      localStorage.setItem('COMPLETED_CYCLES_' + todayStr, completedCycles.toString());
-
-      const btnRepeatCountDom = document.getElementById('btn-repeat-count');
-      const remain = Math.max(0, totalTargetCycles - completedCycles);
-      if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
-
-      addCoins(calculateSentenceCount());
-
-      if (completedCycles >= totalTargetCycles) {
-        isScheduleRepeatLocked = false; // 1. 遍數完成後自動解鎖，可自由調整
-        showToast('🎉 今日功課遍數已達成！現已解鎖可自由調整次數', 4000);
-      }
-    }
-
     function handleTargetCycleDone() {
       const todayStr = getNormalizedDateStr();
       localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
       triggerFivePetalFlowerRain();
     }
 
-    // 1. iOS 手機金幣高飽和色彩修復
+    // 1. 修正 iOS 手機金幣顏色，全面採用高飽和璀璨耀眼金黃色系
     function triggerFivePetalFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1449,7 +1438,7 @@
       requestAnimationFrame(animateFlowers);
     }
 
-    // 6. 確認供養後榜單金幣雨特效
+    // 6. 確認供養後榜單出現時的由上往下金幣雨特效
     function triggerLeaderboardCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1601,6 +1590,7 @@
       const btnMarkA = document.getElementById('btn-mark-a');
       if (!btnMarkA) return;
       isManualSelected = true;
+      isScheduleRepeatLocked = false; // 手動操作解鎖遍數
       markA_Index = getLineAtButtonBottom(btnMarkA);
       if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
       currentLineIndex = markA_Index;
@@ -1620,6 +1610,7 @@
       if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
       
       isManualSelected = true;
+      isScheduleRepeatLocked = false; // 手動操作解鎖遍數
       markB_Index = selectedB;
       completedCycles = 0;
       videoPausedAt = -1;
@@ -1628,9 +1619,9 @@
 
     function handleRepeatCountClick() {
       if (isGuideActive || currentMode === 'record') return;
-      // 3. 若未完成指定遍數且仍處於鎖定狀態，則跳出提示不可修改
-      if (isScheduleRepeatLocked && completedCycles < totalTargetCycles) {
-        showToast(`🔒 今日功課尚未完成（已完成 ${completedCycles}/${totalTargetCycles} 遍），完成後即可解鎖調整`, 3500);
+      // 3. 今日功課排程遍數鎖定檢查
+      if (isScheduleRepeatLocked) {
+        showToast('🔒 今日功課遍數已由排程鎖定，須完成指定遍數', 3000);
         return;
       }
       repeatModal.style.display = repeatModal.style.display === 'flex' ? 'none' : 'flex';
@@ -1657,7 +1648,6 @@
       btn.addEventListener('click', () => {
         totalTargetCycles = parseInt(btn.dataset.count, 10);
         completedCycles = 0;
-        isScheduleRepeatLocked = false; // 手動修改後解鎖
         const btnRepeatCountDom = document.getElementById('btn-repeat-count');
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${totalTargetCycles}次`;
         document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
@@ -2062,11 +2052,7 @@
         }
 
         if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-        // 2. 嚴格判定：當到達終點線（markB_Index）時立即完成並返回起點，絕不跨到下一句
-        if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
-          handleCycleCompletion();
-          return;
-        }
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
         const nextIndex = currentLineIndex + 1;
         if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
 
@@ -2093,8 +2079,6 @@
 
     function proceedToNextLineImmediately() {
       if (!isTransitioningLine || !isGuideActive) return;
-      // 2. 終點防護：若已到達或超過終點，絕對禁止進入下一句
-      if (markB_Index !== -1 && currentLineIndex >= markB_Index) return;
       const nextIndex = currentLineIndex + 1;
       hasPageFlipped = false;
       currentLineIndex = nextIndex;
@@ -2106,7 +2090,12 @@
 
     function handleCycleCompletion() {
       if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-      recordCycleCompletion(); // 1. 自讀模式完成一個循環，累加遍數
+      completedCycles += 1;
+      const btnRepeatCountDom = document.getElementById('btn-repeat-count');
+      const remain = Math.max(0, totalTargetCycles - completedCycles);
+      if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
+
+      addCoins(calculateSentenceCount());
 
       if (completedCycles >= totalTargetCycles) {
         handleTargetCycleDone();
@@ -2227,7 +2216,7 @@
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
         
-        // 6. 確認供養開啟榜單時觸發金幣雨特效
+        // 6. 點擊確認供養開啟排行榜時，觸發由上往下金幣雨特效
         triggerLeaderboardCoinRain();
       }
 
@@ -2292,10 +2281,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V201_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V200_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V201_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V200_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2348,24 +2337,14 @@
           currentLineIndex = markA_Index;
           currentCharIndexFloat = 0.0;
           isLineHeadLocked = true;
+          completedCycles = 0;
           videoPausedAt = -1;
 
           if (typeof targetPlan.repeat === 'number' && targetPlan.repeat > 0) {
             totalTargetCycles = targetPlan.repeat;
-            isScheduleRepeatLocked = true; // 3. 初始載入排程時鎖定遍數
-            
-            // 讀取今日已完成的累計遍數（支援跟讀與自讀相加）
-            const todayStr = getNormalizedDateStr();
-            completedCycles = parseInt(localStorage.getItem('COMPLETED_CYCLES_' + todayStr) || '0', 10);
-            if (completedCycles >= totalTargetCycles) {
-              isScheduleRepeatLocked = false; // 若今日已達標則保持解鎖
-            }
-
+            isScheduleRepeatLocked = true; // 3. 讀取排程時鎖定遍數
             const btnRepeatCountDom = document.getElementById('btn-repeat-count');
-            if (btnRepeatCountDom) {
-              const remain = Math.max(0, totalTargetCycles - completedCycles);
-              btnRepeatCountDom.textContent = `${remain}次`;
-            }
+            if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${totalTargetCycles}次`;
           }
 
           updateVisualDisplay();
