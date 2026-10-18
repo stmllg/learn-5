@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v193 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v194 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -440,7 +440,6 @@
     .modal-option { padding: 10px 20px; font-size: 18px; font-weight: 800; color: #FFFFFF; background-color: #334155; border: none; border-radius: 10px; cursor: pointer; text-align: center; }
     .modal-option.active { background: #6366F1; }
 
-    /* 快轉倍數選單 Modal 樣式 */
     #speed-modal { display: none; position: absolute; top: 50%; left: calc(76px + env(safe-area-inset-left, 0px)); transform: translateY(-50%); background: rgba(30, 41, 59, 0.98); border-radius: 18px; padding: 12px; z-index: 100; flex-direction: column; gap: 8px; border: 2px solid #10B981; box-shadow: 0 10px 30px rgba(0,0,0,0.8); max-height: 80vh; overflow-y: auto; }
 
     /* 供養與功德榜 */
@@ -503,7 +502,7 @@
 
   <!-- 狀態浮標 (置中) -->
   <div id="schedule-toast">📅 載入進度中...</div>
-  <div id="speed-toast-badge">【語速 1.0x】</div>
+  <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <!-- 🌸 五瓣花天女散花畫布層 -->
   <canvas id="flowerCanvas"></canvas>
@@ -672,7 +671,6 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 🎙️ 穩健錄音與播放引擎
     let mediaRecorder = null;
     let audioChunks = [];
     let isUserRecording = false;
@@ -894,6 +892,7 @@
       baseSpeed = val;
       localStorage.setItem('user_speed_preference', baseSpeed.toFixed(2));
       recordAudioElement.playbackRate = baseSpeed;
+      video.playbackRate = baseSpeed; // 確保跟讀影片同步套用快轉倍數
 
       speedToastBadge.textContent = `【快轉 ${baseSpeed}x】`;
       speedToastBadge.style.display = 'block';
@@ -955,7 +954,6 @@
       };
     }
 
-    // 🛡️ 麥克風硬體與資源強制釋放/重置函式
     function releaseMicrophoneResources() {
       if (micStream) {
         try {
@@ -1010,13 +1008,14 @@
 
     function setMode(mode) {
       haltGuideRunnerImmediately();
-      releaseMicrophoneResources(); // 切換模式時自動強制重置麥克風硬體
+      releaseMicrophoneResources();
       currentMode = mode;
 
       if (currentMode === 'mp4') {
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
+        centerCore.scrollTop = 0; // ✨ 強制跟讀模式捲軸歸零，確保影片完美置中不位移
         resetSideWingsForMode('mp4');
 
         const range = getActiveVideoRange();
@@ -1048,11 +1047,9 @@
 
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
-        // 左1 & 左2 槽位合併為長方形「快轉」選單觸發按鈕
         slotL1.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${baseSpeed}x</button>`;
         slotL2.innerHTML = '';
 
-        // 左3 & 左4 槽位合併為統一句一標準的長方形關機按鈕
         slotL3.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">關機</button>`;
         slotL4.innerHTML = '';
 
@@ -1064,11 +1061,9 @@
           handleShutdownClick();
         });
 
-        // 右1 & 右2 槽位合併為純文字長方形錄音鍵
         slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
         slotR2.innerHTML = '';
 
-        // 右3 & 右4 槽位合併為純文字長方形播放鍵
         slotR3.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
         slotR4.innerHTML = '';
 
@@ -1111,7 +1106,6 @@
       }
     }
 
-    // 點選快轉倍數選單選項
     document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
       btn.addEventListener('click', () => {
         const val = parseFloat(btn.dataset.speed);
@@ -1122,7 +1116,6 @@
       });
     });
 
-    // 🎙️ 穩健錄音引擎：純文字按鈕與強效收音呼吸閃爍
     async function toggleReliableRecordAction() {
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
@@ -1174,7 +1167,6 @@
             for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
             const rms = Math.sqrt(sum / dataArray.length);
 
-            // 當收到聲音音量超過門檻時，觸發強烈呼吸閃爍特效
             if (rms > 0.0020) {
               wingBtnRecord.classList.add('recording-flashing');
             } else {
@@ -1491,6 +1483,9 @@
       } catch (e) {}
 
       if (currentMode === 'mp4') {
+        centerCore.scrollTop = 0; // ✨ 確保點擊背書播放跟讀影片時，視圖絕對置頂，影片完美置中
+        video.playbackRate = baseSpeed; // 同步套用當前快轉倍數
+
         const range = getActiveVideoRange();
         if (!range.valid) {
           showToast('⚠️ 秒數資料不完整，無法播放', 3000);
@@ -2097,10 +2092,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V193_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V194_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V193_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V194_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
