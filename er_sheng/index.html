@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v200 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v203 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -586,7 +586,7 @@
   <!-- 排行榜彈窗 -->
   <div id="leaderboard-modal-overlay">
     <div class="leaderboard-card">
-      <div class="leaderboard-header"><span>🏆</span> 功德圓滿・隨喜大眾</div>
+      <div class="leaderboard-header"><span>🏆</span> 供養福慧幣 功德圓滿 隨喜大家</div>
       <div class="rank-wrap">
         <div class="rank-section">
           <div class="rank-section-title">📅 今日精進榜</div>
@@ -686,7 +686,6 @@
     let cachedPdfBuffer = null;
 
     let isManualSelected = false;
-    let isScheduleRepeatLocked = true; // 3. 預設今日功課遍數為鎖定狀態
     let markA_Index = -1;
     let markB_Index = -1;
     let totalTargetCycles = 1;
@@ -1041,7 +1040,6 @@
         if (range.valid) {
           video.currentTime = range.start;
         }
-        // 2. 跟讀模式已徹底移除「播放中：第幾句」提示
       } else if (currentMode === 'pdf') {
         video.pause();
         videoWrap.style.display = 'none';
@@ -1065,7 +1063,6 @@
 
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
-        // 比對模式左側：快轉倍數選單與統一關機鍵
         slotL1.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${baseSpeed}x</button>`;
         slotL2.innerHTML = '';
 
@@ -1080,7 +1077,6 @@
           handleShutdownClick();
         });
 
-        // 4. 比對模式右側：上下置中平衡排版（配置於 slot-r2 與 slot-r3）
         slotR1.innerHTML = '';
         slotR2.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
         slotR3.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
@@ -1093,7 +1089,6 @@
           togglePlaybackAction();
         });
       } else {
-        // 標準左側翼鍵（四個鍵：起點、終點、遍數、關機）
         slotL1.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">起點</button>`;
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">終點</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button>`;
@@ -1134,7 +1129,39 @@
       });
     });
 
-    // 5. 錄音鍵點擊時：從錄音按鈕位置向中心噴發專屬大尺寸金幣特效
+    // 🌟 1. 真實立體金幣渲染函式（高不透明度、厚實金邊、雙層光澤）
+    function renderRealisticCoin(ctx, x, y, radius, opacity) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.globalAlpha = Math.min(1.0, Math.max(0.88, opacity));
+
+      // 金幣外圈立體金邊
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFD700';
+      ctx.fill();
+      ctx.lineWidth = 4.0;
+      ctx.strokeStyle = '#D4AF37'; // 更有質感的大氣金邊
+      ctx.stroke();
+
+      // 金幣內環光澤圈
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.78, 0, Math.PI * 2);
+      ctx.strokeStyle = '#FFF176';
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
+
+      // 中央 $ 符號
+      ctx.fillStyle = '#B26A00';
+      ctx.font = `900 ${Math.floor(radius * 1.2)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', 0, 1.5);
+
+      ctx.restore();
+    }
+
+    // 🌟 2. 錄音鍵點擊時：具備強大向上爆發力道與真實感金幣特效
     function triggerRecordCoinSplash() {
       const btn = document.getElementById('wing-btn-record');
       if (!btn) return;
@@ -1150,19 +1177,20 @@
       canvas.height = window.innerHeight;
 
       const coins = [];
-      const count = 35;
+      const count = 32;
       for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 9 + 4;
+        // 集中在上方半球，賦予強勁的向上初始推力
+        const angle = -Math.PI * 0.82 + Math.random() * (Math.PI * 0.64);
+        const speed = Math.random() * 9 + 5;
         coins.push({
           x: startX,
           y: startY,
           vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 2.5,
-          gravity: 0.35,
-          radius: Math.random() * 12 + 15, // 比花朵尺寸大很多
+          vy: Math.sin(angle) * speed - 6.5, // 強烈的向上衝高力道
+          gravity: 0.40,
+          radius: Math.random() * 8 + 16,
           rotation: Math.random() * Math.PI,
-          vRot: (Math.random() - 0.5) * 0.2,
+          vRot: (Math.random() - 0.5) * 0.15,
           opacity: 1.0
         });
       }
@@ -1181,33 +1209,7 @@
           c.rotation += c.vRot;
           c.opacity = Math.max(0, 1 - elapsed / duration);
 
-          ctx.save();
-          ctx.translate(c.x, c.y);
-          ctx.rotate(c.rotation);
-          ctx.globalAlpha = c.opacity;
-
-          // 繪製大金幣外圈
-          ctx.beginPath();
-          ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
-          ctx.fillStyle = '#FFD700';
-          ctx.fill();
-          ctx.lineWidth = 3.5;
-          ctx.strokeStyle = '#FFA000';
-          ctx.stroke();
-
-          // 金幣內環與圖示
-          ctx.beginPath();
-          ctx.arc(0, 0, c.radius * 0.72, 0, Math.PI * 2);
-          ctx.strokeStyle = '#FFC107';
-          ctx.stroke();
-
-          ctx.fillStyle = '#FFA000';
-          ctx.font = `bold ${Math.floor(c.radius * 1.1)}px sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('$', 0, 1);
-
-          ctx.restore();
+          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity);
         });
 
         if (elapsed < duration) {
@@ -1224,7 +1226,7 @@
       triggerAppFullscreen();
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
-        triggerRecordCoinSplash(); // 5. 按下錄音鍵噴出大金幣特效
+        triggerRecordCoinSplash(); // 2. 觸發向上爆發的金幣特效
         try {
           audioChunks = [];
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -1361,7 +1363,6 @@
       triggerFivePetalFlowerRain();
     }
 
-    // 1. 修正 iOS 手機金幣顏色，全面採用高飽和璀璨耀眼金黃色系
     function triggerFivePetalFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1383,7 +1384,7 @@
           rotation: Math.random() * 360,
           rotationSpeed: (Math.random() - 0.5) * 3,
           color: colors[Math.floor(Math.random() * colors.length)],
-          opacity: Math.random() * 0.4 + 0.6
+          opacity: 0.92
         });
       }
 
@@ -1438,7 +1439,7 @@
       requestAnimationFrame(animateFlowers);
     }
 
-    // 6. 確認供養後榜單出現時的由上往下金幣雨特效
+    // 🌟 3. 確認供養後的適量真實感金幣飄下特效
     function triggerLeaderboardCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1448,17 +1449,17 @@
       canvas.height = window.innerHeight;
 
       const coins = [];
-      const count = 60;
+      const count = 22; // 適量精緻，不至於過多
       for (let i = 0; i < count; i++) {
         coins.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 10 + 10,
-          speedY: Math.random() * 2.5 + 1.5,
-          speedX: (Math.random() - 0.5) * 1.0,
-          rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 4,
-          opacity: Math.random() * 0.5 + 0.5
+          radius: Math.random() * 6 + 12,
+          speedY: Math.random() * 1.5 + 1.0,
+          speedX: (Math.random() - 0.5) * 0.8,
+          rotation: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.05,
+          opacity: 0.95
         });
       }
 
@@ -1471,29 +1472,10 @@
 
         coins.forEach(c => {
           c.y += c.speedY;
-          c.x += c.speedX + Math.sin(c.y / 30) * 0.5;
-          c.rotation += c.rotationSpeed;
+          c.x += c.speedX + Math.sin(c.y / 35) * 0.4;
+          c.rotation += c.vRot;
 
-          ctx.save();
-          ctx.translate(c.x, c.y);
-          ctx.rotate((c.rotation * Math.PI) / 180);
-          ctx.globalAlpha = c.opacity;
-
-          ctx.beginPath();
-          ctx.arc(0, 0, c.size, 0, Math.PI * 2);
-          ctx.fillStyle = '#FFD700';
-          ctx.fill();
-          ctx.lineWidth = 2.5;
-          ctx.strokeStyle = '#FFA000';
-          ctx.stroke();
-
-          ctx.fillStyle = '#FFA000';
-          ctx.font = `bold ${Math.floor(c.size)}px sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('$', 0, 1);
-
-          ctx.restore();
+          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity);
 
           if (c.y > canvas.height + 30) {
             c.y = -30;
@@ -1590,7 +1572,6 @@
       const btnMarkA = document.getElementById('btn-mark-a');
       if (!btnMarkA) return;
       isManualSelected = true;
-      isScheduleRepeatLocked = false; // 手動操作解鎖遍數
       markA_Index = getLineAtButtonBottom(btnMarkA);
       if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
       currentLineIndex = markA_Index;
@@ -1610,7 +1591,6 @@
       if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
       
       isManualSelected = true;
-      isScheduleRepeatLocked = false; // 手動操作解鎖遍數
       markB_Index = selectedB;
       completedCycles = 0;
       videoPausedAt = -1;
@@ -1619,11 +1599,6 @@
 
     function handleRepeatCountClick() {
       if (isGuideActive || currentMode === 'record') return;
-      // 3. 今日功課排程遍數鎖定檢查
-      if (isScheduleRepeatLocked) {
-        showToast('🔒 今日功課遍數已由排程鎖定，須完成指定遍數', 3000);
-        return;
-      }
       repeatModal.style.display = repeatModal.style.display === 'flex' ? 'none' : 'flex';
     }
 
@@ -1692,7 +1667,6 @@
               btnGuide.classList.add('guide-active');
               btnGuide.classList.remove('guide-waiting');
             }
-            // 2. 跟讀背書播放已無任何提示浮標
           }).catch((err) => {
             console.error("播放受阻:", err);
             video.currentTime = range.start;
@@ -2216,7 +2190,7 @@
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
         
-        // 6. 點擊確認供養開啟排行榜時，觸發由上往下金幣雨特效
+        // 3. 供養榜單出現時觸發適量真實感金幣雨特效
         triggerLeaderboardCoinRain();
       }
 
@@ -2281,10 +2255,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V200_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V203_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V200_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V203_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
