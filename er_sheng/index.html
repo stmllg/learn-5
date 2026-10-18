@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v191 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v192 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -655,7 +655,7 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 🎙️ v191 穩健錄音與播放引擎（確保 100% 播放成功）
+    // 🎙️ 穩健錄音與播放引擎
     let mediaRecorder = null;
     let audioChunks = [];
     let isUserRecording = false;
@@ -940,6 +940,20 @@
       };
     }
 
+    // 🛡️ 麥克風硬體與資源強制釋放/重置函式
+    function releaseMicrophoneResources() {
+      if (micStream) {
+        try {
+          micStream.getTracks().forEach(track => track.stop());
+        } catch (e) {}
+        micStream = null;
+      }
+      if (audioContext && audioContext.state !== 'closed') {
+        try { audioContext.suspend(); } catch (e) {}
+      }
+      stopVoiceActivityDetection();
+    }
+
     let touchStartX = 0;
     let touchStartY = 0;
 
@@ -981,6 +995,7 @@
 
     function setMode(mode) {
       haltGuideRunnerImmediately();
+      releaseMicrophoneResources(); // ✨ 每次切換模式時自動強制重置麥克風硬體資源，確保乾淨無殘留
       currentMode = mode;
 
       if (currentMode === 'mp4') {
@@ -1018,11 +1033,9 @@
 
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
-        // 左1 & 左2 槽位合併為大器長方形語速調整按鈕
         slotL1.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">語速 ${baseSpeed.toFixed(1)}x</button>`;
         slotL2.innerHTML = '';
 
-        // 左3 & 左4 槽位合併為大器長方形關機按鈕
         slotL3.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">關機</button>`;
         slotL4.innerHTML = '';
 
@@ -1035,11 +1048,9 @@
           if (shutdownBtn) shutdownBtn.click();
         });
 
-        // 右1 & 右2 槽位合併為長方形錄音鍵
         slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">🎙️ 錄音</button>`;
         slotR2.innerHTML = '';
 
-        // 右3 & 右4 槽位合併為長方形播放鍵
         slotR3.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">▶ 播放</button>`;
         slotR4.innerHTML = '';
 
@@ -1080,7 +1091,7 @@
       }
     }
 
-    // 🎙️ v191 穩健錄音引擎：完整收集封包確保播放 100% 成功，並支援收音時呼吸閃爍特效！
+    // 🎙️ 穩健錄音引擎：支援收音時呼吸閃爍，且確保 100% 播放成功
     async function toggleReliableRecordAction() {
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
@@ -1090,7 +1101,6 @@
             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
           });
 
-          // 建立即時音量監測以實現「有收到音就閃爍」
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           const recordingAudioCtx = new AudioContextClass();
           const source = recordingAudioCtx.createMediaStreamSource(stream);
@@ -1114,15 +1124,16 @@
             recordAudioElement.playbackRate = baseSpeed;
             showToast('錄音完成！點擊右側「播放」按鈕即可聆聽', 4000);
             if (wingBtnRecord) wingBtnRecord.classList.remove('recording-flashing');
+            // 停止並釋放錄音用的串流軌道
+            stream.getTracks().forEach(t => t.stop());
           };
 
           mediaRecorder.start(200);
           isUserRecording = true;
           wingBtnRecord.textContent = '⏹ 結束';
-          wingBtnRecord.style.background = 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)';
+          wingBtnRecord.style.background = 'linear-gradient(135deg, #64748B 0%, #475569 100%)';
           showToast('🔴 正在錄音中...', 3000);
 
-          // 迴圈檢測音量，當有聲音時讓按鈕呼吸閃爍
           const pulseCheckInterval = setInterval(() => {
             if (!isUserRecording) {
               clearInterval(pulseCheckInterval);
@@ -1409,15 +1420,7 @@
 
     function handleShutdownClick() {
       haltGuideRunnerImmediately();
-
-      if (micStream) {
-        try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
-        micStream = null;
-      }
-
-      if (audioContext && audioContext.state !== 'closed') {
-        try { audioContext.suspend(); } catch (e) {}
-      }
+      releaseMicrophoneResources();
 
       try {
         if (document.fullscreenElement || document.webkitFullscreenElement) {
@@ -1833,7 +1836,7 @@
           } else {
             const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
             redDot.style.left = `${offsetLeft + (curLine.x1 * scaleX)}px`;
-            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
+            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
           }
         }
 
@@ -2064,10 +2067,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V191_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V192_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V191_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V192_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
