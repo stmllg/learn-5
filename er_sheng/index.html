@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v188 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v189 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -535,7 +535,7 @@
     <button class="modal-option active" data-count="1">1 次</button>
     <button class="modal-option" data-count="3">3 次</button>
     <button class="modal-option" data-count="5">5 次</button>
-    <button class="modal-option" data-option="7">7 次</button>
+    <button class="modal-option" data-count="7">7 次</button>
     <button class="modal-option" data-count="10">10 次</button>
   </div>
 
@@ -988,7 +988,7 @@
       } else if (currentMode === 'pdf') {
         video.pause();
         videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex'; // ✨ 修復：確保自讀模式 PDF 容器正確顯示
+        pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
         resetSideWingsForMode('pdf');
 
@@ -997,7 +997,7 @@
       } else if (currentMode === 'record') {
         video.pause();
         videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex'; // ✨ 修復：確保比對模式 PDF 容器正確顯示
+        pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'none';
         resetSideWingsForMode('record');
 
@@ -1167,6 +1167,15 @@
           video.pause();
           videoPausedAt = -1;
           video.currentTime = range.start;
+          completedCycles = 0; // ✨ 修復：播放完成後重置已完成遍數
+          const remainReset = Math.max(0, totalTargetCycles - completedCycles);
+          if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remainReset}次`;
+
+          const btnGuide = document.getElementById('btn-guide-toggle');
+          if (btnGuide) {
+            btnGuide.textContent = '背書';
+            btnGuide.classList.remove('guide-active');
+          }
           handleTargetCycleDone();
         } else {
           videoPausedAt = -1;
@@ -1794,7 +1803,7 @@
           } else {
             const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
             redDot.style.left = `${offsetLeft + (curLine.x1 * scaleX)}px`;
-            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
+            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleY)}px`;
           }
         }
 
@@ -2025,10 +2034,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V188_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V189_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V188_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V189_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
