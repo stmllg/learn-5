@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v197 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v198 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -538,8 +538,8 @@
     <div class="side-wing" id="right-wing">
       <div class="slot" id="slot-r1"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
       <div class="slot" id="slot-r2"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
-      <div class="slot" id="slot-r3"></div>
-      <div class="slot" id="slot-r4"></div>
+      <div class="slot" id="slot-r3"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button></div>
+      <div class="slot" id="slot-r4"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button></div>
     </div>
   </div>
 
@@ -1040,7 +1040,7 @@
         if (range.valid) {
           video.currentTime = range.start;
         }
-        showModeBanner('▶ 跟讀模式', `播放：第 ${range.sentenceA} ～ 第 ${range.sentenceB} 句`);
+        // 1. 跟讀模式已移除「播放中：第幾句」的頂部 Banner 提示
       } else if (currentMode === 'pdf') {
         video.pause();
         videoWrap.style.display = 'none';
@@ -1079,10 +1079,9 @@
           handleShutdownClick();
         });
 
-        // 比對模式右側：純文字錄音與播放
-        slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
-        slotR2.innerHTML = '';
-
+        // 3. 比對模式右側按鈕位置向下平均呈現（利用 slot-r2 放錄音、slot-r3 放播放，其餘留空）
+        slotR1.innerHTML = '';
+        slotR2.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
         slotR3.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
         slotR4.innerHTML = '';
 
@@ -1137,6 +1136,7 @@
     });
 
     async function toggleReliableRecordAction() {
+      triggerAppFullscreen(); // 3. 按下錄音鍵自動啟動全螢幕
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
         try {
@@ -1437,7 +1437,7 @@
       completedCycles = 0;
       videoPausedAt = -1;
       updateVisualDisplay();
-      speakPrompt(`起點設定在第 ${markA_Index + 1} 句`);
+      // 2. 自讀模式設定起點時，已移除語音朗讀，避免誤觸導覽啟動
     }
 
     function handleMarkBClick() {
@@ -1453,7 +1453,7 @@
       completedCycles = 0;
       videoPausedAt = -1;
       updateVisualDisplay();
-      speakPrompt(`終點設定在第 ${markB_Index + 1} 句`);
+      // 2. 自讀模式設定終點時，已移除語音朗讀，避免誤觸導覽啟動
     }
 
     function handleRepeatCountClick() {
@@ -2112,10 +2112,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V197_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V198_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V197_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V198_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
