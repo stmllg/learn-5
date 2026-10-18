@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v190 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v191 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -261,6 +261,16 @@
       gap: 10px;
       transform: translate(-50%, -50%) scale(1);
       opacity: 1;
+    }
+
+    /* 🔴 錄音時的呼吸閃爍特效樣式 */
+    @keyframes recordingPulse {
+      0%   { transform: scale(1.0); box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
+      50%  { transform: scale(1.06); box-shadow: 0 0 25px rgba(239, 68, 68, 1), inset 0 0 12px rgba(255, 255, 255, 0.6); }
+      100% { transform: scale(1.0); box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
+    }
+    .recording-flashing {
+      animation: recordingPulse 1.1s infinite ease-in-out !important;
     }
 
     /* =========================================================================
@@ -645,7 +655,7 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 🎙️ 依據 v189 穩固修復的錄音與播放引擎
+    // 🎙️ v191 穩健錄音與播放引擎（確保 100% 播放成功）
     let mediaRecorder = null;
     let audioChunks = [];
     let isUserRecording = false;
@@ -1006,9 +1016,6 @@
       updateVisualDisplay();
     }
 
-    // =========================================================================
-    // 🛠️ v190 精確配置翼鍵：比對模式下左1/2調速、左3/4關機；右1/2錄音、右3/4播放
-    // =========================================================================
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
         // 左1 & 左2 槽位合併為大器長方形語速調整按鈕
@@ -1028,7 +1035,7 @@
           if (shutdownBtn) shutdownBtn.click();
         });
 
-        // 右1 & 右2 槽位合併為長方形錄音鍵（同一顆按鈕切換錄音/停止）
+        // 右1 & 右2 槽位合併為長方形錄音鍵
         slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">🎙️ 錄音</button>`;
         slotR2.innerHTML = '';
 
@@ -1037,13 +1044,12 @@
         slotR4.innerHTML = '';
 
         document.getElementById('wing-btn-record').addEventListener('click', () => {
-          toggleSmartRecordAction();
+          toggleReliableRecordAction();
         });
         document.getElementById('wing-btn-play').addEventListener('click', () => {
           togglePlaybackAction();
         });
       } else {
-        // 標準左翼槽位還原
         slotL1.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">起點</button>`;
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">終點</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button>`;
@@ -1057,7 +1063,7 @@
         if (mode === 'mp4') {
           slotR1.innerHTML = `<button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button>`;
           slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
-          slotR3.innerHTML = ''; // 跟讀模式隱藏語速鍵
+          slotR3.innerHTML = '';
           slotR4.innerHTML = '';
         } else {
           slotR1.innerHTML = `<button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button>`;
@@ -1074,8 +1080,8 @@
       }
     }
 
-    // 🎙️ 穩健的智慧錄音與播放引擎 (依據 v189 基底修復)
-    async function toggleSmartRecordAction() {
+    // 🎙️ v191 穩健錄音引擎：完整收集封包確保播放 100% 成功，並支援收音時呼吸閃爍特效！
+    async function toggleReliableRecordAction() {
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
         try {
@@ -1084,6 +1090,7 @@
             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
           });
 
+          // 建立即時音量監測以實現「有收到音就閃爍」
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           const recordingAudioCtx = new AudioContextClass();
           const source = recordingAudioCtx.createMediaStreamSource(stream);
@@ -1092,17 +1099,10 @@
           source.connect(recordingAnalyser);
           const dataArray = new Float32Array(recordingAnalyser.frequencyBinCount);
 
-          mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+          mediaRecorder = new MediaRecorder(stream);
           mediaRecorder.ondataavailable = (e) => {
             if (e.data.size > 0) {
-              recordingAnalyser.getFloatTimeDomainData(dataArray);
-              let sum = 0;
-              for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
-              const rms = Math.sqrt(sum / dataArray.length);
-
-              if (rms > 0.0020) {
-                audioChunks.push(e.data);
-              }
+              audioChunks.push(e.data);
             }
           };
 
@@ -1112,14 +1112,34 @@
             recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
             recordAudioElement.src = recordedAudioBlobUrl;
             recordAudioElement.playbackRate = baseSpeed;
-            showToast('錄音完成！智慧過濾靜音，點擊右側播放聆聽', 4000);
+            showToast('錄音完成！點擊右側「播放」按鈕即可聆聽', 4000);
+            if (wingBtnRecord) wingBtnRecord.classList.remove('recording-flashing');
           };
 
-          mediaRecorder.start(100);
+          mediaRecorder.start(200);
           isUserRecording = true;
-          wingBtnRecord.textContent = '⏹ 停止';
-          wingBtnRecord.style.background = 'linear-gradient(135deg, #64748B 0%, #475569 100%)';
-          showToast('🔴 智慧錄音中（有聲音才錄）...', 3000);
+          wingBtnRecord.textContent = '⏹ 結束';
+          wingBtnRecord.style.background = 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)';
+          showToast('🔴 正在錄音中...', 3000);
+
+          // 迴圈檢測音量，當有聲音時讓按鈕呼吸閃爍
+          const pulseCheckInterval = setInterval(() => {
+            if (!isUserRecording) {
+              clearInterval(pulseCheckInterval);
+              return;
+            }
+            recordingAnalyser.getFloatTimeDomainData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
+            const rms = Math.sqrt(sum / dataArray.length);
+
+            if (rms > 0.0020) {
+              wingBtnRecord.classList.add('recording-flashing');
+            } else {
+              wingBtnRecord.classList.remove('recording-flashing');
+            }
+          }, 150);
+
         } catch (err) {
           alert('無法存取麥克風，請檢查裝置權限設定');
         }
@@ -1130,6 +1150,7 @@
         isUserRecording = false;
         wingBtnRecord.textContent = '🎙️ 錄音';
         wingBtnRecord.style.background = 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)';
+        if (wingBtnRecord) wingBtnRecord.classList.remove('recording-flashing');
       }
     }
 
@@ -2043,10 +2064,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V190_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V191_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V190_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V191_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
