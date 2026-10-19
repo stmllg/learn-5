@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v224 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v225 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -761,9 +761,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V224');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V225');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V224', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V225', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1440,7 +1440,6 @@
       if (btnPlay) btnPlay.textContent = '播放';
     });
 
-    // 🌟 核心修復：跟讀模式範圍精確循環播放
     let mp4PrecisionCheckAnimId = null;
     function startMp4PrecisionCheck() {
       if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
@@ -1473,6 +1472,7 @@
 
         if (dailyDone >= scheduleRepeatLimit) {
           isScheduleRepeatLocked = false;
+          showToast('🎉 今日功課遍數已全部達標！現已解鎖可自由調整次數', 4500);
           videoPausedAt = -1;
           video.currentTime = range.start;
           completedCycles = 0;
@@ -1612,6 +1612,7 @@
       requestAnimationFrame(animateLotusRain);
     }
 
+    // 🌟 核心升級：精準對齊手動設定起點與終點線條的座標換算方程式
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
@@ -2229,6 +2230,7 @@
 
         if (dailyDone >= scheduleRepeatLimit) {
           isScheduleRepeatLocked = false;
+          showToast('🎉 今日功課遍數已全部達標！現已解鎖可自由調整次數', 4500);
           handleTargetCycleDone();
           finishAndStopPermanently();
           return;
@@ -2424,10 +2426,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V224_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V225_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V224_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V225_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2502,7 +2504,6 @@
 
           updateVisualDisplay();
           scrollToAlignTop(markA_Index);
-          // 🌟 移除重複顯示的「今日進度...」提示訊息，保持畫面清淨
           return true;
         }
       } catch (err) {}
