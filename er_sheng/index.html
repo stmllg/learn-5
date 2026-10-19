@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v220 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v221 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -364,7 +364,6 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 60px 方型按鈕：外框藍色、內部充填黑色、文字為亮橙色 (#FB923C) */
     .square-btn {
       width: 60px !important;
       height: 60px !important;
@@ -387,12 +386,12 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 🌟 方案一：琉璃蓮花金光（靜態無呼吸燈動態），沉穩而莊嚴 */
+    /* 🌟 沉金古銅色供養按鈕（無漸層、沉穩禪風） */
     .btn-color-offering {
-      background: radial-gradient(circle at 35% 35%, #FDE047 0%, #F59E0B 45%, #B45309 100%) !important;
-      border: 2.5px solid #FEF3C7 !important;
-      color: #FFFBEB !important;
-      box-shadow: 0 0 16px rgba(245, 158, 11, 0.65), inset 0 0 10px rgba(255, 255, 255, 0.75) !important;
+      background-color: #B45309 !important;
+      border: 2.5px solid #FDE68A !important;
+      color: #FEF3C7 !important;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8) !important;
       font-size: 14px !important;
       font-weight: 900 !important;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -763,9 +762,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V220');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V221');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V220', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V221', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1202,7 +1201,7 @@
       });
     });
 
-    // 🌟 渲染帶有「福」與「慧」文字的高級立體金幣
+    // 渲染帶有「福」與「慧」字的高級立體金幣
     function renderRealisticCoin(ctx, x, y, radius, opacity, symbolText) {
       ctx.save();
       ctx.translate(x, y);
@@ -1229,6 +1228,63 @@
       ctx.fillText(symbolText, 0, 1.5);
 
       ctx.restore();
+    }
+
+    // 🌟 修正點擊「確認供養」時正確觸發福慧金幣雨特效
+    function triggerLeaderboardCoinRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const coins = [];
+      const count = 35;
+      const symbols = ['福', '慧'];
+      for (let i = 0; i < count; i++) {
+        coins.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          radius: Math.random() * 6 + 12,
+          speedY: Math.random() * 1.6 + 1.1,
+          speedX: (Math.random() - 0.5) * 0.9,
+          rotation: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.05,
+          opacity: 0.95,
+          symbol: symbols[i % symbols.length]
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5200;
+
+      function animateCoins(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        coins.forEach(c => {
+          c.y += c.speedY;
+          c.x += c.speedX + Math.sin(c.y / 35) * 0.4;
+          c.rotation += c.vRot;
+
+          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity, c.symbol);
+
+          if (c.y > canvas.height + 30) {
+            c.y = -30;
+            c.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateCoins);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateCoins);
     }
 
     function triggerRecordCoinSplash() {
@@ -1478,7 +1534,6 @@
       triggerSevenColoredLotusFlowerRain();
     }
 
-    // 🌟 福智七彩蓮花燈七色花雨特效（白色花心帶有明黃色中心）
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1489,13 +1544,13 @@
 
       const flowers = [];
       const lotusColors = [
-        '#FF94B8', // 1. 粉紅色 (闔家平安)[cite: 2]
-        '#FFB300', // 2. 琥珀色 (財富圓滿)[cite: 2]
-        '#F1F5F9', // 3. 霧白色 (能源活力)[cite: 2]
-        '#22C55E', // 4. 翠綠色 (健康和諧)[cite: 2]
-        '#C084FC', // 5. 粉紫色 (增長智慧)[cite: 2]
-        '#E11D48', // 6. 水紅色 (事業成功)[cite: 2]
-        '#3B82F6'  // 7. 寶藍色 (安心寧神/圓滿吉祥)[cite: 2]
+        '#FF94B8', // 1. 粉紅色 (闔家平安)[span_0](start_span)[span_0](end_span)
+        '#FFB300', // 2. 琥珀色 (財富圓滿)[span_1](start_span)[span_1](end_span)
+        '#F1F5F9', // 3. 霧白色 (能源活力)[span_2](start_span)[span_2](end_span)
+        '#22C55E', // 4. 翠綠色 (健康和諧)[span_3](start_span)[span_3](end_span)
+        '#C084FC', // 5. 粉紫色 (增長智慧)[span_4](start_span)[span_4](end_span)
+        '#E11D48', // 6. 水紅色 (事業成功)[span_5](start_span)[span_5](end_span)
+        '#3B82F6'  // 7. 寶藍色 (安心寧神/圓滿吉祥)[span_6](start_span)[span_6](end_span)
       ];
       
       for (let i = 0; i < 70; i++) {
@@ -1540,7 +1595,6 @@
             ctx.fill();
           }
 
-          // 🌟 1. 白色花心加上顏色（明黃色中心 #FEF08A；若為其他色則微調細節）
           ctx.fillStyle = (f.color === '#F1F5F9') ? '#FEF08A' : '#FFFFFF';
           ctx.beginPath();
           ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
@@ -2302,7 +2356,7 @@
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
         
-        triggerLeaderboardCoinRain();
+        triggerLeaderboardCoinRain(); // 🌟 確保確認供養後完美灑出福慧金幣雨
       }
 
       const timeoutTimer = setTimeout(() => { if (!isDone) handleSuccess(null); }, 10000);
@@ -2366,10 +2420,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V220_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V221_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V220_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V221_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
