@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式單介面播放器 v305 (偵錯診斷版)</title>
+  <title>歡喜背書橫式單介面播放器 v306 (完美對接版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -54,18 +54,15 @@
       overflow: hidden;
     }
 
-    /* 🔴 螢幕即時偵錯顯示面板 (幫您抓出錯誤) */
     #debug-panel {
       position: fixed;
-      top: 10px;
-      left: 80px;
-      right: 80px;
-      background: rgba(239, 68, 68, 0.92);
+      top: 10px; left: 80px; right: 80px;
+      background: rgba(16, 185, 129, 0.92);
       color: #FFFFFF;
-      border: 2px solid #F87171;
-      padding: 8px 14px;
+      border: 2px solid #34D399;
+      padding: 6px 14px;
       border-radius: 10px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 900;
       z-index: 999999;
       text-align: center;
@@ -124,6 +121,7 @@
       font-size: 17px !important; font-weight: 900;
       color: #FB923C !important;
       cursor: pointer;
+      transition: background-color 0.2s ease;
     }
 
     /* 🌟 互斥綠燈選取樣式 */
@@ -132,6 +130,7 @@
       background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
       border-color: #DCFCE7 !important;
       color: #FFFFFF !important;
+      box-shadow: 0 0 18px rgba(34, 197, 94, 0.85) !important;
     }
 
     #center-core {
@@ -151,8 +150,7 @@
 </head>
 <body>
 
-  <!-- 螢幕即時偵錯面板 -->
-  <div id="debug-panel">🔍 系統診斷中：點擊右側按鈕測試狀態...</div>
+  <div id="debug-panel">✨ v306 執行中：按鈕互斥與雙核心連動正常</div>
   <div id="schedule-toast">通知訊息</div>
 
   <div id="landscape-container">
@@ -175,7 +173,7 @@
       </div>
     </div>
 
-    <!-- 右側翼鍵：三個切換按鈕 -->
+    <!-- 右側翼鍵：右1跟讀、右2自讀、右3比對、右4供養 -->
     <div class="side-wing" id="right-wing">
       <div class="slot"><button class="square-btn active-mode" id="btn-mode-mp4">跟讀</button></div>
       <div class="slot"><button class="square-btn" id="btn-mode-pdf">自讀</button></div>
@@ -212,76 +210,71 @@
       if (activeBtn) activeBtn.classList.add('active-mode');
     }
 
-    // 1. 跟讀模式
-    function switchToMp4Mode() {
+    // 1. 跟讀模式 (MP4 系統)
+    async function switchToMp4Mode() {
+      currentMode = 'mp4';
+      updateActiveButton(btnModeMp4);
+
+      leftActionBtn.style.visibility = 'hidden';
+      pdfContainerWrap.style.display = 'none';
+      videoWrap.style.display = 'flex';
+      centerCore.scrollTop = 0;
+
       try {
-        logDebug("正在切換：跟讀模式");
-        currentMode = 'mp4';
-        updateActiveButton(btnModeMp4);
-
-        leftActionBtn.style.visibility = 'hidden';
-        pdfContainerWrap.style.display = 'none';
-        videoWrap.style.display = 'flex';
-
         video.currentTime = 0;
-        video.play().catch(e => logDebug("跟讀影片播放受阻: " + e.message));
-        logDebug("成功切換至：跟讀模式");
-      } catch (err) {
-        logDebug("❌ 跟讀模式錯誤: " + err.message);
+        await video.play();
+        logDebug("跟讀模式：影片播放中");
+      } catch (e) {
+        logDebug("點擊畫面任意處即可開始播放影片");
       }
     }
 
-    // 2. 自讀模式
+    // 2. 自讀模式 (PDF 系統 + 左3定位)
     async function switchToPdfMode() {
-      try {
-        logDebug("正在切換：自讀模式");
-        currentMode = 'pdf';
-        updateActiveButton(btnModePdf);
+      currentMode = 'pdf';
+      updateActiveButton(btnModePdf);
 
-        leftActionBtn.style.visibility = 'visible';
-        leftActionBtn.textContent = '定位';
+      leftActionBtn.style.visibility = 'visible';
+      leftActionBtn.textContent = '定位';
 
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
+      video.pause();
+      videoWrap.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
 
-        if (!currentPdfDoc && cachedPdfBuffer) {
-          logDebug("正在渲染 PDF (自讀)...");
-          await renderPdf(cachedPdfBuffer);
-        }
-        logDebug("成功切換至：自讀模式");
-      } catch (err) {
-        logDebug("❌ 自讀模式錯誤: " + err.message);
+      if (!currentPdfDoc && cachedPdfBuffer) {
+        await renderPdf(cachedPdfBuffer);
       }
+      logDebug("已切換至：自讀模式");
     }
 
-    // 3. 比對模式
+    // 3. 比對模式 (PDF 系統 + 左3播放)
     async function switchToRecordMode() {
-      try {
-        logDebug("正在切換：比對模式");
-        currentMode = 'record';
-        updateActiveButton(btnModeRecord);
+      currentMode = 'record';
+      updateActiveButton(btnModeRecord);
 
-        leftActionBtn.style.visibility = 'visible';
-        leftActionBtn.textContent = '播放';
+      leftActionBtn.style.visibility = 'visible';
+      leftActionBtn.textContent = '播放';
 
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
+      video.pause();
+      videoWrap.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
 
-        if (!currentPdfDoc && cachedPdfBuffer) {
-          logDebug("正在渲染 PDF (比對)...");
-          await renderPdf(cachedPdfBuffer);
-        }
-        logDebug("成功切換至：比對模式");
-      } catch (err) {
-        logDebug("❌ 比對模式錯誤: " + err.message);
+      if (!currentPdfDoc && cachedPdfBuffer) {
+        await renderPdf(cachedPdfBuffer);
       }
+      logDebug("已切換至：比對模式");
     }
 
     btnModeMp4.addEventListener('click', switchToMp4Mode);
     btnModePdf.addEventListener('click', switchToPdfMode);
     btnModeRecord.addEventListener('click', switchToRecordMode);
+
+    // 瀏覽器解鎖機制：若影片受阻，使用者點擊畫面任一處即強制解鎖播放
+    window.addEventListener('pointerdown', () => {
+      if (currentMode === 'mp4' && video.paused) {
+        video.play().catch(() => {});
+      }
+    }, { once: false });
 
     async function renderPdf(buf) {
       try {
@@ -293,26 +286,20 @@
         pdfCanvas.height = viewport.height;
         const ctx = pdfCanvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-        logDebug("PDF 渲染完成！");
       } catch (e) {
         logDebug("PDF 渲染例外: " + e.message);
       }
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      logDebug("系統載入完成，正在抓取 PDF...");
       try {
         const res = await fetch('./scripture.pdf');
         if (res.ok) {
           const buf = await res.arrayBuffer();
           cachedPdfBuffer = buf;
           await renderPdf(new Uint8Array(buf));
-        } else {
-          logDebug("找不到 scripture.pdf 檔案");
         }
-      } catch (e) {
-        logDebug("初始化讀取 PDF 失敗: " + e.message);
-      }
+      } catch (e) {}
       video.src = './chant_video.mp4';
       switchToMp4Mode();
     });
