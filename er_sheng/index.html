@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v207 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v208 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -364,6 +364,28 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
+    /* 🌟 方型背書/跟讀/自讀按鈕樣式 */
+    .square-btn {
+      width: 52px !important;
+      height: 52px !important;
+      border-radius: 12px !important;
+      border: 2.5px solid #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px !important;
+      font-weight: 900;
+      color: #FFFFFF;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+      transition: transform 0.15s ease-out;
+      text-align: center;
+      line-height: 1.1;
+      touch-action: manipulation;
+    }
+    .square-btn:active { transform: scale(0.90); opacity: 0.85; }
+
     .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
     #btn-mark-a.active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF; }
     .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
@@ -536,7 +558,7 @@
     </div>
 
     <div class="side-wing" id="right-wing">
-      <div class="slot" id="slot-r1"><button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button></div>
+      <div class="slot" id="slot-r1"><button class="square-btn btn-color-guide" id="btn-guide-toggle">跟讀</button></div>
       <div class="slot" id="slot-r2"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
       <div class="slot" id="slot-r3"></div>
       <div class="slot" id="slot-r4"></div>
@@ -1062,7 +1084,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 1. 嚴格對照您的指定：快轉放左2 (slot-l2)、關機放左4 (slot-l4)；錄音放右2 (slot-r2)、播放放右4 (slot-r4)
+    // 🌟 1. 比對模式配置（左2快轉、左4關機；右2錄音、右4播放）；跟讀與自讀模式右1按鈕方形帶對應文字
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
         slotL1.innerHTML = '';
@@ -1100,14 +1122,14 @@
         document.getElementById('btn-repeat-count').addEventListener('click', handleRepeatCountClick);
         document.getElementById('btn-shutdown-exit').addEventListener('click', handleShutdownClick);
 
+        const guideText = (mode === 'mp4') ? '跟讀' : '自讀';
+        slotR1.innerHTML = `<button class="square-btn btn-color-guide" id="btn-guide-toggle">${guideText}</button>`;
+        slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
+
         if (mode === 'mp4') {
-          slotR1.innerHTML = `<button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button>`;
-          slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
           slotR3.innerHTML = '';
           slotR4.innerHTML = '';
         } else {
-          slotR1.innerHTML = `<button class="circle-btn btn-color-guide" id="btn-guide-toggle">背書</button>`;
-          slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
           slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button>`;
           slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button>`;
 
@@ -1327,7 +1349,7 @@
           const range = getActiveVideoRange();
           if (range.valid && video.currentTime >= range.end) {
             video.pause();
-            video.currentTime = range.end; // 精準定格在結束點
+            video.currentTime = range.end;
             handleMp4CycleEnd(range);
             return;
           }
@@ -1338,7 +1360,7 @@
     }
 
     function handleMp4CycleEnd(range) {
-      recordDailyCycleCompletion(); // 🌟 累加跨模式今日修持遍數
+      recordDailyCycleCompletion();
 
       const todayStr = getNormalizedDateStr();
       const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
@@ -1352,7 +1374,7 @@
 
         const btnGuide = document.getElementById('btn-guide-toggle');
         if (btnGuide) {
-          btnGuide.textContent = '背書';
+          btnGuide.textContent = (currentMode === 'mp4') ? '跟讀' : '自讀';
           btnGuide.classList.remove('guide-active');
         }
         handleTargetCycleDone();
@@ -1365,7 +1387,6 @@
       }
     }
 
-    // 🌟 跨模式今日修持遍數累計與解鎖核心函式
     function recordDailyCycleCompletion() {
       completedCycles++;
       const todayStr = getNormalizedDateStr();
@@ -1562,7 +1583,7 @@
       return closestIdx;
     }
 
-    // 🌟 2. 修正 updateVisualDisplay：當解鎖後（isScheduleRepeatLocked === false），直接顯示當前設定的 totalTargetCycles
+    // 🌟 2. 修正 updateVisualDisplay：解鎖後精確顯示當前設定的 totalTargetCycles
     function updateVisualDisplay() {
       const btnMarkADom = document.getElementById('btn-mark-a');
       const btnMarkBDom = document.getElementById('btn-mark-b');
@@ -1635,7 +1656,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 2. 遍數點擊檢查：解鎖後允許正確點擊設定與顯示
+    // 🌟 2. 遍數按鈕點擊檢查
     function handleRepeatCountClick() {
       if (isGuideActive || currentMode === 'record') return;
       const todayStr = getNormalizedDateStr();
@@ -1726,10 +1747,10 @@
           videoPausedAt = video.currentTime;
           const btnGuide = document.getElementById('btn-guide-toggle');
           if (btnGuide) {
-            btnGuide.textContent = '背書';
+            btnGuide.textContent = '跟讀';
             btnGuide.classList.remove('guide-active');
           }
-          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒，再按背書接續播放`, 3000);
+          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒`, 3000);
         }
         return;
       }
@@ -2117,14 +2138,13 @@
 
     function handleCycleCompletion() {
       if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+      completedCycles++;
       recordDailyCycleCompletion();
 
       const todayStr = getNormalizedDateStr();
       const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
 
-      // 當前模式下是否達到本次設定的目標
-      completedCycles++;
-      if (completedCycles >= totalTargetCycles || dailyDone >= targetPlanRepeatLimit()) {
+      if (completedCycles >= totalTargetCycles || dailyDone >= totalTargetCycles) {
         handleTargetCycleDone();
         finishAndStopPermanently();
         return;
@@ -2158,10 +2178,6 @@
       }, 1500);
     }
 
-    function targetPlanRepeatLimit() {
-      return totalTargetCycles;
-    }
-
     function finishAndStopPermanently() {
       haltGuideRunnerImmediately();
       completedCycles = 0;
@@ -2185,7 +2201,7 @@
       redDot.style.display = 'none';
       const btnGuide = document.getElementById('btn-guide-toggle');
       if (btnGuide) {
-        btnGuide.textContent = '背書';
+        btnGuide.textContent = (currentMode === 'mp4') ? '跟讀' : '自讀';
         btnGuide.classList.remove('guide-active', 'guide-waiting');
       }
 
@@ -2311,10 +2327,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V207_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V208_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V207_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V208_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2381,7 +2397,7 @@
 
             const btnRepeatCountDom = document.getElementById('btn-repeat-count');
             if (btnRepeatCountDom) {
-              const remain = isScheduleRepeatLocked ? Math.max(0, totalTargetCycles - dailyDone) : totalTargetCycles;
+              const remain = isScheduleRepeatLocked ? Math.max(0, totalTargetCycles - dailyDone) : Math.max(0, totalTargetCycles - completedCycles);
               btnRepeatCountDom.textContent = `${remain}次`;
             }
           }
