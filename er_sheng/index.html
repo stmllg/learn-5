@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式單介面播放器 v310 (比對三態循環版)</title>
+  <title>歡喜背書橫式單介面播放器 v311 (直覺點擊啟動版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -57,9 +57,9 @@
     #debug-panel {
       position: fixed;
       top: 10px; left: 80px; right: 80px;
-      background: rgba(147, 51, 234, 0.92);
+      background: rgba(16, 185, 129, 0.92);
       color: #FFFFFF;
-      border: 2px solid #C084FC;
+      border: 2px solid #34D399;
       padding: 6px 14px;
       border-radius: 10px;
       font-size: 13px;
@@ -125,22 +125,13 @@
     }
     .square-btn:active { transform: scale(0.90); }
 
-    /* 🟢 第 1 下：綠燈（模式就緒） */
-    .square-btn.mode-green {
+    /* 🌟 選中時變為綠燈 */
+    .square-btn.active-mode {
       background-color: #15803D !important;
       background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
       border-color: #DCFCE7 !important;
       color: #FFFFFF !important;
-      box-shadow: 0 0 15px rgba(34, 197, 94, 0.7) !important;
-    }
-
-    /* 🟣 第 2/3 下：紫燈（功能啟動 / 錄音 / 結束） */
-    .square-btn.func-purple {
-      background-color: #7E22CE !important;
-      background: radial-gradient(circle, #A855F7 0%, #6B21A8 100%) !important;
-      border-color: #F3E8FF !important;
-      color: #FFFFFF !important;
-      box-shadow: 0 0 22px rgba(168, 85, 247, 0.9) !important;
+      box-shadow: 0 0 18px rgba(34, 197, 94, 0.85) !important;
     }
 
     #center-core {
@@ -160,7 +151,7 @@
 </head>
 <body>
 
-  <div id="debug-panel">✨ v310：比對鍵支援 綠燈(比對) ➡️ 紫燈(錄音) ➡️ 紫燈(結束)</div>
+  <div id="debug-panel">✨ v311 執行中：點擊右側按鈕即切換並啟動功能</div>
   <div id="schedule-toast">通知訊息</div>
 
   <div id="landscape-container">
@@ -185,7 +176,7 @@
 
     <!-- 右側翼鍵 -->
     <div class="side-wing" id="right-wing">
-      <div class="slot"><button class="square-btn mode-green" id="btn-mode-mp4">跟讀</button></div>
+      <div class="slot"><button class="square-btn active-mode" id="btn-mode-mp4">跟讀</button></div>
       <div class="slot"><button class="square-btn" id="btn-mode-pdf">自讀</button></div>
       <div class="slot"><button class="square-btn" id="btn-mode-record">比對</button></div>
       <div class="slot"><button class="circle-btn" style="background:#B45309;">供養</button></div>
@@ -212,125 +203,92 @@
     let currentMode = 'mp4';
     let currentPdfDoc = null;
     let cachedPdfBuffer = null;
-    let recordState = 0; // 0: 未選定, 1: 綠燈(比對), 2: 紫燈(錄音), 3: 紫燈(結束)
 
-    // 重設所有按鈕狀態與文字
-    function resetAllButtonsExcept(activeBtn) {
+    // 定義防呆防錯的輔助函式
+    function haltGuideRunnerImmediately() {
+      // 停止導引與動畫的防呆函式
+    }
+
+    function updateActiveButton(activeBtn) {
       [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => {
-        if (b) {
-          b.classList.remove('mode-green');
-          b.classList.remove('func-purple');
-        }
+        if (b) b.classList.remove('active-mode');
       });
-      // 離開比對模式時，將比對按鈕文字還原為「比對」
-      if (activeBtn !== btnModeRecord) {
-        btnModeRecord.textContent = '比對';
-        recordState = 0;
+      if (activeBtn) activeBtn.classList.add('active-mode');
+    }
+
+    // 1. 跟讀模式：點擊即切換並播放影片
+    async function switchToMp4Mode() {
+      currentMode = 'mp4';
+      updateActiveButton(btnModeMp4);
+
+      leftActionBtn.style.visibility = 'hidden';
+      pdfContainerWrap.style.display = 'none';
+      videoWrap.style.display = 'flex';
+      centerCore.scrollTop = 0;
+
+      try {
+        video.currentTime = 0;
+        await video.play();
+        logDebug("📖 跟讀模式：影片播放中");
+      } catch (e) {
+        logDebug("📖 跟讀模式：點擊畫面任意處即可播放");
       }
     }
 
-    // 1. 跟讀按鈕（黑 ➡️ 綠 ➡️ 紫）
-    let mp4State = 1; // 預設跟讀已開機
-    btnModeMp4.addEventListener('click', () => {
-      const isGreen = btnModeMp4.classList.contains('mode-green');
-      const isPurple = btnModeMp4.classList.contains('func-purple');
+    // 2. 自讀模式：點擊即切換並顯示 PDF 與定位鍵
+    async function switchToPdfMode() {
+      currentMode = 'pdf';
+      updateActiveButton(btnModePdf);
 
-      if (!isGreen && !isPurple) {
-        resetAllButtonsExcept(btnModeMp4);
-        btnModeMp4.classList.add('mode-green');
-        currentMode = 'mp4';
-        
-        leftActionBtn.style.visibility = 'hidden';
-        pdfContainerWrap.style.display = 'none';
-        videoWrap.style.display = 'flex';
-        centerCore.scrollTop = 0;
-        logDebug("【跟讀】已切換介面（綠燈就緒）");
-      } else if (isGreen) {
-        btnModeMp4.classList.remove('mode-green');
-        btnModeMp4.classList.add('func-purple');
-        
-        video.currentTime = 0;
-        video.play().catch(() => {});
-        logDebug("🚀 【跟讀】循環播放已正式啟動（紫燈）！");
-      } else {
-        logDebug("【跟讀】已在紫燈運行狀態");
-      }
-    });
+      leftActionBtn.style.visibility = 'visible';
+      leftActionBtn.textContent = '定位';
 
-    // 2. 自讀按鈕（黑 ➡️ 綠 ➡️ 紫）
-    btnModePdf.addEventListener('click', () => {
-      const isGreen = btnModePdf.classList.contains('mode-green');
-      const isPurple = btnModePdf.classList.contains('func-purple');
+      video.pause();
+      videoWrap.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
 
-      if (!isGreen && !isPurple) {
-        resetAllButtonsExcept(btnModePdf);
-        btnModePdf.classList.add('mode-green');
-        currentMode = 'pdf';
-
-        leftActionBtn.style.visibility = 'visible';
-        leftActionBtn.textContent = '定位';
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-
-        if (!currentPdfDoc && cachedPdfBuffer) {
-          renderPdf(cachedPdfBuffer);
-        }
-        logDebug("【自讀】已切換介面（綠燈就緒）");
-      } else if (isGreen) {
-        btnModePdf.classList.remove('mode-green');
-        btnModePdf.classList.add('func-purple');
-        logDebug("🚀 【自讀】語音感應導引已正式啟動（紫燈）！");
-      } else {
-        logDebug("【自讀】已在紫燈運行狀態");
-      }
-    });
-
-    // 3. 比對按鈕專屬三態循環：黑 ➡️ 綠(比對) ➡️ 紫(錄音) ➡️ 紫(結束)
-    btnModeRecord.addEventListener('click', async () => {
-      const isGreen = btnModeRecord.classList.contains('mode-green');
-      const isPurple = btnModeRecord.classList.contains('func-purple');
-
-      if (!isGreen && !isPurple) {
-        // 階段 0 ➡️ 1：切換至比對介面（綠燈，「比對」文字）
-        resetAllButtonsExcept(btnModeRecord);
-        btnModeRecord.classList.add('mode-green');
-        btnModeRecord.textContent = '比對';
-        currentMode = 'record';
-        recordState = 1;
-
-        leftActionBtn.style.visibility = 'visible';
-        leftActionBtn.textContent = '播放'; // 左3為播放鍵
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-
+      try {
         if (!currentPdfDoc && cachedPdfBuffer) {
           await renderPdf(cachedPdfBuffer);
         }
-        logDebug("【比對】已切換介面（綠燈就緒），左3為播放鍵");
-
-      } else if (isGreen && recordState === 1) {
-        // 階段 1 ➡️ 2：真正啟動錄音（紫燈，文字變為「錄音」）
-        btnModeRecord.classList.remove('mode-green');
-        btnModeRecord.classList.add('func-purple');
-        btnModeRecord.textContent = '錄音';
-        recordState = 2;
-        logDebug("🔴 【比對】錄音已開始！（紫燈）");
-
-      } else if (isPurple && recordState === 2) {
-        // 階段 2 ➡️ 3：結束錄音（保持紫燈，文字變為「結束」）
-        btnModeRecord.textContent = '結束';
-        recordState = 3;
-        logDebug("⏹️ 【比對】錄音已結束！（點擊可再次開始錄音）");
-
-      } else if (isPurple && recordState === 3) {
-        // 階段 3 ➡️ 2：若再按一次則循環回到「錄音」狀態
-        btnModeRecord.textContent = '錄音';
-        recordState = 2;
-        logDebug("🔴 【比對】重新開始錄音！（紫燈）");
+        logDebug("📖 自讀模式：已就緒");
+      } catch (err) {
+        logDebug("❌ 自讀模式錯誤: " + err.message);
       }
-    });
+    }
+
+    // 3. 比對模式：點擊即切換並顯示 PDF 與播放鍵
+    async function switchToRecordMode() {
+      currentMode = 'record';
+      updateActiveButton(btnModeRecord);
+
+      leftActionBtn.style.visibility = 'visible';
+      leftActionBtn.textContent = '播放';
+
+      video.pause();
+      videoWrap.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
+
+      try {
+        if (!currentPdfDoc && cachedPdfBuffer) {
+          await renderPdf(cachedPdfBuffer);
+        }
+        logDebug("🎙️ 比對模式：已就緒（左3為播放鍵）");
+      } catch (err) {
+        logDebug("❌ 比對模式錯誤: " + err.message);
+      }
+    }
+
+    btnModeMp4.addEventListener('click', switchToMp4Mode);
+    btnModePdf.addEventListener('click', switchToPdfMode);
+    btnModeRecord.addEventListener('click', switchToRecordMode);
+
+    // 瀏覽器解鎖機制
+    window.addEventListener('pointerdown', () => {
+      if (currentMode === 'mp4' && video.paused) {
+        video.play().catch(() => {});
+      }
+    }, { once: false });
 
     async function renderPdf(buf) {
       try {
@@ -357,8 +315,7 @@
         }
       } catch (e) {}
       video.src = './chant_video.mp4';
-      // 開機預設選中跟讀
-      btnModeMp4.classList.add('mode-green');
+      switchToMp4Mode();
     });
   </script>
 </body>
