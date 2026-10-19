@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v203 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v204 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -686,10 +686,11 @@
     let cachedPdfBuffer = null;
 
     let isManualSelected = false;
+    let isScheduleRepeatLocked = true; // 今日功課預設鎖定
     let markA_Index = -1;
     let markB_Index = -1;
     let totalTargetCycles = 1;
-    let completedCycles = 0;
+    let completedCycles = 0; // 當前會話進度
     let videoPausedAt = -1;
 
     let guideAnimId = null;
@@ -1129,29 +1130,26 @@
       });
     });
 
-    // 🌟 1. 真實立體金幣渲染函式（高不透明度、厚實金邊、雙層光澤）
+    // 🌟 真實感立體金幣渲染函式（高不透明度、厚實金邊、雙層光澤）
     function renderRealisticCoin(ctx, x, y, radius, opacity) {
       ctx.save();
       ctx.translate(x, y);
       ctx.globalAlpha = Math.min(1.0, Math.max(0.88, opacity));
 
-      // 金幣外圈立體金邊
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
       ctx.fillStyle = '#FFD700';
       ctx.fill();
       ctx.lineWidth = 4.0;
-      ctx.strokeStyle = '#D4AF37'; // 更有質感的大氣金邊
+      ctx.strokeStyle = '#D4AF37';
       ctx.stroke();
 
-      // 金幣內環光澤圈
       ctx.beginPath();
       ctx.arc(0, 0, radius * 0.78, 0, Math.PI * 2);
       ctx.strokeStyle = '#FFF176';
       ctx.lineWidth = 2.0;
       ctx.stroke();
 
-      // 中央 $ 符號
       ctx.fillStyle = '#B26A00';
       ctx.font = `900 ${Math.floor(radius * 1.2)}px sans-serif`;
       ctx.textAlign = 'center';
@@ -1161,7 +1159,7 @@
       ctx.restore();
     }
 
-    // 🌟 2. 錄音鍵點擊時：具備強大向上爆發力道與真實感金幣特效
+    // 🌟 錄音鍵點擊時：具備強大向上爆發力道與真實感金幣特效
     function triggerRecordCoinSplash() {
       const btn = document.getElementById('wing-btn-record');
       if (!btn) return;
@@ -1179,14 +1177,13 @@
       const coins = [];
       const count = 32;
       for (let i = 0; i < count; i++) {
-        // 集中在上方半球，賦予強勁的向上初始推力
         const angle = -Math.PI * 0.82 + Math.random() * (Math.PI * 0.64);
         const speed = Math.random() * 9 + 5;
         coins.push({
           x: startX,
           y: startY,
           vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 6.5, // 強烈的向上衝高力道
+          vy: Math.sin(angle) * speed - 6.5,
           gravity: 0.40,
           radius: Math.random() * 8 + 16,
           rotation: Math.random() * Math.PI,
@@ -1226,7 +1223,7 @@
       triggerAppFullscreen();
       const wingBtnRecord = document.getElementById('wing-btn-record');
       if (!isUserRecording) {
-        triggerRecordCoinSplash(); // 2. 觸發向上爆發的金幣特效
+        triggerRecordCoinSplash();
         try {
           audioChunks = [];
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -1328,12 +1325,7 @@
       if (!range.valid) return;
 
       if (video.currentTime >= range.end) {
-        completedCycles++;
-        const btnRepeatCountDom = document.getElementById('btn-repeat-count');
-        const remain = Math.max(0, totalTargetCycles - completedCycles);
-        if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
-
-        addCoins(calculateSentenceCount());
+        recordDailyCycleCompletion(); // 🌟 累加跨模式今日修持遍數
 
         if (completedCycles >= totalTargetCycles) {
           video.pause();
@@ -1341,6 +1333,7 @@
           video.currentTime = range.start;
           completedCycles = 0;
           const remainReset = Math.max(0, totalTargetCycles - completedCycles);
+          const btnRepeatCountDom = document.getElementById('btn-repeat-count');
           if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remainReset}次`;
 
           const btnGuide = document.getElementById('btn-guide-toggle');
@@ -1356,6 +1349,28 @@
         }
       }
     });
+
+    // 🌟 跨模式今日修持遍數累計與解鎖核心函式
+    function recordDailyCycleCompletion() {
+      completedCycles++;
+      const todayStr = getNormalizedDateStr();
+      let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10) + 1;
+      localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
+
+      const btnRepeatCountDom = document.getElementById('btn-repeat-count');
+      const remain = Math.max(0, totalTargetCycles - dailyDone);
+      if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
+
+      addCoins(calculateSentenceCount());
+
+      // 若今日累計完成次數達到或超過排程指定的目標，自動解鎖！
+      if (dailyDone >= totalTargetCycles) {
+        if (isScheduleRepeatLocked) {
+          isScheduleRepeatLocked = false;
+          showToast('🎉 今日功課遍數已全部達標！現已解鎖可自由調整次數', 4500);
+        }
+      }
+    }
 
     function handleTargetCycleDone() {
       const todayStr = getNormalizedDateStr();
@@ -1439,7 +1454,6 @@
       requestAnimationFrame(animateFlowers);
     }
 
-    // 🌟 3. 確認供養後的適量真實感金幣飄下特效
     function triggerLeaderboardCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1449,7 +1463,7 @@
       canvas.height = window.innerHeight;
 
       const coins = [];
-      const count = 22; // 適量精緻，不至於過多
+      const count = 22;
       for (let i = 0; i < count; i++) {
         coins.push({
           x: Math.random() * canvas.width,
@@ -1562,7 +1576,9 @@
         redDot.style.display = 'none';
       }
 
-      const remain = Math.max(0, totalTargetCycles - completedCycles);
+      const todayStr = getNormalizedDateStr();
+      const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+      const remain = Math.max(0, totalTargetCycles - dailyDone);
       if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
     }
 
@@ -1597,8 +1613,16 @@
       updateVisualDisplay();
     }
 
+    // 🌟 遍數點擊檢查：未達標前嚴格鎖定，達標後解鎖開啟選單
     function handleRepeatCountClick() {
       if (isGuideActive || currentMode === 'record') return;
+      const todayStr = getNormalizedDateStr();
+      const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+
+      if (isScheduleRepeatLocked && dailyDone < totalTargetCycles) {
+        showToast(`🔒 今日功課尚未完成（已完成 ${dailyDone}/${totalTargetCycles} 遍），完成後即可解鎖調整`, 3500);
+        return;
+      }
       repeatModal.style.display = repeatModal.style.display === 'flex' ? 'none' : 'flex';
     }
 
@@ -1623,6 +1647,7 @@
       btn.addEventListener('click', () => {
         totalTargetCycles = parseInt(btn.dataset.count, 10);
         completedCycles = 0;
+        isScheduleRepeatLocked = false; // 手動修改後解鎖
         const btnRepeatCountDom = document.getElementById('btn-repeat-count');
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${totalTargetCycles}次`;
         document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
@@ -1702,8 +1727,12 @@
       isLineHeadLocked = true;
       completedCycles = 0;
 
+      const todayStr = getNormalizedDateStr();
+      const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+      const remain = Math.max(0, totalTargetCycles - dailyDone);
       const btnRepeatCountDom = document.getElementById('btn-repeat-count');
-      if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${totalTargetCycles}次`;
+      if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
+
       currentLineIndex = markA_Index;
       currentCharIndexFloat = 0.0;
 
@@ -2064,14 +2093,12 @@
 
     function handleCycleCompletion() {
       if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-      completedCycles += 1;
-      const btnRepeatCountDom = document.getElementById('btn-repeat-count');
-      const remain = Math.max(0, totalTargetCycles - completedCycles);
-      if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
+      recordDailyCycleCompletion(); // 🌟 自讀模式完成一輪，累加進度
 
-      addCoins(calculateSentenceCount());
+      const todayStr = getNormalizedDateStr();
+      const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
 
-      if (completedCycles >= totalTargetCycles) {
+      if (dailyDone >= totalTargetCycles) {
         handleTargetCycleDone();
         finishAndStopPermanently();
         return;
@@ -2111,8 +2138,11 @@
       currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
       currentCharIndexFloat = 0.0;
       isLineHeadLocked = true;
+      const todayStr = getNormalizedDateStr();
+      const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+      const remain = Math.max(0, totalTargetCycles - dailyDone);
       const btnRepeatCountDom = document.getElementById('btn-repeat-count');
-      if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${totalTargetCycles}次`;
+      if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
     }
 
     function haltGuideRunnerImmediately() {
@@ -2190,7 +2220,6 @@
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
         
-        // 3. 供養榜單出現時觸發適量真實感金幣雨特效
         triggerLeaderboardCoinRain();
       }
 
@@ -2255,10 +2284,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V203_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V204_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V203_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V204_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2311,14 +2340,23 @@
           currentLineIndex = markA_Index;
           currentCharIndexFloat = 0.0;
           isLineHeadLocked = true;
-          completedCycles = 0;
           videoPausedAt = -1;
 
           if (typeof targetPlan.repeat === 'number' && targetPlan.repeat > 0) {
             totalTargetCycles = targetPlan.repeat;
-            isScheduleRepeatLocked = true; // 3. 讀取排程時鎖定遍數
+            isScheduleRepeatLocked = true;
+            
+            const todayStr = getNormalizedDateStr();
+            const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+            if (dailyDone >= totalTargetCycles) {
+              isScheduleRepeatLocked = false; // 若今日已經達標過，自動解鎖
+            }
+
             const btnRepeatCountDom = document.getElementById('btn-repeat-count');
-            if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${totalTargetCycles}次`;
+            if (btnRepeatCountDom) {
+              const remain = Math.max(0, totalTargetCycles - dailyDone);
+              btnRepeatCountDom.textContent = `${remain}次`;
+            }
           }
 
           updateVisualDisplay();
