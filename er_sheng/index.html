@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v216 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v217 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -753,9 +753,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V216');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V217');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V216', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V217', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1106,7 +1106,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 統整按鈕配置：比對鍵、跟讀鍵、自讀鍵皆為 square-btn（天空藍漸層、橙字 #FB923C）
+    // 🌟 修正比對模式：移除右側翼鍵中的供養按鈕，保持 slotR2 與 slotR3 空白，播放鍵精準置於 slotR4
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
         slotL1.innerHTML = '';
@@ -1122,9 +1122,9 @@
           handleShutdownClick();
         });
 
-        slotR1.innerHTML = `<button id="wing-btn-record" class="square-btn">比對</button>`; // 🌟 錄音鍵改為「比對」方型天空藍橙字按鈕
-        slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
-        slotR3.innerHTML = '';
+        slotR1.innerHTML = `<button id="wing-btn-record" class="square-btn">比對</button>`;
+        slotR2.innerHTML = ''; // 🌟 移除比對模式的供養鍵
+        slotR3.innerHTML = ''; // 🌟 保持空白
         slotR4.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
 
         document.getElementById('wing-btn-record').addEventListener('click', () => {
@@ -1133,12 +1133,11 @@
         document.getElementById('wing-btn-play').addEventListener('click', () => {
           togglePlaybackAction();
         });
-        document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
       } else {
         slotL1.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">起點</button>`;
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">終點</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button>`;
-        slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>`; // 🌟 關機鍵文字改為「離開」
+        slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>`;
 
         document.getElementById('btn-mark-a').addEventListener('click', handleMarkAClck);
         document.getElementById('btn-mark-b').addEventListener('click', handleMarkBClick);
@@ -1400,7 +1399,7 @@
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 保留最低為 1 次
+        const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 最低保留 1 次
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (dailyDone >= scheduleRepeatLimit) {
@@ -1429,7 +1428,7 @@
         completedCycles++;
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 保留最低為 1 次
+        const remain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 最低保留 1 次
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (completedCycles >= totalTargetCycles) {
@@ -1630,7 +1629,7 @@
       return closestIdx;
     }
 
-    // 🌟 確保遍數顯示下限保留為 1
+    // 🌟 確保遍數顯示下限保留為 1 
     function updateVisualDisplay() {
       const btnMarkADom = document.getElementById('btn-mark-a');
       const btnMarkBDom = document.getElementById('btn-mark-b');
@@ -1663,10 +1662,10 @@
         const todayStr = getNormalizedDateStr();
         const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
         if (isScheduleRepeatLocked) {
-          const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 保留最低為 1
+          const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 最低保留 1
           btnRepeatCountDom.textContent = `${remain}次`;
         } else {
-          const sessionRemain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 保留最低為 1
+          const sessionRemain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 最低保留 1
           btnRepeatCountDom.textContent = `${sessionRemain}次`;
         }
       }
@@ -2191,7 +2190,7 @@
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 保留最低為 1
+        const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 最低保留 1
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (dailyDone >= scheduleRepeatLimit) {
@@ -2205,7 +2204,7 @@
         completedCycles++;
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 保留最低為 1
+        const remain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 最低保留 1
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (completedCycles >= totalTargetCycles) {
@@ -2392,10 +2391,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V216_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V217_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V216_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V217_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
