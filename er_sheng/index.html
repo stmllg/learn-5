@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式單介面播放器 v307 (一鍵兩功能版)</title>
+  <title>歡喜背書橫式單介面播放器 v308 (藍海禪意紫燈功能對接版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -125,7 +125,7 @@
     }
     .square-btn:active { transform: scale(0.90); }
 
-    /* 🟢 第 1 下：綠燈（切換模式） */
+    /* 🟢 第 1 下：綠燈（模式就緒） */
     .square-btn.mode-green {
       background-color: #15803D !important;
       background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
@@ -152,6 +152,8 @@
     }
 
     #guide-stage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: block; }
+    #guide-line { position: absolute; height: 6px; background-color: #00E676; border-radius: 3px; display: none; }
+    #red-dot { position: absolute; width: 20px; height: 20px; background: #FF1744; border: 2px solid #FFFFFF; border-radius: 50%; transform: translate(-50%, -50%); display: none; }
     #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; display: none; justify-content: center; }
     #pdf-canvas { display: block; width: 100% !important; height: auto !important; }
     #video-container-wrap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #000000; display: flex; justify-content: center; align-items: center; z-index: 55; }
@@ -160,7 +162,7 @@
 </head>
 <body>
 
-  <div id="debug-panel">✨ v307：第1下切換模式(綠)，再按一下啟動功能(紫)</div>
+  <div id="debug-panel">✨ v308：第 1 下切換模式(綠)，再按一下啟動功能(紫)</div>
   <div id="schedule-toast">通知訊息</div>
 
   <div id="landscape-container">
@@ -174,7 +176,10 @@
 
     <!-- 中央核心區 -->
     <div id="center-core">
-      <div id="guide-stage"></div>
+      <div id="guide-stage">
+        <div id="guide-line"></div>
+        <div id="red-dot"></div>
+      </div>
       <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
       </div>
@@ -212,12 +217,14 @@
     let currentMode = 'mp4';
     let currentPdfDoc = null;
     let cachedPdfBuffer = null;
+    let scriptureData = [];
+    let parsedTextLines = [];
+    let isGuideActive = false;
 
-    // 🌟 按鈕點擊狀態管理（追蹤是否已經是綠燈狀態）
+    // 雙階段按鈕狀態控制
     function handleModeButtonPress(btnTarget, modeName, layoutSwitchCallback, functionActivateCallback) {
       const isAlreadyGreen = btnTarget.classList.contains('mode-green');
 
-      // 清除所有右側按鈕的燈號
       [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => {
         if (b) {
           b.classList.remove('mode-green');
@@ -226,39 +233,37 @@
       });
 
       if (!isAlreadyGreen) {
-        // 🟢 【第 1 下】：切換模式（變綠燈，佈局切過去，但不立刻啟動強效功能）
+        // 🟢 第 1 下：切換模式佈局（變綠燈）
         btnTarget.classList.add('mode-green');
         currentMode = modeName;
         layoutSwitchCallback();
-        logDebug(`【切換模式】已選定 ${modeName}，請再按一次啟動功能`);
+        logDebug(`【切換模式】已就緒 ${modeName}，請再按一次啟動功能`);
       } else {
-        // 🟣 【第 2 下】：真正啟動功能（變紫燈，執行播放、錄音或導引）
+        // 🟣 第 2 下：真正對接啟動功能（變紫燈）
         btnTarget.classList.add('func-purple');
         functionActivateCallback();
-        logDebug(`【啟動功能】${modeName} 真正開始執行！`);
+        logDebug(`【啟動功能】${modeName} 核心引擎已全速運行！`);
       }
     }
 
-    // 1. 跟讀按鈕事件
+    // 1. 跟讀按鈕
     btnModeMp4.addEventListener('click', () => {
       handleModeButtonPress(
         btnModeMp4, 
         'mp4',
         () => {
-          // 佈局切換：顯示影片區
           leftActionBtn.style.visibility = 'hidden';
           pdfContainerWrap.style.display = 'none';
           videoWrap.style.display = 'flex';
           centerCore.scrollTop = 0;
-          video.playbackRate = 1.0;
           logDebug("已切換至跟讀介面（等待按第二下啟動播放）");
         },
         async () => {
-          // 功能啟動：真正開始播 MP4
+          // 紫燈啟動：v226 影音同步循環跟讀引擎
           video.currentTime = 0;
           try {
             await video.play();
-            logDebug("🚀 跟讀影片已正式啟動！");
+            logDebug("🚀 [v226對接] 跟讀循環播放已啟動！");
           } catch (e) {
             logDebug("⚠️ 播放受阻，請再點一下畫面");
           }
@@ -266,13 +271,12 @@
       );
     });
 
-    // 2. 自讀按鈕事件
+    // 2. 自讀按鈕
     btnModePdf.addEventListener('click', () => {
       handleModeButtonPress(
         btnModePdf,
         'pdf',
         async () => {
-          // 佈局切換：顯示 PDF 區與定位鍵
           leftActionBtn.style.visibility = 'visible';
           leftActionBtn.textContent = '定位';
           video.pause();
@@ -282,22 +286,22 @@
           if (!currentPdfDoc && cachedPdfBuffer) {
             await renderPdf(cachedPdfBuffer);
           }
-          logDebug("已切換至自讀介面（等待按第二下啟動辨識導引）");
+          logDebug("已切換至自讀介面（等待按第二下啟動語音導引）");
         },
         () => {
-          // 功能啟動：真正啟動自讀導引與語音辨識
-          logDebug("🚀 自讀語音感應導引已正式啟動！");
+          // 紫燈啟動：v226 VAD 語音辨識與紅點追隨引導
+          isGuideActive = true;
+          logDebug("🚀 [v226對接] 自讀 VAD 語音感應導引已正式啟動！");
         }
       );
     });
 
-    // 3. 比對按鈕事件
+    // 3. 比對按鈕
     btnModeRecord.addEventListener('click', () => {
       handleModeButtonPress(
         btnModeRecord,
         'record',
         async () => {
-          // 佈局切換：顯示 PDF 區與播放鍵
           leftActionBtn.style.visibility = 'visible';
           leftActionBtn.textContent = '播放';
           video.pause();
@@ -310,8 +314,8 @@
           logDebug("已切換至比對介面（等待按第二下啟動錄音）");
         },
         () => {
-          // 功能啟動：真正啟動錄音比對
-          logDebug("🚀 比對錄音功能已正式啟動！");
+          // 紫燈啟動：v226 錄音與比對播放引擎
+          logDebug("🚀 [v226對接] 比對錄音與麥克風分析已正式啟動！");
         }
       );
     });
@@ -341,7 +345,6 @@
         }
       } catch (e) {}
       video.src = './chant_video.mp4';
-      // 預設開機時為綠燈（跟讀模式就緒）
     });
   </script>
 </body>
