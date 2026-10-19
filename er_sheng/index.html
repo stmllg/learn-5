@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v218 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v219 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -753,9 +753,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V218');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V219');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V218', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V219', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1063,7 +1063,6 @@
       }
     }, { passive: true });
 
-    // 🌟 確保左右滑動時，無論是否到底，皆會顯示當前模式提示
     function switchModeByDirection(direction) {
       let currentIndex = modeSequence.indexOf(currentMode);
       if (currentIndex === -1) currentIndex = 0;
@@ -1117,7 +1116,6 @@
       updateVisualDisplay();
     }
 
-    // 🌟 嚴格修正比對模式翼鍵配置：移除供養鍵，播放鍵回歸右 4
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
         slotL1.innerHTML = '';
@@ -1134,8 +1132,8 @@
         });
 
         slotR1.innerHTML = `<button id="wing-btn-record" class="square-btn">比對</button>`;
-        slotR2.innerHTML = ''; // 保持空白
-        slotR3.innerHTML = ''; // 保持空白
+        slotR2.innerHTML = '';
+        slotR3.innerHTML = '';
         slotR4.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
 
         document.getElementById('wing-btn-record').addEventListener('click', () => {
@@ -1410,7 +1408,7 @@
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 最低保留 1
+        const remain = Math.max(1, scheduleRepeatLimit - dailyDone);
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (dailyDone >= scheduleRepeatLimit) {
@@ -1420,7 +1418,7 @@
           video.currentTime = range.start;
           completedCycles = 0;
 
-          if (btnRepeatCountDom) btnRepeatCountDom.textContent = `1次`; // 🌟 達標後保留 1 在上面
+          if (btnRepeatCountDom) btnRepeatCountDom.textContent = `1次`;
 
           const btnGuide = document.getElementById('btn-guide-toggle');
           if (btnGuide) {
@@ -1439,14 +1437,14 @@
         completedCycles++;
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 最低保留 1
+        const remain = Math.max(1, totalTargetCycles - completedCycles);
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (completedCycles >= totalTargetCycles) {
           videoPausedAt = -1;
           video.currentTime = range.start;
           completedCycles = 0;
-          if (btnRepeatCountDom) btnRepeatCountDom.textContent = `1次`; // 🌟 達標後保留 1 在上面
+          if (btnRepeatCountDom) btnRepeatCountDom.textContent = `1次`;
 
           const btnGuide = document.getElementById('btn-guide-toggle');
           if (btnGuide) {
@@ -1467,10 +1465,11 @@
     function handleTargetCycleDone() {
       const todayStr = getNormalizedDateStr();
       localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
-      triggerFivePetalFlowerRain();
+      triggerSevenColoredLotusFlowerRain(); // 🌟 使用福智七彩蓮花燈的七色花雨特效
     }
 
-    function triggerFivePetalFlowerRain() {
+    // 🌟 核心升級：福智七彩蓮花燈的七色五瓣花雨特效[cite: 2]
+    function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
       canvas.style.display = 'block';
@@ -1479,32 +1478,41 @@
       canvas.height = window.innerHeight;
 
       const flowers = [];
-      const colors = ['#FFD700', '#FFC107', '#FFB300', '#FFA000', '#FF8F00', '#FFE082', '#FFF59D', '#FFECB3', '#FFE57F', '#FFD54F'];
+      // 七彩蓮花燈的七色代碼[cite: 2]
+      const lotusColors = [
+        '#FF94B8', // 1. 粉紅色 (闔家平安)[cite: 2]
+        '#FFB300', // 2. 琥珀色 (財富圓滿)[cite: 2]
+        '#F1F5F9', // 3. 霧白色 (能源活力)[cite: 2]
+        '#22C55E', // 4. 翠綠色 (健康和諧)[cite: 2]
+        '#C084FC', // 5. 粉紫色 (增長智慧)[cite: 2]
+        '#E11D48', // 6. 水紅色 (事業成功)[cite: 2]
+        '#3B82F6'  // 7. 寶藍色 (安心寧神/圓滿吉祥)[cite: 2]
+      ];
       
       for (let i = 0; i < 70; i++) {
         flowers.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 8 + 7,
-          speedY: Math.random() * 2.0 + 1.2,
-          speedX: (Math.random() - 0.5) * 1.5,
+          size: Math.random() * 9 + 8,
+          speedY: Math.random() * 1.8 + 1.0,
+          speedX: (Math.random() - 0.5) * 1.2,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 3,
-          color: colors[Math.floor(Math.random() * colors.length)],
-          opacity: 0.92
+          rotationSpeed: (Math.random() - 0.5) * 2.5,
+          color: lotusColors[Math.floor(Math.random() * lotusColors.length)],
+          opacity: 0.94
         });
       }
 
       let startTime = performance.now();
-      const duration = 5500;
+      const duration = 5800;
 
-      function animateFlowers(now) {
+      function animateLotusRain(now) {
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         flowers.forEach(f => {
           f.y += f.speedY;
-          f.x += f.speedX + Math.sin(f.y / 40) * 0.8;
+          f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
           f.rotation += f.rotationSpeed;
 
           ctx.save();
@@ -1512,9 +1520,10 @@
           ctx.rotate((f.rotation * Math.PI) / 180);
           ctx.globalAlpha = f.opacity;
 
+          // 繪製五瓣花
           for (let j = 0; j < 5; j++) {
             const angle = (j * 2 * Math.PI) / 5;
-            const dist = f.size * 0.38;
+            const dist = f.size * 0.40;
             const cx = Math.cos(angle) * dist;
             const cy = Math.sin(angle) * dist;
             ctx.fillStyle = f.color;
@@ -1522,9 +1531,10 @@
             ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
             ctx.fill();
           }
-          ctx.fillStyle = '#FFFFFF';
+          // 花心
+          ctx.fillStyle = '#FEF08A';
           ctx.beginPath();
-          ctx.arc(0, 0, f.size * 0.28, 0, Math.PI * 2);
+          ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
           ctx.fill();
 
           ctx.restore();
@@ -1536,68 +1546,14 @@
         });
 
         if (elapsed < duration) {
-          requestAnimationFrame(animateFlowers);
+          requestAnimationFrame(animateLotusRain);
         } else {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           canvas.style.display = 'none';
         }
       }
 
-      requestAnimationFrame(animateFlowers);
-    }
-
-    function triggerLeaderboardCoinRain() {
-      const canvas = document.getElementById('flowerCanvas');
-      if (!canvas) return;
-      canvas.style.display = 'block';
-      const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      const coins = [];
-      const count = 22;
-      for (let i = 0; i < count; i++) {
-        coins.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          radius: Math.random() * 6 + 12,
-          speedY: Math.random() * 1.5 + 1.0,
-          speedX: (Math.random() - 0.5) * 0.8,
-          rotation: Math.random() * Math.PI,
-          vRot: (Math.random() - 0.5) * 0.05,
-          opacity: 0.95
-        });
-      }
-
-      let startTime = performance.now();
-      const duration = 5000;
-
-      function animateCoins(now) {
-        let elapsed = now - startTime;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        coins.forEach(c => {
-          c.y += c.speedY;
-          c.x += c.speedX + Math.sin(c.y / 35) * 0.4;
-          c.rotation += c.vRot;
-
-          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity);
-
-          if (c.y > canvas.height + 30) {
-            c.y = -30;
-            c.x = Math.random() * canvas.width;
-          }
-        });
-
-        if (elapsed < duration) {
-          requestAnimationFrame(animateCoins);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          canvas.style.display = 'none';
-        }
-      }
-
-      requestAnimationFrame(animateCoins);
+      requestAnimationFrame(animateLotusRain);
     }
 
     function renderMarkerLine(lineElement, lineObj) {
@@ -1640,7 +1596,6 @@
       return closestIdx;
     }
 
-    // 🌟 確保遍數顯示下限保留為 1
     function updateVisualDisplay() {
       const btnMarkADom = document.getElementById('btn-mark-a');
       const btnMarkBDom = document.getElementById('btn-mark-b');
@@ -1673,10 +1628,10 @@
         const todayStr = getNormalizedDateStr();
         const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
         if (isScheduleRepeatLocked) {
-          const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 最低保留 1
+          const remain = Math.max(1, scheduleRepeatLimit - dailyDone);
           btnRepeatCountDom.textContent = `${remain}次`;
         } else {
-          const sessionRemain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 最低保留 1
+          const sessionRemain = Math.max(1, totalTargetCycles - completedCycles);
           btnRepeatCountDom.textContent = `${sessionRemain}次`;
         }
       }
@@ -2402,10 +2357,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V217_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V219_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V217_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V219_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
