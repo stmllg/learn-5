@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式單介面播放器 v229 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式單介面播放器 v230 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -364,6 +364,7 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
+    /* 60px 方型按鈕：外框藍色、內部充填黑色、文字為亮橙色 (#FB923C) */
     .square-btn {
       width: 60px !important;
       height: 60px !important;
@@ -523,11 +524,11 @@
 
   <!-- 4. 主視圖 -->
   <div id="landscape-container">
-    <!-- 左側翼鍵：左1快轉、左2慢轉、左3定位(僅自讀顯示)、左4離開 -->
+    <!-- 左側翼鍵：左1快轉、左2慢轉、左3定位(動態顯示)、左4離開 -->
     <div class="side-wing" id="left-wing">
       <div class="slot" id="slot-l1"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button></div>
       <div class="slot" id="slot-l2"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">慢轉-</button></div>
-      <div class="slot" id="slot-l3"><button class="circle-btn btn-color-mark-a" id="btn-unify-mark">定位</button></div>
+      <div class="slot" id="slot-l3"><button class="circle-btn btn-color-mark-a" id="btn-unify-mark" style="visibility: hidden;">定位</button></div>
       <div class="slot" id="slot-l4"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button></div>
     </div>
 
@@ -550,7 +551,7 @@
       </div>
     </div>
 
-    <!-- 右側翼鍵：右1跟讀、右2自讀、右3比對、右4供養 (固定不動) -->
+    <!-- 右側翼鍵：右1跟讀、右2自讀、右3比對、右4供養 -->
     <div class="side-wing" id="right-wing">
       <div class="slot" id="slot-r1"><button class="square-btn" id="btn-mode-mp4">跟讀</button></div>
       <div class="slot" id="slot-r2"><button class="square-btn" id="btn-mode-pdf">自讀</button></div>
@@ -615,11 +616,10 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    // 🌟 各模式獨立記憶的速度 (mp4Speed, pdfSpeed)
-    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v229') || '1.0');
+    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v230') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
-    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v229') || '1.0');
+    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v230') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
@@ -649,11 +649,6 @@
     const slotL2 = document.getElementById('slot-l2');
     const slotL3 = document.getElementById('slot-l3');
     const slotL4 = document.getElementById('slot-l4');
-
-    const slotR1 = document.getElementById('slot-r1');
-    const slotR2 = document.getElementById('slot-r2');
-    const slotR3 = document.getElementById('slot-r3');
-    const slotR4 = document.getElementById('slot-r4');
 
     const btnSpeedUp = document.getElementById('btn-speed-up');
     const btnSpeedDown = document.getElementById('btn-speed-down');
@@ -731,9 +726,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V229');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V230');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V229', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V230', todayStr);
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, '0');
       }
     }
@@ -820,7 +815,7 @@
 
       loadScheduleTargetInBackground();
       syncFiveFilesInBackground();
-      setMode('mp4');
+      switchToMp4Mode();
     }
 
     async function renderPdfOnValidDimensions() {
@@ -913,12 +908,12 @@
       if (currentMode === 'mp4') {
         mp4Speed = Math.round((mp4Speed + delta) * 10) / 10;
         mp4Speed = Math.max(0.5, Math.min(2.5, mp4Speed));
-        localStorage.setItem('user_mp4_speed_preference_v229', mp4Speed.toFixed(1));
+        localStorage.setItem('user_mp4_speed_preference_v230', mp4Speed.toFixed(1));
         video.playbackRate = mp4Speed;
       } else {
         pdfSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
         pdfSpeed = Math.max(0.5, Math.min(2.5, pdfSpeed));
-        localStorage.setItem('user_pdf_speed_preference_v229', pdfSpeed.toFixed(1));
+        localStorage.setItem('user_pdf_speed_preference_v230', pdfSpeed.toFixed(1));
       }
       updateSpeedDisplayBadge();
     }
@@ -970,75 +965,82 @@
       stopVoiceActivityDetection();
     }
 
-    // 🌟 核心：切換模式時「即時啟動 v226 的對應功能」
-    function setMode(mode) {
+    // 🌟 完美對接 v226 的跟讀、自讀、比對核心引擎
+    function switchToMp4Mode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
-      currentMode = mode;
+      currentMode = 'mp4';
 
-      // 按鈕樣式高亮同步
-      [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => {
-        if (b) b.style.borderColor = '#BAE6FD';
-      });
-      if (mode === 'mp4' && btnModeMp4) btnModeMp4.style.borderColor = '#38BDF8';
-      if (mode === 'pdf' && btnModePdf) btnModePdf.style.borderColor = '#38BDF8';
-      if (mode === 'record' && btnModeRecord) btnModeRecord.style.borderColor = '#38BDF8';
+      [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => { if (b) b.style.borderColor = '#BAE6FD'; });
+      if (btnModeMp4) btnModeMp4.style.borderColor = '#38BDF8';
 
-      // 依模式動態配置左側翼鍵（比對模式左3改為播放鍵，自讀模式左3為定位鍵，跟讀隱藏左3）
-      if (currentMode === 'record') {
-        slotL3.innerHTML = `<button class="circle-btn" id="wing-btn-play" style="width: 100%; height: 90%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer;">播放</button>`;
-        document.getElementById('wing-btn-play').addEventListener('click', togglePlaybackAction);
-      } else if (currentMode === 'pdf') {
-        slotL3.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-unify-mark" style="width: 100%; height: 90%;">定位</button>`;
-        document.getElementById('btn-unify-mark').addEventListener('click', handleUnifyMarkClick);
-      } else {
-        slotL3.innerHTML = ''; // 跟讀模式隱藏左3
+      slotL3.innerHTML = ''; // 跟讀模式隱藏左3
+
+      pdfContainerWrap.style.display = 'none';
+      guideStage.style.display = 'none';
+      videoWrap.style.display = 'flex';
+      centerCore.scrollTop = 0;
+      video.playbackRate = mp4Speed;
+
+      const range = getActiveVideoRange();
+      videoPausedAt = -1;
+      if (range.valid) {
+        video.currentTime = range.start;
+        video.play().then(() => { startMp4PrecisionCheck(); }).catch(() => {});
       }
-
-      if (currentMode === 'mp4') {
-        pdfContainerWrap.style.display = 'none';
-        guideStage.style.display = 'none';
-        videoWrap.style.display = 'flex';
-        centerCore.scrollTop = 0;
-        video.playbackRate = mp4Speed;
-        const range = getActiveVideoRange();
-        videoPausedAt = -1;
-        if (range.valid) {
-          video.currentTime = range.start;
-          video.play().then(() => { startMp4PrecisionCheck(); }).catch(() => {});
-        }
-        showModeBanner('📖 跟讀模式', '影音同步・自動循環播放');
-      } else if (currentMode === 'pdf') {
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-        guideStage.style.display = 'block';
-        scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-        showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識引導');
-        // 自動啟動 v226 自讀導引
-        setTimeout(() => { startPdfGuideRecite(); }, 300);
-      } else if (currentMode === 'record') {
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-        guideStage.style.display = 'none';
-        showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
-        // 自動啟動 v226 比對模式錄音
-        setTimeout(() => { toggleReliableRecordAction(); }, 300);
-      }
-      updateVisualDisplay();
+      showModeBanner('📖 跟讀模式', '影音同步・自動循環播放');
     }
 
-    btnModeMp4.addEventListener('click', () => setMode('mp4'));
-    btnModePdf.addEventListener('click', () => setMode('pdf'));
-    btnModeRecord.addEventListener('click', () => setMode('record'));
+    function switchToPdfMode() {
+      haltGuideRunnerImmediately();
+      releaseMicrophoneResources();
+      currentMode = 'pdf';
+
+      [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => { if (b) b.style.borderColor = '#BAE6FD'; });
+      if (btnModePdf) btnModePdf.style.borderColor = '#38BDF8';
+
+      slotL3.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-unify-mark" style="width: 100%; height: 90%;">定位</button>`;
+      document.getElementById('btn-unify-mark').addEventListener('click', handleUnifyMarkClick);
+
+      video.pause();
+      videoWrap.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
+      guideStage.style.display = 'block';
+      scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+      showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識引導');
+
+      setTimeout(() => { startPdfGuideRecite(); }, 300);
+    }
+
+    function switchToRecordMode() {
+      haltGuideRunnerImmediately();
+      releaseMicrophoneResources();
+      currentMode = 'record';
+
+      [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => { if (b) b.style.borderColor = '#BAE6FD'; });
+      if (btnModeRecord) btnModeRecord.style.borderColor = '#38BDF8';
+
+      slotL3.innerHTML = `<button class="circle-btn" id="wing-btn-play" style="width: 100%; height: 90%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer;">播放</button>`;
+      document.getElementById('wing-btn-play').addEventListener('click', togglePlaybackAction);
+
+      video.pause();
+      videoWrap.style.display = 'none';
+      pdfContainerWrap.style.display = 'flex';
+      guideStage.style.display = 'none';
+      showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
+
+      setTimeout(() => { toggleReliableRecordAction(); }, 300);
+    }
+
+    btnModeMp4.addEventListener('click', switchToMp4Mode);
+    btnModePdf.addEventListener('click', switchToPdfMode);
+    btnModeRecord.addEventListener('click', switchToRecordMode);
 
     btnSpeedUp.addEventListener('click', (e) => { e.stopPropagation(); setSpeed(+0.1); });
     btnSpeedDown.addEventListener('click', (e) => { e.stopPropagation(); setSpeed(-0.1); });
     btnShutdownExit.addEventListener('click', handleShutdownClick);
     btnOffering.addEventListener('click', handleOfferingClick);
 
-    // 自讀模式自動啟動語音感應引導
     function startPdfGuideRecite() {
       if (markA_Index === -1 || markB_Index === -1) {
         markA_Index = 0;
@@ -1265,7 +1267,7 @@
             mediaRecorder.stop();
           }
           isUserRecording = false;
-        }, 5000); // 預設錄音 5 秒供比對
+        }, 5000);
 
       } catch (err) {
         alert('無法存取麥克風，請檢查裝置權限設定');
@@ -1859,10 +1861,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V229_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V230_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V229_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V230_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2149,7 +2151,7 @@
       if (window.innerWidth > window.innerHeight && isCompanionDismissed) {
         await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
         updateVisualDisplay();
-        setMode('mp4');
+        switchToMp4Mode();
       }
     });
   </script>
