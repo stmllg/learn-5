@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v212 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v214 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -561,8 +561,8 @@
     <div class="side-wing" id="right-wing">
       <div class="slot" id="slot-r1"><button class="square-btn" id="btn-guide-toggle">跟讀</button></div>
       <div class="slot" id="slot-r2"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
-      <div class="slot" id="slot-r3"></div>
-      <div class="slot" id="slot-r4"></div>
+      <div class="slot" id="slot-r3"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button></div>
+      <div class="slot" id="slot-r4"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">快轉-</button></div>
     </div>
   </div>
 
@@ -643,8 +643,12 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    let baseSpeed = parseFloat(localStorage.getItem('user_speed_preference') || '1.0');
-    if (isNaN(baseSpeed) || baseSpeed < 0.5 || baseSpeed > 2.5) baseSpeed = 1.0;
+    // 🌟 獨立的跟讀速度 (mp4Speed) 與 自讀速度 (pdfSpeed)，自動從 localStorage 讀取記憶
+    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
+    if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
+
+    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference') || '1.0');
+    if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
@@ -748,12 +752,11 @@
     let isCompanionDismissed = false;
     let hasEnteredReciting = false;
 
-    // 🌟 智慧跨日自動檢核與快取防護機制
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V212');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V214');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V212', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V214', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -922,13 +925,13 @@
       }, 2000);
     }
 
-    function setSpeed(val) {
-      baseSpeed = val;
-      localStorage.setItem('user_speed_preference', baseSpeed.toFixed(2));
-      recordAudioElement.playbackRate = baseSpeed;
-      video.playbackRate = baseSpeed;
+    // 🌟 設定跟讀速度並儲存至 localStorage
+    function setMp4Speed(val) {
+      mp4Speed = val;
+      localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
+      video.playbackRate = mp4Speed;
 
-      speedToastBadge.textContent = `【快轉 ${baseSpeed}x】`;
+      speedToastBadge.textContent = `【跟讀快轉 ${mp4Speed.toFixed(1)}x】`;
       speedToastBadge.style.display = 'block';
       speedToastBadge.style.opacity = '1';
 
@@ -937,18 +940,14 @@
         speedToastBadge.style.opacity = '0';
         setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
       }, 3000);
-
-      const speedBtn = document.getElementById('wing-btn-speed');
-      if (speedBtn) speedBtn.textContent = `快轉 ${baseSpeed}x`;
     }
 
-    function triggerBaseSpeedChange(delta) {
-      let newSpeed = Math.round((baseSpeed + delta) * 10) / 10;
-      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
-      baseSpeed = newSpeed;
-      localStorage.setItem('user_speed_preference', baseSpeed.toFixed(1));
+    // 🌟 設定自讀速度並儲存至 localStorage
+    function setPdfSpeed(val) {
+      pdfSpeed = val;
+      localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
 
-      speedToastBadge.textContent = `【導覽基速 ${baseSpeed.toFixed(1)}x】`;
+      speedToastBadge.textContent = `【自讀語速 ${pdfSpeed.toFixed(1)}x】`;
       speedToastBadge.style.display = 'block';
       speedToastBadge.style.opacity = '1';
 
@@ -957,6 +956,18 @@
         speedToastBadge.style.opacity = '0';
         setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
       }, 3000);
+    }
+
+    function triggerMp4SpeedChange(delta) {
+      let newSpeed = Math.round((mp4Speed + delta) * 10) / 10;
+      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
+      setMp4Speed(newSpeed);
+    }
+
+    function triggerPdfSpeedChange(delta) {
+      let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
+      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
+      setPdfSpeed(newSpeed);
     }
 
     function speakPrompt(text) {
@@ -1028,6 +1039,8 @@
       }
     }, { passive: true });
 
+    window.addEventListener('touched', (e) => {}, { passive: true });
+
     window.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - touchStartX;
@@ -1069,6 +1082,7 @@
         centerCore.scrollTop = 0;
         resetSideWingsForMode('mp4');
 
+        video.playbackRate = mp4Speed; // 🌟 切換至跟讀模式時立即套用記憶速度
         const range = getActiveVideoRange();
         videoPausedAt = -1;
         if (range.valid) {
@@ -1098,7 +1112,7 @@
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
         slotL1.innerHTML = '';
-        slotL2.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${baseSpeed}x</button>`;
+        slotL2.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${mp4Speed}x</button>`;
         slotL3.innerHTML = '';
         slotL4.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">關機</button>`;
 
@@ -1136,16 +1150,26 @@
         slotR1.innerHTML = `<button class="square-btn" id="btn-guide-toggle">${guideText}</button>`;
         slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
 
-        if (mode === 'mp4') {
-          slotR3.innerHTML = '';
-          slotR4.innerHTML = '';
-        } else {
-          slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">語快</button>`;
-          slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down">語慢</button>`;
+        // 🌟 獨立配置快轉+與快轉-按鈕於 slotR3 與 slotR4
+        slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button>`;
+        slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down">快轉-</button>`;
 
-          document.getElementById('btn-speed-up').addEventListener('click', (e) => { e.stopPropagation(); triggerBaseSpeedChange(+0.1); });
-          document.getElementById('btn-speed-down').addEventListener('click', (e) => { e.stopPropagation(); triggerBaseSpeedChange(-0.1); });
-        }
+        document.getElementById('btn-speed-up').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentMode === 'mp4') {
+            triggerMp4SpeedChange(+0.1);
+          } else {
+            triggerPdfSpeedChange(+0.1);
+          }
+        });
+        document.getElementById('btn-speed-down').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentMode === 'mp4') {
+            triggerMp4SpeedChange(-0.1);
+          } else {
+            triggerPdfSpeedChange(-0.1);
+          }
+        });
 
         document.getElementById('btn-guide-toggle').addEventListener('click', handleGuideToggleClick);
         document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
@@ -1155,7 +1179,7 @@
     document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
       btn.addEventListener('click', () => {
         const val = parseFloat(btn.dataset.speed);
-        setSpeed(val);
+        setMp4Speed(val);
         document.querySelectorAll('#speed-modal .modal-option').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         speedModal.style.display = 'none';
@@ -1282,7 +1306,7 @@
             const recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
             recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
             recordAudioElement.src = recordedAudioBlobUrl;
-            recordAudioElement.playbackRate = baseSpeed;
+            recordAudioElement.playbackRate = mp4Speed;
             showToast('錄音完成！點擊右側「播放」按鈕即可聆聽', 4000);
             if (wingBtnRecord) wingBtnRecord.classList.remove('recording-flashing');
             stream.getTracks().forEach(t => t.stop());
@@ -1332,7 +1356,7 @@
         return;
       }
       if (recordAudioElement.paused) {
-        recordAudioElement.playbackRate = baseSpeed;
+        recordAudioElement.playbackRate = mp4Speed;
         recordAudioElement.play().then(() => {
           if (btnPlay) btnPlay.textContent = '暫停';
         }).catch((err) => {
@@ -1733,7 +1757,7 @@
 
       if (currentMode === 'mp4') {
         centerCore.scrollTop = 0;
-        video.playbackRate = baseSpeed;
+        video.playbackRate = mp4Speed; // 🌟 播放時套用獨立 mp4Speed
 
         const range = getActiveVideoRange();
         if (!range.valid) {
@@ -1825,7 +1849,7 @@
 
       const curLine = parsedTextLines[currentLineIndex];
       const charCount = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
-      const lineDurationSec = (charCount / (2.8 * baseSpeed));
+      const lineDurationSec = (charCount / (2.8 * pdfSpeed)); // 🌟 自讀導覽套用獨立 pdfSpeed
       const maxTimeoutMs = (lineDurationSec + 10.0) * 1000;
 
       maxTimeoutSafetyTimer = setTimeout(() => {
@@ -2083,7 +2107,7 @@
       const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
 
       if (isVoiceActive || isInTailZone) {
-        const charPerMs = (2.8 * baseSpeed) / 1000;
+        const charPerMs = (2.8 * pdfSpeed) / 1000; // 🌟 紅點前進速度套用獨立 pdfSpeed
         if (isLineHeadLocked) {
           if (currentCharIndexFloat < 0.5) {
             currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
@@ -2138,7 +2162,7 @@
         } else {
           const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
           redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
-          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
+          redDot.style.top = `${offsetTop + (rawX * scaleX)}px`;
         }
       }
       guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -2366,10 +2390,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V212_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V214_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V212_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V214_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2643,7 +2667,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      checkDailyResetOnStartup(); // 🌟 啟動時自動檢查跨日重置
+      checkDailyResetOnStartup(); // 跨日重置檢核
       await evaluateWarmCompanionCard();
 
       if (!isLineGuideDismissed) {
