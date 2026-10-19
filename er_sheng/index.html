@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式單介面播放器 v300 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式單介面播放器 v301 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -364,13 +364,13 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 60px 方型按鈕：預設黑底，被選中時變為綠底 */
+    /* 60px 方型按鈕：預設黑底橘字 */
     .square-btn {
       width: 60px !important;
       height: 60px !important;
       border-radius: 14px !important;
       border: 2.5px solid #BAE6FD !important;
-      background: #000000 !important;
+      background-color: #000000 !important;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -380,15 +380,16 @@
       color: #FB923C !important;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
-      transition: transform 0.15s ease-out, background-color 0.25s ease;
+      transition: transform 0.15s ease-out, background-color 0.2s ease, border-color 0.2s ease;
       text-align: center;
       line-height: 1.1;
       touch-action: manipulation;
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 🌟 選中時的綠燈狀態 */
+    /* 🌟 互斥選取時的強效綠燈覆蓋樣式 (強制生效) */
     .square-btn.active-mode {
+      background-color: #15803D !important;
       background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
       border-color: #DCFCE7 !important;
       color: #FFFFFF !important;
@@ -528,7 +529,7 @@
 
   <!-- 4. 主視圖 -->
   <div id="landscape-container">
-    <!-- 左側翼鍵：左1快轉、左2慢轉、左3定位(動態顯示)、左4離開 -->
+    <!-- 左側翼鍵：左1快轉、左2慢轉、左3定位(僅自讀顯示)、左4離開 -->
     <div class="side-wing" id="left-wing">
       <div class="slot" id="slot-l1"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button></div>
       <div class="slot" id="slot-l2"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">慢轉-</button></div>
@@ -620,10 +621,10 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v300') || '1.0');
+    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v301') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
-    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v300') || '1.0');
+    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v301') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
@@ -727,9 +728,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V300');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V301');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V300', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V301', todayStr);
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, '0');
       }
     }
@@ -893,12 +894,12 @@
       if (currentMode === 'mp4') {
         mp4Speed = Math.round((mp4Speed + delta) * 10) / 10;
         mp4Speed = Math.max(0.5, Math.min(2.5, mp4Speed));
-        localStorage.setItem('user_mp4_speed_preference_v300', mp4Speed.toFixed(1));
+        localStorage.setItem('user_mp4_speed_preference_v301', mp4Speed.toFixed(1));
         video.playbackRate = mp4Speed;
       } else {
         pdfSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
         pdfSpeed = Math.max(0.5, Math.min(2.5, pdfSpeed));
-        localStorage.setItem('user_pdf_speed_preference_v300', pdfSpeed.toFixed(1));
+        localStorage.setItem('user_pdf_speed_preference_v301', pdfSpeed.toFixed(1));
       }
       updateSpeedDisplayBadge();
     }
@@ -950,7 +951,7 @@
       stopVoiceActivityDetection();
     }
 
-    // 🌟 按鈕互斥綠燈切換函式
+    // 🌟 互斥選取狀態更新
     function updateModeButtonSelection(activeBtn) {
       [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => {
         if (b) b.classList.remove('active-mode');
@@ -1788,10 +1789,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V300_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V301_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V300_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V301_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
