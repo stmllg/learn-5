@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v204 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v205 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -690,7 +690,7 @@
     let markA_Index = -1;
     let markB_Index = -1;
     let totalTargetCycles = 1;
-    let completedCycles = 0; // 當前會話進度
+    let completedCycles = 0;
     let videoPausedAt = -1;
 
     let guideAnimId = null;
@@ -1062,11 +1062,11 @@
       updateVisualDisplay();
     }
 
+    // 🌟 嚴格復原 v200 的比對模式左右翼鍵原始配置（slot-l1/l3, slot-r1/r3）
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
         slotL1.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${baseSpeed}x</button>`;
         slotL2.innerHTML = '';
-
         slotL3.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">關機</button>`;
         slotL4.innerHTML = '';
 
@@ -1078,8 +1078,8 @@
           handleShutdownClick();
         });
 
-        slotR1.innerHTML = '';
-        slotR2.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
+        slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
+        slotR2.innerHTML = '';
         slotR3.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
         slotR4.innerHTML = '';
 
@@ -1130,7 +1130,7 @@
       });
     });
 
-    // 🌟 真實感立體金幣渲染函式（高不透明度、厚實金邊、雙層光澤）
+    // 🌟 真實感立體金幣渲染函式
     function renderRealisticCoin(ctx, x, y, radius, opacity) {
       ctx.save();
       ctx.translate(x, y);
@@ -1159,7 +1159,7 @@
       ctx.restore();
     }
 
-    // 🌟 錄音鍵點擊時：具備強大向上爆發力道與真實感金幣特效
+    // 🌟 錄音鍵點擊時：向上爆發力道與真實感金幣特效
     function triggerRecordCoinSplash() {
       const btn = document.getElementById('wing-btn-record');
       if (!btn) return;
@@ -1325,7 +1325,7 @@
       if (!range.valid) return;
 
       if (video.currentTime >= range.end) {
-        recordDailyCycleCompletion(); // 🌟 累加跨模式今日修持遍數
+        recordDailyCycleCompletion(); // 🌟 跨模式今日修持遍數累計
 
         if (completedCycles >= totalTargetCycles) {
           video.pause();
@@ -1350,7 +1350,7 @@
       }
     });
 
-    // 🌟 跨模式今日修持遍數累計與解鎖核心函式
+    // 🌟 跨模式（跟讀 + 自讀）今日修持遍數累計與解鎖核心函式
     function recordDailyCycleCompletion() {
       completedCycles++;
       const todayStr = getNormalizedDateStr();
@@ -1647,7 +1647,7 @@
       btn.addEventListener('click', () => {
         totalTargetCycles = parseInt(btn.dataset.count, 10);
         completedCycles = 0;
-        isScheduleRepeatLocked = false; // 手動修改後解鎖
+        isScheduleRepeatLocked = false;
         const btnRepeatCountDom = document.getElementById('btn-repeat-count');
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${totalTargetCycles}次`;
         document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
@@ -2284,10 +2284,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V204_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V205_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V204_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V205_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
