@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v211 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v212 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -747,6 +747,17 @@
     let isLineGuideDismissed = !isLineApp;
     let isCompanionDismissed = false;
     let hasEnteredReciting = false;
+
+    // 🌟 智慧跨日自動檢核與快取防護機制
+    function checkDailyResetOnStartup() {
+      const todayStr = getNormalizedDateStr();
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V212');
+      if (lastActiveDate !== todayStr) {
+        localStorage.setItem('APP_ACTIVE_DATE_V212', todayStr);
+        isScheduleRepeatLocked = true;
+        completedCycles = 0;
+      }
+    }
 
     function handleOrientationCheck() {
       if (hasEnteredReciting) return;
@@ -2127,7 +2138,7 @@
         } else {
           const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
           redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
-          redDot.style.top = `${offsetTop + (rawX * scaleX)}px`;
+          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
         }
       }
       guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -2355,10 +2366,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V211_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V212_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V211_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V212_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2632,6 +2643,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
+      checkDailyResetOnStartup(); // 🌟 啟動時自動檢查跨日重置
       await evaluateWarmCompanionCard();
 
       if (!isLineGuideDismissed) {
