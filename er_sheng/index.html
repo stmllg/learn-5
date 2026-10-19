@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式單介面播放器 v231 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式單介面播放器 v232 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -616,10 +616,10 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v231') || '1.0');
+    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v232') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
-    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v231') || '1.0');
+    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v232') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
@@ -723,9 +723,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V231');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V232');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V231', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V232', todayStr);
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, '0');
       }
     }
@@ -889,12 +889,12 @@
       if (currentMode === 'mp4') {
         mp4Speed = Math.round((mp4Speed + delta) * 10) / 10;
         mp4Speed = Math.max(0.5, Math.min(2.5, mp4Speed));
-        localStorage.setItem('user_mp4_speed_preference_v231', mp4Speed.toFixed(1));
+        localStorage.setItem('user_mp4_speed_preference_v232', mp4Speed.toFixed(1));
         video.playbackRate = mp4Speed;
       } else {
         pdfSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
         pdfSpeed = Math.max(0.5, Math.min(2.5, pdfSpeed));
-        localStorage.setItem('user_pdf_speed_preference_v231', pdfSpeed.toFixed(1));
+        localStorage.setItem('user_pdf_speed_preference_v232', pdfSpeed.toFixed(1));
       }
       updateSpeedDisplayBadge();
     }
@@ -946,8 +946,8 @@
       stopVoiceActivityDetection();
     }
 
-    // 🌟 完美連結 v226 的跟讀引擎
-    function switchToMp4Mode() {
+    // 🌟 強化版跟讀模式切換與即時啟動
+    async function switchToMp4Mode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
       currentMode = 'mp4';
@@ -955,7 +955,7 @@
       [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => { if (b) b.style.borderColor = '#BAE6FD'; });
       if (btnModeMp4) btnModeMp4.style.borderColor = '#38BDF8';
 
-      slotL3.innerHTML = ''; // 跟讀模式隱藏左3
+      slotL3.innerHTML = '';
 
       pdfContainerWrap.style.display = 'none';
       guideStage.style.display = 'none';
@@ -967,13 +967,18 @@
       videoPausedAt = -1;
       if (range.valid) {
         video.currentTime = range.start;
-        video.play().then(() => { startMp4PrecisionCheck(); }).catch(() => {});
+        try {
+          await video.play();
+          startMp4PrecisionCheck();
+        } catch (e) {
+          console.warn("自動播放受阻，等待使用者互動:", e);
+        }
       }
       showModeBanner('📖 跟讀模式', '影音同步・自動循環播放');
     }
 
-    // 🌟 完美連結 v226 的自讀引擎
-    function switchToPdfMode() {
+    // 🌟 強化版自讀模式切換與即時啟動
+    async function switchToPdfMode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
       currentMode = 'pdf';
@@ -988,14 +993,19 @@
       videoWrap.style.display = 'none';
       pdfContainerWrap.style.display = 'flex';
       guideStage.style.display = 'block';
+
+      if (parsedTextLines.length === 0 && cachedPdfBuffer) {
+        await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
+      }
+
       scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
       showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識引導');
 
-      setTimeout(() => { startPdfGuideRecite(); }, 300);
+      setTimeout(() => { startPdfGuideRecite(); }, 250);
     }
 
-    // 🌟 完美連結 v226 的比對引擎與左3播放鍵
-    function switchToRecordMode() {
+    // 🌟 強化版比對模式切換與即時啟動
+    async function switchToRecordMode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
       currentMode = 'record';
@@ -1010,9 +1020,14 @@
       videoWrap.style.display = 'none';
       pdfContainerWrap.style.display = 'flex';
       guideStage.style.display = 'none';
+
+      if (parsedTextLines.length === 0 && cachedPdfBuffer) {
+        await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
+      }
+
       showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
 
-      setTimeout(() => { toggleReliableRecordAction(); }, 300);
+      setTimeout(() => { toggleReliableRecordAction(); }, 250);
     }
 
     btnModeMp4.addEventListener('click', switchToMp4Mode);
@@ -1844,10 +1859,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V231_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V232_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V231_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V232_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
