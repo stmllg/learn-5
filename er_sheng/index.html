@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 21 天心靈陪伴卡（每次開啟必定顯現）
+       🌟 3. 21 天心靈陪伴卡
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -520,7 +520,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 21 天心靈陪伴卡（改為每次開啟必顯，以確保觸發全螢幕） -->
+  <!-- 🌟 3. 21 天心靈陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -788,7 +788,6 @@
       } else {
         portraitBlocker.style.display = 'none';
 
-        // 🌟 每次開啟必定顯現陪伴卡，確保能藉由點擊按鈕順利觸發全螢幕
         if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
           companionOverlay.classList.add('active');
         } else if (!hasEnteredReciting && cachedPdfBuffer && parsedTextLines.length === 0) {
@@ -1198,7 +1197,6 @@
       });
     });
 
-    // 渲染帶有「福」與「慧」字的高級立體金幣
     function renderRealisticCoin(ctx, x, y, radius, opacity, symbolText) {
       ctx.save();
       ctx.translate(x, y);
@@ -1442,6 +1440,7 @@
       if (btnPlay) btnPlay.textContent = '播放';
     });
 
+    // 🌟 核心修復：跟讀模式範圍精確循環播放
     let mp4PrecisionCheckAnimId = null;
     function startMp4PrecisionCheck() {
       if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
@@ -1474,7 +1473,6 @@
 
         if (dailyDone >= scheduleRepeatLimit) {
           isScheduleRepeatLocked = false;
-          showToast('🎉 今日功課遍數已全部達標！現已解鎖可自由調整次數', 4500);
           videoPausedAt = -1;
           video.currentTime = range.start;
           completedCycles = 0;
@@ -1742,7 +1740,6 @@
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
 
-      // 🌟 徹底清除背景媒體播放器物件與釋放音訊焦點，防止離開程式後背景仍殘留媒體通知
       try {
         video.pause();
         video.src = "";
@@ -2232,7 +2229,6 @@
 
         if (dailyDone >= scheduleRepeatLimit) {
           isScheduleRepeatLocked = false;
-          showToast('🎉 今日功課遍數已全部達標！現已解鎖可自由調整次數', 4500);
           handleTargetCycleDone();
           finishAndStopPermanently();
           return;
@@ -2428,10 +2424,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V223_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V224_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V223_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V224_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2506,8 +2502,7 @@
 
           updateVisualDisplay();
           scrollToAlignTop(markA_Index);
-          const repeatText = targetPlan.repeat ? `（共 ${targetPlan.repeat} 遍）` : '';
-          showToast(`📖 今日進度：第 ${targetPlan.start}～${targetPlan.end} 句${repeatText}`, 4500);
+          // 🌟 移除重複顯示的「今日進度...」提示訊息，保持畫面清淨
           return true;
         }
       } catch (err) {}
