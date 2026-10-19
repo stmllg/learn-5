@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式單介面播放器 v233 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式單介面播放器 v234 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -616,10 +616,10 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v233') || '1.0');
+    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v234') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
-    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v233') || '1.0');
+    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v234') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
@@ -723,9 +723,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V233');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V234');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V233', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V234', todayStr);
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, '0');
       }
     }
@@ -889,12 +889,12 @@
       if (currentMode === 'mp4') {
         mp4Speed = Math.round((mp4Speed + delta) * 10) / 10;
         mp4Speed = Math.max(0.5, Math.min(2.5, mp4Speed));
-        localStorage.setItem('user_mp4_speed_preference_v233', mp4Speed.toFixed(1));
+        localStorage.setItem('user_mp4_speed_preference_v234', mp4Speed.toFixed(1));
         video.playbackRate = mp4Speed;
       } else {
         pdfSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
         pdfSpeed = Math.max(0.5, Math.min(2.5, pdfSpeed));
-        localStorage.setItem('user_pdf_speed_preference_v233', pdfSpeed.toFixed(1));
+        localStorage.setItem('user_pdf_speed_preference_v234', pdfSpeed.toFixed(1));
       }
       updateSpeedDisplayBadge();
     }
@@ -946,7 +946,7 @@
       stopVoiceActivityDetection();
     }
 
-    // 🌟 強化版跟讀模式切換
+    // 🌟 穩定跟讀模式
     async function switchToMp4Mode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
@@ -955,7 +955,7 @@
       [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => { if (b) b.style.borderColor = '#BAE6FD'; });
       if (btnModeMp4) btnModeMp4.style.borderColor = '#38BDF8';
 
-      slotL3.innerHTML = '';
+      slotL3.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-unify-mark" style="width: 100%; height: 90%; visibility: hidden;">定位</button>`;
 
       pdfContainerWrap.style.display = 'none';
       guideStage.style.display = 'none';
@@ -977,7 +977,7 @@
       showModeBanner('📖 跟讀模式', '影音同步・自動循環播放');
     }
 
-    // 🌟 強化版自讀模式切換（強制開啟 pdfContainerWrap）
+    // 🌟 穩定自讀模式
     async function switchToPdfMode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
@@ -992,7 +992,7 @@
 
       video.pause();
       videoWrap.style.display = 'none';
-      pdfContainerWrap.style.display = 'flex'; // 🌟 強制顯示 PDF 容器
+      pdfContainerWrap.style.display = 'flex';
       guideStage.style.display = 'block';
 
       if (parsedTextLines.length === 0 && cachedPdfBuffer) {
@@ -1005,7 +1005,7 @@
       setTimeout(() => { startPdfGuideRecite(); }, 250);
     }
 
-    // 🌟 強化版比對模式切換（強制開啟 pdfContainerWrap）
+    // 🌟 穩定比對模式
     async function switchToRecordMode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
@@ -1020,7 +1020,7 @@
 
       video.pause();
       videoWrap.style.display = 'none';
-      pdfContainerWrap.style.display = 'flex'; // 🌟 強制顯示 PDF 容器
+      pdfContainerWrap.style.display = 'flex';
       guideStage.style.display = 'none';
 
       if (parsedTextLines.length === 0 && cachedPdfBuffer) {
@@ -1861,10 +1861,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V233_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V234_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V233_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V234_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
