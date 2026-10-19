@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v225 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v226 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -719,6 +719,9 @@
     let parsedTextLines = [];
     let cachedPdfBuffer = null;
 
+    let markA_Index = -1;
+    let markB_Index = -1;
+
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
     let scheduleRepeatLimit = 1;
@@ -761,9 +764,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V225');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V226');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V225', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V226', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1612,7 +1615,7 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 核心升級：精準對齊手動設定起點與終點線條的座標換算方程式
+    // 🌟 核心升級：精準對齊手動設定起點與終點線條的座標換算方程式 (v226)
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
@@ -1632,23 +1635,27 @@
     function getLineAtButtonBottom(buttonElement) {
       if (parsedTextLines.length === 0) return 0;
       const btnRect = buttonElement.getBoundingClientRect();
-      if (!isAppleDevice) {
-        const centerRect = centerCore.getBoundingClientRect();
-        const targetAbsoluteY = centerCore.scrollTop + (btnRect.bottom - centerRect.top);
-        let closestIdx = 0, minDiff = Infinity;
-        for (let i = 0; i < parsedTextLines.length; i++) {
-          const diff = Math.abs(parsedTextLines[i].underLineY - targetAbsoluteY);
-          if (diff < minDiff) { minDiff = diff; closestIdx = i; }
-        }
-        return closestIdx;
-      }
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-      const { scaleY } = getAppleCanvasScale();
-      const targetCanvasY = (btnRect.bottom - canvasRect.top) / scaleY;
+      
+      // 🌟 直接尋找畫面中心或最靠近按鈕垂直位置的經文字句，確保絕對精準對齊文字下方
+      const targetScreenY = btnRect.top + (btnRect.height / 2);
       let closestIdx = 0, minDiff = Infinity;
+
       for (let i = 0; i < parsedTextLines.length; i++) {
-        const diff = Math.abs(parsedTextLines[i].underLineY - targetCanvasY);
-        if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+        const line = parsedTextLines[i];
+        let lineScreenY = 0;
+        if (!isAppleDevice) {
+          const centerRect = centerCore.getBoundingClientRect();
+          lineScreenY = centerRect.top + line.underLineY - centerCore.scrollTop;
+        } else {
+          const canvasRect = pdfCanvas.getBoundingClientRect();
+          const { scaleY, offsetTop } = getAppleCanvasScale();
+          lineScreenY = offsetTop + (line.underLineY * scaleY) - centerCore.scrollTop;
+        }
+        const diff = Math.abs(lineScreenY - targetScreenY);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = i;
+        }
       }
       return closestIdx;
     }
@@ -2198,7 +2205,7 @@
         } else {
           const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
           redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
-          redDot.style.top = `${offsetTop + (rawX * scaleX)}px`;
+          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
         }
       }
       guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -2426,10 +2433,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V225_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V226_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V225_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V226_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
