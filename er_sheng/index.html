@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式單介面播放器 v301 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式單介面播放器 v302 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -621,10 +621,10 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v301') || '1.0');
+    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v302') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
-    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v301') || '1.0');
+    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v302') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
@@ -728,9 +728,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V301');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V302');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V301', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V302', todayStr);
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, '0');
       }
     }
@@ -894,12 +894,12 @@
       if (currentMode === 'mp4') {
         mp4Speed = Math.round((mp4Speed + delta) * 10) / 10;
         mp4Speed = Math.max(0.5, Math.min(2.5, mp4Speed));
-        localStorage.setItem('user_mp4_speed_preference_v301', mp4Speed.toFixed(1));
+        localStorage.setItem('user_mp4_speed_preference_v302', mp4Speed.toFixed(1));
         video.playbackRate = mp4Speed;
       } else {
         pdfSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
         pdfSpeed = Math.max(0.5, Math.min(2.5, pdfSpeed));
-        localStorage.setItem('user_pdf_speed_preference_v301', pdfSpeed.toFixed(1));
+        localStorage.setItem('user_pdf_speed_preference_v302', pdfSpeed.toFixed(1));
       }
       updateSpeedDisplayBadge();
     }
@@ -951,7 +951,6 @@
       stopVoiceActivityDetection();
     }
 
-    // 🌟 互斥選取狀態更新
     function updateModeButtonSelection(activeBtn) {
       [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => {
         if (b) b.classList.remove('active-mode');
@@ -988,7 +987,7 @@
       showModeBanner('📖 跟讀模式', '影音同步・自動循環播放');
     }
 
-    // 🌟 2. 自讀模式
+    // 🌟 2. 自讀模式（帶有 PDF 緩衝防護與例外捕捉）
     async function switchToPdfMode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
@@ -1004,8 +1003,22 @@
       pdfContainerWrap.style.display = 'flex';
       guideStage.style.display = 'block';
 
-      if (parsedTextLines.length === 0 && cachedPdfBuffer) {
-        await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
+      try {
+        if (parsedTextLines.length === 0) {
+          if (cachedPdfBuffer) {
+            await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
+          } else {
+            const pRes = await fetch('./scripture.pdf');
+            if (pRes.ok) {
+              const buf = await pRes.arrayBuffer();
+              cachedPdfBuffer = buf;
+              await parseAndRenderPdfData(new Uint8Array(buf));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("PDF 載入或渲染失敗:", err);
+        showToast('⚠️ 經文 PDF 載入中或發生錯誤', 3000);
       }
 
       scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
@@ -1014,7 +1027,7 @@
       setTimeout(() => { startPdfGuideRecite(); }, 250);
     }
 
-    // 🌟 3. 比對模式
+    // 🌟 3. 比對模式（帶有 PDF 緩衝防護與例外捕捉）
     async function switchToRecordMode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
@@ -1030,8 +1043,21 @@
       pdfContainerWrap.style.display = 'flex';
       guideStage.style.display = 'none';
 
-      if (parsedTextLines.length === 0 && cachedPdfBuffer) {
-        await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
+      try {
+        if (parsedTextLines.length === 0) {
+          if (cachedPdfBuffer) {
+            await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
+          } else {
+            const pRes = await fetch('./scripture.pdf');
+            if (pRes.ok) {
+              const buf = await pRes.arrayBuffer();
+              cachedPdfBuffer = buf;
+              await parseAndRenderPdfData(new Uint8Array(buf));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("PDF 載入或渲染失敗:", err);
       }
 
       showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
@@ -1789,10 +1815,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V301_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V302_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V301_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V302_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
