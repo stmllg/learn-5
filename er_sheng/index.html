@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式單介面播放器 v303 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式單介面播放器 v304 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -529,7 +529,7 @@
 
   <!-- 4. 主視圖 -->
   <div id="landscape-container">
-    <!-- 左側翼鍵：左1快轉、左2慢轉、左3定位(僅自讀顯示)、左4離開 -->
+    <!-- 左側翼鍵：左1快轉、左2慢轉、左3定位/播放(動態切換)、左4離開 -->
     <div class="side-wing" id="left-wing">
       <div class="slot" id="slot-l1"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button></div>
       <div class="slot" id="slot-l2"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">慢轉-</button></div>
@@ -621,10 +621,10 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v303') || '1.0');
+    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference_v304') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
-    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v303') || '1.0');
+    let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference_v304') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
@@ -728,9 +728,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V303');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V304');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V303', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V304', todayStr);
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, '0');
       }
     }
@@ -894,12 +894,12 @@
       if (currentMode === 'mp4') {
         mp4Speed = Math.round((mp4Speed + delta) * 10) / 10;
         mp4Speed = Math.max(0.5, Math.min(2.5, mp4Speed));
-        localStorage.setItem('user_mp4_speed_preference_v303', mp4Speed.toFixed(1));
+        localStorage.setItem('user_mp4_speed_preference_v304', mp4Speed.toFixed(1));
         video.playbackRate = mp4Speed;
       } else {
         pdfSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
         pdfSpeed = Math.max(0.5, Math.min(2.5, pdfSpeed));
-        localStorage.setItem('user_pdf_speed_preference_v303', pdfSpeed.toFixed(1));
+        localStorage.setItem('user_pdf_speed_preference_v304', pdfSpeed.toFixed(1));
       }
       updateSpeedDisplayBadge();
     }
@@ -958,13 +958,14 @@
       if (activeBtn) activeBtn.classList.add('active-mode');
     }
 
-    // 🌟 1. 跟讀模式
+    // 🌟 1. 跟讀模式 (MP4 播放系統)
     async function switchToMp4Mode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
       currentMode = 'mp4';
       updateModeButtonSelection(btnModeMp4);
 
+      // 跟讀模式隱藏左 3 定位鍵
       slotL3.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-unify-mark" style="width: 100%; height: 90%; visibility: hidden;">定位</button>`;
 
       pdfContainerWrap.style.display = 'none';
@@ -987,13 +988,14 @@
       showModeBanner('📖 跟讀模式', '影音同步・自動循環播放');
     }
 
-    // 🌟 2. 自讀模式
+    // 🌟 2. 自讀模式 (PDF 顯示系統 + 左 3 定位鍵)
     async function switchToPdfMode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
       currentMode = 'pdf';
       updateModeButtonSelection(btnModePdf);
 
+      // 自讀模式顯示左 3 定位鍵
       slotL3.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-unify-mark" style="width: 100%; height: 90%;">定位</button>`;
       const btnMark = document.getElementById('btn-unify-mark');
       if (btnMark) btnMark.addEventListener('click', handleUnifyMarkClick);
@@ -1027,13 +1029,14 @@
       setTimeout(() => { startPdfGuideRecite(); }, 250);
     }
 
-    // 🌟 3. 比對模式
+    // 🌟 3. 比對模式 (PDF 顯示系統 + 左 3 播放鍵)
     async function switchToRecordMode() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
       currentMode = 'record';
       updateModeButtonSelection(btnModeRecord);
 
+      // 比對模式顯示左 3 播放鍵
       slotL3.innerHTML = `<button class="circle-btn" id="wing-btn-play" style="width: 100%; height: 90%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer;">播放</button>`;
       const btnPlay = document.getElementById('wing-btn-play');
       if (btnPlay) btnPlay.addEventListener('click', togglePlaybackAction);
@@ -1815,10 +1818,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V303_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V304_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V303_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V304_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
