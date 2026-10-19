@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v217 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v218 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -364,13 +364,13 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 🌟 統一規格：60px 方型淡天空色按鈕，文字為亮橙色 (#FB923C) */
+    /* 🌟 60px 方型按鈕：外框藍色、內部充填黑色、文字為亮橙色 (#FB923C) */
     .square-btn {
       width: 60px !important;
       height: 60px !important;
       border-radius: 14px !important;
-      border: 2.5px solid #BAE6FD;
-      background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%) !important;
+      border: 2.5px solid #BAE6FD !important;
+      background: #000000 !important;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -753,9 +753,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V217');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V218');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V217', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V218', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -924,6 +924,16 @@
       }, 2000);
     }
 
+    function showCurrentModeBanner() {
+      if (currentMode === 'mp4') {
+        showModeBanner('📖 跟讀模式', '影音同步・雙模播放');
+      } else if (currentMode === 'pdf') {
+        showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
+      } else if (currentMode === 'record') {
+        showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
+      }
+    }
+
     function setMp4Speed(val) {
       mp4Speed = val;
       localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
@@ -1053,6 +1063,7 @@
       }
     }, { passive: true });
 
+    // 🌟 確保左右滑動時，無論是否到底，皆會顯示當前模式提示
     function switchModeByDirection(direction) {
       let currentIndex = modeSequence.indexOf(currentMode);
       if (currentIndex === -1) currentIndex = 0;
@@ -1061,10 +1072,12 @@
       if (newIndex < 0) newIndex = 0;
       if (newIndex >= modeSequence.length) newIndex = modeSequence.length - 1;
 
-      if (newIndex === currentIndex) return;
-
-      const targetMode = modeSequence[newIndex];
-      setMode(targetMode);
+      if (newIndex !== currentIndex) {
+        const targetMode = modeSequence[newIndex];
+        setMode(targetMode);
+      } else {
+        showCurrentModeBanner();
+      }
     }
 
     function setMode(mode) {
@@ -1093,20 +1106,18 @@
         resetSideWingsForMode('pdf');
 
         scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-        showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
       } else if (currentMode === 'record') {
         video.pause();
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'none';
         resetSideWingsForMode('record');
-
-        showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
       }
+      showCurrentModeBanner();
       updateVisualDisplay();
     }
 
-    // 🌟 修正比對模式：移除右側翼鍵中的供養按鈕，保持 slotR2 與 slotR3 空白，播放鍵精準置於 slotR4
+    // 🌟 嚴格修正比對模式翼鍵配置：移除供養鍵，播放鍵回歸右 4
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
         slotL1.innerHTML = '';
@@ -1123,8 +1134,8 @@
         });
 
         slotR1.innerHTML = `<button id="wing-btn-record" class="square-btn">比對</button>`;
-        slotR2.innerHTML = ''; // 🌟 移除比對模式的供養鍵
-        slotR3.innerHTML = ''; // 🌟 保持空白
+        slotR2.innerHTML = ''; // 保持空白
+        slotR3.innerHTML = ''; // 保持空白
         slotR4.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
 
         document.getElementById('wing-btn-record').addEventListener('click', () => {
@@ -1399,7 +1410,7 @@
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 最低保留 1 次
+        const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 最低保留 1
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (dailyDone >= scheduleRepeatLimit) {
@@ -1428,7 +1439,7 @@
         completedCycles++;
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 最低保留 1 次
+        const remain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 最低保留 1
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (completedCycles >= totalTargetCycles) {
@@ -1629,7 +1640,7 @@
       return closestIdx;
     }
 
-    // 🌟 確保遍數顯示下限保留為 1 
+    // 🌟 確保遍數顯示下限保留為 1
     function updateVisualDisplay() {
       const btnMarkADom = document.getElementById('btn-mark-a');
       const btnMarkBDom = document.getElementById('btn-mark-b');
@@ -2190,7 +2201,7 @@
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 最低保留 1
+        const remain = Math.max(1, scheduleRepeatLimit - dailyDone);
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (dailyDone >= scheduleRepeatLimit) {
@@ -2204,7 +2215,7 @@
         completedCycles++;
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 最低保留 1
+        const remain = Math.max(1, totalTargetCycles - completedCycles);
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (completedCycles >= totalTargetCycles) {
