@@ -1539,13 +1539,13 @@
 
       const flowers = [];
       const lotusColors = [
-        '#FF94B8', // 1. 粉紅色 (闔家平安)[span_0](start_span)[span_0](end_span)
-        '#FFB300', // 2. 琥珀色 (財富圓滿)[span_1](start_span)[span_1](end_span)
-        '#F1F5F9', // 3. 霧白色 (能源活力)[span_2](start_span)[span_2](end_span)
-        '#22C55E', // 4. 翠綠色 (健康和諧)[span_3](start_span)[span_3](end_span)
-        '#C084FC', // 5. 粉紫色 (增長智慧)[span_4](start_span)[span_4](end_span)
-        '#E11D48', // 6. 水紅色 (事業成功)[span_5](start_span)[span_5](end_span)
-        '#3B82F6'  // 7. 寶藍色 (安心寧神/圓滿吉祥)[span_6](start_span)[span_6](end_span)
+        '#FF94B8', // 1. 粉紅色 (闔家平安)[cite: 2]
+        '#FFB300', // 2. 琥珀色 (財富圓滿)[cite: 2]
+        '#F1F5F9', // 3. 霧白色 (能源活力)[cite: 2]
+        '#22C55E', // 4. 翠綠色 (健康和諧)[cite: 2]
+        '#C084FC', // 5. 粉紫色 (增長智慧)[cite: 2]
+        '#E11D48', // 6. 水紅色 (事業成功)[cite: 2]
+        '#3B82F6'  // 7. 寶藍色 (安心寧神/圓滿吉祥)[cite: 2]
       ];
       
       for (let i = 0; i < 70; i++) {
@@ -2591,4 +2591,171 @@
           if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
             g.spans.push(span);
             matched = true;
-         
+            break;
+          }
+        }
+        if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
+      });
+
+      const analyzedRows = rowGroups.map(g => {
+        g.spans.sort((a, b) => a.x0 - b.x0);
+        const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
+        const minTop = Math.min(...g.spans.map(s => s.topY));
+        const lineX0 = g.spans[0].x0;
+        const lineX1 = g.spans[g.spans.length - 1].x1;
+
+        return {
+          spans: g.spans,
+          chineseCount: g.spans.length,
+          avgFs: avgFs,
+          minTop: minTop,
+          lineX0: lineX0,
+          lineX1: lineX1
+        };
+      });
+
+      analyzedRows.forEach(r => {
+        r.maxBottom = Math.max(...r.spans.map(s => s.bottomY));
+        r.underLineY = r.maxBottom + 7;
+      });
+
+      const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
+      let mainTextFontSize = 0;
+      if (candidateLargeRows.length > 0) {
+        const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
+        mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
+      }
+
+      parsedTextLines = [];
+      let internalIndex = 0;
+
+      analyzedRows.forEach(r => {
+        const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
+        if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
+          parsedTextLines.push({
+            lineIndex: internalIndex++,
+            x0: r.lineX0,
+            x1: r.lineX1,
+            topGlobal: r.minTop,
+            bottomGlobal: r.maxBottom,
+            underLineY: r.underLineY,
+            charItems: r.spans
+          });
+        }
+      });
+
+      parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+      guideStage.style.height = `${viewport.height}px`;
+    }
+
+    async function syncFiveFilesInBackground() {
+      if (!navigator.onLine) return;
+
+      try {
+        const res = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const fresh = await res.json();
+          const old = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
+          if (JSON.stringify(fresh) !== old) {
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(fresh));
+            if (!isGuideActive && !isManualSelected) applyScheduleToState();
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const res = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const fresh = await res.json();
+          const old = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+          if (JSON.stringify(fresh) !== old) {
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(fresh));
+            scriptureData = fresh;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const head = await fetch('./scripture.pdf', { method: 'HEAD', cache: 'no-store' });
+        if (head.ok) {
+          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
+          const saved = await getLocalFile('pdf_file');
+          if (!saved || saved.tag !== tag) {
+            const getRes = await fetch('./scripture.pdf?nocache=' + Date.now());
+            const buf = await getRes.arrayBuffer();
+            await saveLocalFile('pdf_file', buf, tag);
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const head = await fetch('./chant_video.mp4', { method: 'HEAD', cache: 'no-store' });
+        if (head.ok) {
+          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
+          const saved = await getLocalFile('video_file');
+          if (!saved || saved.tag !== tag) {
+            const getRes = await fetch('./chant_video.mp4?nocache=' + Date.now());
+            const buf = await getRes.arrayBuffer();
+            await saveLocalFile('video_file', buf, tag);
+            const blob = new Blob([buf], { type: 'video/mp4' });
+            video.src = URL.createObjectURL(blob);
+          }
+        }
+      } catch (e) {}
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      checkDailyResetOnStartup(); // 跨日重置檢核
+      await evaluateWarmCompanionCard();
+
+      if (!isLineGuideDismissed) {
+        lineBrowserOverlay.classList.add('active');
+      } else {
+        handleOrientationCheck();
+      }
+
+      const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+      if (localSent) {
+        try { scriptureData = JSON.parse(localSent); } catch (e) {}
+      }
+      if (!scriptureData || scriptureData.length === 0) {
+        try {
+          const sRes = await fetch('./sentences.json');
+          if (sRes.ok) {
+            scriptureData = await sRes.json();
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(scriptureData));
+          }
+        } catch (e) {}
+      }
+
+      const localVideo = await getLocalFile('video_file');
+      if (localVideo && localVideo.data) {
+        const blob = new Blob([localVideo.data], { type: 'video/mp4' });
+        video.src = URL.createObjectURL(blob);
+      } else {
+        video.src = './chant_video.mp4';
+      }
+
+      const localPdf = await getLocalFile('pdf_file');
+      if (localPdf && localPdf.data) {
+        cachedPdfBuffer = localPdf.data;
+      } else {
+        try {
+          const pRes = await fetch('./scripture.pdf');
+          if (pRes.ok) {
+            const buf = await pRes.arrayBuffer();
+            await saveLocalFile('pdf_file', buf, 'init_pdf');
+            cachedPdfBuffer = buf;
+          }
+        } catch (e) {}
+      }
+
+      if (window.innerWidth > window.innerHeight && isCompanionDismissed) {
+        await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
+        updateVisualDisplay();
+        resetSideWingsForMode('mp4');
+      }
+    });
+  </script>
+</body>
+</html>
