@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v205 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v206 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -686,7 +686,7 @@
     let cachedPdfBuffer = null;
 
     let isManualSelected = false;
-    let isScheduleRepeatLocked = true; // 今日功課預設鎖定
+    let isScheduleRepeatLocked = true;
     let markA_Index = -1;
     let markB_Index = -1;
     let totalTargetCycles = 1;
@@ -1062,13 +1062,13 @@
       updateVisualDisplay();
     }
 
-    // 🌟 嚴格復原 v200 的比對模式左右翼鍵原始配置（slot-l1/l3, slot-r1/r3）
+    // 🌟 1. 嚴格對照您的指定：快轉放左2 (slot-l2)、關機放左4 (slot-l4)；錄音放右2 (slot-r2)、播放放右4 (slot-r4)
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
-        slotL1.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${baseSpeed}x</button>`;
-        slotL2.innerHTML = '';
-        slotL3.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">關機</button>`;
-        slotL4.innerHTML = '';
+        slotL1.innerHTML = '';
+        slotL2.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${baseSpeed}x</button>`;
+        slotL3.innerHTML = '';
+        slotL4.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">關機</button>`;
 
         document.getElementById('wing-btn-speed').addEventListener('click', (e) => {
           e.stopPropagation();
@@ -1078,10 +1078,10 @@
           handleShutdownClick();
         });
 
-        slotR1.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
-        slotR2.innerHTML = '';
-        slotR3.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
-        slotR4.innerHTML = '';
+        slotR1.innerHTML = '';
+        slotR2.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
+        slotR3.innerHTML = '';
+        slotR4.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
 
         document.getElementById('wing-btn-record').addEventListener('click', () => {
           toggleReliableRecordAction();
@@ -1318,40 +1318,26 @@
       if (btnPlay) btnPlay.textContent = '播放';
     });
 
-    video.addEventListener('timeupdate', () => {
-      if (currentMode !== 'mp4') return;
-
-      const range = getActiveVideoRange();
-      if (!range.valid) return;
-
-      if (video.currentTime >= range.end) {
-        recordDailyCycleCompletion(); // 🌟 跨模式今日修持遍數累計
-
-        if (completedCycles >= totalTargetCycles) {
-          video.pause();
-          videoPausedAt = -1;
-          video.currentTime = range.start;
-          completedCycles = 0;
-          const remainReset = Math.max(0, totalTargetCycles - completedCycles);
-          const btnRepeatCountDom = document.getElementById('btn-repeat-count');
-          if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remainReset}次`;
-
-          const btnGuide = document.getElementById('btn-guide-toggle');
-          if (btnGuide) {
-            btnGuide.textContent = '背書';
-            btnGuide.classList.remove('guide-active');
+    // 🌟 3. 跟讀模式高精度毫秒級時間監控迴圈（防止影片超出指定終點）
+    let mp4PrecisionCheckAnimId = null;
+    function startMp4PrecisionCheck() {
+      if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
+      function check() {
+        if (currentMode === 'mp4' && !video.paused && !video.ended) {
+          const range = getActiveVideoRange();
+          if (range.valid && video.currentTime >= range.end) {
+            video.pause();
+            video.currentTime = range.end; // 精準定格在結束點
+            handleMp4CycleEnd(range);
+            return;
           }
-          handleTargetCycleDone();
-        } else {
-          videoPausedAt = -1;
-          video.currentTime = range.start;
-          video.play().catch(() => {});
         }
+        mp4PrecisionCheckAnimId = requestAnimationFrame(check);
       }
-    });
+      mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+    }
 
-    // 🌟 跨模式（跟讀 + 自讀）今日修持遍數累計與解鎖核心函式
-    function recordDailyCycleCompletion() {
+    function handleMp4CycleEnd(range) {
       completedCycles++;
       const todayStr = getNormalizedDateStr();
       let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10) + 1;
@@ -1363,12 +1349,32 @@
 
       addCoins(calculateSentenceCount());
 
-      // 若今日累計完成次數達到或超過排程指定的目標，自動解鎖！
       if (dailyDone >= totalTargetCycles) {
         if (isScheduleRepeatLocked) {
           isScheduleRepeatLocked = false;
           showToast('🎉 今日功課遍數已全部達標！現已解鎖可自由調整次數', 4500);
         }
+      }
+
+      if (completedCycles >= totalTargetCycles) {
+        videoPausedAt = -1;
+        video.currentTime = range.start;
+        completedCycles = 0;
+        const remainReset = Math.max(0, totalTargetCycles - dailyDone);
+        if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remainReset}次`;
+
+        const btnGuide = document.getElementById('btn-guide-toggle');
+        if (btnGuide) {
+          btnGuide.textContent = '背書';
+          btnGuide.classList.remove('guide-active');
+        }
+        handleTargetCycleDone();
+      } else {
+        videoPausedAt = -1;
+        video.currentTime = range.start;
+        video.play().then(() => {
+          startMp4PrecisionCheck();
+        }).catch(() => {});
       }
     }
 
@@ -1613,7 +1619,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 遍數點擊檢查：未達標前嚴格鎖定，達標後解鎖開啟選單
+    // 🌟 2. 修復遍數設定點擊與顯示（精確對應所選次數）
     function handleRepeatCountClick() {
       if (isGuideActive || currentMode === 'record') return;
       const todayStr = getNormalizedDateStr();
@@ -1692,6 +1698,7 @@
               btnGuide.classList.add('guide-active');
               btnGuide.classList.remove('guide-waiting');
             }
+            startMp4PrecisionCheck(); // 🌟 啟動高精度毫秒級時間監控
           }).catch((err) => {
             console.error("播放受阻:", err);
             video.currentTime = range.start;
@@ -2093,7 +2100,7 @@
 
     function handleCycleCompletion() {
       if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-      recordDailyCycleCompletion(); // 🌟 自讀模式完成一輪，累加進度
+      recordDailyCycleCompletion();
 
       const todayStr = getNormalizedDateStr();
       const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
@@ -2149,6 +2156,8 @@
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
       if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+
+      if (mp4PrecisionCheckAnimId) { cancelAnimationFrame(mp4PrecisionCheckAnimId); mp4PrecisionCheckAnimId = null; }
 
       isGuideActive = false;
       isTransitioningLine = false;
@@ -2284,10 +2293,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V205_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V206_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V205_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V206_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2349,7 +2358,7 @@
             const todayStr = getNormalizedDateStr();
             const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
             if (dailyDone >= totalTargetCycles) {
-              isScheduleRepeatLocked = false; // 若今日已經達標過，自動解鎖
+              isScheduleRepeatLocked = false;
             }
 
             const btnRepeatCountDom = document.getElementById('btn-repeat-count');
