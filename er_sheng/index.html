@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式單介面播放器 v311 (直覺點擊啟動版)</title>
+  <title>歡喜背書橫式單介面播放器 v312 (穩定防護版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,7 +15,13 @@
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
   </script>
 
+  <!-- 引入 PDF.js 主程式與 Worker -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+    }
+  </script>
 
   <style>
     * {
@@ -39,10 +45,6 @@
       left: 0;
     }
 
-    #line-browser-overlay, #portrait-blocker-overlay, #companion-overlay {
-      display: none;
-    }
-
     #landscape-container {
       width: 100vw;
       height: 100vh;
@@ -54,6 +56,7 @@
       overflow: hidden;
     }
 
+    /* 頂端狀態與錯誤顯示面板 */
     #debug-panel {
       position: fixed;
       top: 10px; left: 80px; right: 80px;
@@ -68,22 +71,6 @@
       text-align: center;
       pointer-events: none;
       box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-    }
-
-    #schedule-toast {
-      display: none;
-      position: fixed;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(16, 185, 129, 0.96);
-      color: #FFFFFF;
-      border: 3px solid #FFFFFF;
-      padding: 14px 32px;
-      border-radius: 40px;
-      font-size: 20px;
-      font-weight: 900;
-      z-index: 100000;
-      pointer-events: none;
     }
 
     .side-wing {
@@ -151,8 +138,7 @@
 </head>
 <body>
 
-  <div id="debug-panel">✨ v311 執行中：點擊右側按鈕即切換並啟動功能</div>
-  <div id="schedule-toast">通知訊息</div>
+  <div id="debug-panel">✨ v312 執行中：系統初始化正常</div>
 
   <div id="landscape-container">
     <!-- 左側翼鍵 -->
@@ -185,9 +171,12 @@
 
   <script>
     const debugPanel = document.getElementById('debug-panel');
-    function logDebug(msg) {
+    function logDebug(msg, isError = false) {
       console.log(msg);
-      if (debugPanel) debugPanel.textContent = '📢 ' + msg;
+      if (debugPanel) {
+        debugPanel.textContent = (isError ? '❌ ' : '📢 ') + msg;
+        if (isError) debugPanel.style.background = 'rgba(239, 68, 68, 0.92)';
+      }
     }
 
     const pdfContainerWrap = document.getElementById('pdf-container-wrap');
@@ -204,11 +193,6 @@
     let currentPdfDoc = null;
     let cachedPdfBuffer = null;
 
-    // 定義防呆防錯的輔助函式
-    function haltGuideRunnerImmediately() {
-      // 停止導引與動畫的防呆函式
-    }
-
     function updateActiveButton(activeBtn) {
       [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => {
         if (b) b.classList.remove('active-mode');
@@ -216,66 +200,66 @@
       if (activeBtn) activeBtn.classList.add('active-mode');
     }
 
-    // 1. 跟讀模式：點擊即切換並播放影片
+    // 1. 跟讀模式
     async function switchToMp4Mode() {
-      currentMode = 'mp4';
-      updateActiveButton(btnModeMp4);
-
-      leftActionBtn.style.visibility = 'hidden';
-      pdfContainerWrap.style.display = 'none';
-      videoWrap.style.display = 'flex';
-      centerCore.scrollTop = 0;
-
       try {
+        currentMode = 'mp4';
+        updateActiveButton(btnModeMp4);
+
+        leftActionBtn.style.visibility = 'hidden';
+        pdfContainerWrap.style.display = 'none';
+        videoWrap.style.display = 'flex';
+        centerCore.scrollTop = 0;
+
         video.currentTime = 0;
         await video.play();
         logDebug("📖 跟讀模式：影片播放中");
       } catch (e) {
-        logDebug("📖 跟讀模式：點擊畫面任意處即可播放");
+        logDebug("📖 跟讀模式已就緒（點擊畫面即可播放）");
       }
     }
 
-    // 2. 自讀模式：點擊即切換並顯示 PDF 與定位鍵
+    // 2. 自讀模式
     async function switchToPdfMode() {
-      currentMode = 'pdf';
-      updateActiveButton(btnModePdf);
-
-      leftActionBtn.style.visibility = 'visible';
-      leftActionBtn.textContent = '定位';
-
-      video.pause();
-      videoWrap.style.display = 'none';
-      pdfContainerWrap.style.display = 'flex';
-
       try {
+        currentMode = 'pdf';
+        updateActiveButton(btnModePdf);
+
+        leftActionBtn.style.visibility = 'visible';
+        leftActionBtn.textContent = '定位';
+
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+
         if (!currentPdfDoc && cachedPdfBuffer) {
           await renderPdf(cachedPdfBuffer);
         }
         logDebug("📖 自讀模式：已就緒");
       } catch (err) {
-        logDebug("❌ 自讀模式錯誤: " + err.message);
+        logDebug("自讀切換錯誤: " + err.message, true);
       }
     }
 
-    // 3. 比對模式：點擊即切換並顯示 PDF 與播放鍵
+    // 3. 比對模式
     async function switchToRecordMode() {
-      currentMode = 'record';
-      updateActiveButton(btnModeRecord);
-
-      leftActionBtn.style.visibility = 'visible';
-      leftActionBtn.textContent = '播放';
-
-      video.pause();
-      videoWrap.style.display = 'none';
-      pdfContainerWrap.style.display = 'flex';
-
       try {
+        currentMode = 'record';
+        updateActiveButton(btnModeRecord);
+
+        leftActionBtn.style.visibility = 'visible';
+        leftActionBtn.textContent = '播放';
+
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+
         if (!currentPdfDoc && cachedPdfBuffer) {
           await renderPdf(cachedPdfBuffer);
         }
-        logDebug("🎙️ 比對模式：已就緒（左3為播放鍵）");
+        logDebug("🎙️ 比對模式：已就緒");
       } catch (err) {
-        logDebug("❌ 比對模式錯誤: " + err.message);
+        logDebug("比對切換錯誤: " + err.message, true);
       }
     }
 
@@ -283,7 +267,7 @@
     btnModePdf.addEventListener('click', switchToPdfMode);
     btnModeRecord.addEventListener('click', switchToRecordMode);
 
-    // 瀏覽器解鎖機制
+    // 點擊畫面解鎖影片播放
     window.addEventListener('pointerdown', () => {
       if (currentMode === 'mp4' && video.paused) {
         video.play().catch(() => {});
@@ -292,6 +276,9 @@
 
     async function renderPdf(buf) {
       try {
+        if (!window.pdfjsLib) {
+          throw new Error("PDF.js 尚未載入");
+        }
         const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buf) });
         currentPdfDoc = await loadingTask.promise;
         const page = await currentPdfDoc.getPage(1);
@@ -301,20 +288,30 @@
         const ctx = pdfCanvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport: viewport }).promise;
       } catch (e) {
-        logDebug("PDF 渲染例外: " + e.message);
+        logDebug("PDF 渲染失敗: " + e.message, true);
       }
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
       try {
+        logDebug("正在載入經文檔案...");
         const res = await fetch('./scripture.pdf');
         if (res.ok) {
           const buf = await res.arrayBuffer();
           cachedPdfBuffer = buf;
           await renderPdf(buf);
+          logDebug("經文 PDF 載入成功");
+        } else {
+          logDebug("找不到 scripture.pdf 檔案", true);
         }
+      } catch (e) {
+        logDebug("初始化錯誤: " + e.message, true);
+      }
+
+      try {
+        video.src = './chant_video.mp4';
       } catch (e) {}
-      video.src = './chant_video.mp4';
+
       switchToMp4Mode();
     });
   </script>
