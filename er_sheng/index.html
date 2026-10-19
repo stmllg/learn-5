@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v219 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v220 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -364,7 +364,7 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 🌟 60px 方型按鈕：外框藍色、內部充填黑色、文字為亮橙色 (#FB923C) */
+    /* 60px 方型按鈕：外框藍色、內部充填黑色、文字為亮橙色 (#FB923C) */
     .square-btn {
       width: 60px !important;
       height: 60px !important;
@@ -387,6 +387,17 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
+    /* 🌟 方案一：琉璃蓮花金光（靜態無呼吸燈動態），沉穩而莊嚴 */
+    .btn-color-offering {
+      background: radial-gradient(circle at 35% 35%, #FDE047 0%, #F59E0B 45%, #B45309 100%) !important;
+      border: 2.5px solid #FEF3C7 !important;
+      color: #FFFBEB !important;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.65), inset 0 0 10px rgba(255, 255, 255, 0.75) !important;
+      font-size: 14px !important;
+      font-weight: 900 !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    }
+
     .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
     #btn-mark-a.active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF; }
     .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
@@ -403,7 +414,6 @@
       100% { transform: scale(1.0); }
     }
 
-    .btn-color-offering { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border-color: #FDE68A; color: #78350F; }
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
 
@@ -753,9 +763,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V219');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V220');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V219', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V220', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1192,8 +1202,8 @@
       });
     });
 
-    // 真實感立體金幣渲染函式
-    function renderRealisticCoin(ctx, x, y, radius, opacity) {
+    // 🌟 渲染帶有「福」與「慧」文字的高級立體金幣
+    function renderRealisticCoin(ctx, x, y, radius, opacity, symbolText) {
       ctx.save();
       ctx.translate(x, y);
       ctx.globalAlpha = Math.min(1.0, Math.max(0.88, opacity));
@@ -1213,15 +1223,14 @@
       ctx.stroke();
 
       ctx.fillStyle = '#B26A00';
-      ctx.font = `900 ${Math.floor(radius * 1.2)}px sans-serif`;
+      ctx.font = `900 ${Math.floor(radius * 1.1)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('$', 0, 1.5);
+      ctx.fillText(symbolText, 0, 1.5);
 
       ctx.restore();
     }
 
-    // 錄音鍵點擊時：向上爆發力道與真實感金幣特效
     function triggerRecordCoinSplash() {
       const btn = document.getElementById('wing-btn-record');
       if (!btn) return;
@@ -1238,6 +1247,7 @@
 
       const coins = [];
       const count = 32;
+      const symbols = ['福', '慧'];
       for (let i = 0; i < count; i++) {
         const angle = -Math.PI * 0.82 + Math.random() * (Math.PI * 0.64);
         const speed = Math.random() * 9 + 5;
@@ -1250,7 +1260,8 @@
           radius: Math.random() * 8 + 16,
           rotation: Math.random() * Math.PI,
           vRot: (Math.random() - 0.5) * 0.15,
-          opacity: 1.0
+          opacity: 1.0,
+          symbol: symbols[i % symbols.length]
         });
       }
 
@@ -1268,7 +1279,7 @@
           c.rotation += c.vRot;
           c.opacity = Math.max(0, 1 - elapsed / duration);
 
-          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity);
+          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity, c.symbol);
         });
 
         if (elapsed < duration) {
@@ -1380,7 +1391,6 @@
       if (btnPlay) btnPlay.textContent = '播放';
     });
 
-    // 跟讀模式高精度毫秒級時間監控迴圈
     let mp4PrecisionCheckAnimId = null;
     function startMp4PrecisionCheck() {
       if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
@@ -1465,10 +1475,10 @@
     function handleTargetCycleDone() {
       const todayStr = getNormalizedDateStr();
       localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
-      triggerSevenColoredLotusFlowerRain(); // 🌟 使用福智七彩蓮花燈的七色花雨特效
+      triggerSevenColoredLotusFlowerRain();
     }
 
-    // 🌟 核心升級：福智七彩蓮花燈的七色五瓣花雨特效[cite: 2]
+    // 🌟 福智七彩蓮花燈七色花雨特效（白色花心帶有明黃色中心）
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1478,7 +1488,6 @@
       canvas.height = window.innerHeight;
 
       const flowers = [];
-      // 七彩蓮花燈的七色代碼[cite: 2]
       const lotusColors = [
         '#FF94B8', // 1. 粉紅色 (闔家平安)[cite: 2]
         '#FFB300', // 2. 琥珀色 (財富圓滿)[cite: 2]
@@ -1520,7 +1529,6 @@
           ctx.rotate((f.rotation * Math.PI) / 180);
           ctx.globalAlpha = f.opacity;
 
-          // 繪製五瓣花
           for (let j = 0; j < 5; j++) {
             const angle = (j * 2 * Math.PI) / 5;
             const dist = f.size * 0.40;
@@ -1531,8 +1539,9 @@
             ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
             ctx.fill();
           }
-          // 花心
-          ctx.fillStyle = '#FEF08A';
+
+          // 🌟 1. 白色花心加上顏色（明黃色中心 #FEF08A；若為其他色則微調細節）
+          ctx.fillStyle = (f.color === '#F1F5F9') ? '#FEF08A' : '#FFFFFF';
           ctx.beginPath();
           ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
           ctx.fill();
@@ -2357,10 +2366,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V219_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V220_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V219_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V220_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
