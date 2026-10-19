@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v214 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v216 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -364,7 +364,7 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 🌟 放大版方型跟讀/自讀按鈕：外框 60px、字體 19px、淡天空色漸層 */
+    /* 🌟 統一規格：60px 方型淡天空色按鈕，文字為亮橙色 (#FB923C) */
     .square-btn {
       width: 60px !important;
       height: 60px !important;
@@ -377,7 +377,7 @@
       justify-content: center;
       font-size: 19px !important;
       font-weight: 900;
-      color: #FFFFFF !important;
+      color: #FB923C !important;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
       transition: transform 0.15s ease-out;
@@ -536,7 +536,7 @@
       <div class="slot" id="slot-l1"><button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: hidden;">起點</button></div>
       <div class="slot" id="slot-l2"><button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: hidden;">終點</button></div>
       <div class="slot" id="slot-l3"><button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button></div>
-      <div class="slot" id="slot-l4"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">關機</button></div>
+      <div class="slot" id="slot-l4"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button></div>
     </div>
 
     <div id="center-core">
@@ -643,7 +643,6 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    // 🌟 獨立的跟讀速度 (mp4Speed) 與 自讀速度 (pdfSpeed)，自動從 localStorage 讀取記憶
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -754,9 +753,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V214');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V216');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V214', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V216', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -925,7 +924,6 @@
       }, 2000);
     }
 
-    // 🌟 設定跟讀速度並儲存至 localStorage
     function setMp4Speed(val) {
       mp4Speed = val;
       localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
@@ -942,7 +940,6 @@
       }, 3000);
     }
 
-    // 🌟 設定自讀速度並儲存至 localStorage
     function setPdfSpeed(val) {
       pdfSpeed = val;
       localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
@@ -1082,7 +1079,7 @@
         centerCore.scrollTop = 0;
         resetSideWingsForMode('mp4');
 
-        video.playbackRate = mp4Speed; // 🌟 切換至跟讀模式時立即套用記憶速度
+        video.playbackRate = mp4Speed;
         const range = getActiveVideoRange();
         videoPausedAt = -1;
         if (range.valid) {
@@ -1109,12 +1106,13 @@
       updateVisualDisplay();
     }
 
+    // 🌟 統整按鈕配置：比對鍵、跟讀鍵、自讀鍵皆為 square-btn（天空藍漸層、橙字 #FB923C）
     function resetSideWingsForMode(mode) {
       if (mode === 'record') {
         slotL1.innerHTML = '';
         slotL2.innerHTML = `<button id="wing-btn-speed" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">快轉 ${mp4Speed}x</button>`;
-        slotL3.innerHTML = '';
-        slotL4.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">關機</button>`;
+        slotL3.innerHTML = `<button id="wing-btn-shutdown" style="width: 90%; height: 88%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 16px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">離開</button>`;
+        slotL4.innerHTML = '';
 
         document.getElementById('wing-btn-speed').addEventListener('click', (e) => {
           e.stopPropagation();
@@ -1124,8 +1122,8 @@
           handleShutdownClick();
         });
 
-        slotR1.innerHTML = '';
-        slotR2.innerHTML = `<button id="wing-btn-record" style="width: 90%; height: 85%; background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #FECACA; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">錄音</button>`;
+        slotR1.innerHTML = `<button id="wing-btn-record" class="square-btn">比對</button>`; // 🌟 錄音鍵改為「比對」方型天空藍橙字按鈕
+        slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
         slotR3.innerHTML = '';
         slotR4.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 85%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 17px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
 
@@ -1135,11 +1133,12 @@
         document.getElementById('wing-btn-play').addEventListener('click', () => {
           togglePlaybackAction();
         });
+        document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
       } else {
         slotL1.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">起點</button>`;
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">終點</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button>`;
-        slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">關機</button>`;
+        slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>`; // 🌟 關機鍵文字改為「離開」
 
         document.getElementById('btn-mark-a').addEventListener('click', handleMarkAClck);
         document.getElementById('btn-mark-b').addEventListener('click', handleMarkBClick);
@@ -1150,7 +1149,6 @@
         slotR1.innerHTML = `<button class="square-btn" id="btn-guide-toggle">${guideText}</button>`;
         slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
 
-        // 🌟 獨立配置快轉+與快轉-按鈕於 slotR3 與 slotR4
         slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button>`;
         slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down">快轉-</button>`;
 
@@ -1343,8 +1341,8 @@
           mediaRecorder.stop();
         }
         isUserRecording = false;
-        wingBtnRecord.textContent = '錄音';
-        wingBtnRecord.style.background = 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)';
+        wingBtnRecord.textContent = '比對';
+        wingBtnRecord.style.background = '';
         if (wingBtnRecord) wingBtnRecord.classList.remove('recording-flashing');
       }
     }
@@ -1402,7 +1400,7 @@
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(0, scheduleRepeatLimit - dailyDone);
+        const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 保留最低為 1 次
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (dailyDone >= scheduleRepeatLimit) {
@@ -1411,6 +1409,8 @@
           videoPausedAt = -1;
           video.currentTime = range.start;
           completedCycles = 0;
+
+          if (btnRepeatCountDom) btnRepeatCountDom.textContent = `1次`; // 🌟 達標後保留 1 在上面
 
           const btnGuide = document.getElementById('btn-guide-toggle');
           if (btnGuide) {
@@ -1429,13 +1429,14 @@
         completedCycles++;
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(0, totalTargetCycles - completedCycles);
+        const remain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 保留最低為 1 次
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (completedCycles >= totalTargetCycles) {
           videoPausedAt = -1;
           video.currentTime = range.start;
           completedCycles = 0;
+          if (btnRepeatCountDom) btnRepeatCountDom.textContent = `1次`; // 🌟 達標後保留 1 在上面
 
           const btnGuide = document.getElementById('btn-guide-toggle');
           if (btnGuide) {
@@ -1629,6 +1630,7 @@
       return closestIdx;
     }
 
+    // 🌟 確保遍數顯示下限保留為 1
     function updateVisualDisplay() {
       const btnMarkADom = document.getElementById('btn-mark-a');
       const btnMarkBDom = document.getElementById('btn-mark-b');
@@ -1658,13 +1660,13 @@
       }
 
       if (btnRepeatCountDom) {
+        const todayStr = getNormalizedDateStr();
+        const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
         if (isScheduleRepeatLocked) {
-          const todayStr = getNormalizedDateStr();
-          const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
-          const remain = Math.max(0, scheduleRepeatLimit - dailyDone);
+          const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 保留最低為 1
           btnRepeatCountDom.textContent = `${remain}次`;
         } else {
-          const sessionRemain = Math.max(0, totalTargetCycles - completedCycles);
+          const sessionRemain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 保留最低為 1
           btnRepeatCountDom.textContent = `${sessionRemain}次`;
         }
       }
@@ -1727,7 +1729,7 @@
         }
       } catch (e) {}
 
-      showToast("已關機退出全螢幕，釋放麥克風資源", 3000);
+      showToast("已離開全螢幕，釋放麥克風資源", 3000);
     }
 
     document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
@@ -1757,7 +1759,7 @@
 
       if (currentMode === 'mp4') {
         centerCore.scrollTop = 0;
-        video.playbackRate = mp4Speed; // 🌟 播放時套用獨立 mp4Speed
+        video.playbackRate = mp4Speed;
 
         const range = getActiveVideoRange();
         if (!range.valid) {
@@ -1817,7 +1819,7 @@
 
       const todayStr = getNormalizedDateStr();
       const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
-      const remain = isScheduleRepeatLocked ? Math.max(0, scheduleRepeatLimit - dailyDone) : Math.max(0, totalTargetCycles - completedCycles);
+      const remain = isScheduleRepeatLocked ? Math.max(1, scheduleRepeatLimit - dailyDone) : Math.max(1, totalTargetCycles - completedCycles);
       const btnRepeatCountDom = document.getElementById('btn-repeat-count');
       if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
@@ -1849,14 +1851,14 @@
 
       const curLine = parsedTextLines[currentLineIndex];
       const charCount = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
-      const lineDurationSec = (charCount / (2.8 * pdfSpeed)); // 🌟 自讀導覽套用獨立 pdfSpeed
+      const lineDurationSec = (charCount / (2.8 * pdfSpeed));
       const maxTimeoutMs = (lineDurationSec + 10.0) * 1000;
 
       maxTimeoutSafetyTimer = setTimeout(() => {
         if (isGuideActive) {
           haltGuideRunnerImmediately();
           handleShutdownClick();
-          showToast("讀誦逾時，已為您自動關機釋放資源", 4500);
+          showToast("讀誦逾時，已為您自動離開釋放資源", 4500);
         }
       }, maxTimeoutMs);
     }
@@ -2107,7 +2109,7 @@
       const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
 
       if (isVoiceActive || isInTailZone) {
-        const charPerMs = (2.8 * pdfSpeed) / 1000; // 🌟 紅點前進速度套用獨立 pdfSpeed
+        const charPerMs = (2.8 * pdfSpeed) / 1000;
         if (isLineHeadLocked) {
           if (currentCharIndexFloat < 0.5) {
             currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
@@ -2189,7 +2191,7 @@
         localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(0, scheduleRepeatLimit - dailyDone);
+        const remain = Math.max(1, scheduleRepeatLimit - dailyDone); // 🌟 保留最低為 1
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (dailyDone >= scheduleRepeatLimit) {
@@ -2203,7 +2205,7 @@
         completedCycles++;
         addCoins(calculateSentenceCount());
 
-        const remain = Math.max(0, totalTargetCycles - completedCycles);
+        const remain = Math.max(1, totalTargetCycles - completedCycles); // 🌟 保留最低為 1
         if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
 
         if (completedCycles >= totalTargetCycles) {
@@ -2390,10 +2392,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V214_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V216_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V214_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V216_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2461,7 +2463,7 @@
 
             const btnRepeatCountDom = document.getElementById('btn-repeat-count');
             if (btnRepeatCountDom) {
-              const remain = isScheduleRepeatLocked ? Math.max(0, scheduleRepeatLimit - dailyDone) : Math.max(0, totalTargetCycles - completedCycles);
+              const remain = isScheduleRepeatLocked ? Math.max(1, scheduleRepeatLimit - dailyDone) : Math.max(1, totalTargetCycles - completedCycles);
               btnRepeatCountDom.textContent = `${remain}次`;
             }
           }
