@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v398 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v399 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 陪伴卡
+       🌟 3. 心靈陪伴卡 (V399 解決文字閃爍與破圖問題)
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -203,6 +203,16 @@
       border-radius: 14px;
       background: #1E293B;
       overflow: hidden;
+      
+      /* V399 加入預設隱藏與彈出動畫，避免未載入圖片時的破碎閃爍 */
+      opacity: 0;
+      transform: scale(0.95);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .companion-wrapper.ready {
+      opacity: 1;
+      transform: scale(1);
     }
 
     #companion-img-display {
@@ -213,6 +223,7 @@
       display: block;
       object-fit: contain;
       border-radius: 14px;
+      color: transparent; /* V399 隱藏圖片未載入時的 alt 文字 */
     }
 
     .btn-card-orange {
@@ -293,6 +304,7 @@
       overflow: hidden;
     }
 
+    /* 🟢 綠色通知置中顯示 */
     #schedule-toast {
       display: none;
       position: fixed;
@@ -399,6 +411,7 @@
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
 
+    /* 互斥高亮樣式 */
     .active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF !important; }
 
     #center-core {
@@ -441,6 +454,7 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
+    /* 🌸 畫布特效層 */
     #flowerCanvas {
       display: none;
       position: fixed;
@@ -452,6 +466,7 @@
       z-index: 999999;
     }
 
+    /* 供養與功德榜 */
     #offering-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 999; justify-content: center; align-items: center; padding: 12px; }
     .offering-card { background: #FFFFFF; color: #1E293B; border-radius: 18px; width: 92%; max-width: 460px; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
     .offering-header { font-size: 20px; font-weight: 900; color: #D97706; text-align: center; }
@@ -498,10 +513,10 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 陪伴卡 (回歸 V226 最單純的載入架構) -->
+  <!-- 🌟 3. 心靈陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
-      <img id="companion-img-display" src="" alt="心靈陪伴卡" onerror="this.style.display='none';" />
+      <img id="companion-img-display" src="" alt="心靈陪伴卡" />
       <button class="btn-card-orange" onclick="closeCompanionCard()">背書供養</button>
     </div>
   </div>
@@ -516,9 +531,10 @@
   <!-- 🌸 畫布特效層 -->
   <canvas id="flowerCanvas"></canvas>
 
-  <!-- 4. 主視圖 (全新的左4右4對稱版面) -->
+  <!-- 4. 主視圖 -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
+      <!-- 左側選單由 JS 動態生成 -->
       <div class="slot" id="slot-l1"></div>
       <div class="slot" id="slot-l2"></div>
       <div class="slot" id="slot-l3"></div>
@@ -533,16 +549,19 @@
         <div id="red-dot"></div>
       </div>
 
+      <!-- PDF 容器 -->
       <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
       </div>
 
+      <!-- 預設啟動：跟讀模式 -->
       <div id="video-container-wrap">
         <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
       </div>
     </div>
 
     <div class="side-wing" id="right-wing">
+      <!-- 右側選單由 JS 動態生成 -->
       <div class="slot" id="slot-r1"></div>
       <div class="slot" id="slot-r2"></div>
       <div class="slot" id="slot-r3"></div>
@@ -550,7 +569,7 @@
     </div>
   </div>
 
-  <!-- 供養與排行彈窗結構 -->
+  <!-- 供養彈窗 -->
   <div id="offering-modal-overlay">
     <div class="offering-card">
       <div class="offering-header"><span>🙏</span> 功德供養</div>
@@ -569,6 +588,7 @@
     </div>
   </div>
 
+  <!-- 排行榜彈窗 -->
   <div id="leaderboard-modal-overlay">
     <div class="leaderboard-card">
       <div class="leaderboard-header"><span>🏆</span> 供養福慧幣 功德圓滿 隨喜大家</div>
@@ -592,11 +612,6 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
     }
 
-    const isLineApp = /Line\//i.test(navigator.userAgent);
-    let isLineGuideDismissed = !isLineApp;
-    let isCompanionDismissed = false;
-    let hasEnteredReciting = false;
-
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -611,6 +626,7 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
+    // 🌟 三重獨立速度儲存機制
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -717,50 +733,40 @@
     let calibrationSamples = [];
     let isCalibrating = false;
     let silentFrameCount = 0;
+    let hasEnteredReciting = false;
 
+    // 播放錄音檔結束監聽
     recordAudioElement.addEventListener('ended', () => {
       renderUI();
     });
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V398');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V399');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V398', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V399', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
     }
 
-    // 🌟 V226 純正的 Orientation Check
     function handleOrientationCheck() {
       if (hasEnteredReciting) return;
 
-      if (!isLineGuideDismissed) {
-        lineBrowserOverlay.classList.add('active');
-        portraitBlocker.style.display = 'none';
-        companionOverlay.classList.remove('active');
-        return;
-      }
-
       const isPortrait = window.innerHeight > window.innerWidth;
-
       if (isPortrait) {
         portraitBlocker.style.display = 'flex';
-        companionOverlay.classList.remove('active');
-        haltGuideRunnerImmediately();
+        companionOverlay.style.display = 'none';
       } else {
         portraitBlocker.style.display = 'none';
-
-        if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
-          companionOverlay.classList.add('active');
-        }
+        companionOverlay.style.display = 'flex';
       }
     }
 
     function orientationChangeWrapper() {
       setTimeout(handleOrientationCheck, 150);
     }
+
     window.addEventListener('resize', handleOrientationCheck);
     window.addEventListener('orientationchange', orientationChangeWrapper);
 
@@ -773,32 +779,29 @@
       } catch (e) {}
     }
 
-    // 🌟 啟動主程式 (必須按下按鈕才會執行)
+    // 🌟 啟動主程式
     function closeCompanionCard() {
       hasEnteredReciting = true;
-      isCompanionDismissed = true;
-      companionOverlay.setAttribute('data-needed', 'false');
       companionOverlay.style.opacity = '0';
-
       triggerAppFullscreen();
 
       setTimeout(() => {
         companionOverlay.classList.remove('active');
         companionOverlay.style.display = 'none';
-        
-        try {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          if (!audioContext) audioContext = new AudioContextClass();
-          if (audioContext.state === 'suspended') { audioContext.resume(); }
-        } catch (err) {}
-
-        if (!isManualSelected) applyScheduleToState();
-        
-        // 進入跟讀，然後開始加載外部資源 (延遲載入)
-        setMode('mp4');
-        setTimeout(downloadCoreResources, 500);
-
+        activateMainReciteEntry();
       }, 350);
+    }
+
+    function activateMainReciteEntry() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') { audioContext.resume(); }
+      } catch (err) {}
+
+      if (!isManualSelected) applyScheduleToState();
+      setMode('mp4'); 
+      downloadCoreResources();
     }
 
     async function downloadCoreResources() {
@@ -821,9 +824,13 @@
         }
       });
 
+      // 下載 PDF，若目前正好在 PDF 模式，下載完立刻幫忙畫上去，避免永久白屏
       getLocalFile('pdf_file').then(async localPdf => {
         if (localPdf && localPdf.data) {
           cachedPdfBuffer = localPdf.data;
+          if (currentMode === 'pdf' && parsedTextLines.length === 0) {
+              renderPdfOnValidDimensions();
+          }
         } else {
           try {
             const pRes = await fetch('./scripture.pdf');
@@ -831,13 +838,22 @@
               const buf = await pRes.arrayBuffer();
               await saveLocalFile('pdf_file', buf, 'init_pdf');
               cachedPdfBuffer = buf;
+              if (currentMode === 'pdf' && parsedTextLines.length === 0) {
+                  renderPdfOnValidDimensions();
+              }
             }
           } catch(e){}
         }
       });
+
+      video.addEventListener('loadedmetadata', () => {
+        if (currentMode === 'mp4' && video.paused) {
+            const range = getActiveVideoRange();
+            if (range.valid) { try { video.currentTime = range.start; } catch(e){} }
+        }
+      });
     }
 
-    // 🌟 核心：PDF 渲染引擎
     async function renderPdfOnValidDimensions() {
       if (!cachedPdfBuffer) return;
       try {
@@ -1212,6 +1228,7 @@
 
     // 🌟 終極 8 鍵完美佈局算繪
     function renderUI() {
+      // ===== 左側 4 鍵 (供養, 起句/播放, 終句, 慢-) =====
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
@@ -1224,11 +1241,13 @@
       
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
 
+      // ===== 右側 4 鍵 (跟讀, 自讀, 比對, 快+) =====
       slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
       slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
       slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
       slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
+      // --- 絕對動態綁定事件 ---
       const btnOffering = document.getElementById('btn-offering');
       if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
@@ -1284,6 +1303,7 @@
       const colorGreen = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
       const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
 
+      // 1. 初始化全黑
       [btnGendu, btnZidu, btnRecord].forEach(btn => {
           if (btn) {
               btn.style.background = colorBlack;
@@ -1293,6 +1313,7 @@
           }
       });
 
+      // 2. 針對當前模式上實心色
       if (currentMode === 'mp4') {
           if (btnGendu) {
               const isPlaying = video && !video.paused;
@@ -1373,10 +1394,11 @@
           haltGuideRunnerImmediately();
       } else {
           if (parsedTextLines.length === 0) {
-              showToast("經文處理中，請稍候", 2000);
+              showToast("經文準備中，請稍等一秒", 2000);
               return;
           }
           
+          // 🌟 防呆機制：若未設定起終點，直接自動設定全篇
           if (markA_Index === -1 || markB_Index === -1) { 
               markA_Index = 0;
               markB_Index = parsedTextLines.length - 1;
@@ -1411,7 +1433,7 @@
           return;
       }
       if (parsedTextLines.length === 0) {
-          showToast("經文處理中，請稍等片刻", 2000);
+          showToast("經文準備中，請稍等片刻", 2000);
           return;
       }
       toggleReliableRecordAction();
@@ -2272,37 +2294,45 @@
       updateVisualDisplay();
     }
 
-    // 🌟 V398 完美還原 V226 最乾淨的開機邏輯
+    // 🌟 V399 完美修復「閃爍小字」與「隱藏 PDF」
     window.addEventListener('DOMContentLoaded', () => {
-      // 1. 攔截 LINE 瀏覽器 (強制鎖死阻擋下載)
+      // 1. 攔截 LINE 瀏覽器
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
         overlay.classList.add('active');
         return; 
       }
 
-      // 2. 直接讀取並顯示陪伴卡 (移除每日記憶功能)
+      // 2. 先開啟唯美的深色背景模糊遮罩 (不顯示按鈕與破圖)
+      const compOverlay = document.getElementById('companion-overlay');
+      compOverlay.classList.add('active');
+      handleOrientationCheck();
+
+      // 3. 處理卡片邏輯
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = parseInt(urlParams.get('day'), 10) || 1;
 
       if (!urlParams.get('day') && !urlParams.get('start')) {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V398_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V399_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V398_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V399_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
       const imgDisplay = document.getElementById('companion-img-display');
-      imgDisplay.src = 'cards/' + cardFileName;
-      
-      const compOverlay = document.getElementById('companion-overlay');
-      compOverlay.classList.add('active');
-      compOverlay.setAttribute('data-needed', 'true');
+      const compWrapper = document.querySelector('.companion-wrapper');
 
-      // 檢查橫豎屏 (決定顯示卡片或擋板)
-      handleOrientationCheck();
+      // 🌟 核心防閃爍修復：等圖片真正下載完畢，才把卡片「彈」出來顯示
+      imgDisplay.onload = () => {
+          compWrapper.classList.add('ready');
+      };
+      imgDisplay.onerror = () => {
+          compWrapper.classList.add('ready'); // 萬一遺失圖片，依然顯示按鈕
+      };
+      imgDisplay.src = 'cards/' + cardFileName;
+
     });
   </script>
 </body>
