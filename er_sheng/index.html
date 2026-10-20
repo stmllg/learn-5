@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v392 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v393 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -191,11 +191,17 @@
 
     .companion-wrapper {
       position: relative;
-      display: inline-block;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 280px;
+      min-height: 200px;
       max-height: 88vh;
       max-width: 95vw;
       box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
       border-radius: 14px;
+      background: #1E293B;
       overflow: hidden;
     }
 
@@ -499,7 +505,7 @@
   <!-- 🌟 3. 21 天心靈陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
-      <img id="companion-img-display" src="" alt="心靈陪伴卡" />
+      <img id="companion-img-display" src="" alt="心靈陪伴卡" onerror="this.style.display='none';" />
       <button class="btn-card-orange" onclick="closeCompanionCard()">背書供養</button>
     </div>
   </div>
@@ -590,14 +596,14 @@
   </div>
 
   <script>
-    // 🌟 全域防護：若在 LINE 內建瀏覽器，強制鎖死所有後續程式，阻擋載入
+    // 🌟 全域防護：若在 LINE 內建瀏覽器，強制鎖死所有後續程式
     const isLineApp = /Line\//i.test(navigator.userAgent);
     let isCompanionDismissed = false;
     let hasEnteredReciting = false;
 
-    // 🌟 確保 PDF.js Worker 核心路徑正確掛載
+    // 🌟 確保 PDF.js Worker 核心路徑改回最相容模式 (修復 CORS 與白畫面問題)
     if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
@@ -731,9 +737,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V392');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V393');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V392', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V393', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -750,7 +756,9 @@
         haltGuideRunnerImmediately();
       } else {
         portraitBlocker.style.display = 'none';
-        companionOverlay.classList.add('active');
+        if (!isCompanionDismissed) {
+          companionOverlay.classList.add('active');
+        }
       }
     }
 
@@ -799,7 +807,7 @@
       } catch (err) {}
 
       if (!isManualSelected) applyScheduleToState();
-      setMode('mp4'); // 強制將初始畫面定軌在跟讀模式
+      setMode('mp4'); 
     }
 
     async function renderPdfOnValidDimensions() {
@@ -847,7 +855,7 @@
       try {
         const db = await openDatabase();
         const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).put({ data: data, tag: tag }, key);
+        tx.objectStore(STORE_NAME).put({ data: data, tag: key });
       } catch (e) {}
     }
 
@@ -1052,7 +1060,6 @@
 
         ensureMicrophoneActive(); 
         
-        // 🌟 雙重保障渲染：若當下 PDF 尚未準備好，強制再渲染一次
         if (cachedPdfBuffer && parsedTextLines.length === 0) {
             showToast('經文排版中，請稍候...', 2000);
             window.requestAnimationFrame(() => {
@@ -1076,7 +1083,7 @@
 
     // 🌟 終極 8 鍵完美佈局算繪
     function renderUI() {
-      // ===== 左側 4 鍵 =====
+      // ===== 左側 4 鍵 (供養, 起句/播放, 終句, 慢-) =====
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
@@ -1089,7 +1096,7 @@
       
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
 
-      // ===== 右側 4 鍵 =====
+      // ===== 右側 4 鍵 (跟讀, 自讀, 比對, 快+) =====
       slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
       slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
       slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
@@ -1241,19 +1248,20 @@
       if (isGuideActive) {
           haltGuideRunnerImmediately();
       } else {
-          if (parsedTextLines.length === 0) {
-              showToast("經文處理中，請稍等片刻", 2000);
-              return;
-          }
-          // 🌟 防呆：若未設定起終點，自動設定全篇
+          // 🌟 防呆：若未設定起終點，不再用語音警告，直接自動設為全篇
           if (markA_Index === -1 || markB_Index === -1) { 
+              if (parsedTextLines.length === 0) {
+                  showToast("經文處理中，請稍候", 2000);
+                  return;
+              }
               markA_Index = 0;
               markB_Index = parsedTextLines.length - 1;
               updateVisualDisplay();
-              showToast("已為您自動設定全篇", 2000);
+              showToast("已自動為您設定全篇範圍", 2500);
           }
 
           isGuideActive = true;
+          if (parsedTextLines.length === 0) { isGuideActive = false; return; }
           if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
 
           isVoiceActive = false;
@@ -1673,7 +1681,10 @@
       const btnMarkB = document.getElementById('btn-mark-b');
       if (!btnMarkB) return;
       const selectedB = getLineAtButtonBottom(btnMarkB);
-      if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
+      if (markA_Index !== -1 && selectedB < markA_Index) { 
+        showToast("終點不能在起點之前", 2500); 
+        return; 
+      }
       
       isManualSelected = true;
       markB_Index = selectedB;
@@ -2140,7 +2151,7 @@
 
     // 🌟 網頁載入初始化
     window.addEventListener('DOMContentLoaded', async () => {
-      // 🚨 強制鎖死機制：只要是 LINE 瀏覽器，立刻攔截，完全不執行後續載入
+      // 🚨 強制鎖死機制：只要是 LINE 瀏覽器，完全不執行後續載入
       if (isLineApp) {
         document.getElementById('line-browser-overlay').classList.add('active');
         return; 
@@ -2173,7 +2184,8 @@
       getLocalFile('pdf_file').then(async localPdf => {
         if (localPdf && localPdf.data) {
           cachedPdfBuffer = localPdf.data;
-          if (currentMode === 'pdf' && parsedTextLines.length === 0) renderPdfOnValidDimensions();
+          // 背景預先強制渲染一次 PDF，達到切換時零等待
+          renderPdfOnValidDimensions();
         } else {
           try {
             const pRes = await fetch('./scripture.pdf');
@@ -2181,7 +2193,7 @@
               const buf = await pRes.arrayBuffer();
               await saveLocalFile('pdf_file', buf, 'init_pdf');
               cachedPdfBuffer = buf;
-              if (currentMode === 'pdf' && parsedTextLines.length === 0) renderPdfOnValidDimensions();
+              renderPdfOnValidDimensions();
             }
           } catch(e){}
         }
@@ -2194,7 +2206,9 @@
         }
       });
 
+      // 無論如何都顯示陪伴卡，等待使用者按「背書供養」
       await evaluateWarmCompanionCard();
+      document.getElementById('companion-overlay').classList.add('active');
       handleOrientationCheck();
     });
   </script>
