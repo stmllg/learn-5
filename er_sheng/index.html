@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v381 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v382 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -265,9 +265,9 @@
 
     /* 🔴 錄音時強效呼吸閃爍特效樣式 */
     @keyframes recordingPulseStrong {
-      0%   { transform: scale(1.0); box-shadow: 0 0 15px rgba(239, 68, 68, 0.9); background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); }
-      50%  { transform: scale(1.08); box-shadow: 0 0 35px rgba(239, 68, 68, 1), inset 0 0 18px rgba(255, 255, 255, 0.8); background: linear-gradient(135deg, #F87171 0%, #DC2626 100%); }
-      100% { transform: scale(1.0); box-shadow: 0 0 15px rgba(239, 68, 68, 0.9); background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); }
+      0%   { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
+      50%  { box-shadow: 0 0 35px rgba(239, 68, 68, 1), inset 0 0 18px rgba(255, 255, 255, 0.8); border-color: #FCA5A5; }
+      100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
     }
     .recording-flashing {
       animation: recordingPulseStrong 0.9s infinite ease-in-out !important;
@@ -368,18 +368,18 @@
       width: 60px !important;
       height: 60px !important;
       border-radius: 14px !important;
-      border: 2.5px solid #BAE6FD !important;
+      border: 2.5px solid #BAE6FD;
       background: #000000 !important;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 19px !important;
+      font-size: 17px !important;
       font-weight: 900;
       color: #FB923C !important;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
-      transition: transform 0.15s ease-out;
+      transition: transform 0.15s ease-out, box-shadow 0.3s ease, border-color 0.3s ease;
       text-align: center;
       line-height: 1.1;
       touch-action: manipulation;
@@ -400,18 +400,8 @@
     #btn-mark-a.active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF; }
     .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
     #btn-mark-b.active-mark { box-shadow: 0 0 18px #FB923C, inset 0 0 8px #FFFFFF; }
-    .btn-color-record { background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%); border-color: #E9D5FF; }
-    .btn-color-play { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
+    .btn-color-play { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; font-size: 15px !important; }
     .btn-color-shutdown { background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); border-color: #FECACA; }
-
-    .btn-color-guide { background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%); border-color: #FECACA; }
-    #btn-guide-toggle.guide-waiting { background: radial-gradient(circle, #EAB308 0%, #CA8A04 100%) !important; border-color: #FEF08A !important; }
-    #btn-guide-toggle.guide-active { background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important; border-color: #DCFCE7 !important; animation: voiceBreathing 1.25s infinite ease-in-out !important; }
-    @keyframes voiceBreathing {
-      0% { transform: scale(1.0); }
-      50% { transform: scale(1.08); }
-      100% { transform: scale(1.0); }
-    }
 
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
@@ -542,7 +532,7 @@
   <!-- 4. 主視圖 -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
-      <!-- 左側選單由 JS 動態生成 (V381 更新) -->
+      <!-- 左側選單由 JS 動態生成 (V382) -->
       <div class="slot" id="slot-l1"></div>
       <div class="slot" id="slot-l2"></div>
       <div class="slot" id="slot-l3"></div>
@@ -698,10 +688,19 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 🌟 錄音比對與自讀狀態變數
+    // 🌟 核心架構：共用資源與模式控管 (V382)
     let currentMode = 'mp4';
     const modeSequence = ['mp4', 'pdf'];
-    let isPdfCompareMode = false; // 是否切換至比對排版
+    let pdfSubMode = 'guide'; // 'guide' (自讀) 或 'compare' (比對)
+
+    // 麥克風共用資源
+    let audioContext = null;
+    let analyser = null;
+    let micStream = null;
+    let vadCheckTimer = null;
+    let lastVoiceTime = 0; // 用於 20 秒全域防呆
+
+    // 比對錄音資源
     let mediaRecorder = null;
     let audioChunks = [];
     let isUserRecording = false;
@@ -737,11 +736,6 @@
     let hasPageFlipped = false;
     let lineActivationTimestamp = 0;
 
-    let audioContext = null;
-    let analyser = null;
-    let micStream = null;
-    let vadCheckTimer = null;
-    let maxTimeoutSafetyTimer = null;
     let isVoiceActive = false;
     let isTouchingDisplay = false;
     let baseNoiseLevel = 0.0015;
@@ -757,15 +751,14 @@
 
     // 播放錄音檔結束監聽
     recordAudioElement.addEventListener('ended', () => {
-      const btnPlay = document.getElementById('btn-play');
-      if (btnPlay) btnPlay.textContent = '播放';
+      renderPdfLeftWing();
     });
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V381');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V382');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V381', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V382', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -917,7 +910,34 @@
 
     function showModeBanner(title, subtitle) {
       if (!modeGrandBanner) return;
-      modeGrandBanner.innerHTML = `<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">\${title}</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">${subtitle}</div>`; modeGrandBanner.classList.add('active'); clearTimeout(modeGrandBanner._timer); modeGrandBanner._timer = setTimeout(() => { modeGrandBanner.style.opacity = '0'; modeGrandBanner.style.transform = 'translate(-50\%, -50\%) scale(0.9)'; setTimeout(() => { modeGrandBanner.classList.remove('active'); modeGrandBanner.style.opacity = ''; modeGrandBanner.style.transform = ''; }, 350); }, 2000); }  function showCurrentModeBanner() { if (currentMode === 'mp4') { showModeBanner('📖 跟讀模式', '影音同步・雙模播放'); } else if (currentMode === 'pdf') { showModeBanner('📖 自讀模式', '靜心默背・比對錄音'); } }  function setMp4Speed(val) { mp4Speed = val; localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1)); video.playbackRate = mp4Speed;  speedToastBadge.textContent = `【跟讀快轉 ${mp4Speed.toFixed(1)}x】`;
+      modeGrandBanner.innerHTML = `<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">${title}</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">${subtitle}</div>`;
+      modeGrandBanner.classList.add('active');
+      clearTimeout(modeGrandBanner._timer);
+      modeGrandBanner._timer = setTimeout(() => {
+        modeGrandBanner.style.opacity = '0';
+        modeGrandBanner.style.transform = 'translate(-50%, -50%) scale(0.9)';
+        setTimeout(() => {
+          modeGrandBanner.classList.remove('active');
+          modeGrandBanner.style.opacity = '';
+          modeGrandBanner.style.transform = '';
+        }, 350);
+      }, 2000);
+    }
+
+    function showCurrentModeBanner() {
+      if (currentMode === 'mp4') {
+        showModeBanner('📖 跟讀模式', '影音同步・雙模播放');
+      } else if (currentMode === 'pdf') {
+        showModeBanner('📖 自讀模式', '靜心默背・比對錄音');
+      }
+    }
+
+    function setMp4Speed(val) {
+      mp4Speed = val;
+      localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
+      video.playbackRate = mp4Speed;
+
+      speedToastBadge.textContent = `【跟讀快轉 ${mp4Speed.toFixed(1)}x】`;
       speedToastBadge.style.display = 'block';
       speedToastBadge.style.opacity = '1';
 
@@ -932,7 +952,44 @@
       pdfSpeed = val;
       localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
 
-      speedToastBadge.textContent = `【自讀語速 ${pdfSpeed.toFixed(1)}x】`; speedToastBadge.style.display = 'block'; speedToastBadge.style.opacity = '1';  clearTimeout(speedToastBadge._t); speedToastBadge._t = setTimeout(() => { speedToastBadge.style.opacity = '0'; setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300); }, 3000); }  function triggerMp4SpeedChange(delta) { let newSpeed = Math.round((mp4Speed + delta) * 10) / 10; newSpeed = Math.max(0.5, Math.min(2.5, newSpeed)); setMp4Speed(newSpeed); }  function triggerPdfSpeedChange(delta) { let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10; newSpeed = Math.max(0.5, Math.min(2.5, newSpeed)); setPdfSpeed(newSpeed); }  function speakPrompt(text) { try { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'zh-TW'; utterance.rate = 1.1; window.speechSynthesis.speak(utterance); } } catch (e) {} }  function getNormalizedDateStr() { const now = new Date(); return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+      speedToastBadge.textContent = `【自讀語速 ${pdfSpeed.toFixed(1)}x】`;
+      speedToastBadge.style.display = 'block';
+      speedToastBadge.style.opacity = '1';
+
+      clearTimeout(speedToastBadge._t);
+      speedToastBadge._t = setTimeout(() => {
+        speedToastBadge.style.opacity = '0';
+        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
+      }, 3000);
+    }
+
+    function triggerMp4SpeedChange(delta) {
+      let newSpeed = Math.round((mp4Speed + delta) * 10) / 10;
+      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
+      setMp4Speed(newSpeed);
+    }
+
+    function triggerPdfSpeedChange(delta) {
+      let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
+      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
+      setPdfSpeed(newSpeed);
+    }
+
+    function speakPrompt(text) {
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'zh-TW';
+          utterance.rate = 1.1;
+          window.speechSynthesis.speak(utterance);
+        }
+      } catch (e) {}
+    }
+
+    function getNormalizedDateStr() {
+      const now = new Date();
+      return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
     }
 
     function getActiveVideoRange() {
@@ -964,22 +1021,20 @@
       };
     }
 
+    // 🌟 共用資源：釋放硬體麥克風
     function releaseMicrophoneResources() {
       if (micStream) {
-        try {
-          micStream.getTracks().forEach(track => track.stop());
-        } catch (e) {}
+        try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
         micStream = null;
       }
       if (audioContext && audioContext.state !== 'closed') {
         try { audioContext.suspend(); } catch (e) {}
       }
-      stopVoiceActivityDetection();
+      isVoiceActive = false;
+      isTouchingDisplay = false;
     }
 
-    // =========================================================================
     // 🌟 單指滑動切換模式 
-    // =========================================================================
     let touchStartX = 0;
     let touchStartY = 0;
 
@@ -1025,16 +1080,15 @@
 
     function setMode(mode) {
       haltGuideRunnerImmediately();
-      releaseMicrophoneResources();
       
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
-      isPdfCompareMode = false;
 
       currentMode = mode;
 
       if (currentMode === 'mp4') {
+        releaseMicrophoneResources(); // 退出 PDF 模式，徹底關閉麥克風
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
@@ -1052,8 +1106,11 @@
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
-        resetSideWingsForMode('pdf');
 
+        pdfSubMode = 'guide'; // 預設進入自讀子模式
+        ensureMicrophoneActive(); // 進入 PDF 模式，預熱開啟一次麥克風
+
+        resetSideWingsForMode('pdf');
         scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
       }
       showCurrentModeBanner();
@@ -1062,21 +1119,16 @@
 
     function resetSideWingsForMode(mode) {
       if (mode === 'mp4') {
-        // 跟讀模式：左側極簡，僅保留離開鍵
         slotL1.innerHTML = '';
         slotL2.innerHTML = '';
         slotL3.innerHTML = '';
         slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>`;
-
         document.getElementById('btn-shutdown-exit').addEventListener('click', handleShutdownClick);
       } else if (mode === 'pdf') {
-        // 自讀與比對模式：動態生成左側
         renderPdfLeftWing();
       }
 
-      // 右側選單不分模式皆固定
-      const guideText = (mode === 'mp4') ? '跟讀' : '自讀';
-      slotR1.innerHTML = `<button class="square-btn" id="btn-guide-toggle">\${guideText}</button>`;
+      slotR1.innerHTML = `<button class="square-btn" id="btn-guide-toggle">${mode === 'mp4' ? '跟讀' : '自讀'}</button>`;
       slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
       slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button>`;
       slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down">快轉-</button>`;
@@ -1092,41 +1144,169 @@
 
       document.getElementById('btn-guide-toggle').addEventListener('click', handleGuideToggleClick);
       document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
+
+      updateModeButtonsStyle();
     }
 
-    // 🌟 左側按鍵動態變形功能
+    // 🌟 核心選單：動態切換與視覺呈現 (保持原色，利用陰影與文字變化)
     function renderPdfLeftWing() {
-      if (isPdfCompareMode) {
-        slotL1.innerHTML = `<button class="circle-btn btn-color-record" id="btn-record">\${isUserRecording ? '結束' : '比對'}</button>`;
-        slotL2.innerHTML = `<button class="circle-btn btn-color-play" id="btn-play">播放</button>`;
-        slotL3.innerHTML = ``;
-        slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>`;
+      // 左 1 統一為大方塊按鍵
+      slotL1.innerHTML = `<button class="square-btn" id="btn-record">${isUserRecording ? '錄音中' : '比對'}</button>`;
+      document.getElementById('btn-record').addEventListener('click', handleRecordModeClick);
 
-        document.getElementById('btn-record').addEventListener('click', toggleReliableRecordAction);
-        document.getElementById('btn-play').addEventListener('click', togglePlaybackAction);
-        document.getElementById('btn-shutdown-exit').addEventListener('click', handleShutdownClick);
-        
-        const btnRec = document.getElementById('btn-record');
-        if (isUserRecording) {
-            btnRec.classList.add('recording-flashing');
-            btnRec.style.background = 'linear-gradient(135deg, #64748B 0%, #475569 100%)';
+      if (pdfSubMode === 'compare') {
+        slotL2.innerHTML = `<button class="circle-btn btn-color-play" id="btn-play">${(recordAudioElement && !recordAudioElement.paused) ? '暫停' : '播放'}</button>`;
+        slotL3.innerHTML = ``;
+        if (document.getElementById('btn-play')) {
+          document.getElementById('btn-play').addEventListener('click', togglePlaybackAction);
         }
       } else {
-        slotL1.innerHTML = `<button class="circle-btn btn-color-record" id="btn-record">比對</button>`;
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: visible;">起句</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: visible;">終句</button>`;
-        slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>`;
-
-        document.getElementById('btn-record').addEventListener('click', () => {
-            isPdfCompareMode = true;
-            renderPdfLeftWing();
-            toggleReliableRecordAction();
-        });
         document.getElementById('btn-mark-a').addEventListener('click', handleMarkAClck);
         document.getElementById('btn-mark-b').addEventListener('click', handleMarkBClick);
-        document.getElementById('btn-shutdown-exit').addEventListener('click', handleShutdownClick);
       }
-      updateVisualDisplay();
+      
+      slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>`;
+      document.getElementById('btn-shutdown-exit').addEventListener('click', handleShutdownClick);
+
+      updateModeButtonsStyle();
+    }
+
+    function updateModeButtonsStyle() {
+      const btnGuide = document.getElementById('btn-guide-toggle');
+      const btnRecord = document.getElementById('btn-record');
+
+      if (currentMode === 'mp4') return;
+
+      if (btnGuide) {
+        btnGuide.textContent = isGuideActive ? (isVoiceActive ? '背誦中' : '導讀中') : '自讀';
+        if (pdfSubMode === 'guide') {
+          btnGuide.style.borderColor = '#34D399';
+          btnGuide.style.boxShadow = '0 0 12px rgba(52, 211, 153, 0.7)'; // 綠色發光
+        } else {
+          btnGuide.style.borderColor = '#BAE6FD';
+          btnGuide.style.boxShadow = '';
+        }
+      }
+
+      if (btnRecord) {
+        btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
+        if (pdfSubMode === 'compare') {
+          btnRecord.style.borderColor = '#C084FC';
+          btnRecord.style.boxShadow = '0 0 12px rgba(192, 132, 252, 0.7)'; // 紫色發光
+        } else {
+          btnRecord.style.borderColor = '#BAE6FD';
+          btnRecord.style.boxShadow = '';
+        }
+      }
+    }
+
+    // 🌟 兩段式保險：左側【比對】鍵邏輯
+    function handleRecordModeClick() {
+      if (currentMode !== 'pdf') return;
+
+      if (pdfSubMode !== 'compare') {
+        // 第一段：選中比對模式 (互斥關閉自讀)
+        pdfSubMode = 'compare';
+        if (isGuideActive) haltGuideRunnerImmediately();
+        renderPdfLeftWing();
+        return;
+      }
+
+      // 第二段：切換啟動/停止錄音
+      toggleReliableRecordAction();
+    }
+
+    // 🌟 兩段式保險：右側【自讀】鍵邏輯
+    function handleGuideToggleClick() {
+      triggerAppFullscreen();
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') audioContext.resume();
+      } catch (e) {}
+
+      if (currentMode === 'mp4') {
+        centerCore.scrollTop = 0;
+        video.playbackRate = mp4Speed;
+
+        const range = getActiveVideoRange();
+        if (!range.valid) {
+          showToast('⚠️ 秒數資料不完整，無法播放', 3000);
+          return;
+        }
+
+        if (video.paused) {
+          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
+            video.currentTime = videoPausedAt;
+          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
+            video.currentTime = range.start;
+          }
+
+          video.play().then(() => {
+            const btnGuide = document.getElementById('btn-guide-toggle');
+            if (btnGuide) {
+              btnGuide.textContent = '暫停';
+              btnGuide.classList.add('guide-active');
+            }
+            startMp4PrecisionCheck();
+          }).catch((err) => {
+            console.error("播放受阻:", err);
+            video.currentTime = range.start;
+            video.play().catch(() => {});
+          });
+        } else {
+          video.pause();
+          videoPausedAt = video.currentTime;
+          const btnGuide = document.getElementById('btn-guide-toggle');
+          if (btnGuide) {
+            btnGuide.textContent = '跟讀';
+            btnGuide.classList.remove('guide-active');
+          }
+          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒`, 3000);
+        }
+        return;
+      }
+
+      // PDF 模式
+      if (currentMode === 'pdf') {
+        if (pdfSubMode !== 'guide') {
+          // 第一段：選中自讀模式 (互斥關閉比對相關操作)
+          pdfSubMode = 'guide';
+          if (isUserRecording) toggleReliableRecordAction(); // 停止錄音
+          if (recordAudioElement && !recordAudioElement.paused) togglePlaybackAction(); // 停止播放
+          renderPdfLeftWing();
+          return;
+        }
+
+        // 第二段：切換啟動/暫停導讀
+        if (isGuideActive) {
+          haltGuideRunnerImmediately();
+        } else {
+          if (markA_Index === -1 || markB_Index === -1) {
+            speakPrompt("請先設定起點與終點");
+            return;
+          }
+          isGuideActive = true;
+          if (parsedTextLines.length === 0) { isGuideActive = false; return; }
+          if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+
+          isVoiceActive = false;
+          isTouchingDisplay = false;
+          isTransitioningLine = false;
+          hasPageFlipped = false;
+          isLineHeadLocked = true;
+          completedCycles = 0;
+          currentLineIndex = markA_Index;
+          currentCharIndexFloat = 0.0;
+          lastVoiceTime = performance.now(); // 重置 20秒防呆計時
+
+          ensureMicrophoneActive(); // 確保麥克風在線上
+          startGuideRunner();
+          updateModeButtonsStyle();
+        }
+      }
     }
 
     document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
@@ -1167,7 +1347,6 @@
       ctx.restore();
     }
 
-    // 🌟 錄音福慧幣噴灑特效
     function triggerRecordCoinSplash() {
       const btn = document.getElementById('btn-record');
       if (!btn) return;
@@ -1302,7 +1481,6 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 自動計算與給獎的核心中樞
     function processCycleCompletion() {
       const todayStr = getNormalizedDateStr();
       let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
@@ -1321,18 +1499,18 @@
           completedCycles = 0;
           showToast('🎉 今日功課遍數已達標！解鎖內定 5 遍圓滿模式', 4500);
           handleTargetCycleDone();
-          return true; // 達標停止並灑花
+          return true; // 達標停止
         }
       } else {
         completedCycles++;
         if (completedCycles >= 5) {
           showToast('🌟 連續 5 遍圓滿！', 4000);
           handleTargetCycleDone();
-          completedCycles = 0; // 重置
-          return true; // 達標停止並灑花
+          completedCycles = 0;
+          return true; // 達標停止
         }
       }
-      return false; // 未達標，繼續下一遍
+      return false; 
     }
 
     function handleMp4CycleEnd(range) {
@@ -1370,13 +1548,7 @@
 
       const flowers = [];
       const lotusColors = [
-        '#FF94B8', // 1. 粉紅色 (闔家平安)
-        '#FFB300', // 2. 琥珀色 (財富圓滿)
-        '#F1F5F9', // 3. 霧白色 (能源活力)
-        '#22C55E', // 4. 翠綠色 (健康和諧)
-        '#C084FC', // 5. 粉紫色 (增長智慧)
-        '#E11D48', // 6. 水紅色 (事業成功)
-        '#3B82F6'  // 7. 寶藍色 (安心寧神/圓滿吉祥)
+        '#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'
       ];
       
       for (let i = 0; i < 70; i++) {
@@ -1548,6 +1720,11 @@
 
     function handleShutdownClick() {
       haltGuideRunnerImmediately();
+
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+      isUserRecording = false;
+      if (recordAudioElement) recordAudioElement.pause();
+
       releaseMicrophoneResources();
 
       try {
@@ -1575,216 +1752,195 @@
       showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
     }
 
-    // 🌟 防呆：啟動錄音比對 (互斥)
-    async function toggleReliableRecordAction() {
-      triggerAppFullscreen();
+    // 🌟 共用麥克風引擎：單一啟動、長保待命
+    async function ensureMicrophoneActive() {
+      if (micStream) return true;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') await audioContext.resume();
 
-      // 互斥：若自讀導讀正在進行，立刻切斷並還原 UI
-      if (isGuideActive) {
-          haltGuideRunnerImmediately();
-      }
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
 
-      const btnRecord = document.getElementById('btn-record');
-      if (!isUserRecording) {
-        triggerRecordCoinSplash();
-        try {
-          audioChunks = [];
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-          });
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.04;
+        source.connect(analyser);
 
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          const recordingAudioCtx = new AudioContextClass();
-          const source = recordingAudioCtx.createMediaStreamSource(stream);
-          const recordingAnalyser = recordingAudioCtx.createAnalyser();
-          recordingAnalyser.fftSize = 512;
-          source.connect(recordingAnalyser);
-          const dataArray = new Float32Array(recordingAnalyser.frequencyBinCount);
-
-          mediaRecorder = new MediaRecorder(stream);
-          mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) {
-              audioChunks.push(e.data);
-            }
-          };
-
-          mediaRecorder.onstop = () => {
-            recordingAudioCtx.close();
-            const recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
-            recordAudioElement.src = recordedAudioBlobUrl;
-            recordAudioElement.playbackRate = pdfSpeed;
-            showToast('錄音完成！點擊左側「播放」按鈕即可聆聽', 4000);
-            if (btnRecord) btnRecord.classList.remove('recording-flashing');
-            stream.getTracks().forEach(t => t.stop());
-          };
-
-          mediaRecorder.start(200);
-          isUserRecording = true;
-          if (btnRecord) {
-              btnRecord.textContent = '結束';
-              btnRecord.style.background = 'linear-gradient(135deg, #64748B 0%, #475569 100%)';
+        isCalibrating = true;
+        calibrationSamples = [];
+        setTimeout(() => {
+          if (calibrationSamples.length > 0) {
+            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+            baseNoiseLevel = sum / calibrationSamples.length;
+            dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
           }
-          showToast('🔴 正在錄音中...', 3000);
+          isCalibrating = false;
+        }, 350);
 
-          const pulseCheckInterval = setInterval(() => {
-            if (!isUserRecording) {
-              clearInterval(pulseCheckInterval);
-              return;
+        lastVoiceTime = performance.now();
+        startSharedVadLoop();
+        return true;
+      } catch (err) {
+        console.warn("麥克風啟動失敗:", err);
+        return false;
+      }
+    }
+
+    // 🌟 全域音量與防呆監控中心 (20秒無聲自動停止)
+    let vadDataArray = null;
+    function startSharedVadLoop() {
+      if (vadCheckTimer) return;
+      vadDataArray = new Float32Array(analyser.frequencyBinCount);
+
+      function loop() {
+        if (currentMode !== 'pdf') {
+          vadCheckTimer = null;
+          return;
+        }
+
+        if (analyser) {
+          analyser.getFloatTimeDomainData(vadDataArray);
+
+          let sumSquares = 0.0;
+          for (let i = 0; i < vadDataArray.length; i++) {
+            const val = vadDataArray[i];
+            sumSquares += val * val;
+          }
+          const rms = Math.sqrt(sumSquares / vadDataArray.length);
+
+          if (isCalibrating) calibrationSamples.push(rms);
+
+          const deltaRms = rms - prevRms;
+          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
+
+          // 1. 偵測講話，重置 20 秒防呆計時
+          if (hasVoiceEnergy) {
+            lastVoiceTime = performance.now();
+            silentFrameCount = 0;
+            if (!isVoiceActive && isGuideActive) {
+              isVoiceActive = true;
+              updateModeButtonsStyle();
             }
-            recordingAnalyser.getFloatTimeDomainData(dataArray);
-            let sum = 0;
-            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
-            const rms = Math.sqrt(sum / dataArray.length);
-
-            if (btnRecord) {
-              if (rms > 0.0020) {
-                btnRecord.classList.add('recording-flashing');
-              } else {
-                btnRecord.classList.remove('recording-flashing');
+          } else {
+            silentFrameCount++;
+            if (silentFrameCount >= 24) {
+              if (isVoiceActive) {
+                isVoiceActive = false;
+                updateModeButtonsStyle();
               }
             }
-          }, 120);
+          }
 
-        } catch (err) {
-          alert('無法存取麥克風，請檢查裝置權限設定');
+          // 2. 錄音時的閃爍特效
+          if (isUserRecording) {
+            const btnRec = document.getElementById('btn-record');
+            if (btnRec) {
+              if (rms > 0.0020) btnRec.classList.add('recording-flashing');
+              else btnRec.classList.remove('recording-flashing');
+            }
+          }
+
+          // 3. 自讀時的紅點推進運算
+          if (isGuideActive) {
+            const timeSinceLineStart = performance.now() - lineActivationTimestamp;
+            const isInsideCooldown = (timeSinceLineStart < 120);
+
+            if (isLineHeadLocked && !isInsideCooldown && deltaRms > (dynamicThreshold * 0.25)) {
+              isLineHeadLocked = false;
+            }
+
+            if (isTransitioningLine) {
+              const elapsed = performance.now() - lineEndTime;
+              if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
+                proceedToNextLineImmediately();
+              } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
+                proceedToNextLineImmediately();
+              } else if (elapsed >= 200) {
+                proceedToNextLineImmediately();
+              }
+            }
+          }
+
+          // 4. 全域 20 秒無聲防呆機制
+          if ((isGuideActive || isUserRecording) && (performance.now() - lastVoiceTime > 20000)) {
+            if (isGuideActive) {
+              haltGuideRunnerImmediately();
+              showToast("讀誦逾時 20 秒無聲，已為您自動停止", 4500);
+            }
+            if (isUserRecording) {
+              if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+              isUserRecording = false;
+              renderPdfLeftWing();
+              showToast("收音閒置 20 秒，已自動為您結束並保留錄音", 4500);
+            }
+            lastVoiceTime = performance.now();
+          }
+
+          prevRms = rms;
         }
+        vadCheckTimer = requestAnimationFrame(loop);
+      }
+      vadCheckTimer = requestAnimationFrame(loop);
+    }
+
+    // 🌟 錄音機制 (共用麥克風)
+    async function toggleReliableRecordAction() {
+      if (!isUserRecording) {
+        const ok = await ensureMicrophoneActive();
+        if (!ok) { alert('無法存取麥克風，請檢查裝置權限設定'); return; }
+
+        triggerRecordCoinSplash();
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(micStream);
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+        mediaRecorder.onstop = () => {
+          const recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
+          recordAudioElement.src = recordedAudioBlobUrl;
+          recordAudioElement.playbackRate = pdfSpeed;
+          showToast('錄音完成！點擊左側「播放」按鈕即可聆聽', 4000);
+          renderPdfLeftWing();
+        };
+        mediaRecorder.start(200);
+        isUserRecording = true;
+        lastVoiceTime = performance.now();
+        showToast('🔴 正在錄音中...', 3000);
+        renderPdfLeftWing();
       } else {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           mediaRecorder.stop();
         }
         isUserRecording = false;
-        if (btnRecord) {
-            btnRecord.textContent = '比對';
-            btnRecord.style.background = '';
-            btnRecord.classList.remove('recording-flashing');
-        }
+        renderPdfLeftWing();
       }
     }
 
-    // 🌟 啟動錄音播放 (互斥)
+    // 🌟 錄音播放
     function togglePlaybackAction() {
-      const btnPlay = document.getElementById('btn-play');
       if (!recordedAudioBlobUrl) {
         showToast('尚無錄音檔案可供播放', 2500);
         return;
       }
       
-      // 互斥：若自讀導讀正在進行，立刻切斷
-      if (isGuideActive) {
-          haltGuideRunnerImmediately();
-      }
+      if (isGuideActive) haltGuideRunnerImmediately();
 
       if (recordAudioElement.paused) {
         recordAudioElement.playbackRate = pdfSpeed;
         recordAudioElement.play().then(() => {
-          if (btnPlay) btnPlay.textContent = '暫停';
+          renderPdfLeftWing();
         }).catch((err) => {
-          console.error("播放受阻:", err);
           showToast('播放失敗', 2000);
         });
       } else {
         recordAudioElement.pause();
-        if (btnPlay) btnPlay.textContent = '播放';
+        renderPdfLeftWing();
       }
-    }
-
-    function handleGuideToggleClick() {
-      triggerAppFullscreen();
-
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') {
-          audioContext.resume();
-        }
-      } catch (e) {}
-
-      // 🌟 防呆互斥：如果目前正在比對或播放中，按下自讀要立刻切斷並還原 UI
-      if (isUserRecording || (recordAudioElement && !recordAudioElement.paused)) {
-        if (isUserRecording && mediaRecorder) mediaRecorder.stop();
-        isUserRecording = false;
-        if (recordAudioElement) recordAudioElement.pause();
-        isPdfCompareMode = false;
-        if (currentMode === 'pdf') renderPdfLeftWing();
-      } else if (isPdfCompareMode) {
-        // 如果單純是比對UI介面未發出動作，按自讀也回復起終句介面
-        isPdfCompareMode = false;
-        if (currentMode === 'pdf') renderPdfLeftWing();
-      }
-
-      if (currentMode === 'mp4') {
-        centerCore.scrollTop = 0;
-        video.playbackRate = mp4Speed;
-
-        const range = getActiveVideoRange();
-        if (!range.valid) {
-          showToast('⚠️ 秒數資料不完整，無法播放', 3000);
-          return;
-        }
-
-        if (video.paused) {
-          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
-            video.currentTime = videoPausedAt;
-          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
-            video.currentTime = range.start;
-          }
-
-          video.play().then(() => {
-            const btnGuide = document.getElementById('btn-guide-toggle');
-            if (btnGuide) {
-              btnGuide.textContent = '暫停';
-              btnGuide.classList.add('guide-active');
-              btnGuide.classList.remove('guide-waiting');
-            }
-            startMp4PrecisionCheck();
-          }).catch((err) => {
-            console.error("播放受阻:", err);
-            video.currentTime = range.start;
-            video.play().catch(() => {});
-          });
-        } else {
-          video.pause();
-          videoPausedAt = video.currentTime;
-          const btnGuide = document.getElementById('btn-guide-toggle');
-          if (btnGuide) {
-            btnGuide.textContent = '跟讀';
-            btnGuide.classList.remove('guide-active');
-          }
-          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒`, 3000);
-        }
-        return;
-      }
-
-      if (markA_Index === -1 || markB_Index === -1) {
-        speakPrompt("請先設定起點與終點");
-        return;
-      }
-      if (isGuideActive) return;
-      isGuideActive = true;
-
-      if (parsedTextLines.length === 0) { isGuideActive = false; return; }
-      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-
-      isVoiceActive = false;
-      isTouchingDisplay = false;
-      isTransitioningLine = false;
-      hasPageFlipped = false;
-      isLineHeadLocked = true;
-      completedCycles = 0;
-
-      currentLineIndex = markA_Index;
-      currentCharIndexFloat = 0.0;
-
-      const btnGuide = document.getElementById('btn-guide-toggle');
-      if (btnGuide) {
-        btnGuide.textContent = '靜止';
-        btnGuide.classList.remove('guide-active');
-        btnGuide.classList.add('guide-waiting');
-      }
-
-      startGuideRunner();
-      startVoiceActivityDetection();
     }
 
     function handleOfferingClick() {
@@ -1794,175 +1950,6 @@
       inputUserName.value = localStorage.getItem('user_profile_name') || '';
       offeringOverlay.style.display = 'flex';
     }
-
-    function resetLineTimeoutSafetyTimer() {
-      if (maxTimeoutSafetyTimer) clearTimeout(maxTimeoutSafetyTimer);
-      if (!isGuideActive) return;
-
-      const curLine = parsedTextLines[currentLineIndex];
-      const charCount = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
-      const lineDurationSec = (charCount / (2.8 * pdfSpeed));
-      const maxTimeoutMs = (lineDurationSec + 10.0) * 1000;
-
-      maxTimeoutSafetyTimer = setTimeout(() => {
-        if (isGuideActive) {
-          haltGuideRunnerImmediately();
-          handleShutdownClick();
-          showToast("讀誦逾時，已為您自動離開釋放資源", 4500);
-        }
-      }, maxTimeoutMs);
-    }
-
-    function startVoiceActivityDetection() {
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') {
-          audioContext.resume();
-        }
-
-        if (!micStream) {
-          navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
-          }).then(stream => {
-            micStream = stream;
-            connectMicStream();
-          }).catch(err => {
-            console.warn("麥克風啟動略過:", err);
-            const btnGuide = document.getElementById('btn-guide-toggle');
-            if (btnGuide) btnGuide.textContent = '靜止';
-          });
-        } else {
-          connectMicStream();
-        }
-      } catch (err) {
-        console.warn("麥克風啟動略過:", err);
-      }
-    }
-
-    function connectMicStream() {
-      if (!audioContext || !micStream) return;
-      const source = audioContext.createMediaStreamSource(micStream);
-      analyser = audioContext.createAnalyser();
-      analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.04;
-      source.connect(analyser);
-
-      isCalibrating = true;
-      calibrationSamples = [];
-      setTimeout(() => {
-        if (calibrationSamples.length > 0) {
-          const sum = calibrationSamples.reduce((a, b) => a + b, 0);
-          baseNoiseLevel = sum / calibrationSamples.length;
-          dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
-        }
-        isCalibrating = false;
-      }, 350);
-
-      resetLineTimeoutSafetyTimer();
-      startVadMonitorLoop();
-    }
-
-    function startVadMonitorLoop() {
-      if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
-      const bufferLength = analyser ? analyser.frequencyBinCount : 0;
-      const dataArray = new Float32Array(bufferLength);
-
-      function checkVolume() {
-        if (!isGuideActive) return;
-
-        if (analyser) {
-          analyser.getFloatTimeDomainData(dataArray);
-
-          let sumSquares = 0.0;
-          for (let i = 0; i < bufferLength; i++) {
-            const val = dataArray[i];
-            sumSquares += val * val;
-          }
-          const rms = Math.sqrt(sumSquares / bufferLength);
-
-          if (isCalibrating) calibrationSamples.push(rms);
-
-          const deltaRms = rms - prevRms;
-          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
-
-          const timeSinceLineStart = performance.now() - lineActivationTimestamp;
-          const isInsideCooldown = (timeSinceLineStart < 120);
-
-          if (isLineHeadLocked && !isInsideCooldown && deltaRms > (dynamicThreshold * 0.25)) {
-            isLineHeadLocked = false;
-          }
-
-          if (isTransitioningLine) {
-            const elapsed = performance.now() - lineEndTime;
-            if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
-              proceedToNextLineImmediately();
-            } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
-              proceedToNextLineImmediately();
-            } else if (elapsed >= 200) {
-              proceedToNextLineImmediately();
-            }
-          }
-
-          if (hasVoiceEnergy) {
-            silentFrameCount = 0;
-            if (!isVoiceActive) {
-              isVoiceActive = true;
-              const btnGuide = document.getElementById('btn-guide-toggle');
-              if (btnGuide) {
-                btnGuide.textContent = '背誦中';
-                btnGuide.classList.remove('guide-waiting');
-                btnGuide.classList.add('guide-active');
-              }
-              lastAnimTimestamp = performance.now();
-            }
-          } else {
-            silentFrameCount++;
-            if (silentFrameCount >= 24) {
-              if (isVoiceActive) {
-                isVoiceActive = false;
-                const btnGuide = document.getElementById('btn-guide-toggle');
-                if (btnGuide) {
-                  btnGuide.textContent = '靜止';
-                  btnGuide.classList.remove('guide-active');
-                  btnGuide.classList.add('guide-waiting');
-                }
-              }
-            }
-          }
-          prevRms = rms;
-        }
-        vadCheckTimer = requestAnimationFrame(checkVolume);
-      }
-      vadCheckTimer = requestAnimationFrame(checkVolume);
-    }
-
-    function stopVoiceActivityDetection() {
-      if (vadCheckTimer) { cancelAnimationFrame(vadCheckTimer); vadCheckTimer = null; }
-      if (maxTimeoutSafetyTimer) { clearTimeout(maxTimeoutSafetyTimer); maxTimeoutSafetyTimer = null; }
-      isVoiceActive = false;
-      isTouchingDisplay = false;
-    }
-
-    centerCore.addEventListener('pointerdown', () => {
-      if (!isGuideActive) return;
-      isTouchingDisplay = true;
-      isLineHeadLocked = false;
-      if (!isVoiceActive) {
-        isVoiceActive = true;
-        const btnGuide = document.getElementById('btn-guide-toggle');
-        if (btnGuide) {
-          btnGuide.textContent = '背誦中';
-          btnGuide.classList.remove('guide-waiting');
-          btnGuide.classList.add('guide-active');
-        }
-        lastAnimTimestamp = performance.now();
-      }
-    });
-    const stopTouchDrive = () => { if (isGuideActive) isTouchingDisplay = false; };
-    centerCore.addEventListener('pointerup', stopTouchDrive);
-    centerCore.addEventListener('pointercancel', stopTouchDrive);
-    centerCore.addEventListener('pointerleave', stopTouchDrive);
 
     function startGuideRunner() {
       if (parsedTextLines.length === 0) return;
@@ -2126,12 +2113,10 @@
       hasPageFlipped = false;
       currentLineIndex = nextIndex;
       setupActiveLine(currentLineIndex, 0.0);
-      resetLineTimeoutSafetyTimer();
       lastAnimTimestamp = performance.now();
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
-    // 🌟 PDF 自讀結算
     function handleCycleCompletion() {
       if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
       
@@ -2153,17 +2138,11 @@
         scrollToAlignTop(currentLineIndex);
 
         setupActiveLine(currentLineIndex, 0.0);
-        resetLineTimeoutSafetyTimer();
         isTransitioningLine = false;
         lastAnimTimestamp = performance.now();
         isVoiceActive = false;
 
-        const btnGuide = document.getElementById('btn-guide-toggle');
-        if (btnGuide) {
-          btnGuide.textContent = '靜止';
-          btnGuide.classList.remove('guide-active');
-          btnGuide.classList.add('guide-waiting');
-        }
+        updateModeButtonsStyle();
 
         if (guideAnimId) cancelAnimationFrame(guideAnimId);
         guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -2187,17 +2166,12 @@
 
       isGuideActive = false;
       isTransitioningLine = false;
-      stopVoiceActivityDetection();
 
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
-      const btnGuide = document.getElementById('btn-guide-toggle');
-      if (btnGuide) {
-        btnGuide.textContent = (currentMode === 'mp4') ? '跟讀' : '自讀';
-        btnGuide.classList.remove('guide-active', 'guide-waiting');
-      }
 
       video.pause();
+      updateModeButtonsStyle();
       updateVisualDisplay();
     }
 
@@ -2319,10 +2293,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V381_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V382_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V381_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V382_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
