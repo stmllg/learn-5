@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v403 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v404 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -265,12 +265,22 @@
 
     /* 🔴 錄音時強效呼吸閃爍特效樣式 */
     @keyframes recordingPulseStrong {
-      0%   { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
-      50%  { box-shadow: 0 0 35px rgba(239, 68, 68, 1), inset 0 0 18px rgba(255, 255, 255, 0.8); border-color: #FCA5A5; }
-      100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
+      0%   { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; transform: scale(1.0); }
+      50%  { box-shadow: 0 0 35px rgba(239, 68, 68, 1), inset 0 0 18px rgba(255, 255, 255, 0.8); border-color: #FCA5A5; transform: scale(1.06); }
+      100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; transform: scale(1.0); }
     }
     .recording-flashing {
       animation: recordingPulseStrong 0.9s infinite ease-in-out !important;
+    }
+
+    /* 🟣 唸出聲時的專屬呼吸燈效果 */
+    @keyframes voiceBreathingActive {
+      0%   { transform: scale(1.0); box-shadow: 0 0 15px rgba(147, 51, 234, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.5); }
+      50%  { transform: scale(1.08); box-shadow: 0 0 30px rgba(147, 51, 234, 1), inset 0 0 15px rgba(255, 255, 255, 0.9); }
+      100% { transform: scale(1.0); box-shadow: 0 0 15px rgba(147, 51, 234, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.5); }
+    }
+    .voice-breathing-anim {
+      animation: voiceBreathingActive 1.1s infinite ease-in-out !important;
     }
 
     /* =========================================================================
@@ -340,7 +350,7 @@
       box-sizing: border-box;
     }
     #left-wing { width: calc(68px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; }
-    #right-wing { width: calc(68px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px)); padding-left: 4px; }
+    #right-wing { width: calc(68px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; }
     .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
 
     .circle-btn {
@@ -394,7 +404,6 @@
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
 
-    /* 互斥高亮樣式 */
     .active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF !important; }
 
     #center-core {
@@ -496,7 +505,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 21 天心靈陪伴卡 -->
+  <!-- 🌟 3. 心靈陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -609,7 +618,7 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    // 🌟 三重獨立速度儲存機制 (V403 完整修正記憶寫入與重啟讀取)
+    // 🌟 三重獨立速度儲存機制 (V404 完美記憶)
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -690,7 +699,7 @@
 
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
-    let scheduleRepeatLimit = 1;
+    let scheduleRepeatLimit = 5; // 🌟 預設未設定時內定為 5 遍
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
@@ -724,9 +733,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V403');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V404');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V403', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V404', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -874,7 +883,11 @@
         const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
         if (localSched) scheduleData = JSON.parse(localSched);
 
-        if (!scheduleData || !Array.isArray(scheduleData)) return false;
+        if (!scheduleData || !Array.isArray(scheduleData)) {
+          // 🌟 若沒有 schedule 檔，強制內定為 5 遍
+          scheduleRepeatLimit = 5;
+          return false;
+        }
         
         let targetPlan = null;
         const urlParams = new URLSearchParams(window.location.search);
@@ -905,6 +918,8 @@
           if (typeof targetPlan.repeat === 'number' && targetPlan.repeat > 0) {
             scheduleRepeatLimit = targetPlan.repeat;
             isScheduleRepeatLocked = true;
+          } else {
+            scheduleRepeatLimit = 5; // 預設 5 遍
           }
 
           updateVisualDisplay();
@@ -912,6 +927,8 @@
           return true;
         }
       } catch (err) {}
+      
+      scheduleRepeatLimit = 5;
       return false;
     }
 
@@ -1115,7 +1132,7 @@
       }
     }
 
-    // 🌟 修正第 2 點：將速度確實寫入手機記憶 (localStorage)
+    // 🌟 修正第 2 點：確保快慢速度確實寫入 localStorage
     function setMp4Speed(val) {
       mp4Speed = val;
       localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
@@ -1288,12 +1305,13 @@
       showCurrentModeBanner();
     }
 
-    // 🌟 終極 8 鍵完美佈局算繪
+    // 🌟 終極 8 鍵完美佈局算繪 (V404：左2按鈕改為「重播」)
     function renderUI() {
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
-          slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">' + ((recordAudioElement && !recordAudioElement.paused) ? '暫停' : '播放') + '</button>';
+          // 🌟 修正第 1 點：比對模式下的左 2 按鈕改名為「重播」
+          slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">重播</button>';
           slotL3.innerHTML = '';
       } else {
           slotL2.innerHTML = '<button class="circle-btn btn-color-mark-a" id="btn-mark-a">起句</button>';
@@ -1352,6 +1370,7 @@
       updateVisualDisplay();
     }
 
+    // 🌟 控制按鈕的填色與呼吸燈互斥機制
     function updateModeButtonsStyle() {
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
@@ -1367,6 +1386,7 @@
               btn.style.borderColor = '#BAE6FD';
               btn.style.color = '#FB923C';
               btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+              btn.classList.remove('voice-breathing-anim');
           }
       });
 
@@ -1381,11 +1401,14 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  btnZidu.textContent = isGuideActive ? (isVoiceActive ? '背誦中' : '導讀中') : '自讀';
-                  btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
-                  btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
+                  // 🌟 修正第 1 點：唸出聲時顯示文字並套用紫色呼吸燈動畫
+                  btnZidu.textContent = isGuideActive ? '唸出聲' : '自讀';
+                  btnZidu.style.background = colorPurple;
+                  btnZidu.style.borderColor = '#E9D5FF';
                   btnZidu.style.color = '#FFFFFF';
-                  btnZidu.style.boxShadow = isGuideActive ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
+                  if (isGuideActive) {
+                      btnZidu.classList.add('voice-breathing-anim');
+                  }
               }
           } else if (pdfSubMode === 'compare') {
               if (btnRecord) {
@@ -1598,11 +1621,11 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 修正第 3 點：強化重複遍數的累計與目標達成判定
+    // 🌟 修正第 3 點：遍數達成自動灑花與自動儲存福慧幣
     function processCycleCompletion() {
       const todayStr = getNormalizedDateStr();
       let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
-      const limit = scheduleRepeatLimit || 1;
+      const limit = scheduleRepeatLimit || 5; // 預設 5 遍
       
       const earned = calculateSentenceCount();
       addCoins(earned);
@@ -1615,15 +1638,15 @@
         if (dailyDone >= limit) {
           isScheduleRepeatLocked = false;
           completedCycles = 0;
-          showToast('🎉 今日功課遍數已達標！解鎖內定 5 遍圓滿模式', 4500);
-          handleTargetCycleDone();
+          showToast('🎉 今日功課遍數已達標（' + limit + '遍）！解鎖自由調整模式', 4500);
+          handleTargetCycleDone(); // 觸發七色灑花
           return true; 
         }
       } else {
         completedCycles++;
-        if (completedCycles >= 5) {
-          showToast('🌟 連續 5 遍圓滿！', 4000);
-          handleTargetCycleDone();
+        if (completedCycles >= limit) {
+          showToast('🌟 圓滿達成 ' + limit + ' 遍！', 4000);
+          handleTargetCycleDone(); // 觸發七色灑花
           completedCycles = 0;
           return true; 
         }
@@ -1996,6 +2019,7 @@
       vadCheckTimer = requestAnimationFrame(loop);
     }
 
+    // 🌟 修正第 1 點：紫色錄音按結束後，自動播放錄音
     async function toggleReliableRecordAction() {
       if (!isUserRecording) {
         const ok = await ensureMicrophoneActive();
@@ -2012,8 +2036,11 @@
           recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
           recordAudioElement.src = recordedAudioBlobUrl;
           recordAudioElement.playbackRate = compareSpeed;
-          showToast('錄音完成！點擊左側「播放」按鈕即可聆聽', 4000);
+          showToast('錄音完成，為您自動播放...', 3000);
           renderUI();
+          
+          // 停止後自動播放
+          recordAudioElement.play().catch(() => {});
         };
         
         mediaRecorder.start(); 
@@ -2032,25 +2059,23 @@
       }
     }
 
+    // 🌟 修正第 1 點：「重播」按鈕點擊動作
     function togglePlaybackAction() {
       if (!recordedAudioBlobUrl) {
-        showToast('尚無錄音檔案可供播放', 2500);
+        showToast('尚無錄音檔案可供重播', 2500);
         return;
       }
       
       if (isGuideActive) haltGuideRunnerImmediately();
 
-      if (recordAudioElement.paused) {
-        recordAudioElement.playbackRate = compareSpeed;
-        recordAudioElement.play().then(() => {
-          renderUI();
-        }).catch((err) => {
-          showToast('播放失敗', 2000);
-        });
-      } else {
-        recordAudioElement.pause();
+      recordAudioElement.currentTime = 0; // 每次重播從頭開始
+      recordAudioElement.playbackRate = compareSpeed;
+      recordAudioElement.play().then(() => {
+        showToast('▶ 正在重播錄音...', 2000);
         renderUI();
-      }
+      }).catch((err) => {
+        showToast('播放失敗', 2000);
+      });
     }
 
     function handleOfferingClick() {
@@ -2060,7 +2085,7 @@
       const inputUserName = document.getElementById('input-user-name');
       const offeringOverlay = document.getElementById('offering-modal-overlay');
 
-      if (displayCoinsCount) displayCoinsCount.textContent = getStoredCoins() + ' 枚';
+      if (displayCoinsCount) displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
       if (inputClassId) inputClassId.value = localStorage.getItem('user_class_id') || '';
       if (inputUserName) inputUserName.value = localStorage.getItem('user_profile_name') || '';
       if (offeringOverlay) offeringOverlay.style.display = 'flex';
@@ -2192,7 +2217,7 @@
           } else {
             const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
             redDot.style.left = (offsetLeft + (curLine.x1 * scaleX)) + 'px';
-            redDot.style.top = (offsetTop + (curLine.underLineY * scaleX)) + 'px';
+            redDot.style.top = (offsetTop + (curLine.underLineY * scaleY)) + 'px';
           }
         }
 
@@ -2290,7 +2315,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 網頁載入初始化 (V402)
+    // 🌟 網頁載入初始化 (V404)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2304,10 +2329,10 @@
       let targetDay = parseInt(urlParams.get('day'), 10) || 1;
 
       if (!urlParams.get('day') && !urlParams.get('start')) {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V402_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V404_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V402_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V404_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
