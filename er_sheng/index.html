@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v388 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v389 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -261,6 +261,16 @@
       gap: 10px;
       transform: translate(-50%, -50%) scale(1);
       opacity: 1;
+    }
+
+    /* 🔴 錄音時強效呼吸閃爍特效樣式 */
+    @keyframes recordingPulseStrong {
+      0%   { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
+      50%  { box-shadow: 0 0 35px rgba(239, 68, 68, 1), inset 0 0 18px rgba(255, 255, 255, 0.8); border-color: #FCA5A5; }
+      100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
+    }
+    .recording-flashing {
+      animation: recordingPulseStrong 0.9s infinite ease-in-out !important;
     }
 
     /* =========================================================================
@@ -580,9 +590,14 @@
   </div>
 
   <script>
+    // 🌟 全域防護：若在 LINE 內建瀏覽器，強制鎖死所有後續程式
+    const isLineApp = /Line\//i.test(navigator.userAgent);
+    let isCompanionDismissed = false;
+    let hasEnteredReciting = false;
+
     // 🌟 確保 PDF.js Worker 核心路徑正確掛載 (修復 V387 黑屏無反應問題)
     if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
     }
 
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
@@ -642,6 +657,18 @@
     const slotR3 = document.getElementById('slot-r3');
     const slotR4 = document.getElementById('slot-r4');
 
+    const offeringOverlay = document.getElementById('offering-modal-overlay');
+    const inputClassId = document.getElementById('input-class-id');
+    const inputUserName = document.getElementById('input-user-name');
+    const displayCoinsCount = document.getElementById('display-coins-count');
+    const btnConfirmOffering = document.getElementById('btn-confirm-offering');
+    const btnCancelOffering = document.getElementById('btn-cancel-offering');
+
+    const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
+    const todayRankList = document.getElementById('today-rank-list');
+    const totalRankList = document.getElementById('total-rank-list');
+    const btnRejoiceClose = document.getElementById('btn-rejoice-close');
+
     // 🌟 核心架構：共用資源與模式控管
     let currentMode = 'mp4';
     let pdfSubMode = 'guide'; // 'guide' (自讀) 或 'compare' (比對)
@@ -697,11 +724,6 @@
     let isCalibrating = false;
     let silentFrameCount = 0;
 
-    const isLineApp = /Line\//i.test(navigator.userAgent);
-    let isLineGuideDismissed = !isLineApp;
-    let isCompanionDismissed = false;
-    let hasEnteredReciting = false;
-
     // 播放錄音檔結束監聽
     recordAudioElement.addEventListener('ended', () => {
       renderUI();
@@ -718,14 +740,7 @@
     }
 
     function handleOrientationCheck() {
-      if (hasEnteredReciting) return;
-
-      if (!isLineGuideDismissed) {
-        lineBrowserOverlay.classList.add('active');
-        portraitBlocker.style.display = 'none';
-        companionOverlay.classList.remove('active');
-        return;
-      }
+      if (isLineApp || hasEnteredReciting) return;
 
       const isPortrait = window.innerHeight > window.innerWidth;
 
@@ -854,7 +869,6 @@
       }, duration);
     }
 
-    // 🌟 全面取代樣板字串，改用字串拼接
     function showModeBanner(title, subtitle) {
       if (!modeGrandBanner) return;
       modeGrandBanner.innerHTML = '<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">' + title + '</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">' + subtitle + '</div>';
@@ -1004,7 +1018,6 @@
         const deltaX = e.changedTouches[0].clientX - touchStartX;
         const deltaY = e.changedTouches[0].clientY - touchStartY;
 
-        // 確保是明確的左右滑動
         if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
           handleShutdownClick();
         }
@@ -1023,7 +1036,7 @@
       pdfSubMode = subMode;
 
       if (currentMode === 'mp4') {
-        releaseMicrophoneResources(); // 退出 PDF 模式，徹底關閉麥克風
+        releaseMicrophoneResources();
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
@@ -1039,13 +1052,12 @@
         video.pause();
         videoWrap.style.display = 'none';
         
-        // 保障渲染：強制顯示 container 並刷新尺寸
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
-        ensureMicrophoneActive(); // 進入 PDF 模式，預熱開啟一次麥克風
+        ensureMicrophoneActive(); 
         
-        // 🌟 核心修復：延遲 50ms 確保 Display Flex 完成版面佈局，讓 PDF 有正確寬高可繪製
+        // 🌟 保障渲染：強制重新排版
         setTimeout(() => {
             if (cachedPdfBuffer && parsedTextLines.length === 0) {
                 renderPdfOnValidDimensions();
@@ -1079,7 +1091,7 @@
       slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
       slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
-      // --- 絕對動態綁定事件 (修復供養無反應) ---
+      // --- 絕對動態綁定事件 ---
       const btnOffering = document.getElementById('btn-offering');
       if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
@@ -1125,7 +1137,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 控制按鈕的填色互斥機制 (綠=選定待命, 紫=執行中, 黑=未選中)
+    // 🌟 控制按鈕的填色互斥機制
     function updateModeButtonsStyle() {
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
@@ -1236,7 +1248,7 @@
           completedCycles = 0;
           currentLineIndex = markA_Index;
           currentCharIndexFloat = 0.0;
-          lastVoiceTime = performance.now(); // 重置 20秒防呆計時
+          lastVoiceTime = performance.now();
 
           ensureMicrophoneActive(); 
           startGuideRunner();
@@ -1681,7 +1693,7 @@
       updateModeButtonsStyle();
     }
 
-    // 🌟 共用麥克風引擎：單一啟動、長保待命
+    // 🌟 共用麥克風引擎
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -1719,7 +1731,7 @@
       }
     }
 
-    // 🌟 全域音量與防呆監控中心 (20秒無聲自動停止)
+    // 🌟 全域音量與防呆監控中心
     let vadDataArray = null;
     function startSharedVadLoop() {
       if (vadCheckTimer) return;
@@ -2103,7 +2115,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 網頁載入初始化與資源確保機制
+    // 🌟 網頁載入初始化
     window.addEventListener('DOMContentLoaded', async () => {
       checkDailyResetOnStartup();
 
