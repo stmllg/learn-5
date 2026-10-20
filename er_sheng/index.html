@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v390 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v391 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 21 天心靈陪伴卡
+       🌟 3. 心靈陪伴卡
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -500,6 +500,7 @@
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
+      <!-- 修改卡片上的按鈕文字 -->
       <button class="btn-card-orange" onclick="closeCompanionCard()">背書供養</button>
     </div>
   </div>
@@ -590,7 +591,7 @@
   </div>
 
   <script>
-    // 🌟 全域防護：若在 LINE 內建瀏覽器，強制鎖死所有後續程式
+    // 🌟 全域防護：若在 LINE 內建瀏覽器，直接宣告攔截，停止後續運作
     const isLineApp = /Line\//i.test(navigator.userAgent);
     let isCompanionDismissed = false;
     let hasEnteredReciting = false;
@@ -657,18 +658,6 @@
     const slotR3 = document.getElementById('slot-r3');
     const slotR4 = document.getElementById('slot-r4');
 
-    const offeringOverlay = document.getElementById('offering-modal-overlay');
-    const inputClassId = document.getElementById('input-class-id');
-    const inputUserName = document.getElementById('input-user-name');
-    const displayCoinsCount = document.getElementById('display-coins-count');
-    const btnConfirmOffering = document.getElementById('btn-confirm-offering');
-    const btnCancelOffering = document.getElementById('btn-cancel-offering');
-
-    const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
-    const todayRankList = document.getElementById('today-rank-list');
-    const totalRankList = document.getElementById('total-rank-list');
-    const btnRejoiceClose = document.getElementById('btn-rejoice-close');
-
     // 🌟 核心架構：共用資源與模式控管
     let currentMode = 'mp4';
     let pdfSubMode = 'guide'; // 'guide' (自讀) 或 'compare' (比對)
@@ -731,9 +720,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V390');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V391');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V390', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V391', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -753,8 +742,6 @@
 
         if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
           companionOverlay.classList.add('active');
-        } else if (!hasEnteredReciting && cachedPdfBuffer && parsedTextLines.length === 0) {
-          renderPdfOnValidDimensions();
         }
       }
     }
@@ -817,7 +804,9 @@
           updateVisualDisplay();
           scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
           if (!isManualSelected) applyScheduleToState();
-      } catch(e){}
+      } catch(e) {
+          console.error("PDF 解析錯誤: ", e);
+      }
     }
 
     const DB_NAME = 'HappyReciteDB_' + CURRENT_CLASSIC_ID;
@@ -1018,7 +1007,6 @@
         const deltaX = e.changedTouches[0].clientX - touchStartX;
         const deltaY = e.changedTouches[0].clientY - touchStartY;
 
-        // 確保是明確的左右滑動
         if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
           handleShutdownClick();
         }
@@ -1037,7 +1025,7 @@
       pdfSubMode = subMode;
 
       if (currentMode === 'mp4') {
-        releaseMicrophoneResources(); // 退出 PDF 模式，徹底關閉麥克風
+        releaseMicrophoneResources(); 
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
@@ -1053,19 +1041,21 @@
         video.pause();
         videoWrap.style.display = 'none';
         
-        // 保障渲染：強制顯示 container 並刷新尺寸
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
-        ensureMicrophoneActive(); // 進入 PDF 模式，預熱開啟一次麥克風
+        ensureMicrophoneActive(); 
         
-        setTimeout(() => {
-            if (cachedPdfBuffer && parsedTextLines.length === 0) {
-                renderPdfOnValidDimensions();
-            } else {
-                scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-            }
-        }, 50);
+        // 🌟 雙重保障渲染：利用 requestAnimationFrame 確保瀏覽器重新排版完成
+        window.requestAnimationFrame(() => {
+            setTimeout(() => {
+                if (cachedPdfBuffer && parsedTextLines.length === 0) {
+                    renderPdfOnValidDimensions();
+                } else {
+                    scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+                }
+            }, 100);
+        });
       }
       renderUI();
       showCurrentModeBanner();
@@ -1694,7 +1684,7 @@
       updateModeButtonsStyle();
     }
 
-    // 🌟 共用麥克風引擎：單一啟動、長保待命 (V390 修復錄音掉字)
+    // 🌟 共用麥克風引擎：單一啟動、長保待命
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -1702,7 +1692,7 @@
         if (!audioContext) audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') await audioContext.resume();
 
-        // 🌟 關閉自動增益與降噪，避免背誦持續音被誤認為噪音而遭到系統強壓靜音
+        // 關閉自動增益與降噪，避免背誦持續音被誤認為噪音而遭到系統強壓靜音
         micStream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
         });
@@ -1837,7 +1827,6 @@
           if (e.data.size > 0) audioChunks.push(e.data);
         };
         mediaRecorder.onstop = () => {
-          // 🌟 動態抓取系統錄製的原生格式，取代強加 WebM，防止 iOS Safari 解碼卡頓掉字
           const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
           const recordedBlob = new Blob(audioChunks, options);
           recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
@@ -1847,7 +1836,6 @@
           renderUI();
         };
         
-        // 🌟 移除切片機制 (timeslice)，強迫錄音器一鏡到底輸出單一完整區塊，避免拼接掉音
         mediaRecorder.start(); 
         
         isUserRecording = true;
@@ -2124,12 +2112,15 @@
 
     // 🌟 網頁載入初始化
     window.addEventListener('DOMContentLoaded', async () => {
-      checkDailyResetOnStartup();
+      // 🚨 強制鎖死機制：只要是 LINE 瀏覽器，立刻攔截，完全不執行後續載入
+      if (isLineApp) {
+        document.getElementById('line-browser-overlay').classList.add('active');
+        return; 
+      }
 
-      // 1. 優先繪製基礎 UI
+      checkDailyResetOnStartup();
       renderUI();
 
-      // 2. 非同步載入所有依賴資源
       try {
         const sRes = await fetch('./sentences.json');
         if (sRes.ok) {
@@ -2168,7 +2159,6 @@
         }
       });
 
-      // 確保影片加載後跳轉到正確的起始幀
       video.addEventListener('loadedmetadata', () => {
         if (currentMode === 'mp4' && video.paused) {
             const range = getActiveVideoRange();
@@ -2176,16 +2166,7 @@
         }
       });
 
-      // 3. 處理陪伴卡與方向鎖定
       await evaluateWarmCompanionCard();
-
-      if (!isLineGuideDismissed) {
-        lineBrowserOverlay.classList.add('active');
-      } else {
-        handleOrientationCheck();
-      }
-
-      // 陪伴卡解除每日限制後，不會進入這個分支，使用者必須手動按下「背書供養」
     });
   </script>
 </body>
