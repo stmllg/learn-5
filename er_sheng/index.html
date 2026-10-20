@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v396 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v397 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -485,7 +485,7 @@
 </head>
 <body>
 
-  <!-- 1. 絕對攔截層：若在 LINE 內開啟，直接鎖死畫面要求使用預設瀏覽器 -->
+  <!-- 1. 絕對攔截層：LINE 瀏覽器偵測到即鎖死 -->
   <div id="line-browser-overlay">
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
@@ -495,18 +495,6 @@
     </div>
   </div>
 
-  <script>
-    // 🛑 核心防禦：第 1 毫秒立刻攔截 LINE，完全不執行後續載入
-    if (/Line/i.test(navigator.userAgent)) {
-        const overlay = document.getElementById('line-browser-overlay');
-        overlay.classList.add('active');
-        overlay.style.display = 'flex';
-        overlay.style.opacity = '1';
-        overlay.style.zIndex = '999999';
-        throw new Error("LINE Browser detected. Execution halted."); // 強制中止後續所有腳本
-    }
-  </script>
-
   <!-- 2. 直立螢幕旋轉提示 -->
   <div id="portrait-blocker-overlay">
     <div class="rotate-phone-icon"></div>
@@ -514,8 +502,8 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 心靈陪伴卡 (取消記憶，每次必顯示) -->
-  <div id="companion-overlay" class="active">
+  <!-- 🌟 3. 心靈陪伴卡 (純粹 HTML 顯示) -->
+  <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" onerror="this.style.display='none';" />
       <button class="btn-card-orange" onclick="closeCompanionCard()">背書供養</button>
@@ -532,13 +520,13 @@
   <!-- 🌸 畫布特效層 -->
   <canvas id="flowerCanvas"></canvas>
 
-  <!-- 4. 主視圖 (完美的左4右4對稱) -->
+  <!-- 4. 主視圖 (左4右4對稱) -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
-      <div class="slot" id="slot-l1"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
-      <div class="slot" id="slot-l2"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起句</button></div>
-      <div class="slot" id="slot-l3"><button class="circle-btn btn-color-mark-b" id="btn-mark-b">終句</button></div>
-      <div class="slot" id="slot-l4"><button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button></div>
+      <div class="slot" id="slot-l1"></div>
+      <div class="slot" id="slot-l2"></div>
+      <div class="slot" id="slot-l3"></div>
+      <div class="slot" id="slot-l4"></div>
     </div>
 
     <div id="center-core">
@@ -549,7 +537,7 @@
         <div id="red-dot"></div>
       </div>
 
-      <!-- PDF 容器 (預設隱藏，切換模式才渲染) -->
+      <!-- PDF 容器 (預設隱藏) -->
       <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
       </div>
@@ -561,10 +549,10 @@
     </div>
 
     <div class="side-wing" id="right-wing">
-      <div class="slot" id="slot-r1"><button class="square-btn" id="btn-gendu">跟讀</button></div>
-      <div class="slot" id="slot-r2"><button class="square-btn" id="btn-zidu">自讀</button></div>
-      <div class="slot" id="slot-r3"><button class="square-btn" id="btn-record">比對</button></div>
-      <div class="slot" id="slot-r4"><button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button></div>
+      <div class="slot" id="slot-r1"></div>
+      <div class="slot" id="slot-r2"></div>
+      <div class="slot" id="slot-r3"></div>
+      <div class="slot" id="slot-r4"></div>
     </div>
   </div>
 
@@ -726,15 +714,14 @@
 
     function handleOrientationCheck() {
       const isPortrait = window.innerHeight > window.innerWidth;
+      
+      // 如果手機直立，顯示阻擋器
       if (isPortrait) {
         portraitBlocker.style.display = 'flex';
-        companionOverlay.style.display = 'none';
         if (hasStartedMainApp) haltGuideRunnerImmediately();
       } else {
+        // 如果橫向，隱藏阻擋器
         portraitBlocker.style.display = 'none';
-        if (!hasStartedMainApp) {
-          companionOverlay.style.display = 'flex';
-        }
       }
     }
 
@@ -758,6 +745,7 @@
       triggerAppFullscreen();
 
       setTimeout(() => {
+        companionOverlay.classList.remove('active');
         companionOverlay.style.display = 'none';
         
         try {
@@ -767,9 +755,9 @@
         } catch (err) {}
 
         const todayStr = getNormalizedDateStr();
-        const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V396');
+        const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V397');
         if (lastActiveDate !== todayStr) {
-          localStorage.setItem('APP_ACTIVE_DATE_V396', todayStr);
+          localStorage.setItem('APP_ACTIVE_DATE_V397', todayStr);
           isScheduleRepeatLocked = true;
           completedCycles = 0;
         }
@@ -826,182 +814,4 @@
       clearTimeout(scheduleToast._timer);
       scheduleToast._timer = setTimeout(() => {
         scheduleToast.style.opacity = '0';
-        setTimeout(() => { scheduleToast.style.display = 'none'; }, 300);
-      }, duration);
-    }
-
-    function showModeBanner(title, subtitle) {
-      if (!modeGrandBanner) return;
-      modeGrandBanner.innerHTML = '<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">' + title + '</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">' + subtitle + '</div>';
-      modeGrandBanner.classList.add('active');
-      clearTimeout(modeGrandBanner._timer);
-      modeGrandBanner._timer = setTimeout(() => {
-        modeGrandBanner.style.opacity = '0';
-        modeGrandBanner.style.transform = 'translate(-50%, -50%) scale(0.9)';
-        setTimeout(() => {
-          modeGrandBanner.classList.remove('active');
-          modeGrandBanner.style.opacity = '';
-          modeGrandBanner.style.transform = '';
-        }, 350);
-      }, 2000);
-    }
-
-    function showCurrentModeBanner() {
-      if (currentMode === 'mp4') {
-        showModeBanner('📖 跟讀模式', '影音同步・經典隨讀');
-      } else if (currentMode === 'pdf') {
-        if (pdfSubMode === 'compare') {
-            showModeBanner('🎙️ 比對模式', '精確收音・回放比對');
-        } else {
-            showModeBanner('📖 自讀模式', '靜心默背・字句導讀');
-        }
-      }
-    }
-
-    function setMp4Speed(val) {
-      mp4Speed = val;
-      localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
-      video.playbackRate = mp4Speed;
-      flashSpeedToast('【跟讀快轉 ' + mp4Speed.toFixed(1) + 'x】');
-    }
-
-    function setPdfSpeed(val) {
-      pdfSpeed = val;
-      localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
-      flashSpeedToast('【自讀語速 ' + pdfSpeed.toFixed(1) + 'x】');
-    }
-
-    function setCompareSpeed(val) {
-      compareSpeed = val;
-      localStorage.setItem('user_compare_speed_preference', compareSpeed.toFixed(1));
-      if (recordAudioElement) recordAudioElement.playbackRate = compareSpeed;
-      flashSpeedToast('【比對播放 ' + compareSpeed.toFixed(1) + 'x】');
-    }
-
-    function flashSpeedToast(text) {
-      speedToastBadge.textContent = text;
-      speedToastBadge.style.display = 'block';
-      speedToastBadge.style.opacity = '1';
-      clearTimeout(speedToastBadge._t);
-      speedToastBadge._t = setTimeout(() => {
-        speedToastBadge.style.opacity = '0';
-        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
-      }, 3000);
-    }
-
-    function triggerMp4SpeedChange(delta) {
-      let newSpeed = Math.round((mp4Speed + delta) * 10) / 10;
-      setMp4Speed(Math.max(0.5, Math.min(2.5, newSpeed)));
-    }
-
-    function triggerPdfSpeedChange(delta) {
-      let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
-      setPdfSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
-    }
-
-    function triggerCompareSpeedChange(delta) {
-      let newSpeed = Math.round((compareSpeed + delta) * 10) / 10;
-      setCompareSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
-    }
-
-    function speakPrompt(text) {
-      try {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = 'zh-TW';
-          utterance.rate = 1.1;
-          window.speechSynthesis.speak(utterance);
-        }
-      } catch (e) {}
-    }
-
-    function getNormalizedDateStr() {
-      const now = new Date();
-      return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
-    }
-
-    function getActiveVideoRange() {
-      if (!scriptureData || scriptureData.length === 0) {
-        return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
-      }
-
-      let aIdx = markA_Index >= 0 ? markA_Index : 0;
-      let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
-
-      if (bIdx < aIdx) bIdx = aIdx;
-      aIdx = Math.min(aIdx, scriptureData.length - 1);
-      bIdx = Math.min(bIdx, scriptureData.length - 1);
-
-      const startObj = scriptureData[aIdx];
-      const endObj = scriptureData[bIdx];
-
-      if (!startObj || typeof startObj.start !== 'number' || !endObj || typeof endObj.end !== 'number') {
-        return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
-      }
-
-      return {
-        start: startObj.start,
-        end: endObj.end,
-        sentenceA: aIdx + 1,
-        sentenceB: bIdx + 1,
-        valid: true
-      };
-    }
-
-    function releaseMicrophoneResources() {
-      if (micStream) {
-        try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
-        micStream = null;
-      }
-      if (audioContext && audioContext.state !== 'closed') {
-        try { audioContext.suspend(); } catch (e) {}
-      }
-      isVoiceActive = false;
-      isTouchingDisplay = false;
-    }
-
-    // 🌟 全域離開手勢 (左右滑動)
-    let touchStartX = 0;
-    let touchStartY = 0;
-
-    window.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-      }
-    }, { passive: true });
-
-    window.addEventListener('touched', (e) => {}, { passive: true });
-
-    window.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length === 1) {
-        const deltaX = e.changedTouches[0].clientX - touchStartX;
-        const deltaY = e.changedTouches[0].clientY - touchStartY;
-
-        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-          handleShutdownClick();
-        }
-      }
-    }, { passive: true });
-
-    // 🌟 核心：PDF 渲染引擎 (只在模式切換後真正顯示時才執行)
-    async function renderPdfOnValidDimensions() {
-      if (!cachedPdfBuffer) return;
-      try {
-        const loadingTask = pdfjsLib.getDocument({
-          data: new Uint8Array(cachedPdfBuffer),
-          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
-          cMapPacked: true
-        });
-
-        currentPdfDoc = await loadingTask.promise;
-        const page = await currentPdfDoc.getPage(1);
-
-        pdfCanvas.width = 0;
-        pdfCanvas.height = 0;
-
-        const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
-        const pageRotation = page.rotate || 0;
-        const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
-        const pageScale = availableWidth / unscaledViewport.
+        setTimeout(() => { scheduleToast.style.display = '
