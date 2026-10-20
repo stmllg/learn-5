@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v411 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v412 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -738,9 +738,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V411');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V412');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V411', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V412', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1239,14 +1239,13 @@
       isTouchingDisplay = false;
     }
 
-    // 🌟 全域離開手勢 (左右滑動)
     let touchStartX = 0;
     let touchStartY = 0;
 
     window.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
+        touchStartX = e.touches.clientX;
+        touchStartY = e.touches.clientY;
       }
     }, { passive: true });
 
@@ -1254,8 +1253,8 @@
 
     window.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
-        const deltaX = e.changedTouches[0].clientX - touchStartX;
-        const deltaY = e.changedTouches[0].clientY - touchStartY;
+        const deltaX = e.changedTouches.clientX - touchStartX;
+        const deltaY = e.changedTouches.clientY - touchStartY;
 
         if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
           handleShutdownClick();
@@ -1263,7 +1262,6 @@
       }
     }, { passive: true });
 
-    // 🌟 核心場景切換與算繪
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
       
@@ -1312,7 +1310,6 @@
       showCurrentModeBanner();
     }
 
-    // 🌟 終極 8 鍵完美佈局算繪 (V411：確保 btn-offering 事件監聽絕對牢固)
     function renderUI() {
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
       
@@ -2403,7 +2400,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 網頁載入初始化 (V411)
+    // 🌟 網頁載入初始化 (V412 供養修復完全版)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2417,10 +2414,10 @@
       let targetDay = parseInt(urlParams.get('day'), 10) || 1;
 
       if (!urlParams.get('day') && !urlParams.get('start')) {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V411_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V412_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V411_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V412_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
