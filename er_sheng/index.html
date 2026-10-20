@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v226 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v380 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -748,9 +748,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V226');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V380');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V226', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V380', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1024,6 +1024,52 @@
         try { audioContext.suspend(); } catch (e) {}
       }
       stopVoiceActivityDetection();
+    }
+
+    // =========================================================================
+    // 🌟 單指滑動切換模式 (還原)
+    // =========================================================================
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touched', (e) => {}, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        const deltaY = e.changedTouches[0].clientY - touchStartY;
+
+        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+          if (deltaX > 0) {
+            switchModeByDirection(1);
+          } else {
+            switchModeByDirection(-1);
+          }
+        }
+      }
+    }, { passive: true });
+
+    function switchModeByDirection(direction) {
+      let currentIndex = modeSequence.indexOf(currentMode);
+      if (currentIndex === -1) currentIndex = 0;
+
+      let newIndex = currentIndex + direction;
+      if (newIndex < 0) newIndex = 0;
+      if (newIndex >= modeSequence.length) newIndex = modeSequence.length - 1;
+
+      if (newIndex !== currentIndex) {
+        const targetMode = modeSequence[newIndex];
+        setMode(targetMode);
+      } else {
+        showCurrentModeBanner();
+      }
     }
 
     function setMode(mode) {
@@ -1361,7 +1407,7 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 核心升級：精準對齊手動設定起點與終點線條的座標換算方程式 (v226)
+    // 🌟 核心升級：精準對齊手動設定起點與終點線條的座標換算方程式
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
@@ -1491,6 +1537,7 @@
     }
 
     function handleShutdownClick() {
+      // 🌟 還原離開鍵功能：退出資源、停止影片
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
 
@@ -1643,6 +1690,7 @@
 
       maxTimeoutSafetyTimer = setTimeout(() => {
         if (isGuideActive) {
+          // 🌟 這裡也還原為原始設定，遇到逾時自動離開並提示釋放資源
           haltGuideRunnerImmediately();
           handleShutdownClick();
           showToast("讀誦逾時，已為您自動離開釋放資源", 4500);
@@ -2179,10 +2227,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V226_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V380_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V226_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V380_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
