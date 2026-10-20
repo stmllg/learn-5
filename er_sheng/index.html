@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 21 天心靈陪伴卡
+       🌟 3. 心靈陪伴卡
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -500,7 +500,7 @@
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
-      <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
+      <button class="btn-card-orange" onclick="closeCompanionCard()">背書供養</button>
     </div>
   </div>
 
@@ -595,7 +595,7 @@
     let isCompanionDismissed = false;
     let hasEnteredReciting = false;
 
-    // 🌟 確保 PDF.js Worker 核心路徑正確掛載 (修復 V387 黑屏無反應問題)
+    // 🌟 確保 PDF.js Worker 核心路徑正確掛載
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
     }
@@ -731,9 +731,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V388');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V389');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V388', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V389', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1018,6 +1018,7 @@
         const deltaX = e.changedTouches[0].clientX - touchStartX;
         const deltaY = e.changedTouches[0].clientY - touchStartY;
 
+        // 確保是明確的左右滑動
         if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
           handleShutdownClick();
         }
@@ -1057,7 +1058,7 @@
 
         ensureMicrophoneActive(); 
         
-        // 🌟 保障渲染：強制重新排版
+        // 保障渲染：強制重新排版
         setTimeout(() => {
             if (cachedPdfBuffer && parsedTextLines.length === 0) {
                 renderPdfOnValidDimensions();
@@ -1070,7 +1071,7 @@
       showCurrentModeBanner();
     }
 
-    // 🌟 終極 8 鍵完美佈局算繪 (V388 動態安全綁定)
+    // 🌟 終極 8 鍵完美佈局算繪
     function renderUI() {
       // ===== 左側 4 鍵 (供養, 起句/播放, 終句, 慢-) =====
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
@@ -1693,7 +1694,7 @@
       updateModeButtonsStyle();
     }
 
-    // 🌟 共用麥克風引擎
+    // 🌟 共用麥克風引擎：單一啟動、長保待命
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -2115,14 +2116,14 @@
       updateVisualDisplay();
     }
 
-    // 🌟 網頁載入初始化
+    // 🌟 網頁載入初始化 (確保 PDF 正確解析)
     window.addEventListener('DOMContentLoaded', async () => {
       checkDailyResetOnStartup();
 
       // 1. 優先繪製基礎 UI
       renderUI();
 
-      // 2. 非同步載入所有依賴資源 (確保依序載入)
+      // 2. 非同步載入所有依賴資源
       try {
         const sRes = await fetch('./sentences.json');
         if (sRes.ok) {
@@ -2136,28 +2137,30 @@
         }
       }
 
-      const localVideo = await getLocalFile('video_file');
-      if (localVideo && localVideo.data) {
-        video.src = URL.createObjectURL(new Blob([localVideo.data], { type: 'video/mp4' }));
-      } else {
-        video.src = './chant_video.mp4';
-      }
+      getLocalFile('video_file').then(localVideo => {
+        if (localVideo && localVideo.data) {
+          video.src = URL.createObjectURL(new Blob([localVideo.data], { type: 'video/mp4' }));
+        } else {
+          video.src = './chant_video.mp4';
+        }
+      });
 
-      const localPdf = await getLocalFile('pdf_file');
-      if (localPdf && localPdf.data) {
-        cachedPdfBuffer = localPdf.data;
-        if (currentMode === 'pdf' && parsedTextLines.length === 0) renderPdfOnValidDimensions();
-      } else {
-        try {
-          const pRes = await fetch('./scripture.pdf');
-          if (pRes.ok) {
-            const buf = await pRes.arrayBuffer();
-            await saveLocalFile('pdf_file', buf, 'init_pdf');
-            cachedPdfBuffer = buf;
-            if (currentMode === 'pdf' && parsedTextLines.length === 0) renderPdfOnValidDimensions();
-          }
-        } catch(e){}
-      }
+      getLocalFile('pdf_file').then(async localPdf => {
+        if (localPdf && localPdf.data) {
+          cachedPdfBuffer = localPdf.data;
+          if (currentMode === 'pdf' && parsedTextLines.length === 0) renderPdfOnValidDimensions();
+        } else {
+          try {
+            const pRes = await fetch('./scripture.pdf');
+            if (pRes.ok) {
+              const buf = await pRes.arrayBuffer();
+              await saveLocalFile('pdf_file', buf, 'init_pdf');
+              cachedPdfBuffer = buf;
+              if (currentMode === 'pdf' && parsedTextLines.length === 0) renderPdfOnValidDimensions();
+            }
+          } catch(e){}
+        }
+      });
 
       // 確保影片加載後跳轉到正確的起始幀
       video.addEventListener('loadedmetadata', () => {
@@ -2176,7 +2179,6 @@
         handleOrientationCheck();
       }
 
-      // 如果卡片已被略過，強制觸發一次完整初始化進入跟讀
       if (isCompanionDismissed) {
         hasEnteredReciting = true;
         activateMainReciteEntry();
