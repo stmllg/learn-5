@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v389 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v390 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 心靈陪伴卡
+       🌟 3. 21 天心靈陪伴卡
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -731,9 +731,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V389');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V390');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V389', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V390', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1037,7 +1037,7 @@
       pdfSubMode = subMode;
 
       if (currentMode === 'mp4') {
-        releaseMicrophoneResources();
+        releaseMicrophoneResources(); // 退出 PDF 模式，徹底關閉麥克風
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
@@ -1053,12 +1053,12 @@
         video.pause();
         videoWrap.style.display = 'none';
         
+        // 保障渲染：強制顯示 container 並刷新尺寸
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
-        ensureMicrophoneActive(); 
+        ensureMicrophoneActive(); // 進入 PDF 模式，預熱開啟一次麥克風
         
-        // 保障渲染：強制重新排版
         setTimeout(() => {
             if (cachedPdfBuffer && parsedTextLines.length === 0) {
                 renderPdfOnValidDimensions();
@@ -1694,7 +1694,7 @@
       updateModeButtonsStyle();
     }
 
-    // 🌟 共用麥克風引擎：單一啟動、長保待命
+    // 🌟 共用麥克風引擎：單一啟動、長保待命 (V390 修復錄音掉字)
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -1702,8 +1702,9 @@
         if (!audioContext) audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') await audioContext.resume();
 
+        // 🌟 關閉自動增益與降噪，避免背誦持續音被誤認為噪音而遭到系統強壓靜音
         micStream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
         });
 
         const source = audioContext.createMediaStreamSource(micStream);
@@ -1830,25 +1831,30 @@
         const ok = await ensureMicrophoneActive();
         if (!ok) { alert('無法存取麥克風，請檢查裝置權限設定'); return; }
 
-        triggerRecordCoinSplash();
         audioChunks = [];
         mediaRecorder = new MediaRecorder(micStream);
         mediaRecorder.ondataavailable = (e) => {
           if (e.data.size > 0) audioChunks.push(e.data);
         };
         mediaRecorder.onstop = () => {
-          const recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          // 🌟 動態抓取系統錄製的原生格式，取代強加 WebM，防止 iOS Safari 解碼卡頓掉字
+          const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
+          const recordedBlob = new Blob(audioChunks, options);
           recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
           recordAudioElement.src = recordedAudioBlobUrl;
           recordAudioElement.playbackRate = compareSpeed;
           showToast('錄音完成！點擊左側「播放」按鈕即可聆聽', 4000);
           renderUI();
         };
-        mediaRecorder.start(200);
+        
+        // 🌟 移除切片機制 (timeslice)，強迫錄音器一鏡到底輸出單一完整區塊，避免拼接掉音
+        mediaRecorder.start(); 
+        
         isUserRecording = true;
         lastVoiceTime = performance.now();
         showToast('🔴 正在錄音中...', 3000);
         renderUI();
+        triggerRecordCoinSplash();
       } else {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           mediaRecorder.stop();
@@ -2116,7 +2122,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 網頁載入初始化 (確保 PDF 正確解析)
+    // 🌟 網頁載入初始化
     window.addEventListener('DOMContentLoaded', async () => {
       checkDailyResetOnStartup();
 
@@ -2179,10 +2185,7 @@
         handleOrientationCheck();
       }
 
-      if (isCompanionDismissed) {
-        hasEnteredReciting = true;
-        activateMainReciteEntry();
-      }
+      // 陪伴卡解除每日限制後，不會進入這個分支，使用者必須手動按下「背書供養」
     });
   </script>
 </body>
