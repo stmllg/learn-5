@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v394 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v395 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -596,8 +596,8 @@
   </div>
 
   <script>
-    // 🌟 全域防護：若在 LINE 內建瀏覽器，強制鎖死所有後續程式，阻擋載入
-    const isLineApp = /Line\//i.test(navigator.userAgent);
+    // 🌟 全域防護：若在 LINE 內建瀏覽器，強制鎖死所有後續程式，完全阻擋載入 (修復 LINE 攔截漏洞)
+    const isLineApp = /Line/i.test(navigator.userAgent);
     let isCompanionDismissed = false;
     let hasEnteredReciting = false;
 
@@ -737,9 +737,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V394');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V395');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V394', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V395', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -756,9 +756,7 @@
         haltGuideRunnerImmediately();
       } else {
         portraitBlocker.style.display = 'none';
-        if (!isCompanionDismissed) {
-          companionOverlay.classList.add('active');
-        }
+        companionOverlay.classList.add('active'); // 確保橫向時卡片一定顯示
       }
     }
 
@@ -807,9 +805,12 @@
       } catch (err) {}
 
       if (!isManualSelected) applyScheduleToState();
-      setMode('mp4'); // 強制將初始畫面定軌在跟讀模式
+      
+      // 強制將初始畫面定軌在跟讀模式
+      setMode('mp4');
     }
 
+    // 🌟 核心：確保只能在 PDF 模式容器展開時才能呼叫此函數 (修復白屏隱形畫布問題)
     async function renderPdfOnValidDimensions() {
       if (!cachedPdfBuffer) return;
       try {
@@ -1055,22 +1056,20 @@
         video.pause();
         videoWrap.style.display = 'none';
         
-        // 保障渲染：強制顯示 container 並刷新尺寸
+        // 展開 PDF 容器，給予真實的寬高
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
         ensureMicrophoneActive(); 
         
-        // 🌟 雙重保障渲染：利用 requestAnimationFrame 確保瀏覽器重新排版完成
-        window.requestAnimationFrame(() => {
-            setTimeout(() => {
-                if (cachedPdfBuffer && parsedTextLines.length === 0) {
-                    renderPdfOnValidDimensions();
-                } else {
-                    scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-                }
-            }, 100);
-        });
+        // 🌟 保障渲染：給瀏覽器 150 毫秒的重新排版時間後，才開始在畫布上動筆
+        setTimeout(() => {
+            if (cachedPdfBuffer && (parsedTextLines.length === 0 || pdfCanvas.width === 0)) {
+                renderPdfOnValidDimensions();
+            } else {
+                scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+            }
+        }, 150);
       }
       renderUI();
       showCurrentModeBanner();
@@ -1247,7 +1246,8 @@
               showToast("經文處理中，請稍候", 2000);
               return;
           }
-          // 🌟 防呆：若未設定起終點，自動設定全篇
+          
+          // 🌟 防呆機制：若未設定起終點，直接預設為全篇，不再用語音中斷操作
           if (markA_Index === -1 || markB_Index === -1) { 
               markA_Index = 0;
               markB_Index = parsedTextLines.length - 1;
@@ -1675,7 +1675,10 @@
       const btnMarkB = document.getElementById('btn-mark-b');
       if (!btnMarkB) return;
       const selectedB = getLineAtButtonBottom(btnMarkB);
-      if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
+      if (markA_Index !== -1 && selectedB < markA_Index) { 
+        showToast("終點不能在起點之前", 2500); 
+        return; 
+      }
       
       isManualSelected = true;
       markB_Index = selectedB;
@@ -1715,7 +1718,7 @@
       updateModeButtonsStyle();
     }
 
-    // 🌟 共用麥克風引擎：單一啟動、長保待命
+    // 🌟 共用麥克風引擎
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -2046,4 +2049,212 @@
           }
         }
 
-        if (guideAnimId) { cancelAnimationFrame(guideAnimId
+        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
+        const nextIndex = currentLineIndex + 1;
+        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+        isTransitioningLine = true;
+        lineEndTime = performance.now();
+        peakRmsAtLineEnd = prevRms;
+        guideLine.style.display = 'none';
+        return;
+      }
+
+      if (curLine) {
+        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+        if (!isAppleDevice) {
+          redDot.style.left = rawX + 'px';
+          redDot.style.top = curLine.underLineY + 'px';
+        } else {
+          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+          redDot.style.left = (offsetLeft + (rawX * scaleX)) + 'px';
+          redDot.style.top = (offsetTop + (curLine.underLineY * scaleX)) + 'px';
+        }
+      }
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function proceedToNextLineImmediately() {
+      if (!isTransitioningLine || !isGuideActive) return;
+      const nextIndex = currentLineIndex + 1;
+      hasPageFlipped = false;
+      currentLineIndex = nextIndex;
+      setupActiveLine(currentLineIndex, 0.0);
+      lastAnimTimestamp = performance.now();
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function handleCycleCompletion() {
+      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+      
+      const shouldStop = processCycleCompletion();
+
+      if (shouldStop) {
+        finishAndStopPermanently();
+        return;
+      }
+
+      isTransitioningLine = true;
+      guideLine.style.display = 'none';
+
+      if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
+      cycleWaitTimer = setTimeout(() => {
+        if (!isGuideActive) return;
+        hasPageFlipped = false;
+        currentLineIndex = markA_Index;
+        scrollToAlignTop(currentLineIndex);
+
+        setupActiveLine(currentLineIndex, 0.0);
+        isTransitioningLine = false;
+        lastAnimTimestamp = performance.now();
+        isVoiceActive = false;
+
+        updateModeButtonsStyle();
+
+        if (guideAnimId) cancelAnimationFrame(guideAnimId);
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+      }, 1500);
+    }
+
+    function finishAndStopPermanently() {
+      haltGuideRunnerImmediately();
+      completedCycles = 0;
+      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      updateVisualDisplay();
+    }
+
+    function haltGuideRunnerImmediately() {
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (mp4PrecisionCheckAnimId) { cancelAnimationFrame(mp4PrecisionCheckAnimId); mp4PrecisionCheckAnimId = null; }
+
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+
+      try { video.pause(); } catch(e){}
+      updateModeButtonsStyle();
+      updateVisualDisplay();
+    }
+
+    // 🌟 網頁載入初始化 (V395 拔除陪伴卡記憶，確保每次必看)
+    async function evaluateWarmCompanionCard() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramDay = urlParams.get('day');
+      const startStr = urlParams.get('start');
+      const now = new Date();
+      
+      let targetDay = 1;
+
+      if (paramDay) {
+        targetDay = parseInt(paramDay, 10) || 1;
+      } else if (startStr) {
+        const parts = startStr.split('-');
+        const sYear = Number(parts[0]);
+        const sMonth = Number(parts[1]);
+        const sDay = Number(parts[2]);
+        const startDate = new Date(sYear, sMonth - 1, sDay);
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const diffTime = todayDate - startDate;
+        const currentDay = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        targetDay = currentDay > 0 ? currentDay : 1;
+      } else {
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V395_' + CURRENT_CLASSIC_ID) || '1', 10);
+        targetDay = tIdx;
+        let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
+        localStorage.setItem('TEST_CARD_INDEX_V395_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+      }
+
+      let cardFileName = "";
+      if (targetDay >= 22) {
+        cardFileName = "card_021.webp";
+      } else {
+        const paddedNum = String(targetDay).padStart(3, "0");
+        cardFileName = 'card_' + paddedNum + '.webp';
+      }
+
+      const fileKey = 'card_img_' + cardFileName.replace('.webp', '');
+      const localFile = await getLocalFile(fileKey);
+      
+      if (localFile && localFile.data) {
+        companionImgDisplay.src = URL.createObjectURL(new Blob([localFile.data], { type: 'image/webp' }));
+      } else {
+        companionImgDisplay.src = 'cards/' + cardFileName;
+      }
+      
+      // 確保卡片準備好顯示
+      document.getElementById('companion-overlay').classList.add('active');
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      // 🚨 強制鎖死機制：只要是 LINE 瀏覽器，立刻攔截，加上最高優先級 style
+      if (isLineApp) {
+        const overlay = document.getElementById('line-browser-overlay');
+        overlay.classList.add('active');
+        overlay.style.display = 'flex';
+        overlay.style.opacity = '1';
+        overlay.style.zIndex = '999999';
+        return; 
+      }
+
+      checkDailyResetOnStartup();
+      renderUI();
+
+      try {
+        const sRes = await fetch('./sentences.json');
+        if (sRes.ok) {
+          scriptureData = await sRes.json();
+          localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(scriptureData));
+        }
+      } catch (e) {
+        const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+        if (localSent) {
+          try { scriptureData = JSON.parse(localSent); } catch (e) {}
+        }
+      }
+
+      getLocalFile('video_file').then(localVideo => {
+        if (localVideo && localVideo.data) {
+          video.src = URL.createObjectURL(new Blob([localVideo.data], { type: 'video/mp4' }));
+        } else {
+          video.src = './chant_video.mp4';
+        }
+      });
+
+      // 背景下載 PDF 但絕對不偷偷渲染，避免產生 0x0 隱形畫布
+      getLocalFile('pdf_file').then(async localPdf => {
+        if (localPdf && localPdf.data) {
+          cachedPdfBuffer = localPdf.data;
+        } else {
+          try {
+            const pRes = await fetch('./scripture.pdf');
+            if (pRes.ok) {
+              const buf = await pRes.arrayBuffer();
+              await saveLocalFile('pdf_file', buf, 'init_pdf');
+              cachedPdfBuffer = buf;
+            }
+          } catch(e){}
+        }
+      });
+
+      video.addEventListener('loadedmetadata', () => {
+        if (currentMode === 'mp4' && video.paused) {
+            const range = getActiveVideoRange();
+            if (range.valid) { try { video.currentTime = range.start; } catch(e){} }
+        }
+      });
+
+      // 強制載入並顯示陪伴卡 (已無任何跳過邏輯)
+      await evaluateWarmCompanionCard();
+      handleOrientationCheck();
+    });
+  </script>
+</body>
+</html>
