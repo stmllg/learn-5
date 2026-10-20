@@ -580,9 +580,9 @@
   </div>
 
   <script>
-    // 🌟 確保 PDF.js Worker 核心路徑正確掛載 (修復黑屏問題)
+    // 🌟 確保 PDF.js Worker 核心路徑正確掛載 (修復 V387 黑屏無反應問題)
     if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     }
 
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
@@ -641,18 +641,6 @@
     const slotR2 = document.getElementById('slot-r2');
     const slotR3 = document.getElementById('slot-r3');
     const slotR4 = document.getElementById('slot-r4');
-
-    const offeringOverlay = document.getElementById('offering-modal-overlay');
-    const inputClassId = document.getElementById('input-class-id');
-    const inputUserName = document.getElementById('input-user-name');
-    const displayCoinsCount = document.getElementById('display-coins-count');
-    const btnConfirmOffering = document.getElementById('btn-confirm-offering');
-    const btnCancelOffering = document.getElementById('btn-cancel-offering');
-
-    const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
-    const todayRankList = document.getElementById('today-rank-list');
-    const totalRankList = document.getElementById('total-rank-list');
-    const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
     // 🌟 核心架構：共用資源與模式控管
     let currentMode = 'mp4';
@@ -866,6 +854,7 @@
       }, duration);
     }
 
+    // 🌟 全面取代樣板字串，改用字串拼接
     function showModeBanner(title, subtitle) {
       if (!modeGrandBanner) return;
       modeGrandBanner.innerHTML = '<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">' + title + '</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">' + subtitle + '</div>';
@@ -1056,17 +1045,20 @@
 
         ensureMicrophoneActive(); // 進入 PDF 模式，預熱開啟一次麥克風
         
-        if (cachedPdfBuffer && parsedTextLines.length === 0) {
-            renderPdfOnValidDimensions();
-        } else {
-            scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-        }
+        // 🌟 核心修復：延遲 50ms 確保 Display Flex 完成版面佈局，讓 PDF 有正確寬高可繪製
+        setTimeout(() => {
+            if (cachedPdfBuffer && parsedTextLines.length === 0) {
+                renderPdfOnValidDimensions();
+            } else {
+                scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+            }
+        }, 50);
       }
       renderUI();
       showCurrentModeBanner();
     }
 
-    // 🌟 終極 8 鍵完美佈局算繪 (V388 依照需求重新排列)
+    // 🌟 終極 8 鍵完美佈局算繪 (V388 動態安全綁定)
     function renderUI() {
       // ===== 左側 4 鍵 (供養, 起句/播放, 終句, 慢-) =====
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
@@ -1087,35 +1079,53 @@
       slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
       slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
-      // --- 綁定事件 ---
-      document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
-      if (document.getElementById('btn-play')) document.getElementById('btn-play').addEventListener('click', togglePlaybackAction);
-      if (document.getElementById('btn-mark-a')) document.getElementById('btn-mark-a').addEventListener('click', handleMarkAClck);
-      if (document.getElementById('btn-mark-b')) document.getElementById('btn-mark-b').addEventListener('click', handleMarkBClick);
-      
-      document.getElementById('btn-speed-down').addEventListener('click', (e) => {
+      // --- 絕對動態綁定事件 (修復供養無反應) ---
+      const btnOffering = document.getElementById('btn-offering');
+      if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+
+      const btnPlay = document.getElementById('btn-play');
+      if (btnPlay) btnPlay.addEventListener('click', togglePlaybackAction);
+
+      const btnMarkA = document.getElementById('btn-mark-a');
+      if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
+
+      const btnMarkB = document.getElementById('btn-mark-b');
+      if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
+
+      const btnSpeedDown = document.getElementById('btn-speed-down');
+      if (btnSpeedDown) {
+        btnSpeedDown.addEventListener('click', (e) => {
           e.stopPropagation();
           if (currentMode === 'mp4') triggerMp4SpeedChange(-0.1); 
           else if (pdfSubMode === 'compare') triggerCompareSpeedChange(-0.1);
           else triggerPdfSpeedChange(-0.1);
-      });
+        });
+      }
 
-      document.getElementById('btn-gendu').addEventListener('click', handleGenduClick);
-      document.getElementById('btn-zidu').addEventListener('click', handleZiduClick);
-      document.getElementById('btn-record').addEventListener('click', handleRecordModeClick);
+      const btnGendu = document.getElementById('btn-gendu');
+      if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
 
-      document.getElementById('btn-speed-up').addEventListener('click', (e) => {
+      const btnZidu = document.getElementById('btn-zidu');
+      if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
+
+      const btnRecord = document.getElementById('btn-record');
+      if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
+
+      const btnSpeedUp = document.getElementById('btn-speed-up');
+      if (btnSpeedUp) {
+        btnSpeedUp.addEventListener('click', (e) => {
           e.stopPropagation();
           if (currentMode === 'mp4') triggerMp4SpeedChange(+0.1); 
           else if (pdfSubMode === 'compare') triggerCompareSpeedChange(+0.1);
           else triggerPdfSpeedChange(+0.1);
-      });
+        });
+      }
 
       updateModeButtonsStyle();
       updateVisualDisplay();
     }
 
-    // 🌟 控制按鈕的填色互斥機制 (綠=選中待命, 紫=執行中, 黑=未選中)
+    // 🌟 控制按鈕的填色互斥機制 (綠=選定待命, 紫=執行中, 黑=未選中)
     function updateModeButtonsStyle() {
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
@@ -1126,33 +1136,19 @@
       const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
 
       // 1. 初始化全黑
-      if (btnGendu) {
-          btnGendu.textContent = '跟讀';
-          btnGendu.style.background = colorBlack;
-          btnGendu.style.borderColor = '#BAE6FD';
-          btnGendu.style.color = '#FB923C';
-          btnGendu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
-      }
-      if (btnZidu) {
-          btnZidu.textContent = '自讀';
-          btnZidu.style.background = colorBlack;
-          btnZidu.style.borderColor = '#BAE6FD';
-          btnZidu.style.color = '#FB923C';
-          btnZidu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
-      }
-      if (btnRecord) {
-          btnRecord.textContent = '比對';
-          btnRecord.style.background = colorBlack;
-          btnRecord.style.borderColor = '#BAE6FD';
-          btnRecord.style.color = '#FB923C';
-          btnRecord.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
-      }
+      [btnGendu, btnZidu, btnRecord].forEach(btn => {
+          if (btn) {
+              btn.style.background = colorBlack;
+              btn.style.borderColor = '#BAE6FD';
+              btn.style.color = '#FB923C';
+              btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+          }
+      });
 
-      // 2. 針對當前模式上色
+      // 2. 針對當前模式上實心色
       if (currentMode === 'mp4') {
           if (btnGendu) {
               const isPlaying = video && !video.paused;
-              btnGendu.textContent = isPlaying ? '暫停' : '跟讀';
               btnGendu.style.background = isPlaying ? colorPurple : colorGreen;
               btnGendu.style.borderColor = isPlaying ? '#E9D5FF' : '#A7F3D0';
               btnGendu.style.color = '#FFFFFF';
@@ -1161,7 +1157,6 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  btnZidu.textContent = isGuideActive ? (isVoiceActive ? '背誦中' : '導讀中') : '自讀';
                   btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
                   btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
                   btnZidu.style.color = '#FFFFFF';
@@ -1169,7 +1164,6 @@
               }
           } else if (pdfSubMode === 'compare') {
               if (btnRecord) {
-                  btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
                   btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
                   btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
                   btnRecord.style.color = '#FFFFFF';
@@ -1874,10 +1868,15 @@
 
     function handleOfferingClick() {
       if (isGuideActive) return;
-      displayCoinsCount.textContent = getStoredCoins() + ' 枚';
-      inputClassId.value = localStorage.getItem('user_class_id') || '';
-      inputUserName.value = localStorage.getItem('user_profile_name') || '';
-      offeringOverlay.style.display = 'flex';
+      const displayCoinsCount = document.getElementById('display-coins-count');
+      const inputClassId = document.getElementById('input-class-id');
+      const inputUserName = document.getElementById('input-user-name');
+      const offeringOverlay = document.getElementById('offering-modal-overlay');
+
+      if (displayCoinsCount) displayCoinsCount.textContent = getStoredCoins() + ' 枚';
+      if (inputClassId) inputClassId.value = localStorage.getItem('user_class_id') || '';
+      if (inputUserName) inputUserName.value = localStorage.getItem('user_profile_name') || '';
+      if (offeringOverlay) offeringOverlay.style.display = 'flex';
     }
 
     function startGuideRunner() {
@@ -2111,39 +2110,42 @@
       // 1. 優先繪製基礎 UI
       renderUI();
 
-      // 2. 非同步載入所有依賴資源
-      const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
-      if (localSent) {
-        try { scriptureData = JSON.parse(localSent); } catch (e) {}
-      }
-      if (!scriptureData || scriptureData.length === 0) {
-        fetch('./sentences.json').then(r=>r.json()).then(d => {
-          scriptureData = d;
-          localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(d));
-        }).catch(e=>{});
-      }
-
-      getLocalFile('video_file').then(localVideo => {
-        if (localVideo && localVideo.data) {
-          video.src = URL.createObjectURL(new Blob([localVideo.data], { type: 'video/mp4' }));
-        } else {
-          video.src = './chant_video.mp4';
+      // 2. 非同步載入所有依賴資源 (確保依序載入)
+      try {
+        const sRes = await fetch('./sentences.json');
+        if (sRes.ok) {
+          scriptureData = await sRes.json();
+          localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(scriptureData));
         }
-      });
+      } catch (e) {
+        const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+        if (localSent) {
+          try { scriptureData = JSON.parse(localSent); } catch (e) {}
+        }
+      }
 
-      getLocalFile('pdf_file').then(async localPdf => {
-        if (localPdf && localPdf.data) {
-          cachedPdfBuffer = localPdf.data;
-          // 若當前就在 PDF 模式，強制觸發一次渲染
-          if (currentMode === 'pdf' && parsedTextLines.length === 0) renderPdfOnValidDimensions();
-        } else {
-          fetch('./scripture.pdf').then(r => r.arrayBuffer()).then(buf => {
-            saveLocalFile('pdf_file', buf, 'init_pdf');
+      const localVideo = await getLocalFile('video_file');
+      if (localVideo && localVideo.data) {
+        video.src = URL.createObjectURL(new Blob([localVideo.data], { type: 'video/mp4' }));
+      } else {
+        video.src = './chant_video.mp4';
+      }
+
+      const localPdf = await getLocalFile('pdf_file');
+      if (localPdf && localPdf.data) {
+        cachedPdfBuffer = localPdf.data;
+        if (currentMode === 'pdf' && parsedTextLines.length === 0) renderPdfOnValidDimensions();
+      } else {
+        try {
+          const pRes = await fetch('./scripture.pdf');
+          if (pRes.ok) {
+            const buf = await pRes.arrayBuffer();
+            await saveLocalFile('pdf_file', buf, 'init_pdf');
             cachedPdfBuffer = buf;
             if (currentMode === 'pdf' && parsedTextLines.length === 0) renderPdfOnValidDimensions();
-          }).catch(e=>{});
-        }
-      });
+          }
+        } catch(e){}
+      }
 
       // 確保影片加載後跳轉到正確的起始幀
       video.addEventListener('loadedmetadata', () => {
