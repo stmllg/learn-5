@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v408 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v409 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 心靈陪伴卡
+       🌟 3. 心靈陪伴卡 (V409 預先完全隱藏容器，防止載入前的空框閃爍)
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -174,7 +174,7 @@
       top: 0; left: 0;
       width: 100vw; height: 100vh; height: 100dvh;
       z-index: 20000;
-      background: rgba(4, 7, 15, 0.94);
+      background: rgba(4, 7, 15, 0.96);
       backdrop-filter: blur(8px);
       flex-direction: column;
       justify-content: center;
@@ -197,6 +197,15 @@
       box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
       border-radius: 14px;
       overflow: hidden;
+      
+      /* 🌟 預先隱藏與縮放，等待圖片載入完成才顯示 */
+      opacity: 0;
+      transform: scale(0.96);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .companion-wrapper.ready {
+      opacity: 1;
+      transform: scale(1);
     }
 
     #companion-img-display {
@@ -505,7 +514,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 心靈陪伴卡 -->
+  <!-- 🌟 3. 心靈陪伴卡 (V409 預先隱藏容器，杜絕載入前空框閃爍) -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -526,7 +535,6 @@
   <!-- 4. 主視圖 -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
-      <!-- 左側選單由 JS 動態生成 -->
       <div class="slot" id="slot-l1"></div>
       <div class="slot" id="slot-l2"></div>
       <div class="slot" id="slot-l3"></div>
@@ -553,7 +561,6 @@
     </div>
 
     <div class="side-wing" id="right-wing">
-      <!-- 右側選單由 JS 動態生成 -->
       <div class="slot" id="slot-r1"></div>
       <div class="slot" id="slot-r2"></div>
       <div class="slot" id="slot-r3"></div>
@@ -618,7 +625,7 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    // 🌟 三重獨立速度儲存機制 (V408 主動更新對應)
+    // 🌟 三重獨立速度儲存機制
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -699,7 +706,7 @@
 
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
-    let scheduleRepeatLimit = 5; // 預設 5 遍
+    let scheduleRepeatLimit = 5; // 預設內定 5 遍
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
@@ -732,9 +739,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V408');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V409');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V408', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V409', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1130,7 +1137,6 @@
       }
     }
 
-    // 🌟 修正第 2 點：設定速度時主動存入 localStorage 並更新播放器
     function setMp4Speed(val) {
       mp4Speed = val;
       localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
@@ -1258,7 +1264,7 @@
       }
     }, { passive: true });
 
-    // 🌟 核心場景切換與算繪 (V408 主動更新各模式對應的記憶速度)
+    // 🌟 核心場景切換與算繪 (V409 主動更新各模式對應記憶速度)
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
       
@@ -1276,7 +1282,6 @@
         videoWrap.style.display = 'flex';
         centerCore.scrollTop = 0;
         
-        // 🌟 主動套用跟讀記憶速度
         mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
         if (video) video.playbackRate = mp4Speed;
 
@@ -1294,7 +1299,6 @@
 
         ensureMicrophoneActive(); 
         
-        // 🌟 主動套用自讀記憶語速
         pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference') || '1.0');
 
         setTimeout(() => {
@@ -2084,13 +2088,13 @@
           if ((isGuideActive || isUserRecording) && (performance.now() - lastVoiceTime > 20000)) {
             if (isGuideActive) {
               haltGuideRunnerImmediately();
-              showToast("讀誦逾時 20 秒無聲, 已為您自動停止", 4500);
+              showToast("讀誦逾時 20 秒無聲，已為您自動停止", 4500);
             }
             if (isUserRecording) {
               if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
               isUserRecording = false;
               renderUI();
-              showToast("收音閒置 20 秒, 已自動為您結束並保留錄音", 4500);
+              showToast("收音閒置 20 秒，已自動為您結束並保留錄音", 4500);
             }
             lastVoiceTime = performance.now();
           }
@@ -2170,88 +2174,6 @@
       if (inputUserName) inputUserName.value = localStorage.getItem('user_profile_name') || '';
       if (offeringOverlay) offeringOverlay.style.display = 'flex';
     }
-
-    function getStoredCoins() {
-      return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
-    }
-    function addCoins(amount) {
-      const total = getStoredCoins() + amount;
-      localStorage.setItem('user_accumulated_coins', total.toString());
-      return total;
-    }
-    function resetCoins() {
-      localStorage.setItem('user_accumulated_coins', '0');
-    }
-
-    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
-
-    btnConfirmOffering.addEventListener('click', () => {
-      const classId = inputClassId.value.trim();
-      const userName = inputUserName.value.trim();
-      if (!classId || !userName) { alert("請輸入班號與姓名！"); return; }
-
-      localStorage.setItem('user_class_id', classId);
-      localStorage.setItem('user_profile_name', userName);
-
-      const coinsToOffer = getStoredCoins();
-      if (coinsToOffer <= 0) { alert("目前福慧幣為 0 枚，請先精進背誦！"); return; }
-
-      btnConfirmOffering.disabled = true;
-      btnConfirmOffering.textContent = '連線供養中...';
-
-      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
-      let isDone = false;
-
-      function handleSuccess(data) {
-        if (isDone) return;
-        isDone = true;
-        clearTimeout(timeoutTimer);
-        delete window[callbackName];
-        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
-
-        resetCoins();
-        displayCoinsCount.textContent = '0 枚';
-        offeringOverlay.style.display = 'none';
-
-        btnConfirmOffering.disabled = false;
-        btnConfirmOffering.textContent = '確認供養';
-
-        renderLeaderboards(data, classId, userName, coinsToOffer);
-        leaderboardOverlay.style.display = 'flex';
-        
-        triggerLeaderboardCoinRain();
-      }
-
-      const timeoutTimer = setTimeout(() => { if (!isDone) handleSuccess(null); }, 10000);
-      window[callbackName] = (res) => handleSuccess(res);
-
-      const scriptTag = document.createElement('script');
-      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&callback=${callbackName}&t=${Date.now()}`;
-      scriptTag.onerror = () => { if (!isDone) handleSuccess(null); };
-      document.body.appendChild(scriptTag);
-    });
-
-    function renderLeaderboards(data, curClass, curName, curCoins) {
-      const medals = ['🥇', '🥈', '🥉'];
-      function buildListHtml(list) {
-        const fullList = (list && Array.isArray(list)) ? [...list] : [];
-        while (fullList.length < 3) fullList.push({ isPlaceholder: true });
-        return fullList.slice(0, 3).map((item, idx) => {
-          const medal = medals[idx] || `第${idx + 1}名`;
-          if (item.isPlaceholder) {
-            return `<div class="rank-item"><span>${medal} <i style="color:#94A3B8;">虛位以待</i></span><span class="rank-coins">--</span></div>`;
-          }
-          const displayName = item.maskName || item.name || curName;
-          const displayClass = item.classId ? `(${item.classId})` : '';
-          const coinsVal = (typeof item.coins === 'number') ? item.coins : curCoins;
-          return `<div class="rank-item"><span>${medal} ${displayName} <small style="color:#94A3B8;">${displayClass}</small></span><span class="rank-coins">${coinsVal} 枚</span></div>`;
-        }).join('');
-      }
-      todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
-      totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
-    }
-
-    btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
 
     function startGuideRunner() {
       if (parsedTextLines.length === 0) return;
@@ -2472,7 +2394,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 網頁載入初始化 (V408)
+    // 🌟 網頁載入初始化 (V409 預先完全隱藏容器修復閃爍)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2486,14 +2408,24 @@
       let targetDay = parseInt(urlParams.get('day'), 10) || 1;
 
       if (!urlParams.get('day') && !urlParams.get('start')) {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V408_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V409_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V408_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V409_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
+      
       const imgDisplay = document.getElementById('companion-img-display');
+      const compWrapper = document.querySelector('.companion-wrapper');
+
+      // 🌟 確保圖片下載完成前，外框容器維持透明隱藏，消除小框閃爍
+      imgDisplay.onload = () => {
+          compWrapper.classList.add('ready');
+      };
+      imgDisplay.onerror = () => {
+          compWrapper.classList.add('ready');
+      };
       imgDisplay.src = 'cards/' + cardFileName;
       
       const compOverlay = document.getElementById('companion-overlay');
