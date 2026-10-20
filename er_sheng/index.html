@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v382 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v383 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -364,22 +364,23 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
+    /* 移除了 !important 讓 JS 改變底色時能順利套用 */
     .square-btn {
       width: 60px !important;
       height: 60px !important;
       border-radius: 14px !important;
       border: 2.5px solid #BAE6FD;
-      background: #000000 !important;
+      background: #000000;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       font-size: 17px !important;
       font-weight: 900;
-      color: #FB923C !important;
+      color: #FB923C;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
-      transition: transform 0.15s ease-out, box-shadow 0.3s ease, border-color 0.3s ease;
+      transition: transform 0.15s ease-out, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
       text-align: center;
       line-height: 1.1;
       touch-action: manipulation;
@@ -458,12 +459,6 @@
       z-index: 999999;
     }
 
-    .popup-modal { display: none; position: absolute; top: 50%; left: calc(76px + env(safe-area-inset-left, 0px)); transform: translateY(-50%); background: rgba(30, 41, 59, 0.98); border-radius: 18px; padding: 14px; z-index: 100; flex-direction: column; gap: 10px; border: 2px solid #6366F1; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-    .modal-option { padding: 10px 20px; font-size: 18px; font-weight: 800; color: #FFFFFF; background-color: #334155; border: none; border-radius: 10px; cursor: pointer; text-align: center; }
-    .modal-option.active { background: #6366F1; }
-
-    #speed-modal { display: none; position: absolute; top: 50%; left: calc(76px + env(safe-area-inset-left, 0px)); transform: translateY(-50%); background: rgba(30, 41, 59, 0.98); border-radius: 18px; padding: 12px; z-index: 100; flex-direction: column; gap: 8px; border: 2px solid #10B981; box-shadow: 0 10px 30px rgba(0,0,0,0.8); max-height: 80vh; overflow-y: auto; }
-
     /* 供養與功德榜 */
     #offering-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 999; justify-content: center; align-items: center; padding: 12px; }
     .offering-card { background: #FFFFFF; color: #1E293B; border-radius: 18px; width: 92%; max-width: 460px; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
@@ -532,7 +527,7 @@
   <!-- 4. 主視圖 -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
-      <!-- 左側選單由 JS 動態生成 (V382) -->
+      <!-- 左側選單由 JS 動態生成 -->
       <div class="slot" id="slot-l1"></div>
       <div class="slot" id="slot-l2"></div>
       <div class="slot" id="slot-l3"></div>
@@ -559,24 +554,11 @@
     </div>
 
     <div class="side-wing" id="right-wing">
-      <div class="slot" id="slot-r1"><button class="square-btn" id="btn-guide-toggle">跟讀</button></div>
-      <div class="slot" id="slot-r2"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
-      <div class="slot" id="slot-r3"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button></div>
-      <div class="slot" id="slot-r4"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">快轉-</button></div>
+      <div class="slot" id="slot-r1"></div>
+      <div class="slot" id="slot-r2"></div>
+      <div class="slot" id="slot-r3"></div>
+      <div class="slot" id="slot-r4"></div>
     </div>
-  </div>
-
-  <!-- 快轉倍數選單 Modal -->
-  <div id="speed-modal" class="popup-modal">
-    <div style="font-size: 15px; font-weight: 900; color: #34D399; text-align: center; margin-bottom: 2px;">選擇快轉倍數</div>
-    <button class="modal-option" data-speed="1">1.0x</button>
-    <button class="modal-option" data-speed="1.2">1.2x</button>
-    <button class="modal-option" data-speed="1.3">1.3x</button>
-    <button class="modal-option" data-speed="1.5">1.5x</button>
-    <button class="modal-option" data-speed="1.75">1.75x</button>
-    <button class="modal-option" data-speed="2">2.0x</button>
-    <button class="modal-option" data-speed="2.25">2.25x</button>
-    <button class="modal-option" data-speed="2.5">2.5x</button>
   </div>
 
   <!-- 供養彈窗 -->
@@ -635,11 +617,15 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
+    // 🌟 三重獨立速度儲存機制
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
     let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
+
+    let compareSpeed = parseFloat(localStorage.getItem('user_compare_speed_preference') || '1.0');
+    if (isNaN(compareSpeed) || compareSpeed < 0.5 || compareSpeed > 2.5) compareSpeed = 1.0;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
@@ -664,8 +650,6 @@
     const scheduleToast = document.getElementById('schedule-toast');
     const speedToastBadge = document.getElementById('speed-toast-badge');
 
-    const speedModal = document.getElementById('speed-modal');
-
     const slotL1 = document.getElementById('slot-l1');
     const slotL2 = document.getElementById('slot-l2');
     const slotL3 = document.getElementById('slot-l3');
@@ -688,7 +672,7 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 🌟 核心架構：共用資源與模式控管 (V382)
+    // 🌟 核心架構：共用資源與模式控管
     let currentMode = 'mp4';
     const modeSequence = ['mp4', 'pdf'];
     let pdfSubMode = 'guide'; // 'guide' (自讀) 或 'compare' (比對)
@@ -756,9 +740,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V382');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V383');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V382', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V383', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -813,11 +797,9 @@
 
     function closeCompanionCard() {
       hasEnteredReciting = true;
-
       window.removeEventListener('resize', handleOrientationCheck);
       window.removeEventListener('orientationchange', orientationChangeWrapper);
       portraitBlocker.style.display = 'none';
-
       triggerAppFullscreen();
 
       isCompanionDismissed = true;
@@ -828,10 +810,7 @@
         companionOverlay.classList.remove('active');
         companionOverlay.style.opacity = '';
         activateMainReciteEntry();
-
-        setTimeout(() => {
-          renderPdfOnValidDimensions();
-        }, 250);
+        setTimeout(() => { renderPdfOnValidDimensions(); }, 250);
       }, 350);
     }
 
@@ -839,14 +818,10 @@
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') {
-          audioContext.resume();
-        }
+        if (audioContext.state === 'suspended') { audioContext.resume(); }
       } catch (err) {}
 
-      if (!isManualSelected) {
-        applyScheduleToState();
-      }
+      if (!isManualSelected) applyScheduleToState();
       syncFiveFilesInBackground();
       resetSideWingsForMode('mp4');
     }
@@ -910,7 +885,7 @@
 
     function showModeBanner(title, subtitle) {
       if (!modeGrandBanner) return;
-      modeGrandBanner.innerHTML = `<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">${title}</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">${subtitle}</div>`;
+      modeGrandBanner.innerHTML = `<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">\${title}</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">\${subtitle}</div>`;
       modeGrandBanner.classList.add('active');
       clearTimeout(modeGrandBanner._timer);
       modeGrandBanner._timer = setTimeout(() => {
@@ -932,64 +907,19 @@
       }
     }
 
+    // 🌟 三重獨立調速機制
     function setMp4Speed(val) {
       mp4Speed = val;
       localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
       video.playbackRate = mp4Speed;
-
-      speedToastBadge.textContent = `【跟讀快轉 ${mp4Speed.toFixed(1)}x】`;
-      speedToastBadge.style.display = 'block';
-      speedToastBadge.style.opacity = '1';
-
-      clearTimeout(speedToastBadge._t);
-      speedToastBadge._t = setTimeout(() => {
-        speedToastBadge.style.opacity = '0';
-        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
-      }, 3000);
+      flashSpeedToast(`【跟讀快轉 ${mp4Speed.toFixed(1)}x】`); }  function setPdfSpeed(val) { pdfSpeed = val; localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1)); flashSpeedToast(`【自讀語速 ${pdfSpeed.toFixed(1)}x】`);
     }
 
-    function setPdfSpeed(val) {
-      pdfSpeed = val;
-      localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
-
-      speedToastBadge.textContent = `【自讀語速 ${pdfSpeed.toFixed(1)}x】`;
-      speedToastBadge.style.display = 'block';
-      speedToastBadge.style.opacity = '1';
-
-      clearTimeout(speedToastBadge._t);
-      speedToastBadge._t = setTimeout(() => {
-        speedToastBadge.style.opacity = '0';
-        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
-      }, 3000);
-    }
-
-    function triggerMp4SpeedChange(delta) {
-      let newSpeed = Math.round((mp4Speed + delta) * 10) / 10;
-      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
-      setMp4Speed(newSpeed);
-    }
-
-    function triggerPdfSpeedChange(delta) {
-      let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
-      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
-      setPdfSpeed(newSpeed);
-    }
-
-    function speakPrompt(text) {
-      try {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = 'zh-TW';
-          utterance.rate = 1.1;
-          window.speechSynthesis.speak(utterance);
-        }
-      } catch (e) {}
-    }
-
-    function getNormalizedDateStr() {
-      const now = new Date();
-      return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+    function setCompareSpeed(val) {
+      compareSpeed = val;
+      localStorage.setItem('user_compare_speed_preference', compareSpeed.toFixed(1));
+      if (recordAudioElement) recordAudioElement.playbackRate = compareSpeed;
+      flashSpeedToast(`【比對播放 ${compareSpeed.toFixed(1)}x】`); }  function flashSpeedToast(text) { speedToastBadge.textContent = text; speedToastBadge.style.display = 'block'; speedToastBadge.style.opacity = '1'; clearTimeout(speedToastBadge._t); speedToastBadge._t = setTimeout(() => { speedToastBadge.style.opacity = '0'; setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300); }, 3000); }  function triggerMp4SpeedChange(delta) { let newSpeed = Math.round((mp4Speed + delta) * 10) / 10; setMp4Speed(Math.max(0.5, Math.min(2.5, newSpeed))); }  function triggerPdfSpeedChange(delta) { let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10; setPdfSpeed(Math.max(0.5, Math.min(2.5, newSpeed))); }  function triggerCompareSpeedChange(delta) { let newSpeed = Math.round((compareSpeed + delta) * 10) / 10; setCompareSpeed(Math.max(0.5, Math.min(2.5, newSpeed))); }  function speakPrompt(text) { try { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'zh-TW'; utterance.rate = 1.1; window.speechSynthesis.speak(utterance); } } catch (e) {} }  function getNormalizedDateStr() { const now = new Date(); return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
     }
 
     function getActiveVideoRange() {
@@ -1001,7 +931,6 @@
       let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
 
       if (bIdx < aIdx) bIdx = aIdx;
-
       aIdx = Math.min(aIdx, scriptureData.length - 1);
       bIdx = Math.min(bIdx, scriptureData.length - 1);
 
@@ -1021,7 +950,6 @@
       };
     }
 
-    // 🌟 共用資源：釋放硬體麥克風
     function releaseMicrophoneResources() {
       if (micStream) {
         try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
@@ -1053,11 +981,8 @@
         const deltaY = e.changedTouches[0].clientY - touchStartY;
 
         if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-          if (deltaX > 0) {
-            switchModeByDirection(1);
-          } else {
-            switchModeByDirection(-1);
-          }
+          if (deltaX > 0) switchModeByDirection(1);
+          else switchModeByDirection(-1);
         }
       }
     }, { passive: true });
@@ -1070,12 +995,8 @@
       if (newIndex < 0) newIndex = 0;
       if (newIndex >= modeSequence.length) newIndex = modeSequence.length - 1;
 
-      if (newIndex !== currentIndex) {
-        const targetMode = modeSequence[newIndex];
-        setMode(targetMode);
-      } else {
-        showCurrentModeBanner();
-      }
+      if (newIndex !== currentIndex) setMode(modeSequence[newIndex]);
+      else showCurrentModeBanner();
     }
 
     function setMode(mode) {
@@ -1098,9 +1019,7 @@
         video.playbackRate = mp4Speed;
         const range = getActiveVideoRange();
         videoPausedAt = -1;
-        if (range.valid) {
-          video.currentTime = range.start;
-        }
+        if (range.valid) video.currentTime = range.start;
       } else if (currentMode === 'pdf') {
         video.pause();
         videoWrap.style.display = 'none';
@@ -1128,18 +1047,29 @@
         renderPdfLeftWing();
       }
 
-      slotR1.innerHTML = `<button class="square-btn" id="btn-guide-toggle">${mode === 'mp4' ? '跟讀' : '自讀'}</button>`;
+      slotR1.innerHTML = `<button class="square-btn" id="btn-guide-toggle">\${mode === 'mp4' ? '跟讀' : '自讀'}</button>`;
       slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
-      slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button>`;
-      slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down">快轉-</button>`;
+      // 🌟 將快轉按鍵字體放大加粗
+      slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>`;
+      slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>`;
 
       document.getElementById('btn-speed-up').addEventListener('click', (e) => {
         e.stopPropagation();
-        if (currentMode === 'mp4') { triggerMp4SpeedChange(+0.1); } else { triggerPdfSpeedChange(+0.1); }
+        if (currentMode === 'mp4') {
+            triggerMp4SpeedChange(+0.1); 
+        } else {
+            if (pdfSubMode === 'compare') triggerCompareSpeedChange(+0.1);
+            else triggerPdfSpeedChange(+0.1);
+        }
       });
       document.getElementById('btn-speed-down').addEventListener('click', (e) => {
         e.stopPropagation();
-        if (currentMode === 'mp4') { triggerMp4SpeedChange(-0.1); } else { triggerPdfSpeedChange(-0.1); }
+        if (currentMode === 'mp4') {
+            triggerMp4SpeedChange(-0.1); 
+        } else {
+            if (pdfSubMode === 'compare') triggerCompareSpeedChange(-0.1);
+            else triggerPdfSpeedChange(-0.1);
+        }
       });
 
       document.getElementById('btn-guide-toggle').addEventListener('click', handleGuideToggleClick);
@@ -1148,14 +1078,14 @@
       updateModeButtonsStyle();
     }
 
-    // 🌟 核心選單：動態切換與視覺呈現 (保持原色，利用陰影與文字變化)
+    // 🌟 核心選單：動態切換與視覺呈現 (互斥全實心填色)
     function renderPdfLeftWing() {
       // 左 1 統一為大方塊按鍵
-      slotL1.innerHTML = `<button class="square-btn" id="btn-record">${isUserRecording ? '錄音中' : '比對'}</button>`;
+      slotL1.innerHTML = `<button class="square-btn" id="btn-record">\${isUserRecording ? '錄音中' : '比對'}</button>`;
       document.getElementById('btn-record').addEventListener('click', handleRecordModeClick);
 
       if (pdfSubMode === 'compare') {
-        slotL2.innerHTML = `<button class="circle-btn btn-color-play" id="btn-play">${(recordAudioElement && !recordAudioElement.paused) ? '暫停' : '播放'}</button>`;
+        slotL2.innerHTML = `<button class="circle-btn btn-color-play" id="btn-play">\${(recordAudioElement && !recordAudioElement.paused) ? '暫停' : '播放'}</button>`;
         slotL3.innerHTML = ``;
         if (document.getElementById('btn-play')) {
           document.getElementById('btn-play').addEventListener('click', togglePlaybackAction);
@@ -1173,31 +1103,64 @@
       updateModeButtonsStyle();
     }
 
+    // 🌟 控制按鈕的填色互斥機制 (綠=選中待命, 紫=執行中, 黑=未選中)
     function updateModeButtonsStyle() {
       const btnGuide = document.getElementById('btn-guide-toggle');
       const btnRecord = document.getElementById('btn-record');
 
-      if (currentMode === 'mp4') return;
+      if (currentMode === 'mp4') {
+        if (btnGuide) {
+          btnGuide.textContent = '跟讀';
+          btnGuide.style.background = '#000000';
+          btnGuide.style.borderColor = '#BAE6FD';
+          btnGuide.style.color = '#FB923C';
+          btnGuide.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+        }
+        return;
+      }
 
+      // 右側自讀鍵
       if (btnGuide) {
         btnGuide.textContent = isGuideActive ? (isVoiceActive ? '背誦中' : '導讀中') : '自讀';
         if (pdfSubMode === 'guide') {
-          btnGuide.style.borderColor = '#34D399';
-          btnGuide.style.boxShadow = '0 0 12px rgba(52, 211, 153, 0.7)'; // 綠色發光
-        } else {
+          if (isGuideActive) { // 紫色執行中
+            btnGuide.style.background = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
+            btnGuide.style.borderColor = '#E9D5FF';
+            btnGuide.style.color = '#FFFFFF';
+            btnGuide.style.boxShadow = '0 0 15px rgba(147, 51, 234, 0.8)';
+          } else { // 綠色待命
+            btnGuide.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+            btnGuide.style.borderColor = '#A7F3D0';
+            btnGuide.style.color = '#FFFFFF';
+            btnGuide.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
+          }
+        } else { // 黑色互斥熄滅
+          btnGuide.style.background = '#000000';
           btnGuide.style.borderColor = '#BAE6FD';
-          btnGuide.style.boxShadow = '';
+          btnGuide.style.color = '#FB923C';
+          btnGuide.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
         }
       }
 
+      // 左側比對鍵
       if (btnRecord) {
         btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
         if (pdfSubMode === 'compare') {
-          btnRecord.style.borderColor = '#C084FC';
-          btnRecord.style.boxShadow = '0 0 12px rgba(192, 132, 252, 0.7)'; // 紫色發光
-        } else {
+          if (isUserRecording) { // 紫色執行中
+            btnRecord.style.background = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
+            btnRecord.style.borderColor = '#E9D5FF';
+            btnRecord.style.color = '#FFFFFF';
+          } else { // 綠色待命
+            btnRecord.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+            btnRecord.style.borderColor = '#A7F3D0';
+            btnRecord.style.color = '#FFFFFF';
+            btnRecord.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
+          }
+        } else { // 黑色互斥熄滅
+          btnRecord.style.background = '#000000';
           btnRecord.style.borderColor = '#BAE6FD';
-          btnRecord.style.boxShadow = '';
+          btnRecord.style.color = '#FB923C';
+          btnRecord.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
         }
       }
     }
@@ -1246,10 +1209,7 @@
 
           video.play().then(() => {
             const btnGuide = document.getElementById('btn-guide-toggle');
-            if (btnGuide) {
-              btnGuide.textContent = '暫停';
-              btnGuide.classList.add('guide-active');
-            }
+            if (btnGuide) btnGuide.textContent = '暫停';
             startMp4PrecisionCheck();
           }).catch((err) => {
             console.error("播放受阻:", err);
@@ -1260,10 +1220,7 @@
           video.pause();
           videoPausedAt = video.currentTime;
           const btnGuide = document.getElementById('btn-guide-toggle');
-          if (btnGuide) {
-            btnGuide.textContent = '跟讀';
-            btnGuide.classList.remove('guide-active');
-          }
+          if (btnGuide) btnGuide.textContent = '跟讀';
           showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒`, 3000);
         }
         return;
@@ -1272,7 +1229,7 @@
       // PDF 模式
       if (currentMode === 'pdf') {
         if (pdfSubMode !== 'guide') {
-          // 第一段：選中自讀模式 (互斥關閉比對相關操作)
+          // 第一段：選中自讀模式 (互斥關閉比對)
           pdfSubMode = 'guide';
           if (isUserRecording) toggleReliableRecordAction(); // 停止錄音
           if (recordAudioElement && !recordAudioElement.paused) togglePlaybackAction(); // 停止播放
@@ -1308,16 +1265,6 @@
         }
       }
     }
-
-    document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const val = parseFloat(btn.dataset.speed);
-        setMp4Speed(val);
-        document.querySelectorAll('#speed-modal .modal-option').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        speedModal.style.display = 'none';
-      });
-    });
 
     function renderRealisticCoin(ctx, x, y, radius, opacity, symbolText) {
       ctx.save();
@@ -1903,7 +1850,7 @@
           const recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
           recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
           recordAudioElement.src = recordedAudioBlobUrl;
-          recordAudioElement.playbackRate = pdfSpeed;
+          recordAudioElement.playbackRate = compareSpeed;
           showToast('錄音完成！點擊左側「播放」按鈕即可聆聽', 4000);
           renderPdfLeftWing();
         };
@@ -1931,7 +1878,7 @@
       if (isGuideActive) haltGuideRunnerImmediately();
 
       if (recordAudioElement.paused) {
-        recordAudioElement.playbackRate = pdfSpeed;
+        recordAudioElement.playbackRate = compareSpeed;
         recordAudioElement.play().then(() => {
           renderPdfLeftWing();
         }).catch((err) => {
@@ -2293,10 +2240,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V382_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V383_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V382_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V383_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
