@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v363 (自讀比對按鈕互斥版)</title>
+  <title>歡喜背書橫式雙模播放器 v226 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -364,25 +364,17 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 17px !important;
+      font-size: 19px !important;
       font-weight: 900;
       color: #FB923C !important;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
-      transition: transform 0.15s ease-out, background-color 0.2s ease;
+      transition: transform 0.15s ease-out;
       text-align: center;
       line-height: 1.1;
       touch-action: manipulation;
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
-
-    /* 🌟 選中時的綠燈狀態 (互斥) */
-    .square-btn.active-mode {
-      background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
-      border-color: #DCFCE7 !important;
-      color: #FFFFFF !important;
-      box-shadow: 0 0 18px rgba(34, 197, 94, 0.85) !important;
-    }
 
     .btn-color-offering {
       background-color: #B45309 !important;
@@ -536,12 +528,11 @@
   <!-- 🌸 畫布特效層 -->
   <canvas id="flowerCanvas"></canvas>
 
-  <!-- 4. 主視圖 (v363 按鈕互斥架構) -->
+  <!-- 4. 主視圖 -->
   <div id="landscape-container">
-    <!-- 左側翼鍵：左1起點(動態)、左2終點(動態)、左3次數、左4離開 -->
     <div class="side-wing" id="left-wing">
-      <div class="slot" id="slot-l1"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起點</button></div>
-      <div class="slot" id="slot-l2"><button class="circle-btn btn-color-mark-b" id="btn-mark-b">終點</button></div>
+      <div class="slot" id="slot-l1"><button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: hidden;">起點</button></div>
+      <div class="slot" id="slot-l2"><button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: hidden;">終點</button></div>
       <div class="slot" id="slot-l3"><button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button></div>
       <div class="slot" id="slot-l4"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button></div>
     </div>
@@ -554,23 +545,22 @@
         <div id="red-dot"></div>
       </div>
 
-      <!-- PDF 容器（自讀/比對共用） -->
+      <!-- PDF 容器 -->
       <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
       </div>
 
-      <!-- 影片容器（跟讀） -->
+      <!-- 預設啟動：跟讀模式 -->
       <div id="video-container-wrap">
         <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
       </div>
     </div>
 
-    <!-- 右側翼鍵：跟讀、自讀、比對、供養 -->
     <div class="side-wing" id="right-wing">
-      <div class="slot" id="slot-r1"><button class="square-btn" id="btn-mode-mp4">跟讀</button></div>
-      <div class="slot" id="slot-r2"><button class="square-btn active-mode" id="btn-mode-pdf">自讀</button></div>
-      <div class="slot" id="slot-r3"><button class="square-btn" id="btn-mode-record">比對</button></div>
-      <div class="slot" id="slot-r4"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
+      <div class="slot" id="slot-r1"><button class="square-btn" id="btn-guide-toggle">跟讀</button></div>
+      <div class="slot" id="slot-r2"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
+      <div class="slot" id="slot-r3"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button></div>
+      <div class="slot" id="slot-r4"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">快轉-</button></div>
     </div>
   </div>
 
@@ -683,15 +673,15 @@
     const repeatModal = document.getElementById('repeat-modal');
     const speedModal = document.getElementById('speed-modal');
 
-    const btnMarkA = document.getElementById('btn-mark-a');
-    const btnMarkB = document.getElementById('btn-mark-b');
-    const btnRepeatCount = document.getElementById('btn-repeat-count');
-    const btnShutdownExit = document.getElementById('btn-shutdown-exit');
+    const slotL1 = document.getElementById('slot-l1');
+    const slotL2 = document.getElementById('slot-l2');
+    const slotL3 = document.getElementById('slot-l3');
+    const slotL4 = document.getElementById('slot-l4');
 
-    const btnModeMp4 = document.getElementById('btn-mode-mp4');
-    const btnModePdf = document.getElementById('btn-mode-pdf');
-    const btnModeRecord = document.getElementById('btn-mode-record');
-    const btnOffering = document.getElementById('btn-offering');
+    const slotR1 = document.getElementById('slot-r1');
+    const slotR2 = document.getElementById('slot-r2');
+    const slotR3 = document.getElementById('slot-r3');
+    const slotR4 = document.getElementById('slot-r4');
 
     const offeringOverlay = document.getElementById('offering-modal-overlay');
     const inputClassId = document.getElementById('input-class-id');
@@ -705,7 +695,8 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    let currentMode = 'pdf'; // 預設初始在自讀模式
+    let currentMode = 'mp4';
+    const modeSequence = ['mp4', 'pdf'];
 
     let scriptureData = [];
     let currentPdfDoc = null;
@@ -757,9 +748,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V363');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V226');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V363', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V226', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -767,19 +758,23 @@
 
     function handleOrientationCheck() {
       if (hasEnteredReciting) return;
+
       if (!isLineGuideDismissed) {
         lineBrowserOverlay.classList.add('active');
         portraitBlocker.style.display = 'none';
         companionOverlay.classList.remove('active');
         return;
       }
+
       const isPortrait = window.innerHeight > window.innerWidth;
+
       if (isPortrait) {
         portraitBlocker.style.display = 'flex';
         companionOverlay.classList.remove('active');
         haltGuideRunnerImmediately();
       } else {
         portraitBlocker.style.display = 'none';
+
         if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
           companionOverlay.classList.add('active');
         } else if (!hasEnteredReciting && cachedPdfBuffer && parsedTextLines.length === 0) {
@@ -788,8 +783,12 @@
       }
     }
 
+    function orientationChangeWrapper() {
+      setTimeout(handleOrientationCheck, 150);
+    }
+
     window.addEventListener('resize', handleOrientationCheck);
-    window.addEventListener('orientationchange', () => setTimeout(handleOrientationCheck, 150));
+    window.addEventListener('orientationchange', orientationChangeWrapper);
 
     function triggerAppFullscreen() {
       const el = document.documentElement;
@@ -798,22 +797,33 @@
           el.requestFullscreen().catch(() => {});
         } else if (el.webkitRequestFullscreen) {
           el.webkitRequestFullscreen().catch(() => {});
+        } else if (el.msRequestFullscreen) {
+          el.msRequestFullscreen().catch(() => {});
         }
       } catch (e) {}
     }
 
     function closeCompanionCard() {
       hasEnteredReciting = true;
+
+      window.removeEventListener('resize', handleOrientationCheck);
+      window.removeEventListener('orientationchange', orientationChangeWrapper);
       portraitBlocker.style.display = 'none';
+
       triggerAppFullscreen();
+
       isCompanionDismissed = true;
       companionOverlay.setAttribute('data-needed', 'false');
       companionOverlay.style.opacity = '0';
+
       setTimeout(() => {
         companionOverlay.classList.remove('active');
         companionOverlay.style.opacity = '';
         activateMainReciteEntry();
-        setTimeout(() => { renderPdfOnValidDimensions(); }, 250);
+
+        setTimeout(() => {
+          renderPdfOnValidDimensions();
+        }, 250);
       }, 350);
     }
 
@@ -821,12 +831,16 @@
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') audioContext.resume();
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
       } catch (err) {}
 
-      if (!isManualSelected) applyScheduleToState();
+      if (!isManualSelected) {
+        applyScheduleToState();
+      }
       syncFiveFilesInBackground();
-      setMode('pdf'); // 初始預設在自讀
+      resetSideWingsForMode('mp4');
     }
 
     async function renderPdfOnValidDimensions() {
@@ -902,58 +916,57 @@
       }, 2000);
     }
 
-    // 🌟 核心按鈕互斥切換邏輯 (跟讀、自讀、比對)
-    function setMode(mode) {
-      haltGuideRunnerImmediately();
-      releaseMicrophoneResources();
-      currentMode = mode;
-
-      // 更新右側按鈕燈號互斥狀態
-      [btnModeMp4, btnModePdf, btnModeRecord].forEach(b => {
-        if (b) b.classList.remove('active-mode');
-      });
-
-      if (mode === 'mp4') {
-        if (btnModeMp4) btnModeMp4.classList.add('active-mode');
-        pdfContainerWrap.style.display = 'none';
-        guideStage.style.display = 'none';
-        videoWrap.style.display = 'flex';
-        centerCore.scrollTop = 0;
-        video.playbackRate = mp4Speed;
-        const range = getActiveVideoRange();
-        videoPausedAt = -1;
-        if (range.valid) video.currentTime = range.start;
-        showModeBanner('📖 跟讀模式', '影音同步・自動循環');
-      } else if (mode === 'pdf') {
-        if (btnModePdf) btnModePdf.classList.add('active-mode');
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-        guideStage.style.display = 'block';
-        scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+    function showCurrentModeBanner() {
+      if (currentMode === 'mp4') {
+        showModeBanner('📖 跟讀模式', '影音同步・雙模播放');
+      } else if (currentMode === 'pdf') {
         showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
-      } else if (mode === 'record') {
-        if (btnModeRecord) btnModeRecord.classList.add('active-mode');
-        video.pause();
-        videoWrap.style.display = 'none';
-        pdfContainerWrap.style.display = 'flex';
-        guideStage.style.display = 'none';
-        showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧比對');
       }
-      updateVisualDisplay();
     }
 
-    btnModeMp4.addEventListener('click', () => setMode('mp4'));
-    btnModePdf.addEventListener('click', () => setMode('pdf'));
-    btnModeRecord.addEventListener('click', () => setMode('record'));
+    function setMp4Speed(val) {
+      mp4Speed = val;
+      localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
+      video.playbackRate = mp4Speed;
 
-    btnMarkA.addEventListener('click', handleMarkAClck);
-    btnMarkB.addEventListener('click', handleMarkBClick);
-    btnRepeatCount.addEventListener('click', handleRepeatCountClick);
-    btnShutdownExit.addEventListener('click', handleShutdownClick);
-    btnOffering.addEventListener('click', handleOfferingClick);
+      speedToastBadge.textContent = `【跟讀快轉 ${mp4Speed.toFixed(1)}x】`;
+      speedToastBadge.style.display = 'block';
+      speedToastBadge.style.opacity = '1';
 
-    // 這裡保留 v226 的基礎功能與導引掛載
+      clearTimeout(speedToastBadge._t);
+      speedToastBadge._t = setTimeout(() => {
+        speedToastBadge.style.opacity = '0';
+        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
+      }, 3000);
+    }
+
+    function setPdfSpeed(val) {
+      pdfSpeed = val;
+      localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
+
+      speedToastBadge.textContent = `【自讀語速 ${pdfSpeed.toFixed(1)}x】`;
+      speedToastBadge.style.display = 'block';
+      speedToastBadge.style.opacity = '1';
+
+      clearTimeout(speedToastBadge._t);
+      speedToastBadge._t = setTimeout(() => {
+        speedToastBadge.style.opacity = '0';
+        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
+      }, 3000);
+    }
+
+    function triggerMp4SpeedChange(delta) {
+      let newSpeed = Math.round((mp4Speed + delta) * 10) / 10;
+      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
+      setMp4Speed(newSpeed);
+    }
+
+    function triggerPdfSpeedChange(delta) {
+      let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
+      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
+      setPdfSpeed(newSpeed);
+    }
+
     function speakPrompt(text) {
       try {
         if ('speechSynthesis' in window) {
@@ -975,9 +988,12 @@
       if (!scriptureData || scriptureData.length === 0) {
         return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
       }
+
       let aIdx = markA_Index >= 0 ? markA_Index : 0;
       let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
+
       if (bIdx < aIdx) bIdx = aIdx;
+
       aIdx = Math.min(aIdx, scriptureData.length - 1);
       bIdx = Math.min(bIdx, scriptureData.length - 1);
 
@@ -987,6 +1003,7 @@
       if (!startObj || typeof startObj.start !== 'number' || !endObj || typeof endObj.end !== 'number') {
         return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
       }
+
       return {
         start: startObj.start,
         end: endObj.end,
@@ -998,7 +1015,9 @@
 
     function releaseMicrophoneResources() {
       if (micStream) {
-        try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
+        try {
+          micStream.getTracks().forEach(track => track.stop());
+        } catch (e) {}
         micStream = null;
       }
       if (audioContext && audioContext.state !== 'closed') {
@@ -1007,6 +1026,342 @@
       stopVoiceActivityDetection();
     }
 
+    function setMode(mode) {
+      haltGuideRunnerImmediately();
+      releaseMicrophoneResources();
+      currentMode = mode;
+
+      if (currentMode === 'mp4') {
+        pdfContainerWrap.style.display = 'none';
+        guideStage.style.display = 'none';
+        videoWrap.style.display = 'flex';
+        centerCore.scrollTop = 0;
+        resetSideWingsForMode('mp4');
+
+        video.playbackRate = mp4Speed;
+        const range = getActiveVideoRange();
+        videoPausedAt = -1;
+        if (range.valid) {
+          video.currentTime = range.start;
+        }
+      } else if (currentMode === 'pdf') {
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+        guideStage.style.display = 'block';
+        resetSideWingsForMode('pdf');
+
+        scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+      }
+      showCurrentModeBanner();
+      updateVisualDisplay();
+    }
+
+    function resetSideWingsForMode(mode) {
+      slotL1.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">起點</button>`;
+      slotL2.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: ${mode === 'pdf' ? 'visible' : 'hidden'};">終點</button>`;
+      slotL3.innerHTML = `<button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button>`;
+      slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>`;
+
+      document.getElementById('btn-mark-a').addEventListener('click', handleMarkAClck);
+      document.getElementById('btn-mark-b').addEventListener('click', handleMarkBClick);
+      document.getElementById('btn-repeat-count').addEventListener('click', handleRepeatCountClick);
+      document.getElementById('btn-shutdown-exit').addEventListener('click', handleShutdownClick);
+
+      const guideText = (mode === 'mp4') ? '跟讀' : '自讀';
+      slotR1.innerHTML = `<button class="square-btn" id="btn-guide-toggle">${guideText}</button>`;
+      slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
+
+      slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button>`;
+      slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down">快轉-</button>`;
+
+      document.getElementById('btn-speed-up').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentMode === 'mp4') {
+          triggerMp4SpeedChange(+0.1);
+        } else {
+          triggerPdfSpeedChange(+0.1);
+        }
+      });
+      document.getElementById('btn-speed-down').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentMode === 'mp4') {
+          triggerMp4SpeedChange(-0.1);
+        } else {
+          triggerPdfSpeedChange(-0.1);
+        }
+      });
+
+      document.getElementById('btn-guide-toggle').addEventListener('click', handleGuideToggleClick);
+      document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
+    }
+
+    document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = parseFloat(btn.dataset.speed);
+        setMp4Speed(val);
+        document.querySelectorAll('#speed-modal .modal-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        speedModal.style.display = 'none';
+      });
+    });
+
+    function renderRealisticCoin(ctx, x, y, radius, opacity, symbolText) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.globalAlpha = Math.min(1.0, Math.max(0.88, opacity));
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFD700';
+      ctx.fill();
+      ctx.lineWidth = 4.0;
+      ctx.strokeStyle = '#D4AF37';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.78, 0, Math.PI * 2);
+      ctx.strokeStyle = '#FFF176';
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
+
+      ctx.fillStyle = '#B26A00';
+      ctx.font = `900 ${Math.floor(radius * 1.1)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(symbolText, 0, 1.5);
+
+      ctx.restore();
+    }
+
+    function triggerLeaderboardCoinRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const coins = [];
+      const count = 40;
+      const symbols = ['福', '慧'];
+      for (let i = 0; i < count; i++) {
+        coins.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          radius: Math.random() * 6 + 12,
+          speedY: Math.random() * 1.6 + 1.1,
+          speedX: (Math.random() - 0.5) * 0.9,
+          rotation: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.05,
+          opacity: 0.95,
+          symbol: symbols[i % symbols.length]
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5500;
+
+      function animateCoins(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        coins.forEach(c => {
+          c.y += c.speedY;
+          c.x += c.speedX + Math.sin(c.y / 35) * 0.4;
+          c.rotation += c.vRot;
+
+          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity, c.symbol);
+
+          if (c.y > canvas.height + 30) {
+            c.y = -30;
+            c.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateCoins);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+      requestAnimationFrame(animateCoins);
+    }
+
+    let mp4PrecisionCheckAnimId = null;
+    function startMp4PrecisionCheck() {
+      if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
+      function check() {
+        if (currentMode === 'mp4' && !video.paused && !video.ended) {
+          const range = getActiveVideoRange();
+          if (range.valid && video.currentTime >= range.end) {
+            video.pause();
+            video.currentTime = range.end;
+            handleMp4CycleEnd(range);
+            return;
+          }
+        }
+        mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+      }
+      mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+    }
+
+    function handleMp4CycleEnd(range) {
+      const todayStr = getNormalizedDateStr();
+      const btnRepeatCountDom = document.getElementById('btn-repeat-count');
+
+      if (isScheduleRepeatLocked) {
+        let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10) + 1;
+        localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
+        addCoins(calculateSentenceCount());
+
+        const remain = Math.max(1, scheduleRepeatLimit - dailyDone);
+        if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
+
+        if (dailyDone >= scheduleRepeatLimit) {
+          isScheduleRepeatLocked = false;
+          showToast('🎉 今日功課遍數已全部達標！現已解鎖可自由調整次數', 4500);
+          videoPausedAt = -1;
+          video.currentTime = range.start;
+          completedCycles = 0;
+
+          if (btnRepeatCountDom) btnRepeatCountDom.textContent = `1次`;
+
+          const btnGuide = document.getElementById('btn-guide-toggle');
+          if (btnGuide) {
+            btnGuide.textContent = '跟讀';
+            btnGuide.classList.remove('guide-active');
+          }
+          handleTargetCycleDone();
+        } else {
+          videoPausedAt = -1;
+          video.currentTime = range.start;
+          video.play().then(() => {
+            startMp4PrecisionCheck();
+          }).catch(() => {});
+        }
+      } else {
+        completedCycles++;
+        addCoins(calculateSentenceCount());
+
+        const remain = Math.max(1, totalTargetCycles - completedCycles);
+        if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
+
+        if (completedCycles >= totalTargetCycles) {
+          videoPausedAt = -1;
+          video.currentTime = range.start;
+          completedCycles = 0;
+          if (btnRepeatCountDom) btnRepeatCountDom.textContent = `1次`;
+
+          const btnGuide = document.getElementById('btn-guide-toggle');
+          if (btnGuide) {
+            btnGuide.textContent = '跟讀';
+            btnGuide.classList.remove('guide-active');
+          }
+          handleTargetCycleDone();
+        } else {
+          videoPausedAt = -1;
+          video.currentTime = range.start;
+          video.play().then(() => {
+            startMp4PrecisionCheck();
+          }).catch(() => {});
+        }
+      }
+    }
+
+    function handleTargetCycleDone() {
+      const todayStr = getNormalizedDateStr();
+      localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
+      triggerSevenColoredLotusFlowerRain();
+    }
+
+    function triggerSevenColoredLotusFlowerRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const flowers = [];
+      const lotusColors = [
+        '#FF94B8', // 1. 粉紅色 (闔家平安)
+        '#FFB300', // 2. 琥珀色 (財富圓滿)
+        '#F1F5F9', // 3. 霧白色 (能源活力)
+        '#22C55E', // 4. 翠綠色 (健康和諧)
+        '#C084FC', // 5. 粉紫色 (增長智慧)
+        '#E11D48', // 6. 水紅色 (事業成功)
+        '#3B82F6'  // 7. 寶藍色 (安心寧神/圓滿吉祥)
+      ];
+      
+      for (let i = 0; i < 70; i++) {
+        flowers.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 9 + 8,
+          speedY: Math.random() * 1.8 + 1.0,
+          speedX: (Math.random() - 0.5) * 1.2,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 2.5,
+          color: lotusColors[Math.floor(Math.random() * lotusColors.length)],
+          opacity: 0.94
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5800;
+
+      function animateLotusRain(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        flowers.forEach(f => {
+          f.y += f.speedY;
+          f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
+          f.rotation += f.rotationSpeed;
+
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate((f.rotation * Math.PI) / 180);
+          ctx.globalAlpha = f.opacity;
+
+          for (let j = 0; j < 5; j++) {
+            const angle = (j * 2 * Math.PI) / 5;
+            const dist = f.size * 0.40;
+            const cx = Math.cos(angle) * dist;
+            const cy = Math.sin(angle) * dist;
+            ctx.fillStyle = f.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.fillStyle = (f.color === '#F1F5F9') ? '#FEF08A' : '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+
+          if (f.y > canvas.height + 30) {
+            f.y = -30;
+            f.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateLotusRain);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateLotusRain);
+    }
+
+    // 🌟 核心升級：精準對齊手動設定起點與終點線條的座標換算方程式 (v226)
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
@@ -1026,8 +1381,11 @@
     function getLineAtButtonBottom(buttonElement) {
       if (parsedTextLines.length === 0) return 0;
       const btnRect = buttonElement.getBoundingClientRect();
+      
+      // 🌟 直接尋找畫面中心或最靠近按鈕垂直位置的經文字句，確保絕對精準對齊文字下方
       const targetScreenY = btnRect.top + (btnRect.height / 2);
       let closestIdx = 0, minDiff = Infinity;
+
       for (let i = 0; i < parsedTextLines.length; i++) {
         const line = parsedTextLines[i];
         let lineScreenY = 0;
@@ -1049,38 +1407,42 @@
     }
 
     function updateVisualDisplay() {
+      const btnMarkADom = document.getElementById('btn-mark-a');
+      const btnMarkBDom = document.getElementById('btn-mark-b');
+      const btnRepeatCountDom = document.getElementById('btn-repeat-count');
+
       if (currentMode === 'pdf') {
         if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
-          btnMarkA.classList.add('active-mark');
+          if (btnMarkADom) btnMarkADom.classList.add('active-mark');
           renderMarkerLine(markALine, parsedTextLines[markA_Index]);
         } else {
-          btnMarkA.classList.remove('active-mark');
+          if (btnMarkADom) btnMarkADom.classList.remove('active-mark');
           markALine.style.display = 'none';
         }
 
         if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
-          btnMarkB.classList.add('active-mark');
+          if (btnMarkBDom) btnMarkBDom.classList.add('active-mark');
           renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
         } else {
-          btnMarkB.classList.remove('active-mark');
+          if (btnMarkBDom) btnMarkBDom.classList.remove('active-mark');
           markBLine.style.display = 'none';
         }
       }
 
-      if (currentMode !== 'pdf') {
+      if (!isGuideActive && currentMode === 'pdf') {
         guideLine.style.display = 'none';
         redDot.style.display = 'none';
       }
 
-      if (btnRepeatCount) {
+      if (btnRepeatCountDom) {
         const todayStr = getNormalizedDateStr();
         const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
         if (isScheduleRepeatLocked) {
           const remain = Math.max(1, scheduleRepeatLimit - dailyDone);
-          btnRepeatCount.textContent = `${remain}次`;
+          btnRepeatCountDom.textContent = `${remain}次`;
         } else {
           const sessionRemain = Math.max(1, totalTargetCycles - completedCycles);
-          btnRepeatCount.textContent = `${sessionRemain}次`;
+          btnRepeatCountDom.textContent = `${sessionRemain}次`;
         }
       }
     }
@@ -1088,6 +1450,8 @@
     function handleMarkAClck() {
       if (isGuideActive || currentMode !== 'pdf') return;
       if (parsedTextLines.length === 0) return;
+      const btnMarkA = document.getElementById('btn-mark-a');
+      if (!btnMarkA) return;
       isManualSelected = true;
       markA_Index = getLineAtButtonBottom(btnMarkA);
       if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
@@ -1102,11 +1466,11 @@
     function handleMarkBClick() {
       if (isGuideActive || currentMode !== 'pdf') return;
       if (parsedTextLines.length === 0) return;
+      const btnMarkB = document.getElementById('btn-mark-b');
+      if (!btnMarkB) return;
       const selectedB = getLineAtButtonBottom(btnMarkB);
-      if (markA_Index !== -1 && selectedB < markA_Index) {
-        speakPrompt("終點不能在起點之前");
-        return;
-      }
+      if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
+      
       isManualSelected = true;
       markB_Index = selectedB;
       completedCycles = 0;
@@ -1116,18 +1480,43 @@
 
     function handleRepeatCountClick() {
       if (isGuideActive) return;
+      const todayStr = getNormalizedDateStr();
+      const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+
+      if (isScheduleRepeatLocked && dailyDone < scheduleRepeatLimit) {
+        showToast(`🔒 今日功課尚未完成（已完成 ${dailyDone}/${scheduleRepeatLimit} 遍），完成後即可解鎖調整`, 3500);
+        return;
+      }
       repeatModal.style.display = repeatModal.style.display === 'flex' ? 'none' : 'flex';
     }
 
     function handleShutdownClick() {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
+
       try {
         video.pause();
         video.src = "";
         video.load();
       } catch (e) {}
-      showToast("已離開全螢幕，釋放資源", 3000);
+
+      try {
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'none';
+        }
+      } catch (e) {}
+
+      try {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          }
+        }
+      } catch (e) {}
+
+      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
     }
 
     document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
@@ -1135,7 +1524,8 @@
         totalTargetCycles = parseInt(btn.dataset.count, 10);
         completedCycles = 0;
         isScheduleRepeatLocked = false;
-        if (btnRepeatCount) btnRepeatCount.textContent = `${totalTargetCycles}次`;
+        const btnRepeatCountDom = document.getElementById('btn-repeat-count');
+        if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${totalTargetCycles}次`;
         document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         updateVisualDisplay();
@@ -1143,21 +1533,95 @@
       });
     });
 
-    let mp4PrecisionCheckAnimId = null;
-    function startMp4PrecisionCheck() {
-      if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
-      function check() {
-        if (currentMode === 'mp4' && !video.paused && !video.ended) {
-          const range = getActiveVideoRange();
-          if (range.valid && video.currentTime >= range.end) {
-            video.pause();
-            video.currentTime = range.end;
-            return;
-          }
+    function handleGuideToggleClick() {
+      triggerAppFullscreen();
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
         }
-        mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+      } catch (e) {}
+
+      if (currentMode === 'mp4') {
+        centerCore.scrollTop = 0;
+        video.playbackRate = mp4Speed;
+
+        const range = getActiveVideoRange();
+        if (!range.valid) {
+          showToast('⚠️ 秒數資料不完整，無法播放', 3000);
+          return;
+        }
+
+        if (video.paused) {
+          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
+            video.currentTime = videoPausedAt;
+          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
+            video.currentTime = range.start;
+          }
+
+          video.play().then(() => {
+            const btnGuide = document.getElementById('btn-guide-toggle');
+            if (btnGuide) {
+              btnGuide.textContent = '暫停';
+              btnGuide.classList.add('guide-active');
+              btnGuide.classList.remove('guide-waiting');
+            }
+            startMp4PrecisionCheck();
+          }).catch((err) => {
+            console.error("播放受阻:", err);
+            video.currentTime = range.start;
+            video.play().catch(() => {});
+          });
+        } else {
+          video.pause();
+          videoPausedAt = video.currentTime;
+          const btnGuide = document.getElementById('btn-guide-toggle');
+          if (btnGuide) {
+            btnGuide.textContent = '跟讀';
+            btnGuide.classList.remove('guide-active');
+          }
+          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒`, 3000);
+        }
+        return;
       }
-      mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+
+      if (markA_Index === -1 || markB_Index === -1) {
+        speakPrompt("請先設定起點與終點");
+        return;
+      }
+      if (isGuideActive) return;
+      isGuideActive = true;
+
+      if (parsedTextLines.length === 0) { isGuideActive = false; return; }
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+
+      isVoiceActive = false;
+      isTouchingDisplay = false;
+      isTransitioningLine = false;
+      hasPageFlipped = false;
+      isLineHeadLocked = true;
+      completedCycles = 0;
+
+      const todayStr = getNormalizedDateStr();
+      const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+      const remain = isScheduleRepeatLocked ? Math.max(1, scheduleRepeatLimit - dailyDone) : Math.max(1, totalTargetCycles - completedCycles);
+      const btnRepeatCountDom = document.getElementById('btn-repeat-count');
+      if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
+
+      currentLineIndex = markA_Index;
+      currentCharIndexFloat = 0.0;
+
+      const btnGuide = document.getElementById('btn-guide-toggle');
+      if (btnGuide) {
+        btnGuide.textContent = '靜止';
+        btnGuide.classList.remove('guide-active');
+        btnGuide.classList.add('guide-waiting');
+      }
+
+      startGuideRunner();
+      startVoiceActivityDetection();
     }
 
     function handleOfferingClick() {
@@ -1168,15 +1632,431 @@
       offeringOverlay.style.display = 'flex';
     }
 
+    function resetLineTimeoutSafetyTimer() {
+      if (maxTimeoutSafetyTimer) clearTimeout(maxTimeoutSafetyTimer);
+      if (!isGuideActive) return;
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const charCount = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const lineDurationSec = (charCount / (2.8 * pdfSpeed));
+      const maxTimeoutMs = (lineDurationSec + 10.0) * 1000;
+
+      maxTimeoutSafetyTimer = setTimeout(() => {
+        if (isGuideActive) {
+          haltGuideRunnerImmediately();
+          handleShutdownClick();
+          showToast("讀誦逾時，已為您自動離開釋放資源", 4500);
+        }
+      }, maxTimeoutMs);
+    }
+
+    function startVoiceActivityDetection() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+
+        if (!micStream) {
+          navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
+          }).then(stream => {
+            micStream = stream;
+            connectMicStream();
+          }).catch(err => {
+            console.warn("麥克風啟動略過:", err);
+            const btnGuide = document.getElementById('btn-guide-toggle');
+            if (btnGuide) btnGuide.textContent = '靜止';
+          });
+        } else {
+          connectMicStream();
+        }
+      } catch (err) {
+        console.warn("麥克風啟動略過:", err);
+      }
+    }
+
+    function connectMicStream() {
+      if (!audioContext || !micStream) return;
+      const source = audioContext.createMediaStreamSource(micStream);
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.04;
+      source.connect(analyser);
+
+      isCalibrating = true;
+      calibrationSamples = [];
+      setTimeout(() => {
+        if (calibrationSamples.length > 0) {
+          const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+          baseNoiseLevel = sum / calibrationSamples.length;
+          dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
+        }
+        isCalibrating = false;
+      }, 350);
+
+      resetLineTimeoutSafetyTimer();
+      startVadMonitorLoop();
+    }
+
+    function startVadMonitorLoop() {
+      if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
+      const bufferLength = analyser ? analyser.frequencyBinCount : 0;
+      const dataArray = new Float32Array(bufferLength);
+
+      function checkVolume() {
+        if (!isGuideActive) return;
+
+        if (analyser) {
+          analyser.getFloatTimeDomainData(dataArray);
+
+          let sumSquares = 0.0;
+          for (let i = 0; i < bufferLength; i++) {
+            const val = dataArray[i];
+            sumSquares += val * val;
+          }
+          const rms = Math.sqrt(sumSquares / bufferLength);
+
+          if (isCalibrating) calibrationSamples.push(rms);
+
+          const deltaRms = rms - prevRms;
+          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
+
+          const timeSinceLineStart = performance.now() - lineActivationTimestamp;
+          const isInsideCooldown = (timeSinceLineStart < 120);
+
+          if (isLineHeadLocked && !isInsideCooldown && deltaRms > (dynamicThreshold * 0.25)) {
+            isLineHeadLocked = false;
+          }
+
+          if (isTransitioningLine) {
+            const elapsed = performance.now() - lineEndTime;
+            if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
+              proceedToNextLineImmediately();
+            } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
+              proceedToNextLineImmediately();
+            } else if (elapsed >= 200) {
+              proceedToNextLineImmediately();
+            }
+          }
+
+          if (hasVoiceEnergy) {
+            silentFrameCount = 0;
+            if (!isVoiceActive) {
+              isVoiceActive = true;
+              const btnGuide = document.getElementById('btn-guide-toggle');
+              if (btnGuide) {
+                btnGuide.textContent = '背誦中';
+                btnGuide.classList.remove('guide-waiting');
+                btnGuide.classList.add('guide-active');
+              }
+              lastAnimTimestamp = performance.now();
+            }
+          } else {
+            silentFrameCount++;
+            if (silentFrameCount >= 24) {
+              if (isVoiceActive) {
+                isVoiceActive = false;
+                const btnGuide = document.getElementById('btn-guide-toggle');
+                if (btnGuide) {
+                  btnGuide.textContent = '靜止';
+                  btnGuide.classList.remove('guide-active');
+                  btnGuide.classList.add('guide-waiting');
+                }
+              }
+            }
+          }
+          prevRms = rms;
+        }
+        vadCheckTimer = requestAnimationFrame(checkVolume);
+      }
+      vadCheckTimer = requestAnimationFrame(checkVolume);
+    }
+
+    function stopVoiceActivityDetection() {
+      if (vadCheckTimer) { cancelAnimationFrame(vadCheckTimer); vadCheckTimer = null; }
+      if (maxTimeoutSafetyTimer) { clearTimeout(maxTimeoutSafetyTimer); maxTimeoutSafetyTimer = null; }
+      isVoiceActive = false;
+      isTouchingDisplay = false;
+    }
+
+    centerCore.addEventListener('pointerdown', () => {
+      if (!isGuideActive) return;
+      isTouchingDisplay = true;
+      isLineHeadLocked = false;
+      if (!isVoiceActive) {
+        isVoiceActive = true;
+        const btnGuide = document.getElementById('btn-guide-toggle');
+        if (btnGuide) {
+          btnGuide.textContent = '背誦中';
+          btnGuide.classList.remove('guide-waiting');
+          btnGuide.classList.add('guide-active');
+        }
+        lastAnimTimestamp = performance.now();
+      }
+    });
+    const stopTouchDrive = () => { if (isGuideActive) isTouchingDisplay = false; };
+    centerCore.addEventListener('pointerup', stopTouchDrive);
+    centerCore.addEventListener('pointercancel', stopTouchDrive);
+    centerCore.addEventListener('pointerleave', stopTouchDrive);
+
+    function startGuideRunner() {
+      if (parsedTextLines.length === 0) return;
+      guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
+      scrollToAlignTop(currentLineIndex);
+      setupActiveLine(currentLineIndex, currentCharIndexFloat);
+      lastAnimTimestamp = performance.now();
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function scrollToAlignTop(idx) {
+      const line = parsedTextLines[idx];
+      if (line) centerCore.scrollTop = Math.max(0, line.topGlobal - 18);
+    }
+
+    function getVisibleBottomLineIndex() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      let lastVisibleIdx = currentLineIndex;
+      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
+        if (parsedTextLines[i].underLineY <= viewportBottom - 16) lastVisibleIdx = i;
+        else break;
+      }
+      return lastVisibleIdx;
+    }
+
+    function checkAndTriggerPageFlip() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      if (markA_Index !== -1 && markB_Index !== -1) {
+        const lineA = parsedTextLines[markA_Index];
+        const lineB = parsedTextLines[markB_Index];
+        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) return;
+      }
+      const nextIndex = currentLineIndex + 1;
+      if (nextIndex < parsedTextLines.length) {
+        const nextLine = parsedTextLines[nextIndex];
+        if (nextLine.underLineY > (viewportBottom - 18)) scrollToAlignTop(nextIndex);
+      }
+    }
+
+    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
+      if (!line) return 0;
+      if (!line.charItems || line.charItems.length === 0) return line.x0;
+      const items = line.charItems;
+      const totalChars = items.length;
+      if (charProgressFloat <= 0) return items[0].x0;
+      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
+
+      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
+      const intraCharFraction = charProgressFloat - charIdx;
+      const item = items[charIdx];
+      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
+    }
+
+    function setupActiveLine(idx, initCurrent = 0.0) {
+      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
+      const line = parsedTextLines[idx];
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      lineActivationTimestamp = performance.now();
+
+      if (isGuideActive) {
+        if (!isAppleDevice) {
+          guideLine.style.top = `${line.underLineY}px`;
+          guideLine.style.left = `${line.x0}px`;
+          guideLine.style.width = `${line.x1 - line.x0}px`;
+          const curX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+          redDot.style.top = `${line.underLineY}px`;
+          redDot.style.left = `${curX}px`;
+        } else {
+          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+          guideLine.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
+          guideLine.style.left = `${offsetLeft + (line.x0 * scaleX)}px`;
+          guideLine.style.width = `${(line.x1 - line.x0) * scaleX}px`;
+          const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+          redDot.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
+          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
+        }
+        guideLine.style.display = 'block';
+        redDot.style.display = 'block';
+      }
+      isTransitioningLine = false;
+    }
+
+    function stepGuideMovement(now) {
+      if (!isGuideActive || isTransitioningLine) return;
+      let delta = now - lastAnimTimestamp;
+      if (delta <= 0 || delta > 120) delta = 16.6;
+      lastAnimTimestamp = now;
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const inertiaStartIndex = Math.max(1, totalChars - 2);
+      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
+
+      if (isVoiceActive || isInTailZone) {
+        const charPerMs = (2.8 * pdfSpeed) / 1000;
+        if (isLineHeadLocked) {
+          if (currentCharIndexFloat < 0.5) {
+            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
+          }
+        } else {
+          currentCharIndexFloat += charPerMs * delta;
+        }
+        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
+      }
+
+      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
+        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
+        if (!isCurrentLineAtTargetEnd) {
+          const visibleBottomIdx = getVisibleBottomLineIndex();
+          if (currentLineIndex === visibleBottomIdx) {
+            checkAndTriggerPageFlip();
+            hasPageFlipped = true;
+          }
+        }
+      }
+
+      if (currentCharIndexFloat >= totalChars) {
+        currentCharIndexFloat = totalChars;
+        if (curLine) {
+          if (!isAppleDevice) {
+            redDot.style.left = `${curLine.x1}px`;
+            redDot.style.top = `${curLine.underLineY}px`;
+          } else {
+            const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+            redDot.style.left = `${offsetLeft + (curLine.x1 * scaleX)}px`;
+            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
+          }
+        }
+
+        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
+        const nextIndex = currentLineIndex + 1;
+        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+        isTransitioningLine = true;
+        lineEndTime = performance.now();
+        peakRmsAtLineEnd = prevRms;
+        guideLine.style.display = 'none';
+        return;
+      }
+
+      if (curLine) {
+        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+        if (!isAppleDevice) {
+          redDot.style.left = `${rawX}px`;
+          redDot.style.top = `${curLine.underLineY}px`;
+        } else {
+          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
+          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
+        }
+      }
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function proceedToNextLineImmediately() {
+      if (!isTransitioningLine || !isGuideActive) return;
+      const nextIndex = currentLineIndex + 1;
+      hasPageFlipped = false;
+      currentLineIndex = nextIndex;
+      setupActiveLine(currentLineIndex, 0.0);
+      resetLineTimeoutSafetyTimer();
+      lastAnimTimestamp = performance.now();
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function handleCycleCompletion() {
+      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+      const todayStr = getNormalizedDateStr();
+      const btnRepeatCountDom = document.getElementById('btn-repeat-count');
+
+      if (isScheduleRepeatLocked) {
+        let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10) + 1;
+        localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
+        addCoins(calculateSentenceCount());
+
+        const remain = Math.max(1, scheduleRepeatLimit - dailyDone);
+        if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
+
+        if (dailyDone >= scheduleRepeatLimit) {
+          isScheduleRepeatLocked = false;
+          showToast('🎉 今日功課遍數已全部達標！現已解鎖可自由調整次數', 4500);
+          handleTargetCycleDone();
+          finishAndStopPermanently();
+          return;
+        }
+      } else {
+        completedCycles++;
+        addCoins(calculateSentenceCount());
+
+        const remain = Math.max(1, totalTargetCycles - completedCycles);
+        if (btnRepeatCountDom) btnRepeatCountDom.textContent = `${remain}次`;
+
+        if (completedCycles >= totalTargetCycles) {
+          handleTargetCycleDone();
+          finishAndStopPermanently();
+          return;
+        }
+      }
+
+      isTransitioningLine = true;
+      guideLine.style.display = 'none';
+
+      if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
+      cycleWaitTimer = setTimeout(() => {
+        if (!isGuideActive) return;
+        hasPageFlipped = false;
+        currentLineIndex = markA_Index;
+        scrollToAlignTop(currentLineIndex);
+
+        setupActiveLine(currentLineIndex, 0.0);
+        resetLineTimeoutSafetyTimer();
+        isTransitioningLine = false;
+        lastAnimTimestamp = performance.now();
+        isVoiceActive = false;
+
+        const btnGuide = document.getElementById('btn-guide-toggle');
+        if (btnGuide) {
+          btnGuide.textContent = '靜止';
+          btnGuide.classList.remove('guide-active');
+          btnGuide.classList.add('guide-waiting');
+        }
+
+        if (guideAnimId) cancelAnimationFrame(guideAnimId);
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+      }, 1500);
+    }
+
+    function finishAndStopPermanently() {
+      haltGuideRunnerImmediately();
+      completedCycles = 0;
+      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      updateVisualDisplay();
+    }
+
     function haltGuideRunnerImmediately() {
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
       if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (mp4PrecisionCheckAnimId) { cancelAnimationFrame(mp4PrecisionCheckAnimId); mp4PrecisionCheckAnimId = null; }
+
       isGuideActive = false;
       isTransitioningLine = false;
       stopVoiceActivityDetection();
+
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
+      const btnGuide = document.getElementById('btn-guide-toggle');
+      if (btnGuide) {
+        btnGuide.textContent = (currentMode === 'mp4') ? '跟讀' : '自讀';
+        btnGuide.classList.remove('guide-active', 'guide-waiting');
+      }
+
       video.pause();
       updateVisualDisplay();
     }
@@ -1184,25 +2064,202 @@
     function getStoredCoins() {
       return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
     }
+    function addCoins(amount) {
+      const total = getStoredCoins() + amount;
+      localStorage.setItem('user_accumulated_coins', total.toString());
+      return total;
+    }
+    function resetCoins() {
+      localStorage.setItem('user_accumulated_coins', '0');
+    }
+    function calculateSentenceCount() {
+      if (parsedTextLines.length === 0) return 0;
+      const start = (markA_Index !== -1) ? markA_Index : 0;
+      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
+      return Math.max(1, Math.abs(end - start) + 1);
+    }
+
+    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
 
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
       if (!classId || !userName) { alert("請輸入班號與姓名！"); return; }
+
       localStorage.setItem('user_class_id', classId);
       localStorage.setItem('user_profile_name', userName);
-      offeringOverlay.style.display = 'none';
-      showToast('供養成功！', 2000);
+
+      const coinsToOffer = getStoredCoins();
+      if (coinsToOffer <= 0) { alert("目前福慧幣為 0 枚，請先精進背誦！"); return; }
+
+      btnConfirmOffering.disabled = true;
+      btnConfirmOffering.textContent = '連線供養中...';
+
+      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
+      let isDone = false;
+
+      function handleSuccess(data) {
+        if (isDone) return;
+        isDone = true;
+        clearTimeout(timeoutTimer);
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+
+        resetCoins();
+        displayCoinsCount.textContent = '0 枚';
+        offeringOverlay.style.display = 'none';
+
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+
+        renderLeaderboards(data, classId, userName, coinsToOffer);
+        leaderboardOverlay.style.display = 'flex';
+        
+        triggerLeaderboardCoinRain();
+      }
+
+      const timeoutTimer = setTimeout(() => { if (!isDone) handleSuccess(null); }, 10000);
+      window[callbackName] = (res) => handleSuccess(res);
+
+      const scriptTag = document.createElement('script');
+      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&callback=${callbackName}&t=${Date.now()}`;
+      scriptTag.onerror = () => { if (!isDone) handleSuccess(null); };
+      document.body.appendChild(scriptTag);
     });
 
-    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
+    function renderLeaderboards(data, curClass, curName, curCoins) {
+      const medals = ['🥇', '🥈', '🥉'];
+      function buildListHtml(list) {
+        const fullList = (list && Array.isArray(list)) ? [...list] : [];
+        while (fullList.length < 3) fullList.push({ isPlaceholder: true });
+        return fullList.slice(0, 3).map((item, idx) => {
+          const medal = medals[idx] || `第${idx + 1}名`;
+          if (item.isPlaceholder) {
+            return `<div class="rank-item"><span>${medal} <i style="color:#94A3B8;">虛位以待</i></span><span class="rank-coins">--</span></div>`;
+          }
+          const displayName = item.maskName || item.name || curName;
+          const displayClass = item.classId ? `(${item.classId})` : '';
+          const coinsVal = (typeof item.coins === 'number') ? item.coins : curCoins;
+          return `<div class="rank-item"><span>${medal} ${displayName} <small style="color:#94A3B8;">${displayClass}</small></span><span class="rank-coins">${coinsVal} 枚</span></div>`;
+        }).join('');
+      }
+      todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
+      totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
+    }
+
     btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
 
+    let currentCompanionSeenKey = null;
+
     async function evaluateWarmCompanionCard() {
-      companionOverlay.setAttribute('data-needed', 'false');
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramDay = urlParams.get('day');
+      const startStr = urlParams.get('start');
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      let targetDay = 1;
+
+      if (paramDay) {
+        targetDay = parseInt(paramDay, 10) || 1;
+      } else if (startStr) {
+        const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
+        const startDate = new Date(sYear, sMonth - 1, sDay);
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const diffTime = todayDate - startDate;
+        const currentDay = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        targetDay = currentDay > 0 ? currentDay : 1;
+
+        const seenKey = `CARD_SEEN_${CURRENT_CLASSIC_ID}_${todayStr}`;
+        if (localStorage.getItem(seenKey)) {
+          isCompanionDismissed = true;
+          companionOverlay.setAttribute('data-needed', 'false');
+          return;
+        }
+        currentCompanionSeenKey = seenKey;
+      } else {
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V226_' + CURRENT_CLASSIC_ID) || '1', 10);
+        targetDay = tIdx;
+        let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
+        localStorage.setItem('TEST_CARD_INDEX_V226_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+      }
+
+      let cardFileName = "";
+      if (targetDay >= 22) {
+        cardFileName = "card_021.webp";
+      } else {
+        const paddedNum = String(targetDay).padStart(3, "0");
+        cardFileName = `card_${paddedNum}.webp`;
+      }
+
+      const fileKey = 'card_img_' + cardFileName.replace('.webp', '');
+      const localFile = await getLocalFile(fileKey);
+      if (localFile && localFile.data) {
+        companionImgDisplay.src = URL.createObjectURL(new Blob([localFile.data], { type: 'image/webp' }));
+      } else {
+        companionImgDisplay.src = `cards/${cardFileName}`;
+      }
+      companionOverlay.setAttribute('data-needed', 'true');
     }
 
     function applyScheduleToState() {
+      if (isManualSelected) return false;
+
+      try {
+        let scheduleData = null;
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
+        if (localSched) scheduleData = JSON.parse(localSched);
+
+        if (!scheduleData || !Array.isArray(scheduleData)) return false;
+        
+        let targetPlan = null;
+        const urlParams = new URLSearchParams(window.location.search);
+        const startStr = urlParams.get('start');
+
+        if (startStr) {
+          const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
+          const startDate = new Date(sYear, sMonth - 1, sDay);
+          const now = new Date();
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const targetDay = Math.max(1, Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
+          targetPlan = scheduleData.find(item => item.day === targetDay) || scheduleData[scheduleData.length - 1];
+        } else {
+          const todayStr = getNormalizedDateStr();
+          targetPlan = scheduleData.find(item => item.date === todayStr) || scheduleData[0];
+        }
+
+        if (targetPlan && typeof targetPlan.start === 'number' && typeof targetPlan.end === 'number') {
+          markA_Index = Math.max(0, targetPlan.start - 1);
+          markB_Index = Math.min(36, targetPlan.end - 1);
+          currentLineIndex = markA_Index;
+          currentCharIndexFloat = 0.0;
+          isLineHeadLocked = true;
+          videoPausedAt = -1;
+
+          if (typeof targetPlan.repeat === 'number' && targetPlan.repeat > 0) {
+            scheduleRepeatLimit = targetPlan.repeat;
+            totalTargetCycles = scheduleRepeatLimit;
+            isScheduleRepeatLocked = true;
+            
+            const todayStr = getNormalizedDateStr();
+            const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+            if (dailyDone >= scheduleRepeatLimit) {
+              isScheduleRepeatLocked = false;
+            }
+
+            const btnRepeatCountDom = document.getElementById('btn-repeat-count');
+            if (btnRepeatCountDom) {
+              const remain = isScheduleRepeatLocked ? Math.max(1, scheduleRepeatLimit - dailyDone) : Math.max(1, totalTargetCycles - completedCycles);
+              btnRepeatCountDom.textContent = `${remain}次`;
+            }
+          }
+
+          updateVisualDisplay();
+          scrollToAlignTop(markA_Index);
+          return true;
+        }
+      } catch (err) {}
       return false;
     }
 
@@ -1212,18 +2269,23 @@
         cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
         cMapPacked: true
       });
+
       currentPdfDoc = await loadingTask.promise;
       const page = await currentPdfDoc.getPage(1);
+
       pdfCanvas.width = 0;
       pdfCanvas.height = 0;
+
       const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
       const pageRotation = page.rotate || 0;
       const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
       const pageScale = availableWidth / unscaledViewport.width;
       const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
+
       pdfCanvas.width = viewport.width;
       pdfCanvas.height = viewport.height;
       const ctx = pdfCanvas.getContext('2d');
+
       await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
       const textContent = await page.getTextContent();
@@ -1234,17 +2296,23 @@
       items.forEach(it => {
         const str = it.str || '';
         if (!str.trim()) return;
+
         const tx = it.transform;
         const pdfX = tx[4];
         const pdfY = tx[5];
+
         const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
         const fontWidth = it.width * pageScale;
+
         const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
         const screenX0 = p0[0];
+
         const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
         const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+
         const realTop = Math.min(p0[1], pTop[1]);
         const realBottom = Math.max(p0[1], pTop[1]);
+
         const charWidth = fontWidth / Math.max(1, str.length);
         for (let c = 0; c < str.length; c++) {
           const char = str[c];
@@ -1265,6 +2333,7 @@
 
       validSpans.sort((a, b) => a.topY - b.topY);
       const rowGroups = [];
+
       validSpans.forEach(span => {
         let matched = false;
         for (let g of rowGroups) {
@@ -1283,7 +2352,15 @@
         const minTop = Math.min(...g.spans.map(s => s.topY));
         const lineX0 = g.spans[0].x0;
         const lineX1 = g.spans[g.spans.length - 1].x1;
-        return { spans: g.spans, chineseCount: g.spans.length, avgFs: avgFs, minTop: minTop, lineX0: lineX0, lineX1: lineX1 };
+
+        return {
+          spans: g.spans,
+          chineseCount: g.spans.length,
+          avgFs: avgFs,
+          minTop: minTop,
+          lineX0: lineX0,
+          lineX1: lineX1
+        };
       });
 
       analyzedRows.forEach(r => {
@@ -1291,10 +2368,19 @@
         r.underLineY = r.maxBottom + 7;
       });
 
+      const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
+      let mainTextFontSize = 0;
+      if (candidateLargeRows.length > 0) {
+        const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
+        mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
+      }
+
       parsedTextLines = [];
       let internalIndex = 0;
+
       analyzedRows.forEach(r => {
-        if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80) {
+        const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
+        if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
           parsedTextLines.push({
             lineIndex: internalIndex++,
             x0: r.lineX0,
@@ -1306,12 +2392,70 @@
           });
         }
       });
+
       parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
       guideStage.style.height = `${viewport.height}px`;
     }
 
+    async function syncFiveFilesInBackground() {
+      if (!navigator.onLine) return;
+
+      try {
+        const res = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const fresh = await res.json();
+          const old = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
+          if (JSON.stringify(fresh) !== old) {
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(fresh));
+            if (!isGuideActive && !isManualSelected) applyScheduleToState();
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const res = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const fresh = await res.json();
+          const old = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+          if (JSON.stringify(fresh) !== old) {
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(fresh));
+            scriptureData = fresh;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const head = await fetch('./scripture.pdf', { method: 'HEAD', cache: 'no-store' });
+        if (head.ok) {
+          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
+          const saved = await getLocalFile('pdf_file');
+          if (!saved || saved.tag !== tag) {
+            const getRes = await fetch('./scripture.pdf?nocache=' + Date.now());
+            const buf = await getRes.arrayBuffer();
+            await saveLocalFile('pdf_file', buf, tag);
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const head = await fetch('./chant_video.mp4', { method: 'HEAD', cache: 'no-store' });
+        if (head.ok) {
+          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
+          const saved = await getLocalFile('video_file');
+          if (!saved || saved.tag !== tag) {
+            const getRes = await fetch('./chant_video.mp4?nocache=' + Date.now());
+            const buf = await getRes.arrayBuffer();
+            await saveLocalFile('video_file', buf, tag);
+            const blob = new Blob([buf], { type: 'video/mp4' });
+            video.src = URL.createObjectURL(blob);
+          }
+        }
+      } catch (e) {}
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
-      checkDailyResetOnStartup();
+      checkDailyResetOnStartup(); // 跨日重置檢核
+      await evaluateWarmCompanionCard();
 
       if (!isLineGuideDismissed) {
         lineBrowserOverlay.classList.add('active');
@@ -1333,6 +2477,14 @@
         } catch (e) {}
       }
 
+      const localVideo = await getLocalFile('video_file');
+      if (localVideo && localVideo.data) {
+        const blob = new Blob([localVideo.data], { type: 'video/mp4' });
+        video.src = URL.createObjectURL(blob);
+      } else {
+        video.src = './chant_video.mp4';
+      }
+
       const localPdf = await getLocalFile('pdf_file');
       if (localPdf && localPdf.data) {
         cachedPdfBuffer = localPdf.data;
@@ -1347,10 +2499,10 @@
         } catch (e) {}
       }
 
-      if (window.innerWidth > window.innerHeight) {
+      if (window.innerWidth > window.innerHeight && isCompanionDismissed) {
         await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
         updateVisualDisplay();
-        setMode('pdf'); // 初始預設在自讀
+        resetSideWingsForMode('mp4');
       }
     });
   </script>
