@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v391 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v392 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -500,7 +500,6 @@
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
-      <!-- 修改卡片上的按鈕文字 -->
       <button class="btn-card-orange" onclick="closeCompanionCard()">背書供養</button>
     </div>
   </div>
@@ -591,7 +590,7 @@
   </div>
 
   <script>
-    // 🌟 全域防護：若在 LINE 內建瀏覽器，直接宣告攔截，停止後續運作
+    // 🌟 全域防護：若在 LINE 內建瀏覽器，強制鎖死所有後續程式，阻擋載入
     const isLineApp = /Line\//i.test(navigator.userAgent);
     let isCompanionDismissed = false;
     let hasEnteredReciting = false;
@@ -658,6 +657,18 @@
     const slotR3 = document.getElementById('slot-r3');
     const slotR4 = document.getElementById('slot-r4');
 
+    const offeringOverlay = document.getElementById('offering-modal-overlay');
+    const inputClassId = document.getElementById('input-class-id');
+    const inputUserName = document.getElementById('input-user-name');
+    const displayCoinsCount = document.getElementById('display-coins-count');
+    const btnConfirmOffering = document.getElementById('btn-confirm-offering');
+    const btnCancelOffering = document.getElementById('btn-cancel-offering');
+
+    const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
+    const todayRankList = document.getElementById('today-rank-list');
+    const totalRankList = document.getElementById('total-rank-list');
+    const btnRejoiceClose = document.getElementById('btn-rejoice-close');
+
     // 🌟 核心架構：共用資源與模式控管
     let currentMode = 'mp4';
     let pdfSubMode = 'guide'; // 'guide' (自讀) 或 'compare' (比對)
@@ -667,7 +678,7 @@
     let analyser = null;
     let micStream = null;
     let vadCheckTimer = null;
-    let lastVoiceTime = 0; // 用於 20 秒全域防呆
+    let lastVoiceTime = 0; 
 
     // 比對錄音資源
     let mediaRecorder = null;
@@ -687,7 +698,7 @@
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
     let scheduleRepeatLimit = 1;
-    let completedCycles = 0; // 當前連續遍數計數
+    let completedCycles = 0; 
     let videoPausedAt = -1;
 
     let guideAnimId = null;
@@ -720,9 +731,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V391');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V392');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V391', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V392', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -739,10 +750,7 @@
         haltGuideRunnerImmediately();
       } else {
         portraitBlocker.style.display = 'none';
-
-        if (!isCompanionDismissed && companionOverlay.getAttribute('data-needed') === 'true') {
-          companionOverlay.classList.add('active');
-        }
+        companionOverlay.classList.add('active');
       }
     }
 
@@ -774,7 +782,6 @@
       triggerAppFullscreen();
 
       isCompanionDismissed = true;
-      companionOverlay.setAttribute('data-needed', 'false');
       companionOverlay.style.opacity = '0';
 
       setTimeout(() => {
@@ -792,9 +799,7 @@
       } catch (err) {}
 
       if (!isManualSelected) applyScheduleToState();
-      
-      // 強制將初始畫面定軌在跟讀模式
-      setMode('mp4');
+      setMode('mp4'); // 強制將初始畫面定軌在跟讀模式
     }
 
     async function renderPdfOnValidDimensions() {
@@ -1007,6 +1012,7 @@
         const deltaX = e.changedTouches[0].clientX - touchStartX;
         const deltaY = e.changedTouches[0].clientY - touchStartY;
 
+        // 確保是明確的左右滑動
         if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
           handleShutdownClick();
         }
@@ -1046,16 +1052,23 @@
 
         ensureMicrophoneActive(); 
         
-        // 🌟 雙重保障渲染：利用 requestAnimationFrame 確保瀏覽器重新排版完成
-        window.requestAnimationFrame(() => {
-            setTimeout(() => {
-                if (cachedPdfBuffer && parsedTextLines.length === 0) {
-                    renderPdfOnValidDimensions();
-                } else {
-                    scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-                }
-            }, 100);
-        });
+        // 🌟 雙重保障渲染：若當下 PDF 尚未準備好，強制再渲染一次
+        if (cachedPdfBuffer && parsedTextLines.length === 0) {
+            showToast('經文排版中，請稍候...', 2000);
+            window.requestAnimationFrame(() => {
+                setTimeout(() => { renderPdfOnValidDimensions(); }, 100);
+            });
+        } else if (!cachedPdfBuffer) {
+            showToast('下載經文中，請稍候...', 3000);
+            fetch('./scripture.pdf').then(r => r.arrayBuffer()).then(buf => {
+                cachedPdfBuffer = buf;
+                renderPdfOnValidDimensions();
+            }).catch(e => {
+                showToast("經文下載失敗，請檢查網路", 3000);
+            });
+        } else {
+            scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+        }
       }
       renderUI();
       showCurrentModeBanner();
@@ -1063,7 +1076,7 @@
 
     // 🌟 終極 8 鍵完美佈局算繪
     function renderUI() {
-      // ===== 左側 4 鍵 (供養, 起句/播放, 終句, 慢-) =====
+      // ===== 左側 4 鍵 =====
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
@@ -1076,7 +1089,7 @@
       
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
 
-      // ===== 右側 4 鍵 (跟讀, 自讀, 比對, 快+) =====
+      // ===== 右側 4 鍵 =====
       slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
       slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
       slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
@@ -1160,6 +1173,7 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
+                  btnZidu.textContent = isGuideActive ? (isVoiceActive ? '背誦中' : '導讀中') : '自讀';
                   btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
                   btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
                   btnZidu.style.color = '#FFFFFF';
@@ -1167,6 +1181,7 @@
               }
           } else if (pdfSubMode === 'compare') {
               if (btnRecord) {
+                  btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
                   btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
                   btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
                   btnRecord.style.color = '#FFFFFF';
@@ -1226,9 +1241,19 @@
       if (isGuideActive) {
           haltGuideRunnerImmediately();
       } else {
-          if (markA_Index === -1 || markB_Index === -1) { speakPrompt("請先設定起點與終點"); return; }
+          if (parsedTextLines.length === 0) {
+              showToast("經文處理中，請稍等片刻", 2000);
+              return;
+          }
+          // 🌟 防呆：若未設定起終點，自動設定全篇
+          if (markA_Index === -1 || markB_Index === -1) { 
+              markA_Index = 0;
+              markB_Index = parsedTextLines.length - 1;
+              updateVisualDisplay();
+              showToast("已為您自動設定全篇", 2000);
+          }
+
           isGuideActive = true;
-          if (parsedTextLines.length === 0) { isGuideActive = false; return; }
           if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
 
           isVoiceActive = false;
@@ -1252,6 +1277,10 @@
       triggerAppFullscreen();
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
           setMode('pdf', 'compare');
+          return;
+      }
+      if (parsedTextLines.length === 0) {
+          showToast("經文處理中，請稍等片刻", 2000);
           return;
       }
       toggleReliableRecordAction();
@@ -1684,7 +1713,7 @@
       updateModeButtonsStyle();
     }
 
-    // 🌟 共用麥克風引擎：單一啟動、長保待命
+    // 🌟 共用麥克風引擎
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -1692,7 +1721,6 @@
         if (!audioContext) audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') await audioContext.resume();
 
-        // 關閉自動增益與降噪，避免背誦持續音被誤認為噪音而遭到系統強壓靜音
         micStream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
         });
@@ -2167,6 +2195,7 @@
       });
 
       await evaluateWarmCompanionCard();
+      handleOrientationCheck();
     });
   </script>
 </body>
