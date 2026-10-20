@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v404 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v405 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -618,7 +618,7 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    // 🌟 三重獨立速度儲存機制 (V404 完美記憶)
+    // 🌟 三重獨立速度儲存機制
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -699,7 +699,7 @@
 
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
-    let scheduleRepeatLimit = 5; // 🌟 預設未設定時內定為 5 遍
+    let scheduleRepeatLimit = 5; // 🌟 預設內定 5 遍
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
@@ -733,9 +733,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V404');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V405');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V404', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V405', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -884,7 +884,6 @@
         if (localSched) scheduleData = JSON.parse(localSched);
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
-          // 🌟 若沒有 schedule 檔，強制內定為 5 遍
           scheduleRepeatLimit = 5;
           return false;
         }
@@ -919,7 +918,7 @@
             scheduleRepeatLimit = targetPlan.repeat;
             isScheduleRepeatLocked = true;
           } else {
-            scheduleRepeatLimit = 5; // 預設 5 遍
+            scheduleRepeatLimit = 5;
           }
 
           updateVisualDisplay();
@@ -1132,7 +1131,6 @@
       }
     }
 
-    // 🌟 修正第 2 點：確保快慢速度確實寫入 localStorage
     function setMp4Speed(val) {
       mp4Speed = val;
       localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
@@ -1249,6 +1247,8 @@
 
     window.addEventListener('touched', (e) => {}, { passive: true });
 
+    window.addEventListener('touched', (e) => {}, { passive: true });
+
     window.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - touchStartX;
@@ -1305,12 +1305,12 @@
       showCurrentModeBanner();
     }
 
-    // 🌟 終極 8 鍵完美佈局算繪 (V404：左2按鈕改為「重播」)
+    // 🌟 終極 8 鍵完美佈局算繪
     function renderUI() {
+      // 🌟 修復供養無功能：確保左側 L1 確實綁定點擊事件
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
-          // 🌟 修正第 1 點：比對模式下的左 2 按鈕改名為「重播」
           slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">重播</button>';
           slotL3.innerHTML = '';
       } else {
@@ -1370,7 +1370,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 控制按鈕的填色與呼吸燈互斥機制
+    // 🌟 控制按鈕的填色與顏色邏輯修正
     function updateModeButtonsStyle() {
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
@@ -1401,13 +1401,19 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  // 🌟 修正第 1 點：唸出聲時顯示文字並套用紫色呼吸燈動畫
-                  btnZidu.textContent = isGuideActive ? '唸出聲' : '自讀';
-                  btnZidu.style.background = colorPurple;
-                  btnZidu.style.borderColor = '#E9D5FF';
-                  btnZidu.style.color = '#FFFFFF';
+                  // 🌟 修正開頭自讀為「綠色」，啟動導讀後才變為紫色呼吸燈
                   if (isGuideActive) {
+                      btnZidu.textContent = isVoiceActive ? '唸出聲' : '導讀中';
+                      btnZidu.style.background = colorPurple;
+                      btnZidu.style.borderColor = '#E9D5FF';
+                      btnZidu.style.color = '#FFFFFF';
                       btnZidu.classList.add('voice-breathing-anim');
+                  } else {
+                      btnZidu.textContent = '自讀';
+                      btnZidu.style.background = colorGreen;
+                      btnZidu.style.borderColor = '#A7F3D0';
+                      btnZidu.style.color = '#FFFFFF';
+                      btnZidu.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
                   }
               }
           } else if (pdfSubMode === 'compare') {
@@ -1621,11 +1627,10 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 修正第 3 點：遍數達成自動灑花與自動儲存福慧幣
     function processCycleCompletion() {
       const todayStr = getNormalizedDateStr();
       let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
-      const limit = scheduleRepeatLimit || 5; // 預設 5 遍
+      const limit = scheduleRepeatLimit || 5;
       
       const earned = calculateSentenceCount();
       addCoins(earned);
@@ -1638,15 +1643,15 @@
         if (dailyDone >= limit) {
           isScheduleRepeatLocked = false;
           completedCycles = 0;
-          showToast('🎉 今日功課遍數已達標（' + limit + '遍）！解鎖自由調整模式', 4500);
-          handleTargetCycleDone(); // 觸發七色灑花
+          showToast('🎉 今日功課遍數已達標！解鎖自由調整模式', 4500);
+          handleTargetCycleDone();
           return true; 
         }
       } else {
         completedCycles++;
-        if (completedCycles >= limit) {
-          showToast('🌟 圓滿達成 ' + limit + ' 遍！', 4000);
-          handleTargetCycleDone(); // 觸發七色灑花
+        if (completedCycles >= 5) {
+          showToast('🌟 連續 5 遍圓滿！', 4000);
+          handleTargetCycleDone();
           completedCycles = 0;
           return true; 
         }
@@ -1674,85 +1679,6 @@
       const todayStr = getNormalizedDateStr();
       localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
       triggerSevenColoredLotusFlowerRain();
-    }
-
-    function triggerSevenColoredLotusFlowerRain() {
-      const canvas = document.getElementById('flowerCanvas');
-      if (!canvas) return;
-      canvas.style.display = 'block';
-      const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      const flowers = [];
-      const lotusColors = [
-        '#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'
-      ];
-      
-      for (let i = 0; i < 70; i++) {
-        flowers.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 9 + 8,
-          speedY: Math.random() * 1.8 + 1.0,
-          speedX: (Math.random() - 0.5) * 1.2,
-          rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 2.5,
-          color: lotusColors[Math.floor(Math.random() * lotusColors.length)],
-          opacity: 0.94
-        });
-      }
-
-      let startTime = performance.now();
-      const duration = 5800;
-
-      function animateLotusRain(now) {
-        let elapsed = now - startTime;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        flowers.forEach(f => {
-          f.y += f.speedY;
-          f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
-          f.rotation += f.rotationSpeed;
-
-          ctx.save();
-          ctx.translate(f.x, f.y);
-          ctx.rotate((f.rotation * Math.PI) / 180);
-          ctx.globalAlpha = f.opacity;
-
-          for (let j = 0; j < 5; j++) {
-            const angle = (j * 2 * Math.PI) / 5;
-            const dist = f.size * 0.40;
-            const cx = Math.cos(angle) * dist;
-            const cy = Math.sin(angle) * dist;
-            ctx.fillStyle = f.color;
-            ctx.beginPath();
-            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          ctx.fillStyle = (f.color === '#F1F5F9') ? '#FEF08A' : '#FFFFFF';
-          ctx.beginPath();
-          ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.restore();
-
-          if (f.y > canvas.height + 30) {
-            f.y = -30;
-            f.x = Math.random() * canvas.width;
-          }
-        });
-
-        if (elapsed < duration) {
-          requestAnimationFrame(animateLotusRain);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          canvas.style.display = 'none';
-        }
-      }
-
-      requestAnimationFrame(animateLotusRain);
     }
 
     function renderMarkerLine(lineElement, lineObj) {
@@ -2019,7 +1945,6 @@
       vadCheckTimer = requestAnimationFrame(loop);
     }
 
-    // 🌟 修正第 1 點：紫色錄音按結束後，自動播放錄音
     async function toggleReliableRecordAction() {
       if (!isUserRecording) {
         const ok = await ensureMicrophoneActive();
@@ -2039,7 +1964,7 @@
           showToast('錄音完成，為您自動播放...', 3000);
           renderUI();
           
-          // 停止後自動播放
+          // 🌟 修正第 1 點：錄音結束自動播放
           recordAudioElement.play().catch(() => {});
         };
         
@@ -2068,7 +1993,7 @@
       
       if (isGuideActive) haltGuideRunnerImmediately();
 
-      recordAudioElement.currentTime = 0; // 每次重播從頭開始
+      recordAudioElement.currentTime = 0;
       recordAudioElement.playbackRate = compareSpeed;
       recordAudioElement.play().then(() => {
         showToast('▶ 正在重播錄音...', 2000);
@@ -2090,6 +2015,96 @@
       if (inputUserName) inputUserName.value = localStorage.getItem('user_profile_name') || '';
       if (offeringOverlay) offeringOverlay.style.display = 'flex';
     }
+
+    // 🌟 供養相關輔助函數
+    function getStoredCoins() {
+      return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
+    }
+    function addCoins(amount) {
+      const total = getStoredCoins() + amount;
+      localStorage.setItem('user_accumulated_coins', total.toString());
+      return total;
+    }
+    function resetCoins() {
+      localStorage.setItem('user_accumulated_coins', '0');
+    }
+    function calculateSentenceCount() {
+      if (parsedTextLines.length === 0) return 0;
+      const start = (markA_Index !== -1) ? markA_Index : 0;
+      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
+      return Math.max(1, Math.abs(end - start) + 1);
+    }
+
+    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
+
+    btnConfirmOffering.addEventListener('click', () => {
+      const classId = inputClassId.value.trim();
+      const userName = inputUserName.value.trim();
+      if (!classId || !userName) { alert("請輸入班號與姓名！"); return; }
+
+      localStorage.setItem('user_class_id', classId);
+      localStorage.setItem('user_profile_name', userName);
+
+      const coinsToOffer = getStoredCoins();
+      if (coinsToOffer <= 0) { alert("目前福慧幣為 0 枚，請先精進背誦！"); return; }
+
+      btnConfirmOffering.disabled = true;
+      btnConfirmOffering.textContent = '連線供養中...';
+
+      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
+      let isDone = false;
+
+      function handleSuccess(data) {
+        if (isDone) return;
+        isDone = true;
+        clearTimeout(timeoutTimer);
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+
+        // 🌟 只有成功供養後才歸零福慧幣
+        resetCoins();
+        displayCoinsCount.textContent = '0 枚';
+        offeringOverlay.style.display = 'none';
+
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+
+        renderLeaderboards(data, classId, userName, coinsToOffer);
+        leaderboardOverlay.style.display = 'flex';
+        
+        triggerLeaderboardCoinRain();
+      }
+
+      const timeoutTimer = setTimeout(() => { if (!isDone) handleSuccess(null); }, 10000);
+      window[callbackName] = (res) => handleSuccess(res);
+
+      const scriptTag = document.createElement('script');
+      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&callback=${callbackName}&t=${Date.now()}`;
+      scriptTag.onerror = () => { if (!isDone) handleSuccess(null); };
+      document.body.appendChild(scriptTag);
+    });
+
+    function renderLeaderboards(data, curClass, curName, curCoins) {
+      const medals = ['🥇', '🥈', '🥉'];
+      function buildListHtml(list) {
+        const fullList = (list && Array.isArray(list)) ? [...list] : [];
+        while (fullList.length < 3) fullList.push({ isPlaceholder: true });
+        return fullList.slice(0, 3).map((item, idx) => {
+          const medal = medals[idx] || `第${idx + 1}名`;
+          if (item.isPlaceholder) {
+            return `<div class="rank-item"><span>${medal} <i style="color:#94A3B8;">虛位以待</i></span><span class="rank-coins">--</span></div>`;
+          }
+          const displayName = item.maskName || item.name || curName;
+          const displayClass = item.classId ? `(${item.classId})` : '';
+          const coinsVal = (typeof item.coins === 'number') ? item.coins : curCoins;
+          return `<div class="rank-item"><span>${medal} ${displayName} <small style="color:#94A3B8;">${displayClass}</small></span><span class="rank-coins">${coinsVal} 枚</span></div>`;
+        }).join('');
+      }
+      todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
+      totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
+    }
+
+    btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
 
     function startGuideRunner() {
       if (parsedTextLines.length === 0) return;
@@ -2315,7 +2330,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 網頁載入初始化 (V404)
+    // 🌟 網頁載入初始化 (V405)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2329,10 +2344,10 @@
       let targetDay = parseInt(urlParams.get('day'), 10) || 1;
 
       if (!urlParams.get('day') && !urlParams.get('start')) {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V404_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V405_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V404_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V405_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
