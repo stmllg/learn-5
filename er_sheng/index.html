@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v383 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v384 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -364,7 +364,6 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 移除了 !important 讓 JS 改變底色時能順利套用 */
     .square-btn {
       width: 60px !important;
       height: 60px !important;
@@ -740,9 +739,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V383');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V384');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V383', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V384', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -883,9 +882,10 @@
       }, duration);
     }
 
+    // 🌟 全面取代樣板字串，改用字串拼接避免部分瀏覽器報錯
     function showModeBanner(title, subtitle) {
       if (!modeGrandBanner) return;
-      modeGrandBanner.innerHTML = `<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">\${title}</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">\${subtitle}</div>`;
+      modeGrandBanner.innerHTML = '<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">' + title + '</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">' + subtitle + '</div>';
       modeGrandBanner.classList.add('active');
       clearTimeout(modeGrandBanner._timer);
       modeGrandBanner._timer = setTimeout(() => {
@@ -907,19 +907,68 @@
       }
     }
 
-    // 🌟 三重獨立調速機制
+    // 🌟 三重獨立調速機制 (採用字串拼接)
     function setMp4Speed(val) {
       mp4Speed = val;
       localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
       video.playbackRate = mp4Speed;
-      flashSpeedToast(`【跟讀快轉 ${mp4Speed.toFixed(1)}x】`); }  function setPdfSpeed(val) { pdfSpeed = val; localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1)); flashSpeedToast(`【自讀語速 ${pdfSpeed.toFixed(1)}x】`);
+      flashSpeedToast('【跟讀快轉 ' + mp4Speed.toFixed(1) + 'x】');
+    }
+
+    function setPdfSpeed(val) {
+      pdfSpeed = val;
+      localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
+      flashSpeedToast('【自讀語速 ' + pdfSpeed.toFixed(1) + 'x】');
     }
 
     function setCompareSpeed(val) {
       compareSpeed = val;
       localStorage.setItem('user_compare_speed_preference', compareSpeed.toFixed(1));
       if (recordAudioElement) recordAudioElement.playbackRate = compareSpeed;
-      flashSpeedToast(`【比對播放 ${compareSpeed.toFixed(1)}x】`); }  function flashSpeedToast(text) { speedToastBadge.textContent = text; speedToastBadge.style.display = 'block'; speedToastBadge.style.opacity = '1'; clearTimeout(speedToastBadge._t); speedToastBadge._t = setTimeout(() => { speedToastBadge.style.opacity = '0'; setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300); }, 3000); }  function triggerMp4SpeedChange(delta) { let newSpeed = Math.round((mp4Speed + delta) * 10) / 10; setMp4Speed(Math.max(0.5, Math.min(2.5, newSpeed))); }  function triggerPdfSpeedChange(delta) { let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10; setPdfSpeed(Math.max(0.5, Math.min(2.5, newSpeed))); }  function triggerCompareSpeedChange(delta) { let newSpeed = Math.round((compareSpeed + delta) * 10) / 10; setCompareSpeed(Math.max(0.5, Math.min(2.5, newSpeed))); }  function speakPrompt(text) { try { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'zh-TW'; utterance.rate = 1.1; window.speechSynthesis.speak(utterance); } } catch (e) {} }  function getNormalizedDateStr() { const now = new Date(); return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+      flashSpeedToast('【比對播放 ' + compareSpeed.toFixed(1) + 'x】');
+    }
+
+    function flashSpeedToast(text) {
+      speedToastBadge.textContent = text;
+      speedToastBadge.style.display = 'block';
+      speedToastBadge.style.opacity = '1';
+      clearTimeout(speedToastBadge._t);
+      speedToastBadge._t = setTimeout(() => {
+        speedToastBadge.style.opacity = '0';
+        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
+      }, 3000);
+    }
+
+    function triggerMp4SpeedChange(delta) {
+      let newSpeed = Math.round((mp4Speed + delta) * 10) / 10;
+      setMp4Speed(Math.max(0.5, Math.min(2.5, newSpeed)));
+    }
+
+    function triggerPdfSpeedChange(delta) {
+      let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
+      setPdfSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
+    }
+
+    function triggerCompareSpeedChange(delta) {
+      let newSpeed = Math.round((compareSpeed + delta) * 10) / 10;
+      setCompareSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
+    }
+
+    function speakPrompt(text) {
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'zh-TW';
+          utterance.rate = 1.1;
+          window.speechSynthesis.speak(utterance);
+        }
+      } catch (e) {}
+    }
+
+    function getNormalizedDateStr() {
+      const now = new Date();
+      return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
     }
 
     function getActiveVideoRange() {
@@ -1041,17 +1090,17 @@
         slotL1.innerHTML = '';
         slotL2.innerHTML = '';
         slotL3.innerHTML = '';
-        slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>`;
+        slotL4.innerHTML = '<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>';
         document.getElementById('btn-shutdown-exit').addEventListener('click', handleShutdownClick);
       } else if (mode === 'pdf') {
         renderPdfLeftWing();
       }
 
-      slotR1.innerHTML = `<button class="square-btn" id="btn-guide-toggle">\${mode === 'mp4' ? '跟讀' : '自讀'}</button>`;
-      slotR2.innerHTML = `<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>`;
+      slotR1.innerHTML = '<button class="square-btn" id="btn-guide-toggle">' + (mode === 'mp4' ? '跟讀' : '自讀') + '</button>';
+      slotR2.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
       // 🌟 將快轉按鍵字體放大加粗
-      slotR3.innerHTML = `<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>`;
-      slotR4.innerHTML = `<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>`;
+      slotR3.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+      slotR4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
 
       document.getElementById('btn-speed-up').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1081,23 +1130,23 @@
     // 🌟 核心選單：動態切換與視覺呈現 (互斥全實心填色)
     function renderPdfLeftWing() {
       // 左 1 統一為大方塊按鍵
-      slotL1.innerHTML = `<button class="square-btn" id="btn-record">\${isUserRecording ? '錄音中' : '比對'}</button>`;
+      slotL1.innerHTML = '<button class="square-btn" id="btn-record">' + (isUserRecording ? '錄音中' : '比對') + '</button>';
       document.getElementById('btn-record').addEventListener('click', handleRecordModeClick);
 
       if (pdfSubMode === 'compare') {
-        slotL2.innerHTML = `<button class="circle-btn btn-color-play" id="btn-play">\${(recordAudioElement && !recordAudioElement.paused) ? '暫停' : '播放'}</button>`;
-        slotL3.innerHTML = ``;
+        slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">' + ((recordAudioElement && !recordAudioElement.paused) ? '暫停' : '播放') + '</button>';
+        slotL3.innerHTML = '';
         if (document.getElementById('btn-play')) {
           document.getElementById('btn-play').addEventListener('click', togglePlaybackAction);
         }
       } else {
-        slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: visible;">起句</button>`;
-        slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: visible;">終句</button>`;
+        slotL2.innerHTML = '<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="visibility: visible;">起句</button>';
+        slotL3.innerHTML = '<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="visibility: visible;">終句</button>';
         document.getElementById('btn-mark-a').addEventListener('click', handleMarkAClck);
         document.getElementById('btn-mark-b').addEventListener('click', handleMarkBClick);
       }
       
-      slotL4.innerHTML = `<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>`;
+      slotL4.innerHTML = '<button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button>';
       document.getElementById('btn-shutdown-exit').addEventListener('click', handleShutdownClick);
 
       updateModeButtonsStyle();
@@ -1110,16 +1159,26 @@
 
       if (currentMode === 'mp4') {
         if (btnGuide) {
-          btnGuide.textContent = '跟讀';
-          btnGuide.style.background = '#000000';
-          btnGuide.style.borderColor = '#BAE6FD';
-          btnGuide.style.color = '#FB923C';
-          btnGuide.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+          // 在跟讀模式，當下正在播放則為綠色，否則維持黑色
+          const isPlaying = video && !video.paused;
+          if (isPlaying) {
+            btnGuide.textContent = '暫停';
+            btnGuide.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+            btnGuide.style.borderColor = '#A7F3D0';
+            btnGuide.style.color = '#FFFFFF';
+            btnGuide.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
+          } else {
+            btnGuide.textContent = '跟讀';
+            btnGuide.style.background = '#000000';
+            btnGuide.style.borderColor = '#BAE6FD';
+            btnGuide.style.color = '#FB923C';
+            btnGuide.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+          }
         }
         return;
       }
 
-      // 右側自讀鍵
+      // 右側自讀鍵 (PDF模式)
       if (btnGuide) {
         btnGuide.textContent = isGuideActive ? (isVoiceActive ? '背誦中' : '導讀中') : '自讀';
         if (pdfSubMode === 'guide') {
@@ -1142,7 +1201,7 @@
         }
       }
 
-      // 左側比對鍵
+      // 左側比對鍵 (PDF模式)
       if (btnRecord) {
         btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
         if (pdfSubMode === 'compare') {
@@ -1181,7 +1240,7 @@
       toggleReliableRecordAction();
     }
 
-    // 🌟 兩段式保險：右側【自讀】鍵邏輯
+    // 🌟 兩段式保險：右側【自讀/跟讀】鍵邏輯
     function handleGuideToggleClick() {
       triggerAppFullscreen();
       try {
@@ -1208,20 +1267,18 @@
           }
 
           video.play().then(() => {
-            const btnGuide = document.getElementById('btn-guide-toggle');
-            if (btnGuide) btnGuide.textContent = '暫停';
+            updateModeButtonsStyle();
             startMp4PrecisionCheck();
           }).catch((err) => {
             console.error("播放受阻:", err);
             video.currentTime = range.start;
-            video.play().catch(() => {});
+            video.play().then(() => updateModeButtonsStyle()).catch(() => {});
           });
         } else {
           video.pause();
           videoPausedAt = video.currentTime;
-          const btnGuide = document.getElementById('btn-guide-toggle');
-          if (btnGuide) btnGuide.textContent = '跟讀';
-          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒`, 3000);
+          updateModeButtonsStyle();
+          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
         }
         return;
       }
@@ -1286,7 +1343,7 @@
       ctx.stroke();
 
       ctx.fillStyle = '#B26A00';
-      ctx.font = `900 ${Math.floor(radius * 1.1)}px sans-serif`;
+      ctx.font = '900 ' + Math.floor(radius * 1.1) + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(symbolText, 0, 1.5);
@@ -1435,7 +1492,7 @@
       
       const earned = calculateSentenceCount();
       addCoins(earned);
-      showToast(`✅ 完成一遍，福慧幣 +${earned}`, 2000);
+      showToast('✅ 完成一遍，福慧幣 +' + earned, 2000);
 
       if (isScheduleRepeatLocked) {
         dailyDone++;
@@ -1467,13 +1524,10 @@
       const shouldStop = processCycleCompletion();
 
       if (shouldStop) {
-        const btnGuide = document.getElementById('btn-guide-toggle');
-        if (btnGuide) {
-          btnGuide.textContent = '跟讀';
-          btnGuide.classList.remove('guide-active');
-        }
+        updateModeButtonsStyle();
       } else {
         video.play().then(() => {
+          updateModeButtonsStyle();
           startMp4PrecisionCheck();
         }).catch(() => {});
       }
@@ -1567,16 +1621,16 @@
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
-        lineElement.style.top = `${lineObj.underLineY}px`;
-        lineElement.style.left = `${lineObj.x0}px`;
-        lineElement.style.width = `${lineObj.x1 - lineObj.x0}px`;
+        lineElement.style.top = lineObj.underLineY + 'px';
+        lineElement.style.left = lineObj.x0 + 'px';
+        lineElement.style.width = (lineObj.x1 - lineObj.x0) + 'px';
         lineElement.style.display = 'block';
         return;
       }
       const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
-      lineElement.style.top = `${offsetTop + (lineObj.underLineY * scaleY)}px`;
-      lineElement.style.left = `${offsetLeft + (lineObj.x0 * scaleX)}px`;
-      lineElement.style.width = `${(lineObj.x1 - lineObj.x0) * scaleX}px`;
+      lineElement.style.top = (offsetTop + (lineObj.underLineY * scaleY)) + 'px';
+      lineElement.style.left = (offsetLeft + (lineObj.x0 * scaleX)) + 'px';
+      lineElement.style.width = ((lineObj.x1 - lineObj.x0) * scaleX) + 'px';
       lineElement.style.display = 'block';
     }
 
@@ -1892,7 +1946,7 @@
 
     function handleOfferingClick() {
       if (isGuideActive) return;
-      displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
+      displayCoinsCount.textContent = getStoredCoins() + ' 枚';
       inputClassId.value = localStorage.getItem('user_class_id') || '';
       inputUserName.value = localStorage.getItem('user_profile_name') || '';
       offeringOverlay.style.display = 'flex';
@@ -1900,7 +1954,7 @@
 
     function startGuideRunner() {
       if (parsedTextLines.length === 0) return;
-      guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
+      guideStage.style.height = Math.max(centerCore.scrollHeight, 2500) + 'px';
       scrollToAlignTop(currentLineIndex);
       setupActiveLine(currentLineIndex, currentCharIndexFloat);
       lastAnimTimestamp = performance.now();
@@ -1960,20 +2014,20 @@
 
       if (isGuideActive) {
         if (!isAppleDevice) {
-          guideLine.style.top = `${line.underLineY}px`;
-          guideLine.style.left = `${line.x0}px`;
-          guideLine.style.width = `${line.x1 - line.x0}px`;
+          guideLine.style.top = line.underLineY + 'px';
+          guideLine.style.left = line.x0 + 'px';
+          guideLine.style.width = (line.x1 - line.x0) + 'px';
           const curX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
-          redDot.style.top = `${line.underLineY}px`;
-          redDot.style.left = `${curX}px`;
+          redDot.style.top = line.underLineY + 'px';
+          redDot.style.left = curX + 'px';
         } else {
           const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
-          guideLine.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
-          guideLine.style.left = `${offsetLeft + (line.x0 * scaleX)}px`;
-          guideLine.style.width = `${(line.x1 - line.x0) * scaleX}px`;
+          guideLine.style.top = (offsetTop + (line.underLineY * scaleY)) + 'px';
+          guideLine.style.left = (offsetLeft + (line.x0 * scaleX)) + 'px';
+          guideLine.style.width = ((line.x1 - line.x0) * scaleX) + 'px';
           const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
-          redDot.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
-          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
+          redDot.style.top = (offsetTop + (line.underLineY * scaleY)) + 'px';
+          redDot.style.left = (offsetLeft + (rawX * scaleX)) + 'px';
         }
         guideLine.style.display = 'block';
         redDot.style.display = 'block';
@@ -2019,12 +2073,12 @@
         currentCharIndexFloat = totalChars;
         if (curLine) {
           if (!isAppleDevice) {
-            redDot.style.left = `${curLine.x1}px`;
-            redDot.style.top = `${curLine.underLineY}px`;
+            redDot.style.left = curLine.x1 + 'px';
+            redDot.style.top = curLine.underLineY + 'px';
           } else {
             const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
-            redDot.style.left = `${offsetLeft + (curLine.x1 * scaleX)}px`;
-            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
+            redDot.style.left = (offsetLeft + (curLine.x1 * scaleX)) + 'px';
+            redDot.style.top = (offsetTop + (curLine.underLineY * scaleX)) + 'px';
           }
         }
 
@@ -2043,12 +2097,12 @@
       if (curLine) {
         const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
         if (!isAppleDevice) {
-          redDot.style.left = `${rawX}px`;
-          redDot.style.top = `${curLine.underLineY}px`;
+          redDot.style.left = rawX + 'px';
+          redDot.style.top = curLine.underLineY + 'px';
         } else {
           const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
-          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
-          redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
+          redDot.style.left = (offsetLeft + (rawX * scaleX)) + 'px';
+          redDot.style.top = (offsetTop + (curLine.underLineY * scaleX)) + 'px';
         }
       }
       guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -2183,7 +2237,7 @@
       window[callbackName] = (res) => handleSuccess(res);
 
       const scriptTag = document.createElement('script');
-      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&callback=${callbackName}&t=${Date.now()}`;
+      scriptTag.src = APPS_SCRIPT_URL + '?classId=' + encodeURIComponent(classId) + '&userName=' + encodeURIComponent(userName) + '&coins=' + coinsToOffer + '&classicId=' + encodeURIComponent(CURRENT_CLASSIC_ID) + '&callback=' + callbackName + '&t=' + Date.now();
       scriptTag.onerror = () => { if (!isDone) handleSuccess(null); };
       document.body.appendChild(scriptTag);
     });
@@ -2194,14 +2248,14 @@
         const fullList = (list && Array.isArray(list)) ? [...list] : [];
         while (fullList.length < 3) fullList.push({ isPlaceholder: true });
         return fullList.slice(0, 3).map((item, idx) => {
-          const medal = medals[idx] || `第${idx + 1}名`;
+          const medal = medals[idx] || ('第' + (idx + 1) + '名');
           if (item.isPlaceholder) {
-            return `<div class="rank-item"><span>${medal} <i style="color:#94A3B8;">虛位以待</i></span><span class="rank-coins">--</span></div>`;
+            return '<div class="rank-item"><span>' + medal + ' <i style="color:#94A3B8;">虛位以待</i></span><span class="rank-coins">--</span></div>';
           }
           const displayName = item.maskName || item.name || curName;
-          const displayClass = item.classId ? `(${item.classId})` : '';
+          const displayClass = item.classId ? ('(' + item.classId + ')') : '';
           const coinsVal = (typeof item.coins === 'number') ? item.coins : curCoins;
-          return `<div class="rank-item"><span>${medal} ${displayName} <small style="color:#94A3B8;">${displayClass}</small></span><span class="rank-coins">${coinsVal} 枚</span></div>`;
+          return '<div class="rank-item"><span>' + medal + ' ' + displayName + ' <small style="color:#94A3B8;">' + displayClass + '</small></span><span class="rank-coins">' + coinsVal + ' 枚</span></div>';
         }).join('');
       }
       todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
@@ -2217,14 +2271,17 @@
       const paramDay = urlParams.get('day');
       const startStr = urlParams.get('start');
       const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
       let targetDay = 1;
 
       if (paramDay) {
         targetDay = parseInt(paramDay, 10) || 1;
       } else if (startStr) {
-        const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
+        const parts = startStr.split('-');
+        const sYear = Number(parts[0]);
+        const sMonth = Number(parts[1]);
+        const sDay = Number(parts[2]);
         const startDate = new Date(sYear, sMonth - 1, sDay);
         const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -2232,7 +2289,7 @@
         const currentDay = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         targetDay = currentDay > 0 ? currentDay : 1;
 
-        const seenKey = `CARD_SEEN_${CURRENT_CLASSIC_ID}_${todayStr}`;
+        const seenKey = 'CARD_SEEN_' + CURRENT_CLASSIC_ID + '_' + todayStr;
         if (localStorage.getItem(seenKey)) {
           isCompanionDismissed = true;
           companionOverlay.setAttribute('data-needed', 'false');
@@ -2240,10 +2297,10 @@
         }
         currentCompanionSeenKey = seenKey;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V383_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V384_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V383_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V384_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = "";
@@ -2251,7 +2308,7 @@
         cardFileName = "card_021.webp";
       } else {
         const paddedNum = String(targetDay).padStart(3, "0");
-        cardFileName = `card_${paddedNum}.webp`;
+        cardFileName = 'card_' + paddedNum + '.webp';
       }
 
       const fileKey = 'card_img_' + cardFileName.replace('.webp', '');
@@ -2259,7 +2316,7 @@
       if (localFile && localFile.data) {
         companionImgDisplay.src = URL.createObjectURL(new Blob([localFile.data], { type: 'image/webp' }));
       } else {
-        companionImgDisplay.src = `cards/${cardFileName}`;
+        companionImgDisplay.src = 'cards/' + cardFileName;
       }
       companionOverlay.setAttribute('data-needed', 'true');
     }
@@ -2279,7 +2336,10 @@
         const startStr = urlParams.get('start');
 
         if (startStr) {
-          const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
+          const parts = startStr.split('-');
+          const sYear = Number(parts[0]);
+          const sMonth = Number(parts[1]);
+          const sDay = Number(parts[2]);
           const startDate = new Date(sYear, sMonth - 1, sDay);
           const now = new Date();
           const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -2448,7 +2508,7 @@
       });
 
       parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
-      guideStage.style.height = `${viewport.height}px`;
+      guideStage.style.height = viewport.height + 'px';
     }
 
     async function syncFiveFilesInBackground() {
