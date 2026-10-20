@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v385 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v386 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -738,9 +738,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V385');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V386');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V385', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V386', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -1161,16 +1161,16 @@
               const isPlaying = video && !video.paused;
               if (isPlaying) {
                   btnGendu.textContent = '暫停';
-                  btnGendu.style.background = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)'; // 紫色執行中
-                  btnGendu.style.borderColor = '#E9D5FF';
-                  btnGendu.style.color = '#FFFFFF';
-                  btnGendu.style.boxShadow = '0 0 15px rgba(147, 51, 234, 0.8)';
-              } else {
-                  btnGendu.textContent = '跟讀';
-                  btnGendu.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)'; // 綠色待命
+                  btnGendu.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)'; // 綠色執行中
                   btnGendu.style.borderColor = '#A7F3D0';
                   btnGendu.style.color = '#FFFFFF';
                   btnGendu.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
+              } else {
+                  btnGendu.textContent = '跟讀';
+                  btnGendu.style.background = '#000000'; // 黑色待命
+                  btnGendu.style.borderColor = '#BAE6FD';
+                  btnGendu.style.color = '#FB923C';
+                  btnGendu.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.8)';
               }
           }
       } else if (currentMode === 'pdf') {
@@ -1716,7 +1716,7 @@
       updateModeButtonsStyle();
     }
 
-    // 🌟 共用麥克風引擎
+    // 🌟 共用麥克風引擎：單一啟動、長保待命
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -2128,10 +2128,79 @@
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
 
-      video.pause();
+      try { video.pause(); } catch(e){}
       updateModeButtonsStyle();
       updateVisualDisplay();
     }
+
+    // 🌟 網頁載入初始化 (V386 修復啟動渲染)
+    window.addEventListener('DOMContentLoaded', async () => {
+      checkDailyResetOnStartup(); // 跨日重置檢核
+      
+      // 預先產生按鍵，避免等待資料時畫面全黑
+      renderUI();
+
+      await evaluateWarmCompanionCard();
+
+      if (!isLineGuideDismissed) {
+        lineBrowserOverlay.classList.add('active');
+      } else {
+        handleOrientationCheck();
+      }
+
+      // 如果陪伴卡被跳過(今日已看過)，直接啟動主程式邏輯
+      if (isCompanionDismissed) {
+        hasEnteredReciting = true;
+        activateMainReciteEntry();
+      }
+
+      // 載入 JSON, 影片, PDF
+      const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+      if (localSent) {
+        try { scriptureData = JSON.parse(localSent); } catch (e) {}
+      }
+      if (!scriptureData || scriptureData.length === 0) {
+        try {
+          const sRes = await fetch('./sentences.json');
+          if (sRes.ok) {
+            scriptureData = await sRes.json();
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(scriptureData));
+          }
+        } catch (e) {}
+      }
+
+      const localVideo = await getLocalFile('video_file');
+      if (localVideo && localVideo.data) {
+        const blob = new Blob([localVideo.data], { type: 'video/mp4' });
+        video.src = URL.createObjectURL(blob);
+      } else {
+        video.src = './chant_video.mp4';
+      }
+
+      const localPdf = await getLocalFile('pdf_file');
+      if (localPdf && localPdf.data) {
+        cachedPdfBuffer = localPdf.data;
+      } else {
+        try {
+          const pRes = await fetch('./scripture.pdf');
+          if (pRes.ok) {
+            const buf = await pRes.arrayBuffer();
+            await saveLocalFile('pdf_file', buf, 'init_pdf');
+            cachedPdfBuffer = buf;
+          }
+        } catch (e) {}
+      }
+
+      // 裝置若為橫向且略過陪伴卡，進行 PDF 繪製
+      if (window.innerWidth > window.innerHeight && isCompanionDismissed) {
+         if (cachedPdfBuffer) {
+           try {
+             await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
+             updateVisualDisplay();
+           } catch(e) {}
+         }
+      }
+    });
   </script>
 </body>
 </html>
