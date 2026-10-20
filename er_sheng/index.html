@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v360 (自讀比對合併版)</title>
+  <title>歡喜背書橫式雙模播放器 v361 (自讀核心穩健版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -263,16 +263,6 @@
       opacity: 1;
     }
 
-    /* 🔴 錄音時強效呼吸閃爍特效樣式 */
-    @keyframes recordingPulseStrong {
-      0%   { transform: scale(1.0); box-shadow: 0 0 15px rgba(239, 68, 68, 0.9); background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); }
-      50%  { transform: scale(1.08); box-shadow: 0 0 35px rgba(239, 68, 68, 1), inset 0 0 18px rgba(255, 255, 255, 0.8); background: linear-gradient(135deg, #F87171 0%, #DC2626 100%); }
-      100% { transform: scale(1.0); box-shadow: 0 0 15px rgba(239, 68, 68, 0.9); background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); }
-    }
-    .recording-flashing {
-      animation: recordingPulseStrong 0.9s infinite ease-in-out !important;
-    }
-
     /* =========================================================================
        5. 核心主架構
        ========================================================================= */
@@ -287,7 +277,6 @@
       overflow: hidden;
     }
 
-    /* 🟢 綠色通知置中顯示 */
     #schedule-toast {
       display: none;
       position: fixed;
@@ -379,20 +368,12 @@
       color: #FB923C !important;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
-      transition: transform 0.15s ease-out, background-color 0.2s ease;
+      transition: transform 0.15s ease-out;
       text-align: center;
       line-height: 1.1;
       touch-action: manipulation;
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
-
-    /* 🌟 選中時的綠燈狀態 */
-    .square-btn.active-mode {
-      background: radial-gradient(circle, #22C55E 0%, #15803D 100%) !important;
-      border-color: #DCFCE7 !important;
-      color: #FFFFFF !important;
-      box-shadow: 0 0 18px rgba(34, 197, 94, 0.85) !important;
-    }
 
     .btn-color-offering {
       background-color: #B45309 !important;
@@ -546,13 +527,12 @@
   <!-- 🌸 畫布特效層 -->
   <canvas id="flowerCanvas"></canvas>
 
-  <!-- 4. 主視圖 (v360 介面架構) -->
+  <!-- 4. 主視圖 (v226 原生自讀與跟讀雙模架構) -->
   <div id="landscape-container">
-    <!-- 左側翼鍵：左1比對(動態)、左2起句/播放(動態)、左3終句(動態)、左4離開(固定) -->
     <div class="side-wing" id="left-wing">
-      <div class="slot" id="slot-l1"><button class="square-btn" id="btn-mode-record">比對</button></div>
-      <div class="slot" id="slot-l2"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起句</button></div>
-      <div class="slot" id="slot-l3"><button class="circle-btn btn-color-mark-b" id="btn-mark-b">終句</button></div>
+      <div class="slot" id="slot-l1"><button class="circle-btn btn-color-mark-a" id="btn-mark-a">起點</button></div>
+      <div class="slot" id="slot-l2"><button class="circle-btn btn-color-mark-b" id="btn-mark-b">終點</button></div>
+      <div class="slot" id="slot-l3"><button class="circle-btn btn-color-repeat" id="btn-repeat-count">1次</button></div>
       <div class="slot" id="slot-l4"><button class="circle-btn btn-color-shutdown" id="btn-shutdown-exit">離開</button></div>
     </div>
 
@@ -564,7 +544,7 @@
         <div id="red-dot"></div>
       </div>
 
-      <!-- PDF 容器（自讀與比對模式共用） -->
+      <!-- PDF 容器（自讀模式） -->
       <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
       </div>
@@ -575,13 +555,33 @@
       </div>
     </div>
 
-    <!-- 右側翼鍵：右1自讀(固定模式鍵)、右2供養(固定)、右3快轉+(固定)、右4快轉-(固定) -->
     <div class="side-wing" id="right-wing">
-      <div class="slot" id="slot-r1"><button class="square-btn active-mode" id="btn-mode-pdf">自讀</button></div>
+      <div class="slot" id="slot-r1"><button class="square-btn btn-color-guide" id="btn-guide-toggle">跟讀</button></div>
       <div class="slot" id="slot-r2"><button class="circle-btn btn-color-offering" id="btn-offering">供養</button></div>
       <div class="slot" id="slot-r3"><button class="circle-btn btn-color-speed-up" id="btn-speed-up">快轉+</button></div>
       <div class="slot" id="slot-r4"><button class="circle-btn btn-color-speed-down" id="btn-speed-down">快轉-</button></div>
     </div>
+  </div>
+
+  <div id="repeat-modal" class="popup-modal">
+    <button class="modal-option active" data-count="1">1 次</button>
+    <button class="modal-option" data-count="3">3 次</button>
+    <button class="modal-option" data-count="5">5 次</button>
+    <button class="modal-option" data-count="7">7 次</button>
+    <button class="modal-option" data-count="10">10 次</button>
+  </div>
+
+  <!-- 快轉倍數選單 Modal -->
+  <div id="speed-modal" class="popup-modal">
+    <div style="font-size: 15px; font-weight: 900; color: #34D399; text-align: center; margin-bottom: 2px;">選擇快轉倍數</div>
+    <button class="modal-option" data-speed="1">1.0x</button>
+    <button class="modal-option" data-speed="1.2">1.2x</button>
+    <button class="modal-option" data-speed="1.3">1.3x</button>
+    <button class="modal-option" data-speed="1.5">1.5x</button>
+    <button class="modal-option" data-speed="1.75">1.75x</button>
+    <button class="modal-option" data-speed="2">2.0x</button>
+    <button class="modal-option" data-speed="2.25">2.25x</button>
+    <button class="modal-option" data-speed="2.5">2.5x</button>
   </div>
 
   <!-- 供養彈窗 -->
@@ -640,10 +640,12 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
+    let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
+    if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
+
     let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
 
-    let mp4Speed = 1.0;
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
     const lineBrowserOverlay = document.getElementById('line-browser-overlay');
@@ -667,22 +669,18 @@
     const scheduleToast = document.getElementById('schedule-toast');
     const speedToastBadge = document.getElementById('speed-toast-badge');
 
-    const slotL1 = document.getElementById('slot-l1');
-    const slotL2 = document.getElementById('slot-l2');
-    const slotL3 = document.getElementById('slot-l3');
-    const slotL4 = document.getElementById('slot-l4');
+    const repeatModal = document.getElementById('repeat-modal');
+    const speedModal = document.getElementById('speed-modal');
 
-    const slotR1 = document.getElementById('slot-r1');
-    const slotR2 = document.getElementById('slot-r2');
-    const slotR3 = document.getElementById('slot-r3');
-    const slotR4 = document.getElementById('slot-r4');
+    const btnMarkA = document.getElementById('btn-mark-a');
+    const btnMarkB = document.getElementById('btn-mark-b');
+    const btnRepeatCount = document.getElementById('btn-repeat-count');
+    const btnShutdownExit = document.getElementById('btn-shutdown-exit');
 
-    const btnModePdf = document.getElementById('btn-mode-pdf');
-    const btnModeRecord = document.getElementById('btn-mode-record');
+    const btnGuideToggle = document.getElementById('btn-guide-toggle');
     const btnOffering = document.getElementById('btn-offering');
     const btnSpeedUp = document.getElementById('btn-speed-up');
     const btnSpeedDown = document.getElementById('btn-speed-down');
-    const btnShutdownExit = document.getElementById('btn-shutdown-exit');
 
     const offeringOverlay = document.getElementById('offering-modal-overlay');
     const inputClassId = document.getElementById('input-class-id');
@@ -696,13 +694,8 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isUserRecording = false;
-    let recordedAudioBlobUrl = null;
-    let recordAudioElement = new Audio();
-
-    let currentMode = 'pdf'; // 預設為自讀模式 (PDF)
+    let currentMode = 'mp4';
+    const modeSequence = ['mp4', 'pdf'];
 
     let scriptureData = [];
     let currentPdfDoc = null;
@@ -717,11 +710,13 @@
     let scheduleRepeatLimit = 1;
     let totalTargetCycles = 1;
     let completedCycles = 0;
+    let videoPausedAt = -1;
 
     let guideAnimId = null;
     let cycleWaitTimer = null;
     let isGuideActive = false;
     let currentLineIndex = 0;
+
     let currentCharIndexFloat = 0.0;
     let lastAnimTimestamp = 0;
     let isTransitioningLine = false;
@@ -752,9 +747,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V360');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V226');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V360', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V226', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -789,8 +784,11 @@
     function triggerAppFullscreen() {
       const el = document.documentElement;
       try {
-        if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen().catch(() => {});
+        if (el.requestFullscreen) {
+          el.requestFullscreen().catch(() => {});
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen().catch(() => {});
+        }
       } catch (e) {}
     }
 
@@ -818,7 +816,7 @@
 
       if (!isManualSelected) applyScheduleToState();
       syncFiveFilesInBackground();
-      setPdfSubMode('pdf'); // 預設啟動自讀模式
+      setMode('mp4');
     }
 
     async function renderPdfOnValidDimensions() {
@@ -894,6 +892,28 @@
       }, 2000);
     }
 
+    function showCurrentModeBanner() {
+      if (currentMode === 'mp4') {
+        showModeBanner('📖 跟讀模式', '影音同步・雙模播放');
+      } else {
+        showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識');
+      }
+    }
+
+    function setMp4Speed(val) {
+      mp4Speed = val;
+      localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
+      video.playbackRate = mp4Speed;
+      speedToastBadge.textContent = `【跟讀快轉 ${mp4Speed.toFixed(1)}x】`;
+      speedToastBadge.style.display = 'block';
+      speedToastBadge.style.opacity = '1';
+      clearTimeout(speedToastBadge._t);
+      speedToastBadge._t = setTimeout(() => {
+        speedToastBadge.style.opacity = '0';
+        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
+      }, 3000);
+    }
+
     function setPdfSpeed(val) {
       pdfSpeed = val;
       localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
@@ -905,6 +925,12 @@
         speedToastBadge.style.opacity = '0';
         setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
       }, 3000);
+    }
+
+    function triggerMp4SpeedChange(delta) {
+      let newSpeed = Math.round((mp4Speed + delta) * 10) / 10;
+      newSpeed = Math.max(0.5, Math.min(2.5, newSpeed));
+      setMp4Speed(newSpeed);
     }
 
     function triggerPdfSpeedChange(delta) {
@@ -930,6 +956,31 @@
       return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
     }
 
+    function getActiveVideoRange() {
+      if (!scriptureData || scriptureData.length === 0) {
+        return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
+      }
+      let aIdx = markA_Index >= 0 ? markA_Index : 0;
+      let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
+      if (bIdx < aIdx) bIdx = aIdx;
+      aIdx = Math.min(aIdx, scriptureData.length - 1);
+      bIdx = Math.min(bIdx, scriptureData.length - 1);
+
+      const startObj = scriptureData[aIdx];
+      const endObj = scriptureData[bIdx];
+
+      if (!startObj || typeof startObj.start !== 'number' || !endObj || typeof endObj.end !== 'number') {
+        return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
+      }
+      return {
+        start: startObj.start,
+        end: endObj.end,
+        sentenceA: aIdx + 1,
+        sentenceB: bIdx + 1,
+        valid: true
+      };
+    }
+
     function releaseMicrophoneResources() {
       if (micStream) {
         try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
@@ -941,61 +992,98 @@
       stopVoiceActivityDetection();
     }
 
-    // 🌟 核心設計：自讀與比對模式切換（互斥機制與左2、左3按鈕動態調整）
-    function setPdfSubMode(mode) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        const deltaY = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+          if (deltaX > 0) switchModeByDirection(1);
+          else switchModeByDirection(-1);
+        }
+      }
+    }, { passive: true });
+
+    function switchModeByDirection(direction) {
+      let currentIndex = modeSequence.indexOf(currentMode);
+      if (currentIndex === -1) currentIndex = 0;
+      let newIndex = currentIndex + direction;
+      if (newIndex < 0) newIndex = 0;
+      if (newIndex >= modeSequence.length) newIndex = modeSequence.length - 1;
+      if (newIndex !== currentIndex) {
+        setMode(modeSequence[newIndex]);
+      } else {
+        showCurrentModeBanner();
+      }
+    }
+
+    function setMode(mode) {
       haltGuideRunnerImmediately();
       releaseMicrophoneResources();
       currentMode = mode;
 
-      video.pause();
-      videoWrap.style.display = 'none';
-      pdfContainerWrap.style.display = 'flex';
-      guideStage.style.display = (mode === 'pdf') ? 'block' : 'none';
-
-      // 燈號互斥切換
-      if (mode === 'pdf') {
-        btnModePdf.classList.add('active-mode');
-        btnModeRecord.classList.remove('active-mode');
-        showModeBanner('📖 自讀模式', '靜心默背・高靈敏辨識導引');
-
-        // 右1(自讀)按下時：左2改為起句，左3改為終句
-        slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a">起句</button>`;
-        slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b">終句</button>`;
-
-        document.getElementById('btn-mark-a').addEventListener('click', handleMarkAClck);
-        document.getElementById('btn-mark-b').addEventListener('click', handleMarkBClick);
-
+      if (currentMode === 'mp4') {
+        pdfContainerWrap.style.display = 'none';
+        guideStage.style.display = 'none';
+        videoWrap.style.display = 'flex';
+        centerCore.scrollTop = 0;
+        video.playbackRate = mp4Speed;
+        const range = getActiveVideoRange();
+        videoPausedAt = -1;
+        if (range.valid) video.currentTime = range.start;
+        if (btnGuideToggle) btnGuideToggle.textContent = '跟讀';
+      } else {
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+        guideStage.style.display = 'block';
         scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-      } else if (mode === 'record') {
-        btnModeRecord.classList.add('active-mode');
-        btnModePdf.classList.remove('active-mode');
-        showModeBanner('🎙️ 比對模式', '全頁經文檢視・智慧有聲錄音');
-
-        // 左1(比對)按下時：左2改為播放，左3隱藏/空白
-        slotL2.innerHTML = `<button id="wing-btn-play" style="width: 90%; height: 88%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFFFFF; font-size: 15px; font-weight: 900; border: 2px solid #A7F3D0; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">播放</button>`;
-        slotL3.innerHTML = '';
-
-        document.getElementById('wing-btn-play').addEventListener('click', togglePlaybackAction);
+        if (btnGuideToggle) btnGuideToggle.textContent = '自讀';
       }
-
+      showCurrentModeBanner();
       updateVisualDisplay();
     }
 
-    // 綁定固定的左右側按鈕事件
+    btnMarkA.addEventListener('click', handleMarkAClck);
+    btnMarkB.addEventListener('click', handleMarkBClick);
+    btnRepeatCount.addEventListener('click', handleRepeatCountClick);
     btnShutdownExit.addEventListener('click', handleShutdownClick);
+    btnGuideToggle.addEventListener('click', handleGuideToggleClick);
     btnOffering.addEventListener('click', handleOfferingClick);
-    btnSpeedUp.addEventListener('click', (e) => { e.stopPropagation(); triggerPdfSpeedChange(+0.1); });
-    btnSpeedDown.addEventListener('click', (e) => { e.stopPropagation(); triggerPdfSpeedChange(-0.1); });
 
-    // 互斥切換按鈕綁定
-    btnModePdf.addEventListener('click', () => setPdfSubMode('pdf'));
-    btnModeRecord.addEventListener('click', () => setPdfSubMode('record'));
+    btnSpeedUp.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (currentMode === 'mp4') triggerMp4SpeedChange(+0.1);
+      else triggerPdfSpeedChange(+0.1);
+    });
+    btnSpeedDown.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (currentMode === 'mp4') triggerMp4SpeedChange(-0.1);
+      else triggerPdfSpeedChange(-0.1);
+    });
+
+    document.querySelectorAll('#speed-modal .modal-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = parseFloat(btn.dataset.speed);
+        setMp4Speed(val);
+        document.querySelectorAll('#speed-modal .modal-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        speedModal.style.display = 'none';
+      });
+    });
 
     function renderRealisticCoin(ctx, x, y, radius, opacity, symbolText) {
       ctx.save();
       ctx.translate(x, y);
       ctx.globalAlpha = Math.min(1.0, Math.max(0.88, opacity));
-
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
       ctx.fillStyle = '#FFD700';
@@ -1003,23 +1091,20 @@
       ctx.lineWidth = 4.0;
       ctx.strokeStyle = '#D4AF37';
       ctx.stroke();
-
       ctx.beginPath();
       ctx.arc(0, 0, radius * 0.78, 0, Math.PI * 2);
       ctx.strokeStyle = '#FFF176';
       ctx.lineWidth = 2.0;
       ctx.stroke();
-
       ctx.fillStyle = '#B26A00';
       ctx.font = `900 ${Math.floor(radius * 1.1)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(symbolText, 0, 1.5);
-
       ctx.restore();
     }
 
-    function triggerRecordCoinSplash() {
+    function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
       canvas.style.display = 'block';
@@ -1027,98 +1112,59 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      const coins = [];
-      const count = 32;
-      const symbols = ['福', '慧'];
-      for (let i = 0; i < count; i++) {
-        const angle = -Math.PI * 0.82 + Math.random() * (Math.PI * 0.64);
-        const speed = Math.random() * 9 + 5;
-        coins.push({
-          x: canvas.width / 2,
-          y: canvas.height / 2,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 6.5,
-          gravity: 0.40,
-          radius: Math.random() * 8 + 16,
-          rotation: Math.random() * Math.PI,
-          vRot: (Math.random() - 0.5) * 0.15,
-          opacity: 1.0,
-          symbol: symbols[i % symbols.length]
+      const flowers = [];
+      const lotusColors = ['#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'];
+      for (let i = 0; i < 70; i++) {
+        flowers.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 9 + 8,
+          speedY: Math.random() * 1.8 + 1.0,
+          speedX: (Math.random() - 0.5) * 1.2,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 2.5,
+          color: lotusColors[Math.floor(Math.random() * lotusColors.length)],
+          opacity: 0.94
         });
       }
 
       let startTime = performance.now();
-      const duration = 1600;
-
-      function animate(now) {
+      const duration = 5800;
+      function animateLotusRain(now) {
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        coins.forEach(c => {
-          c.x += c.vx;
-          c.y += c.vy;
-          c.vy += c.gravity;
-          c.rotation += c.vRot;
-          c.opacity = Math.max(0, 1 - elapsed / duration);
-
-          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity, c.symbol);
+        flowers.forEach(f => {
+          f.y += f.speedY;
+          f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
+          f.rotation += f.rotationSpeed;
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate((f.rotation * Math.PI) / 180);
+          ctx.globalAlpha = f.opacity;
+          for (let j = 0; j < 5; j++) {
+            const angle = (j * 2 * Math.PI) / 5;
+            const dist = f.size * 0.40;
+            const cx = Math.cos(angle) * dist;
+            const cy = Math.sin(angle) * dist;
+            ctx.fillStyle = f.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.fillStyle = (f.color === '#F1F5F9') ? '#FEF08A' : '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          if (f.y > canvas.height + 30) {
+            f.y = -30;
+            f.x = Math.random() * canvas.width;
+          }
         });
-
-        if (elapsed < duration) {
-          requestAnimationFrame(animate);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          canvas.style.display = 'none';
-        }
+        if (elapsed < duration) requestAnimationFrame(animateLotusRain);
+        else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; }
       }
-      requestAnimationFrame(animate);
-    }
-
-    async function togglePlaybackAction() {
-      const btnPlay = document.getElementById('wing-btn-play');
-      if (!recordedAudioBlobUrl) {
-        showToast('尚無錄音檔案可供播放', 2500);
-        return;
-      }
-      if (recordAudioElement.paused) {
-        recordAudioElement.playbackRate = pdfSpeed;
-        recordAudioElement.play().then(() => {
-          if (btnPlay) btnPlay.textContent = '暫停';
-        }).catch(() => {
-          showToast('播放失敗', 2000);
-        });
-      } else {
-        recordAudioElement.pause();
-        if (btnPlay) btnPlay.textContent = '播放';
-      }
-    }
-
-    recordAudioElement.addEventListener('ended', () => {
-      const btnPlay = document.getElementById('wing-btn-play');
-      if (btnPlay) btnPlay.textContent = '播放';
-    });
-
-    function handleShutdownClick() {
-      haltGuideRunnerImmediately();
-      releaseMicrophoneResources();
-      try {
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
-      } catch (e) {}
-      try {
-        if (document.fullscreenElement || document.webkitFullscreenElement) {
-          if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-        }
-      } catch (e) {}
-      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
-    }
-
-    function handleOfferingClick() {
-      if (isGuideActive) return;
-      displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
-      inputClassId.value = localStorage.getItem('user_class_id') || '';
-      inputUserName.value = localStorage.getItem('user_profile_name') || '';
-      offeringOverlay.style.display = 'flex';
+      requestAnimationFrame(animateLotusRain);
     }
 
     function renderMarkerLine(lineElement, lineObj) {
@@ -1142,7 +1188,6 @@
       const btnRect = buttonElement.getBoundingClientRect();
       const targetScreenY = btnRect.top + (btnRect.height / 2);
       let closestIdx = 0, minDiff = Infinity;
-
       for (let i = 0; i < parsedTextLines.length; i++) {
         const line = parsedTextLines[i];
         let lineScreenY = 0;
@@ -1164,23 +1209,20 @@
     }
 
     function updateVisualDisplay() {
-      const btnMarkADom = document.getElementById('btn-mark-a');
-      const btnMarkBDom = document.getElementById('btn-mark-b');
-
       if (currentMode === 'pdf') {
         if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
-          if (btnMarkADom) btnMarkADom.classList.add('active-mark');
+          btnMarkA.classList.add('active-mark');
           renderMarkerLine(markALine, parsedTextLines[markA_Index]);
         } else {
-          if (btnMarkADom) btnMarkADom.classList.remove('active-mark');
+          btnMarkA.classList.remove('active-mark');
           markALine.style.display = 'none';
         }
 
         if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
-          if (btnMarkBDom) btnMarkBDom.classList.add('active-mark');
+          btnMarkB.classList.add('active-mark');
           renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
         } else {
-          if (btnMarkBDom) btnMarkBDom.classList.remove('active-mark');
+          btnMarkB.classList.remove('active-mark');
           markBLine.style.display = 'none';
         }
       }
@@ -1189,31 +1231,554 @@
         guideLine.style.display = 'none';
         redDot.style.display = 'none';
       }
+
+      if (btnRepeatCount) {
+        const todayStr = getNormalizedDateStr();
+        const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+        if (isScheduleRepeatLocked) {
+          const remain = Math.max(1, scheduleRepeatLimit - dailyDone);
+          btnRepeatCount.textContent = `${remain}次`;
+        } else {
+          const sessionRemain = Math.max(1, totalTargetCycles - completedCycles);
+          btnRepeatCount.textContent = `${sessionRemain}次`;
+        }
+      }
     }
 
     function handleMarkAClck() {
       if (isGuideActive || currentMode !== 'pdf') return;
       if (parsedTextLines.length === 0) return;
-      const btnMarkA = document.getElementById('btn-mark-a');
-      if (!btnMarkA) return;
       isManualSelected = true;
       markA_Index = getLineAtButtonBottom(btnMarkA);
       if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
       currentLineIndex = markA_Index;
       currentCharIndexFloat = 0.0;
       isLineHeadLocked = true;
+      completedCycles = 0;
+      videoPausedAt = -1;
       updateVisualDisplay();
     }
 
     function handleMarkBClick() {
       if (isGuideActive || currentMode !== 'pdf') return;
       if (parsedTextLines.length === 0) return;
-      const btnMarkB = document.getElementById('btn-mark-b');
-      if (!btnMarkB) return;
       const selectedB = getLineAtButtonBottom(btnMarkB);
-      if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
+      if (markA_Index !== -1 && selectedB < markA_Index) {
+        speakPrompt("終點不能在起點之前");
+        return;
+      }
       isManualSelected = true;
       markB_Index = selectedB;
+      completedCycles = 0;
+      videoPausedAt = -1;
+      updateVisualDisplay();
+    }
+
+    function handleRepeatCountClick() {
+      if (isGuideActive) return;
+      const todayStr = getNormalizedDateStr();
+      const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+      if (isScheduleRepeatLocked && dailyDone < scheduleRepeatLimit) {
+        showToast(`🔒 今日功課尚未完成（已完成 ${dailyDone}/${scheduleRepeatLimit} 遍），完成後即可解鎖調整`, 3500);
+        return;
+      }
+      repeatModal.style.display = repeatModal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function handleShutdownClick() {
+      haltGuideRunnerImmediately();
+      releaseMicrophoneResources();
+      try {
+        video.pause();
+        video.src = "";
+        video.load();
+      } catch (e) {}
+      try {
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+      } catch (e) {}
+      try {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        }
+      } catch (e) {}
+      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
+    }
+
+    document.querySelectorAll('#repeat-modal .modal-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        totalTargetCycles = parseInt(btn.dataset.count, 10);
+        completedCycles = 0;
+        isScheduleRepeatLocked = false;
+        if (btnRepeatCount) btnRepeatCount.textContent = `${totalTargetCycles}次`;
+        document.querySelectorAll('#repeat-modal .modal-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateVisualDisplay();
+        repeatModal.style.display = 'none';
+      });
+    });
+
+    function handleGuideToggleClick() {
+      triggerAppFullscreen();
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') audioContext.resume();
+      } catch (e) {}
+
+      if (currentMode === 'mp4') {
+        centerCore.scrollTop = 0;
+        video.playbackRate = mp4Speed;
+        const range = getActiveVideoRange();
+        if (!range.valid) {
+          showToast('⚠️ 秒數資料不完整，無法播放', 3000);
+          return;
+        }
+        if (video.paused) {
+          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
+            video.currentTime = videoPausedAt;
+          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
+            video.currentTime = range.start;
+          }
+          video.play().then(() => {
+            if (btnGuideToggle) {
+              btnGuideToggle.textContent = '暫停';
+              btnGuideToggle.classList.add('guide-active');
+              btnGuideToggle.classList.remove('guide-waiting');
+            }
+            startMp4PrecisionCheck();
+          }).catch(() => {
+            video.currentTime = range.start;
+            video.play().catch(() => {});
+          });
+        } else {
+          video.pause();
+          videoPausedAt = video.currentTime;
+          if (btnGuideToggle) {
+            btnGuideToggle.textContent = '跟讀';
+            btnGuideToggle.classList.remove('guide-active');
+          }
+          showToast(`❚❚ 已暫停在 ${videoPausedAt.toFixed(1)} 秒`, 3000);
+        }
+        return;
+      }
+
+      if (markA_Index === -1 || markB_Index === -1) {
+        speakPrompt("請先設定起點與終點");
+        return;
+      }
+      if (isGuideActive) return;
+      isGuideActive = true;
+      if (parsedTextLines.length === 0) { isGuideActive = false; return; }
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+
+      isVoiceActive = false;
+      isTouchingDisplay = false;
+      isTransitioningLine = false;
+      hasPageFlipped = false;
+      isLineHeadLocked = true;
+      completedCycles = 0;
+
+      const todayStr = getNormalizedDateStr();
+      const dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+      const remain = isScheduleRepeatLocked ? Math.max(1, scheduleRepeatLimit - dailyDone) : Math.max(1, totalTargetCycles - completedCycles);
+      if (btnRepeatCount) btnRepeatCount.textContent = `${remain}次`;
+
+      currentLineIndex = markA_Index;
+      currentCharIndexFloat = 0.0;
+      if (btnGuideToggle) {
+        btnGuideToggle.textContent = '靜止';
+        btnGuideToggle.classList.remove('guide-active');
+        btnGuideToggle.classList.add('guide-waiting');
+      }
+
+      startGuideRunner();
+      startVoiceActivityDetection();
+    }
+
+    function handleOfferingClick() {
+      if (isGuideActive) return;
+      displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
+      inputClassId.value = localStorage.getItem('user_class_id') || '';
+      inputUserName.value = localStorage.getItem('user_profile_name') || '';
+      offeringOverlay.style.display = 'flex';
+    }
+
+    function resetLineTimeoutSafetyTimer() {
+      if (maxTimeoutSafetyTimer) clearTimeout(maxTimeoutSafetyTimer);
+      if (!isGuideActive) return;
+      const curLine = parsedTextLines[currentLineIndex];
+      const charCount = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const maxTimeoutMs = ((charCount / (2.8 * pdfSpeed)) + 10.0) * 1000;
+      maxTimeoutSafetyTimer = setTimeout(() => {
+        if (isGuideActive) {
+          haltGuideRunnerImmediately();
+          handleShutdownClick();
+          showToast("讀誦逾時，已自動離開", 4500);
+        }
+      }, maxTimeoutMs);
+    }
+
+    function startVoiceActivityDetection() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') audioContext.resume();
+
+        if (!micStream) {
+          navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
+          }).then(stream => {
+            micStream = stream;
+            connectMicStream();
+          }).catch(err => {
+            console.warn("麥克風略過:", err);
+            if (btnGuideToggle) btnGuideToggle.textContent = '靜止';
+          });
+        } else {
+          connectMicStream();
+        }
+      } catch (err) {}
+    }
+
+    function connectMicStream() {
+      if (!audioContext || !micStream) return;
+      const source = audioContext.createMediaStreamSource(micStream);
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.04;
+      source.connect(analyser);
+
+      isCalibrating = true;
+      calibrationSamples = [];
+      setTimeout(() => {
+        if (calibrationSamples.length > 0) {
+          const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+          baseNoiseLevel = sum / calibrationSamples.length;
+          dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
+        }
+        isCalibrating = false;
+      }, 350);
+
+      resetLineTimeoutSafetyTimer();
+      startVadMonitorLoop();
+    }
+
+    function startVadMonitorLoop() {
+      if (vadCheckTimer) cancelAnimationFrame(vadCheckTimer);
+      const bufferLength = analyser ? analyser.frequencyBinCount : 0;
+      const dataArray = new Float32Array(bufferLength);
+
+      function checkVolume() {
+        if (!isGuideActive) return;
+        if (analyser) {
+          analyser.getFloatTimeDomainData(dataArray);
+          let sumSquares = 0.0;
+          for (let i = 0; i < bufferLength; i++) sumSquares += dataArray[i] * dataArray[i];
+          const rms = Math.sqrt(sumSquares / bufferLength);
+
+          if (isCalibrating) calibrationSamples.push(rms);
+          const deltaRms = rms - prevRms;
+          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
+
+          if (isLineHeadLocked && (performance.now() - lineActivationTimestamp > 120) && deltaRms > (dynamicThreshold * 0.25)) {
+            isLineHeadLocked = false;
+          }
+
+          if (isTransitioningLine) {
+            const elapsed = performance.now() - lineEndTime;
+            if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) proceedToNextLineImmediately();
+            else if (elapsed >= 200) proceedToNextLineImmediately();
+          }
+
+          if (hasVoiceEnergy) {
+            silentFrameCount = 0;
+            if (!isVoiceActive) {
+              isVoiceActive = true;
+              if (btnGuideToggle) {
+                btnGuideToggle.textContent = '背誦中';
+                btnGuideToggle.classList.remove('guide-waiting');
+                btnGuideToggle.classList.add('guide-active');
+              }
+              lastAnimTimestamp = performance.now();
+            }
+          } else {
+            silentFrameCount++;
+            if (silentFrameCount >= 24) {
+              if (isVoiceActive) {
+                isVoiceActive = false;
+                if (btnGuideToggle) {
+                  btnGuideToggle.textContent = '靜止';
+                  btnGuideToggle.classList.remove('guide-active');
+                  btnGuideToggle.classList.add('guide-waiting');
+                }
+              }
+            }
+          }
+          prevRms = rms;
+        }
+        vadCheckTimer = requestAnimationFrame(checkVolume);
+      }
+      vadCheckTimer = requestAnimationFrame(checkVolume);
+    }
+
+    function stopVoiceActivityDetection() {
+      if (vadCheckTimer) { cancelAnimationFrame(vadCheckTimer); vadCheckTimer = null; }
+      if (maxTimeoutSafetyTimer) { clearTimeout(maxTimeoutSafetyTimer); maxTimeoutSafetyTimer = null; }
+      isVoiceActive = false;
+      isTouchingDisplay = false;
+    }
+
+    centerCore.addEventListener('pointerdown', () => {
+      if (!isGuideActive) return;
+      isTouchingDisplay = true;
+      isLineHeadLocked = false;
+      if (!isVoiceActive) {
+        isVoiceActive = true;
+        if (btnGuideToggle) {
+          btnGuideToggle.textContent = '背誦中';
+          btnGuideToggle.classList.remove('guide-waiting');
+          btnGuideToggle.classList.add('guide-active');
+        }
+        lastAnimTimestamp = performance.now();
+      }
+    });
+    const stopTouchDrive = () => { if (isGuideActive) isTouchingDisplay = false; };
+    centerCore.addEventListener('pointerup', stopTouchDrive);
+    centerCore.addEventListener('pointercancel', stopTouchDrive);
+    centerCore.addEventListener('pointerleave', stopTouchDrive);
+
+    function startGuideRunner() {
+      if (parsedTextLines.length === 0) return;
+      guideStage.style.height = `${Math.max(centerCore.scrollHeight, 2500)}px`;
+      scrollToAlignTop(currentLineIndex);
+      setupActiveLine(currentLineIndex, currentCharIndexFloat);
+      lastAnimTimestamp = performance.now();
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function scrollToAlignTop(idx) {
+      const line = parsedTextLines[idx];
+      if (line) centerCore.scrollTop = Math.max(0, line.topGlobal - 18);
+    }
+
+    function getVisibleBottomLineIndex() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      let lastVisibleIdx = currentLineIndex;
+      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
+        if (parsedTextLines[i].underLineY <= viewportBottom - 16) lastVisibleIdx = i;
+        else break;
+      }
+      return lastVisibleIdx;
+    }
+
+    function checkAndTriggerPageFlip() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      if (markA_Index !== -1 && markB_Index !== -1) {
+        const lineA = parsedTextLines[markA_Index];
+        const lineB = parsedTextLines[markB_Index];
+        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) return;
+      }
+      const nextIndex = currentLineIndex + 1;
+      if (nextIndex < parsedTextLines.length) {
+        const nextLine = parsedTextLines[nextIndex];
+        if (nextLine.underLineY > (viewportBottom - 18)) scrollToAlignTop(nextIndex);
+      }
+    }
+
+    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
+      if (!line) return 0;
+      if (!line.charItems || line.charItems.length === 0) return line.x0;
+      const items = line.charItems;
+      const totalChars = items.length;
+      if (charProgressFloat <= 0) return items[0].x0;
+      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
+      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
+      const intraCharFraction = charProgressFloat - charIdx;
+      const item = items[charIdx];
+      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
+    }
+
+    function setupActiveLine(idx, initCurrent = 0.0) {
+      if (idx > markB_Index) { handleCycleCompletion(); return; }
+      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
+      const line = parsedTextLines[idx];
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      lineActivationTimestamp = performance.now();
+
+      if (isGuideActive) {
+        if (!isAppleDevice) {
+          guideLine.style.top = `${line.underLineY}px`;
+          guideLine.style.left = `${line.x0}px`;
+          guideLine.style.width = `${line.x1 - line.x0}px`;
+          const curX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+          redDot.style.top = `${line.underLineY}px`;
+          redDot.style.left = `${curX}px`;
+        } else {
+          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+          guideLine.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
+          guideLine.style.left = `${offsetLeft + (line.x0 * scaleX)}px`;
+          guideLine.style.width = `${(line.x1 - line.x0) * scaleX}px`;
+          const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+          redDot.style.top = `${offsetTop + (line.underLineY * scaleY)}px`;
+          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
+        }
+        guideLine.style.display = 'block';
+        redDot.style.display = 'block';
+      }
+      isTransitioningLine = false;
+    }
+
+    function stepGuideMovement(now) {
+      if (!isGuideActive || isTransitioningLine) return;
+      let delta = now - lastAnimTimestamp;
+      if (delta <= 0 || delta > 120) delta = 16.6;
+      lastAnimTimestamp = now;
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const inertiaStartIndex = Math.max(1, totalChars - 2);
+      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
+
+      if (isVoiceActive || isInTailZone) {
+        const charPerMs = (2.8 * pdfSpeed) / 1000;
+        if (isLineHeadLocked) {
+          if (currentCharIndexFloat < 0.5) currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
+        } else {
+          currentCharIndexFloat += charPerMs * delta;
+        }
+        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
+      }
+
+      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
+        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
+        if (!isCurrentLineAtTargetEnd) {
+          const visibleBottomIdx = getVisibleBottomLineIndex();
+          if (currentLineIndex === visibleBottomIdx) {
+            checkAndTriggerPageFlip();
+            hasPageFlipped = true;
+          }
+        }
+      }
+
+      if (currentCharIndexFloat >= totalChars) {
+        currentCharIndexFloat = totalChars;
+        if (curLine) {
+          if (!isAppleDevice) {
+            redDot.style.left = `${curLine.x1}px`;
+            redDot.style.top = `${curLine.underLineY}px`;
+          } else {
+            const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+            redDot.style.left = `${offsetLeft + (curLine.x1 * scaleX)}px`;
+            redDot.style.top = `${offsetTop + (curLine.underLineY * scaleX)}px`;
+          }
+        }
+
+        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
+        const nextIndex = currentLineIndex + 1;
+        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+        isTransitioningLine = true;
+        lineEndTime = performance.now();
+        peakRmsAtLineEnd = prevRms;
+        guideLine.style.display = 'none';
+        return;
+      }
+
+      if (curLine) {
+        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+        if (!isAppleDevice) {
+          redDot.style.left = `${rawX}px`;
+          redDot.style.top = `${curLine.underLineY}px`;
+        } else {
+          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+          redDot.style.left = `${offsetLeft + (rawX * scaleX)}px`;
+          redDot.style.top = `${offsetTop + (rawX * scaleX)}px`;
+        }
+      }
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function proceedToNextLineImmediately() {
+      if (!isTransitioningLine || !isGuideActive) return;
+      const nextIndex = currentLineIndex + 1;
+      hasPageFlipped = false;
+      currentLineIndex = nextIndex;
+      setupActiveLine(currentLineIndex, 0.0);
+      resetLineTimeoutSafetyTimer();
+      lastAnimTimestamp = performance.now();
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function handleCycleCompletion() {
+      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+      const todayStr = getNormalizedDateStr();
+
+      if (isScheduleRepeatLocked) {
+        let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10) + 1;
+        localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
+        addCoins(calculateSentenceCount());
+
+        const remain = Math.max(1, scheduleRepeatLimit - dailyDone);
+        if (btnRepeatCount) btnRepeatCount.textContent = `${remain}次`;
+
+        if (dailyDone >= scheduleRepeatLimit) {
+          isScheduleRepeatLocked = false;
+          showToast('🎉 今日功課遍數已全部達標！現已解鎖可自由調整次數', 4500);
+          handleTargetCycleDone();
+          finishAndStopPermanently();
+          return;
+        }
+      } else {
+        completedCycles++;
+        addCoins(calculateSentenceCount());
+
+        const remain = Math.max(1, totalTargetCycles - completedCycles);
+        if (btnRepeatCount) btnRepeatCount.textContent = `${remain}次`;
+
+        if (completedCycles >= totalTargetCycles) {
+          handleTargetCycleDone();
+          finishAndStopPermanently();
+          return;
+        }
+      }
+
+      isTransitioningLine = true;
+      guideLine.style.display = 'none';
+
+      if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
+      cycleWaitTimer = setTimeout(() => {
+        if (!isGuideActive) return;
+        hasPageFlipped = false;
+        currentLineIndex = markA_Index;
+        scrollToAlignTop(currentLineIndex);
+
+        setupActiveLine(currentLineIndex, 0.0);
+        resetLineTimeoutSafetyTimer();
+        isTransitioningLine = false;
+        lastAnimTimestamp = performance.now();
+        isVoiceActive = false;
+
+        if (btnGuideToggle) {
+          btnGuideToggle.textContent = '靜止';
+          btnGuideToggle.classList.remove('guide-active');
+          btnGuideToggle.classList.add('guide-waiting');
+        }
+
+        if (guideAnimId) cancelAnimationFrame(guideAnimId);
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+      }, 1500);
+    }
+
+    function finishAndStopPermanently() {
+      haltGuideRunnerImmediately();
+      completedCycles = 0;
+      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
       updateVisualDisplay();
     }
 
@@ -1224,8 +1789,14 @@
       isGuideActive = false;
       isTransitioningLine = false;
       stopVoiceActivityDetection();
+
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
+      if (btnGuideToggle) {
+        btnGuideToggle.textContent = (currentMode === 'mp4') ? '跟讀' : '自讀';
+        btnGuideToggle.classList.remove('guide-active', 'guide-waiting');
+      }
+      video.pause();
       updateVisualDisplay();
     }
 
@@ -1247,13 +1818,10 @@
       return Math.max(1, Math.abs(end - start) + 1);
     }
 
-    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
-
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
       if (!classId || !userName) { alert("請輸入班號與姓名！"); return; }
-
       localStorage.setItem('user_class_id', classId);
       localStorage.setItem('user_profile_name', userName);
 
@@ -1276,7 +1844,6 @@
         resetCoins();
         displayCoinsCount.textContent = '0 枚';
         offeringOverlay.style.display = 'none';
-
         btnConfirmOffering.disabled = false;
         btnConfirmOffering.textContent = '確認供養';
 
@@ -1293,6 +1860,8 @@
       scriptTag.onerror = () => { if (!isDone) handleSuccess(null); };
       document.body.appendChild(scriptTag);
     });
+
+    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
 
     function renderLeaderboards(data, curClass, curName, curCoins) {
       const medals = ['🥇', '🥈', '🥉'];
@@ -1320,24 +1889,21 @@
       const urlParams = new URLSearchParams(window.location.search);
       const paramDay = urlParams.get('day');
       const startStr = urlParams.get('start');
-      const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
       let targetDay = 1;
       if (paramDay) {
         targetDay = parseInt(paramDay, 10) || 1;
       } else if (startStr) {
         const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
         const startDate = new Date(sYear, sMonth - 1, sDay);
-        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const todayDate = new Date();
         const diffTime = todayDate - startDate;
         targetDay = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         targetDay = targetDay > 0 ? targetDay : 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V360_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V226_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V360_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V226_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = targetDay >= 22 ? "card_021.webp" : `card_${String(targetDay).padStart(3, "0")}.webp`;
@@ -1552,7 +2118,7 @@
       if (window.innerWidth > window.innerHeight && isCompanionDismissed) {
         await parseAndRenderPdfData(new Uint8Array(cachedPdfBuffer));
         updateVisualDisplay();
-        setPdfSubMode('pdf');
+        setMode('mp4');
       }
     });
   </script>
