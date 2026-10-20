@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 心靈陪伴卡
+       🌟 3. 心靈陪伴卡 (回歸 V226 極簡版)
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -485,7 +485,7 @@
 </head>
 <body>
 
-  <!-- 1. 絕對攔截層：LINE 瀏覽器偵測到即鎖死 -->
+  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 -->
   <div id="line-browser-overlay">
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
@@ -495,16 +495,17 @@
     </div>
   </div>
 
-  <!-- 2. 直立螢幕旋轉提示 -->
+  <!-- 2. 第二順位層：物理直立螢幕旋轉鎖定層 -->
   <div id="portrait-blocker-overlay">
     <div class="rotate-phone-icon"></div>
     <div class="rotate-hint-title">請將手機橫放</div>
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 心靈陪伴卡 (純粹 HTML 顯示) -->
+  <!-- 🌟 3. 21 天心靈陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
+      <!-- 回歸最純粹的圖片路徑讀取，不透過資料庫！ -->
       <img id="companion-img-display" src="" alt="心靈陪伴卡" onerror="this.style.display='none';" />
       <button class="btn-card-orange" onclick="closeCompanionCard()">背書供養</button>
     </div>
@@ -520,7 +521,7 @@
   <!-- 🌸 畫布特效層 -->
   <canvas id="flowerCanvas"></canvas>
 
-  <!-- 4. 主視圖 (左4右4對稱) -->
+  <!-- 4. 主視圖 -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
       <div class="slot" id="slot-l1"></div>
@@ -537,12 +538,10 @@
         <div id="red-dot"></div>
       </div>
 
-      <!-- PDF 容器 (預設隱藏) -->
       <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
       </div>
 
-      <!-- MP4 容器 -->
       <div id="video-container-wrap">
         <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
       </div>
@@ -556,7 +555,7 @@
     </div>
   </div>
 
-  <!-- 供養與功德榜彈窗 -->
+  <!-- 供養與排行彈窗結構 (同前版) -->
   <div id="offering-modal-overlay">
     <div class="offering-card">
       <div class="offering-header"><span>🙏</span> 功德供養</div>
@@ -593,7 +592,19 @@
   </div>
 
   <script>
-    // 🌟 確保 PDF.js Worker 核心路徑正確掛載
+    // 🌟 全域防護：若在 LINE 內建瀏覽器，第 1 毫秒立刻攔截，完全不執行後續載入
+    if (/Line/i.test(navigator.userAgent)) {
+      const overlay = document.getElementById('line-browser-overlay');
+      overlay.style.display = 'flex';
+      overlay.style.opacity = '1';
+      overlay.style.zIndex = '999999';
+      throw new Error("LINE Browser detected. Execution completely halted.");
+    }
+
+    let isCompanionDismissed = false;
+    let hasEnteredReciting = false;
+
+    // 確保 PDF.js Worker 核心路徑正確掛載
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
     }
@@ -612,7 +623,6 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    // 🌟 三重獨立速度儲存機制
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -654,7 +664,6 @@
     const slotR3 = document.getElementById('slot-r3');
     const slotR4 = document.getElementById('slot-r4');
 
-    // 🌟 核心架構：共用資源與模式控管
     let currentMode = 'mp4';
     let pdfSubMode = 'guide'; 
 
@@ -707,25 +716,28 @@
     let isCalibrating = false;
     let silentFrameCount = 0;
 
-    let hasStartedMainApp = false;
-
-    // 播放錄音檔結束監聽
-    recordAudioElement.addEventListener('ended', () => { renderUI(); });
+    recordAudioElement.addEventListener('ended', () => {
+      renderUI();
+    });
 
     function handleOrientationCheck() {
+      if (hasEnteredReciting) return;
+
       const isPortrait = window.innerHeight > window.innerWidth;
-      
-      // 如果手機直立，顯示阻擋器
       if (isPortrait) {
         portraitBlocker.style.display = 'flex';
-        if (hasStartedMainApp) haltGuideRunnerImmediately();
+        companionOverlay.style.display = 'none';
       } else {
-        // 如果橫向，隱藏阻擋器
         portraitBlocker.style.display = 'none';
+        if (!isCompanionDismissed) {
+          companionOverlay.style.display = 'flex';
+        }
       }
     }
 
-    function orientationChangeWrapper() { setTimeout(handleOrientationCheck, 150); }
+    function orientationChangeWrapper() {
+      setTimeout(handleOrientationCheck, 150);
+    }
     window.addEventListener('resize', handleOrientationCheck);
     window.addEventListener('orientationchange', orientationChangeWrapper);
 
@@ -738,35 +750,211 @@
       } catch (e) {}
     }
 
-    // 🌟 啟動主程式 (必須按下按鈕才會執行)
+    // 🌟 啟動主程式 (必須按下卡片上的按鈕才會執行，且此時才開始下載資源)
     function closeCompanionCard() {
-      hasStartedMainApp = true;
+      hasEnteredReciting = true;
+      isCompanionDismissed = true;
       companionOverlay.style.opacity = '0';
       triggerAppFullscreen();
 
       setTimeout(() => {
-        companionOverlay.classList.remove('active');
         companionOverlay.style.display = 'none';
-        
-        try {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          if (!audioContext) audioContext = new AudioContextClass();
-          if (audioContext.state === 'suspended') { audioContext.resume(); }
-        } catch (err) {}
-
-        const todayStr = getNormalizedDateStr();
-        const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V397');
-        if (lastActiveDate !== todayStr) {
-          localStorage.setItem('APP_ACTIVE_DATE_V397', todayStr);
-          isScheduleRepeatLocked = true;
-          completedCycles = 0;
-        }
-
-        if (!isManualSelected) applyScheduleToState();
-        
-        // 正式啟動預設的 MP4 跟讀模式
-        setMode('mp4');
+        activateMainReciteEntry();
       }, 350);
+    }
+
+    async function activateMainReciteEntry() {
+      // 1. 喚醒音訊
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') { audioContext.resume(); }
+      } catch (err) {}
+
+      // 2. 畫出左右 8 鍵介面
+      renderUI();
+      
+      // 3. 處理跨日邏輯與讀取排程
+      const todayStr = getNormalizedDateStr();
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V397');
+      if (lastActiveDate !== todayStr) {
+        localStorage.setItem('APP_ACTIVE_DATE_V397', todayStr);
+        isScheduleRepeatLocked = true;
+        completedCycles = 0;
+      }
+      if (!isManualSelected) applyScheduleToState();
+
+      // 4. 開始在背景下載 JSON, 影片, 與 PDF (延遲載入保證順暢)
+      downloadCoreResources();
+
+      // 5. 正式啟動跟讀模式
+      setMode('mp4');
+    }
+
+    async function downloadCoreResources() {
+      try {
+        const sRes = await fetch('./sentences.json');
+        if (sRes.ok) {
+          scriptureData = await sRes.json();
+          localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(scriptureData));
+        }
+      } catch (e) {
+        const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
+        if (localSent) { try { scriptureData = JSON.parse(localSent); } catch (e) {} }
+      }
+
+      getLocalFile('video_file').then(localVideo => {
+        if (localVideo && localVideo.data) {
+          video.src = URL.createObjectURL(new Blob([localVideo.data], { type: 'video/mp4' }));
+        } else {
+          video.src = './chant_video.mp4';
+        }
+      });
+
+      getLocalFile('pdf_file').then(async localPdf => {
+        if (localPdf && localPdf.data) {
+          cachedPdfBuffer = localPdf.data;
+        } else {
+          try {
+            const pRes = await fetch('./scripture.pdf');
+            if (pRes.ok) {
+              const buf = await pRes.arrayBuffer();
+              await saveLocalFile('pdf_file', buf, 'init_pdf');
+              cachedPdfBuffer = buf;
+            }
+          } catch(e){}
+        }
+      });
+
+      video.addEventListener('loadedmetadata', () => {
+        if (currentMode === 'mp4' && video.paused) {
+            const range = getActiveVideoRange();
+            if (range.valid) { try { video.currentTime = range.start; } catch(e){} }
+        }
+      });
+    }
+
+    async function renderPdfOnValidDimensions() {
+      if (!cachedPdfBuffer) return;
+      try {
+          const loadingTask = pdfjsLib.getDocument({
+            data: new Uint8Array(cachedPdfBuffer),
+            cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+            cMapPacked: true
+          });
+
+          currentPdfDoc = await loadingTask.promise;
+          const page = await currentPdfDoc.getPage(1);
+
+          pdfCanvas.width = 0;
+          pdfCanvas.height = 0;
+
+          const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
+          const pageRotation = page.rotate || 0;
+          const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
+          const pageScale = availableWidth / unscaledViewport.width;
+          const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
+
+          pdfCanvas.width = viewport.width;
+          pdfCanvas.height = viewport.height;
+          const ctx = pdfCanvas.getContext('2d');
+
+          await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+          const textContent = await page.getTextContent();
+          const items = textContent.items;
+          const validSpans = [];
+          const chineseCharRegex = /[\u4e00-\u9fa5]/;
+
+          items.forEach(it => {
+            const str = it.str || '';
+            if (!str.trim()) return;
+
+            const tx = it.transform;
+            const pdfX = tx[4];
+            const pdfY = tx[5];
+
+            const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
+            const fontWidth = it.width * pageScale;
+
+            const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
+            const screenX0 = p0[0];
+
+            const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
+            const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+
+            const realTop = Math.min(p0[1], pTop[1]);
+            const realBottom = Math.max(p0[1], pTop[1]);
+
+            const charWidth = fontWidth / Math.max(1, str.length);
+            for (let c = 0; c < str.length; c++) {
+              const char = str[c];
+              if (chineseCharRegex.test(char)) {
+                const charX0 = screenX0 + (c * charWidth);
+                const charX1 = charX0 + charWidth;
+                validSpans.push({ x0: charX0, x1: charX1, topY: realTop, bottomY: realBottom, fs: fontScale, char: char });
+              }
+            }
+          });
+
+          validSpans.sort((a, b) => a.topY - b.topY);
+          const rowGroups = [];
+
+          validSpans.forEach(span => {
+            let matched = false;
+            for (let g of rowGroups) {
+              if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
+                g.spans.push(span);
+                matched = true;
+                break;
+              }
+            }
+            if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
+          });
+
+          const analyzedRows = rowGroups.map(g => {
+            g.spans.sort((a, b) => a.x0 - b.x0);
+            const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
+            const minTop = Math.min(...g.spans.map(s => s.topY));
+            const lineX0 = g.spans[0].x0;
+            const lineX1 = g.spans[g.spans.length - 1].x1;
+
+            return { spans: g.spans, chineseCount: g.spans.length, avgFs: avgFs, minTop: minTop, lineX0: lineX0, lineX1: lineX1 };
+          });
+
+          analyzedRows.forEach(r => {
+            r.maxBottom = Math.max(...r.spans.map(s => s.bottomY));
+            r.underLineY = r.maxBottom + 7;
+          });
+
+          const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
+          let mainTextFontSize = 0;
+          if (candidateLargeRows.length > 0) {
+            const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
+            mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
+          }
+
+          parsedTextLines = [];
+          let internalIndex = 0;
+
+          analyzedRows.forEach(r => {
+            const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
+            if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
+              parsedTextLines.push({
+                lineIndex: internalIndex++, x0: r.lineX0, x1: r.lineX1, topGlobal: r.minTop, bottomGlobal: r.maxBottom, underLineY: r.underLineY, charItems: r.spans
+              });
+            }
+          });
+
+          parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+          guideStage.style.height = viewport.height + 'px';
+
+          updateVisualDisplay();
+          scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+          if (!isManualSelected) applyScheduleToState();
+      } catch(e) {
+          console.error("PDF 解析錯誤: ", e);
+      }
     }
 
     const DB_NAME = 'HappyReciteDB_' + CURRENT_CLASSIC_ID;
@@ -814,4 +1002,1311 @@
       clearTimeout(scheduleToast._timer);
       scheduleToast._timer = setTimeout(() => {
         scheduleToast.style.opacity = '0';
-        setTimeout(() => { scheduleToast.style.display = '
+        setTimeout(() => { scheduleToast.style.display = 'none'; }, 300);
+      }, duration);
+    }
+
+    function showModeBanner(title, subtitle) {
+      if (!modeGrandBanner) return;
+      modeGrandBanner.innerHTML = '<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">' + title + '</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">' + subtitle + '</div>';
+      modeGrandBanner.classList.add('active');
+      clearTimeout(modeGrandBanner._timer);
+      modeGrandBanner._timer = setTimeout(() => {
+        modeGrandBanner.style.opacity = '0';
+        modeGrandBanner.style.transform = 'translate(-50%, -50%) scale(0.9)';
+        setTimeout(() => {
+          modeGrandBanner.classList.remove('active');
+          modeGrandBanner.style.opacity = '';
+          modeGrandBanner.style.transform = '';
+        }, 350);
+      }, 2000);
+    }
+
+    function showCurrentModeBanner() {
+      if (currentMode === 'mp4') {
+        showModeBanner('📖 跟讀模式', '影音同步・經典隨讀');
+      } else if (currentMode === 'pdf') {
+        if (pdfSubMode === 'compare') {
+            showModeBanner('🎙️ 比對模式', '精確收音・回放比對');
+        } else {
+            showModeBanner('📖 自讀模式', '靜心默背・字句導讀');
+        }
+      }
+    }
+
+    function setMp4Speed(val) {
+      mp4Speed = val;
+      localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
+      video.playbackRate = mp4Speed;
+      flashSpeedToast('【跟讀快轉 ' + mp4Speed.toFixed(1) + 'x】');
+    }
+
+    function setPdfSpeed(val) {
+      pdfSpeed = val;
+      localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
+      flashSpeedToast('【自讀語速 ' + pdfSpeed.toFixed(1) + 'x】');
+    }
+
+    function setCompareSpeed(val) {
+      compareSpeed = val;
+      localStorage.setItem('user_compare_speed_preference', compareSpeed.toFixed(1));
+      if (recordAudioElement) recordAudioElement.playbackRate = compareSpeed;
+      flashSpeedToast('【比對播放 ' + compareSpeed.toFixed(1) + 'x】');
+    }
+
+    function flashSpeedToast(text) {
+      speedToastBadge.textContent = text;
+      speedToastBadge.style.display = 'block';
+      speedToastBadge.style.opacity = '1';
+      clearTimeout(speedToastBadge._t);
+      speedToastBadge._t = setTimeout(() => {
+        speedToastBadge.style.opacity = '0';
+        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
+      }, 3000);
+    }
+
+    function triggerMp4SpeedChange(delta) {
+      let newSpeed = Math.round((mp4Speed + delta) * 10) / 10;
+      setMp4Speed(Math.max(0.5, Math.min(2.5, newSpeed)));
+    }
+
+    function triggerPdfSpeedChange(delta) {
+      let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
+      setPdfSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
+    }
+
+    function triggerCompareSpeedChange(delta) {
+      let newSpeed = Math.round((compareSpeed + delta) * 10) / 10;
+      setCompareSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
+    }
+
+    function speakPrompt(text) {
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'zh-TW';
+          utterance.rate = 1.1;
+          window.speechSynthesis.speak(utterance);
+        }
+      } catch (e) {}
+    }
+
+    function getNormalizedDateStr() {
+      const now = new Date();
+      return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
+    }
+
+    function getActiveVideoRange() {
+      if (!scriptureData || scriptureData.length === 0) {
+        return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
+      }
+
+      let aIdx = markA_Index >= 0 ? markA_Index : 0;
+      let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
+
+      if (bIdx < aIdx) bIdx = aIdx;
+      aIdx = Math.min(aIdx, scriptureData.length - 1);
+      bIdx = Math.min(bIdx, scriptureData.length - 1);
+
+      const startObj = scriptureData[aIdx];
+      const endObj = scriptureData[bIdx];
+
+      if (!startObj || typeof startObj.start !== 'number' || !endObj || typeof endObj.end !== 'number') {
+        return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
+      }
+
+      return {
+        start: startObj.start,
+        end: endObj.end,
+        sentenceA: aIdx + 1,
+        sentenceB: bIdx + 1,
+        valid: true
+      };
+    }
+
+    function releaseMicrophoneResources() {
+      if (micStream) {
+        try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
+        micStream = null;
+      }
+      if (audioContext && audioContext.state !== 'closed') {
+        try { audioContext.suspend(); } catch (e) {}
+      }
+      isVoiceActive = false;
+      isTouchingDisplay = false;
+    }
+
+    // 🌟 全域離開手勢 (左右滑動)
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touched', (e) => {}, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        const deltaY = e.changedTouches[0].clientY - touchStartY;
+
+        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+          handleShutdownClick();
+        }
+      }
+    }, { passive: true });
+
+    // 🌟 核心場景切換與算繪
+    function setMode(mode, subMode = 'guide') {
+      haltGuideRunnerImmediately();
+      
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+      isUserRecording = false;
+      if (recordAudioElement) recordAudioElement.pause();
+
+      currentMode = mode;
+      pdfSubMode = subMode;
+
+      if (currentMode === 'mp4') {
+        releaseMicrophoneResources(); 
+        pdfContainerWrap.style.display = 'none';
+        guideStage.style.display = 'none';
+        videoWrap.style.display = 'flex';
+        centerCore.scrollTop = 0;
+        
+        video.playbackRate = mp4Speed;
+        const range = getActiveVideoRange();
+        videoPausedAt = -1;
+        if (range.valid) {
+            try { video.currentTime = range.start; } catch(e){}
+        }
+      } else if (currentMode === 'pdf') {
+        video.pause();
+        videoWrap.style.display = 'none';
+        
+        // 保障渲染：強制顯示 container，確保有寬度供計算
+        pdfContainerWrap.style.display = 'flex';
+        guideStage.style.display = 'block';
+
+        ensureMicrophoneActive(); 
+        
+        // 確保如果之前沒算過 PDF，就在真正展開後瞬間算圖
+        setTimeout(() => {
+            if (cachedPdfBuffer && parsedTextLines.length === 0) {
+                renderPdfOnValidDimensions();
+            } else {
+                scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+            }
+        }, 50);
+      }
+      renderUI();
+      showCurrentModeBanner();
+    }
+
+    // 🌟 終極 8 鍵完美佈局算繪
+    function renderUI() {
+      // ===== 左側 4 鍵 (供養, 起句/播放, 終句, 慢-) =====
+      slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
+      
+      if (currentMode === 'pdf' && pdfSubMode === 'compare') {
+          slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">' + ((recordAudioElement && !recordAudioElement.paused) ? '暫停' : '播放') + '</button>';
+          slotL3.innerHTML = '';
+      } else {
+          slotL2.innerHTML = '<button class="circle-btn btn-color-mark-a" id="btn-mark-a">起句</button>';
+          slotL3.innerHTML = '<button class="circle-btn btn-color-mark-b" id="btn-mark-b">終句</button>';
+      }
+      
+      slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
+
+      // ===== 右側 4 鍵 (跟讀, 自讀, 比對, 快+) =====
+      slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
+      slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
+      slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
+      slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+
+      // --- 絕對動態綁定事件 ---
+      const btnOffering = document.getElementById('btn-offering');
+      if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+
+      const btnPlay = document.getElementById('btn-play');
+      if (btnPlay) btnPlay.addEventListener('click', togglePlaybackAction);
+
+      const btnMarkA = document.getElementById('btn-mark-a');
+      if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
+
+      const btnMarkB = document.getElementById('btn-mark-b');
+      if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
+
+      const btnSpeedDown = document.getElementById('btn-speed-down');
+      if (btnSpeedDown) {
+        btnSpeedDown.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentMode === 'mp4') triggerMp4SpeedChange(-0.1); 
+          else if (pdfSubMode === 'compare') triggerCompareSpeedChange(-0.1);
+          else triggerPdfSpeedChange(-0.1);
+        });
+      }
+
+      const btnGendu = document.getElementById('btn-gendu');
+      if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
+
+      const btnZidu = document.getElementById('btn-zidu');
+      if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
+
+      const btnRecord = document.getElementById('btn-record');
+      if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
+
+      const btnSpeedUp = document.getElementById('btn-speed-up');
+      if (btnSpeedUp) {
+        btnSpeedUp.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentMode === 'mp4') triggerMp4SpeedChange(+0.1); 
+          else if (pdfSubMode === 'compare') triggerCompareSpeedChange(+0.1);
+          else triggerPdfSpeedChange(+0.1);
+        });
+      }
+
+      updateModeButtonsStyle();
+      updateVisualDisplay();
+    }
+
+    // 🌟 控制按鈕的填色互斥機制
+    function updateModeButtonsStyle() {
+      const btnGendu = document.getElementById('btn-gendu');
+      const btnZidu = document.getElementById('btn-zidu');
+      const btnRecord = document.getElementById('btn-record');
+
+      const colorBlack = '#000000';
+      const colorGreen = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+      const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
+
+      // 1. 初始化全黑
+      [btnGendu, btnZidu, btnRecord].forEach(btn => {
+          if (btn) {
+              btn.style.background = colorBlack;
+              btn.style.borderColor = '#BAE6FD';
+              btn.style.color = '#FB923C';
+              btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+          }
+      });
+
+      // 2. 針對當前模式上實心色
+      if (currentMode === 'mp4') {
+          if (btnGendu) {
+              const isPlaying = video && !video.paused;
+              btnGendu.style.background = isPlaying ? colorPurple : colorGreen;
+              btnGendu.style.borderColor = isPlaying ? '#E9D5FF' : '#A7F3D0';
+              btnGendu.style.color = '#FFFFFF';
+              btnGendu.style.boxShadow = isPlaying ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
+          }
+      } else if (currentMode === 'pdf') {
+          if (pdfSubMode === 'guide') {
+              if (btnZidu) {
+                  btnZidu.textContent = isGuideActive ? (isVoiceActive ? '背誦中' : '導讀中') : '自讀';
+                  btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
+                  btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
+                  btnZidu.style.color = '#FFFFFF';
+                  btnZidu.style.boxShadow = isGuideActive ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
+              }
+          } else if (pdfSubMode === 'compare') {
+              if (btnRecord) {
+                  btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
+                  btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
+                  btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
+                  btnRecord.style.color = '#FFFFFF';
+                  btnRecord.style.boxShadow = isUserRecording ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
+              }
+          }
+      }
+    }
+
+    // 🌟 動作邏輯：跟讀 (MP4)
+    function handleGenduClick() {
+      triggerAppFullscreen();
+      if (currentMode !== 'mp4') {
+          setMode('mp4');
+          return;
+      }
+      
+      if (video.paused) {
+          const range = getActiveVideoRange();
+          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 3000); return; }
+          
+          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
+              video.currentTime = videoPausedAt;
+          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
+              video.currentTime = range.start;
+          }
+
+          video.play().then(() => {
+              updateModeButtonsStyle();
+              startMp4PrecisionCheck();
+          }).catch((err) => {
+              video.currentTime = range.start;
+              video.play().then(() => updateModeButtonsStyle()).catch(() => {});
+          });
+      } else {
+          video.pause();
+          videoPausedAt = video.currentTime;
+          updateModeButtonsStyle();
+          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
+      }
+    }
+
+    // 🌟 動作邏輯：自讀 (PDF 導讀)
+    function handleZiduClick() {
+      triggerAppFullscreen();
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') audioContext.resume();
+      } catch (e) {}
+
+      if (currentMode !== 'pdf' || pdfSubMode !== 'guide') {
+          setMode('pdf', 'guide');
+          return;
+      }
+
+      if (isGuideActive) {
+          haltGuideRunnerImmediately();
+      } else {
+          if (parsedTextLines.length === 0) {
+              showToast("經文準備中，請稍等一秒", 2000);
+              return;
+          }
+          
+          // 🌟 防呆機制：若未設定起終點，直接自動設定全篇
+          if (markA_Index === -1 || markB_Index === -1) { 
+              markA_Index = 0;
+              markB_Index = parsedTextLines.length - 1;
+              updateVisualDisplay();
+              showToast("已自動為您設定全篇範圍", 2500);
+          }
+
+          isGuideActive = true;
+          if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+
+          isVoiceActive = false;
+          isTouchingDisplay = false;
+          isTransitioningLine = false;
+          hasPageFlipped = false;
+          isLineHeadLocked = true;
+          completedCycles = 0;
+          currentLineIndex = markA_Index;
+          currentCharIndexFloat = 0.0;
+          lastVoiceTime = performance.now();
+
+          ensureMicrophoneActive(); 
+          startGuideRunner();
+          updateModeButtonsStyle();
+      }
+    }
+
+    // 🌟 動作邏輯：比對 (PDF 錄音)
+    function handleRecordModeClick() {
+      triggerAppFullscreen();
+      if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
+          setMode('pdf', 'compare');
+          return;
+      }
+      if (parsedTextLines.length === 0) {
+          showToast("經文準備中，請稍等片刻", 2000);
+          return;
+      }
+      toggleReliableRecordAction();
+    }
+
+    function renderRealisticCoin(ctx, x, y, radius, opacity, symbolText) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.globalAlpha = Math.min(1.0, Math.max(0.88, opacity));
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFD700';
+      ctx.fill();
+      ctx.lineWidth = 4.0;
+      ctx.strokeStyle = '#D4AF37';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.78, 0, Math.PI * 2);
+      ctx.strokeStyle = '#FFF176';
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
+
+      ctx.fillStyle = '#B26A00';
+      ctx.font = '900 ' + Math.floor(radius * 1.1) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(symbolText, 0, 1.5);
+
+      ctx.restore();
+    }
+
+    function triggerRecordCoinSplash() {
+      const btn = document.getElementById('btn-record');
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const startX = rect.left + rect.width / 2;
+      const startY = rect.top + rect.height / 2;
+
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const coins = [];
+      const count = 32;
+      const symbols = ['福', '慧'];
+      for (let i = 0; i < count; i++) {
+        const angle = -Math.PI * 0.82 + Math.random() * (Math.PI * 0.64);
+        const speed = Math.random() * 9 + 5;
+        coins.push({
+          x: startX,
+          y: startY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 6.5,
+          gravity: 0.40,
+          radius: Math.random() * 8 + 16,
+          rotation: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.15,
+          opacity: 1.0,
+          symbol: symbols[i % symbols.length]
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 1600;
+
+      function animate(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        coins.forEach(c => {
+          c.x += c.vx;
+          c.y += c.vy;
+          c.vy += c.gravity;
+          c.rotation += c.vRot;
+          c.opacity = Math.max(0, 1 - elapsed / duration);
+
+          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity, c.symbol);
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animate);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function triggerLeaderboardCoinRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const coins = [];
+      const count = 40;
+      const symbols = ['福', '慧'];
+      for (let i = 0; i < count; i++) {
+        coins.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          radius: Math.random() * 6 + 12,
+          speedY: Math.random() * 1.6 + 1.1,
+          speedX: (Math.random() - 0.5) * 0.9,
+          rotation: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.05,
+          opacity: 0.95,
+          symbol: symbols[i % symbols.length]
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5500;
+
+      function animateCoins(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        coins.forEach(c => {
+          c.y += c.speedY;
+          c.x += c.speedX + Math.sin(c.y / 35) * 0.4;
+          c.rotation += c.vRot;
+
+          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity, c.symbol);
+
+          if (c.y > canvas.height + 30) {
+            c.y = -30;
+            c.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateCoins);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+      requestAnimationFrame(animateCoins);
+    }
+
+    let mp4PrecisionCheckAnimId = null;
+    function startMp4PrecisionCheck() {
+      if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
+      function check() {
+        if (currentMode === 'mp4' && !video.paused && !video.ended) {
+          const range = getActiveVideoRange();
+          if (range.valid && video.currentTime >= range.end) {
+            video.pause();
+            video.currentTime = range.end;
+            handleMp4CycleEnd(range);
+            return;
+          }
+        }
+        mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+      }
+      mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+    }
+
+    function processCycleCompletion() {
+      const todayStr = getNormalizedDateStr();
+      let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+      const limit = scheduleRepeatLimit || 1;
+      
+      const earned = calculateSentenceCount();
+      addCoins(earned);
+      showToast('✅ 完成一遍，福慧幣 +' + earned, 2000);
+
+      if (isScheduleRepeatLocked) {
+        dailyDone++;
+        localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
+        
+        if (dailyDone >= limit) {
+          isScheduleRepeatLocked = false;
+          completedCycles = 0;
+          showToast('🎉 今日功課遍數已達標！解鎖內定 5 遍圓滿模式', 4500);
+          handleTargetCycleDone();
+          return true; // 達標停止
+        }
+      } else {
+        completedCycles++;
+        if (completedCycles >= 5) {
+          showToast('🌟 連續 5 遍圓滿！', 4000);
+          handleTargetCycleDone();
+          completedCycles = 0;
+          return true; // 達標停止
+        }
+      }
+      return false; 
+    }
+
+    function handleMp4CycleEnd(range) {
+      videoPausedAt = -1;
+      video.currentTime = range.start;
+      
+      const shouldStop = processCycleCompletion();
+
+      if (shouldStop) {
+        updateModeButtonsStyle();
+      } else {
+        video.play().then(() => {
+          updateModeButtonsStyle();
+          startMp4PrecisionCheck();
+        }).catch(() => {});
+      }
+    }
+
+    function handleTargetCycleDone() {
+      const todayStr = getNormalizedDateStr();
+      localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
+      triggerSevenColoredLotusFlowerRain();
+    }
+
+    function triggerSevenColoredLotusFlowerRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const flowers = [];
+      const lotusColors = [
+        '#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'
+      ];
+      
+      for (let i = 0; i < 70; i++) {
+        flowers.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 9 + 8,
+          speedY: Math.random() * 1.8 + 1.0,
+          speedX: (Math.random() - 0.5) * 1.2,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 2.5,
+          color: lotusColors[Math.floor(Math.random() * lotusColors.length)],
+          opacity: 0.94
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5800;
+
+      function animateLotusRain(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        flowers.forEach(f => {
+          f.y += f.speedY;
+          f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
+          f.rotation += f.rotationSpeed;
+
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate((f.rotation * Math.PI) / 180);
+          ctx.globalAlpha = f.opacity;
+
+          for (let j = 0; j < 5; j++) {
+            const angle = (j * 2 * Math.PI) / 5;
+            const dist = f.size * 0.40;
+            const cx = Math.cos(angle) * dist;
+            const cy = Math.sin(angle) * dist;
+            ctx.fillStyle = f.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.fillStyle = (f.color === '#F1F5F9') ? '#FEF08A' : '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+
+          if (f.y > canvas.height + 30) {
+            f.y = -30;
+            f.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateLotusRain);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateLotusRain);
+    }
+
+    function renderMarkerLine(lineElement, lineObj) {
+      if (!lineObj) return;
+      if (!isAppleDevice) {
+        lineElement.style.top = lineObj.underLineY + 'px';
+        lineElement.style.left = lineObj.x0 + 'px';
+        lineElement.style.width = (lineObj.x1 - lineObj.x0) + 'px';
+        lineElement.style.display = 'block';
+        return;
+      }
+      const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+      lineElement.style.top = (offsetTop + (lineObj.underLineY * scaleY)) + 'px';
+      lineElement.style.left = (offsetLeft + (lineObj.x0 * scaleX)) + 'px';
+      lineElement.style.width = ((lineObj.x1 - lineObj.x0) * scaleX) + 'px';
+      lineElement.style.display = 'block';
+    }
+
+    function getLineAtButtonBottom(buttonElement) {
+      if (parsedTextLines.length === 0) return 0;
+      const btnRect = buttonElement.getBoundingClientRect();
+      const targetScreenY = btnRect.top + (btnRect.height / 2);
+      let closestIdx = 0, minDiff = Infinity;
+
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const line = parsedTextLines[i];
+        let lineScreenY = 0;
+        if (!isAppleDevice) {
+          const centerRect = centerCore.getBoundingClientRect();
+          lineScreenY = centerRect.top + line.underLineY - centerCore.scrollTop;
+        } else {
+          const canvasRect = pdfCanvas.getBoundingClientRect();
+          const { scaleY, offsetTop } = getAppleCanvasScale();
+          lineScreenY = offsetTop + (line.underLineY * scaleY) - centerCore.scrollTop;
+        }
+        const diff = Math.abs(lineScreenY - targetScreenY);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = i;
+        }
+      }
+      return closestIdx;
+    }
+
+    function updateVisualDisplay() {
+      const btnMarkADom = document.getElementById('btn-mark-a');
+      const btnMarkBDom = document.getElementById('btn-mark-b');
+
+      if (currentMode === 'pdf') {
+        if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
+          if (btnMarkADom) btnMarkADom.classList.add('active-mark');
+          renderMarkerLine(markALine, parsedTextLines[markA_Index]);
+        } else {
+          if (btnMarkADom) btnMarkADom.classList.remove('active-mark');
+          markALine.style.display = 'none';
+        }
+
+        if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
+          if (btnMarkBDom) btnMarkBDom.classList.add('active-mark');
+          renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
+        } else {
+          if (btnMarkBDom) btnMarkBDom.classList.remove('active-mark');
+          markBLine.style.display = 'none';
+        }
+      }
+
+      if (!isGuideActive && currentMode === 'pdf') {
+        guideLine.style.display = 'none';
+        redDot.style.display = 'none';
+      }
+    }
+
+    function handleMarkAClck() {
+      if (isGuideActive || currentMode !== 'pdf') return;
+      if (parsedTextLines.length === 0) return;
+      const btnMarkA = document.getElementById('btn-mark-a');
+      if (!btnMarkA) return;
+      isManualSelected = true;
+      markA_Index = getLineAtButtonBottom(btnMarkA);
+      if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
+      currentLineIndex = markA_Index;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      completedCycles = 0;
+      videoPausedAt = -1;
+      updateVisualDisplay();
+    }
+
+    function handleMarkBClick() {
+      if (isGuideActive || currentMode !== 'pdf') return;
+      if (parsedTextLines.length === 0) return;
+      const btnMarkB = document.getElementById('btn-mark-b');
+      if (!btnMarkB) return;
+      const selectedB = getLineAtButtonBottom(btnMarkB);
+      if (markA_Index !== -1 && selectedB < markA_Index) { 
+        showToast("終點不能在起點之前", 2500); 
+        return; 
+      }
+      
+      isManualSelected = true;
+      markB_Index = selectedB;
+      completedCycles = 0;
+      videoPausedAt = -1;
+      updateVisualDisplay();
+    }
+
+    function handleShutdownClick() {
+      haltGuideRunnerImmediately();
+
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+      isUserRecording = false;
+      if (recordAudioElement) recordAudioElement.pause();
+
+      releaseMicrophoneResources();
+
+      try { video.pause(); } catch (e) {}
+
+      try {
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'none';
+        }
+      } catch (e) {}
+
+      try {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          }
+        }
+      } catch (e) {}
+
+      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
+      updateModeButtonsStyle();
+    }
+
+    // 🌟 共用麥克風引擎
+    async function ensureMicrophoneActive() {
+      if (micStream) return true;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+        });
+
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.04;
+        source.connect(analyser);
+
+        isCalibrating = true;
+        calibrationSamples = [];
+        setTimeout(() => {
+          if (calibrationSamples.length > 0) {
+            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+            baseNoiseLevel = sum / calibrationSamples.length;
+            dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
+          }
+          isCalibrating = false;
+        }, 350);
+
+        lastVoiceTime = performance.now();
+        startSharedVadLoop();
+        return true;
+      } catch (err) {
+        console.warn("麥克風啟動失敗:", err);
+        return false;
+      }
+    }
+
+    // 🌟 全域音量與防呆監控中心
+    let vadDataArray = null;
+    function startSharedVadLoop() {
+      if (vadCheckTimer) return;
+      vadDataArray = new Float32Array(analyser.frequencyBinCount);
+
+      function loop() {
+        if (currentMode !== 'pdf') {
+          vadCheckTimer = null;
+          return;
+        }
+
+        if (analyser) {
+          analyser.getFloatTimeDomainData(vadDataArray);
+
+          let sumSquares = 0.0;
+          for (let i = 0; i < vadDataArray.length; i++) {
+            const val = vadDataArray[i];
+            sumSquares += val * val;
+          }
+          const rms = Math.sqrt(sumSquares / vadDataArray.length);
+
+          if (isCalibrating) calibrationSamples.push(rms);
+
+          const deltaRms = rms - prevRms;
+          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
+
+          if (hasVoiceEnergy) {
+            lastVoiceTime = performance.now();
+            silentFrameCount = 0;
+            if (!isVoiceActive && isGuideActive) {
+              isVoiceActive = true;
+              updateModeButtonsStyle();
+            }
+          } else {
+            silentFrameCount++;
+            if (silentFrameCount >= 24) {
+              if (isVoiceActive) {
+                isVoiceActive = false;
+                updateModeButtonsStyle();
+              }
+            }
+          }
+
+          if (isUserRecording) {
+            const btnRec = document.getElementById('btn-record');
+            if (btnRec) {
+              if (rms > 0.0020) btnRec.classList.add('recording-flashing');
+              else btnRec.classList.remove('recording-flashing');
+            }
+          }
+
+          if (isGuideActive) {
+            const timeSinceLineStart = performance.now() - lineActivationTimestamp;
+            const isInsideCooldown = (timeSinceLineStart < 120);
+
+            if (isLineHeadLocked && !isInsideCooldown && deltaRms > (dynamicThreshold * 0.25)) {
+              isLineHeadLocked = false;
+            }
+
+            if (isTransitioningLine) {
+              const elapsed = performance.now() - lineEndTime;
+              if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
+                proceedToNextLineImmediately();
+              } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
+                proceedToNextLineImmediately();
+              } else if (elapsed >= 200) {
+                proceedToNextLineImmediately();
+              }
+            }
+          }
+
+          if ((isGuideActive || isUserRecording) && (performance.now() - lastVoiceTime > 20000)) {
+            if (isGuideActive) {
+              haltGuideRunnerImmediately();
+              showToast("讀誦逾時 20 秒無聲，已為您自動停止", 4500);
+            }
+            if (isUserRecording) {
+              if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+              isUserRecording = false;
+              renderUI();
+              showToast("收音閒置 20 秒，已自動為您結束並保留錄音", 4500);
+            }
+            lastVoiceTime = performance.now();
+          }
+
+          prevRms = rms;
+        }
+        vadCheckTimer = requestAnimationFrame(loop);
+      }
+      vadCheckTimer = requestAnimationFrame(loop);
+    }
+
+    async function toggleReliableRecordAction() {
+      if (!isUserRecording) {
+        const ok = await ensureMicrophoneActive();
+        if (!ok) { alert('無法存取麥克風，請檢查裝置權限設定'); return; }
+
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(micStream);
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+        mediaRecorder.onstop = () => {
+          const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
+          const recordedBlob = new Blob(audioChunks, options);
+          recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
+          recordAudioElement.src = recordedAudioBlobUrl;
+          recordAudioElement.playbackRate = compareSpeed;
+          showToast('錄音完成！點擊左側「播放」按鈕即可聆聽', 4000);
+          renderUI();
+        };
+        
+        mediaRecorder.start(); 
+        
+        isUserRecording = true;
+        lastVoiceTime = performance.now();
+        showToast('🔴 正在錄音中...', 3000);
+        renderUI();
+        triggerRecordCoinSplash();
+      } else {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        isUserRecording = false;
+        renderUI();
+      }
+    }
+
+    function togglePlaybackAction() {
+      if (!recordedAudioBlobUrl) {
+        showToast('尚無錄音檔案可供播放', 2500);
+        return;
+      }
+      
+      if (isGuideActive) haltGuideRunnerImmediately();
+
+      if (recordAudioElement.paused) {
+        recordAudioElement.playbackRate = compareSpeed;
+        recordAudioElement.play().then(() => {
+          renderUI();
+        }).catch((err) => {
+          showToast('播放失敗', 2000);
+        });
+      } else {
+        recordAudioElement.pause();
+        renderUI();
+      }
+    }
+
+    function handleOfferingClick() {
+      if (isGuideActive) return;
+      const displayCoinsCount = document.getElementById('display-coins-count');
+      const inputClassId = document.getElementById('input-class-id');
+      const inputUserName = document.getElementById('input-user-name');
+      const offeringOverlay = document.getElementById('offering-modal-overlay');
+
+      if (displayCoinsCount) displayCoinsCount.textContent = getStoredCoins() + ' 枚';
+      if (inputClassId) inputClassId.value = localStorage.getItem('user_class_id') || '';
+      if (inputUserName) inputUserName.value = localStorage.getItem('user_profile_name') || '';
+      if (offeringOverlay) offeringOverlay.style.display = 'flex';
+    }
+
+    function startGuideRunner() {
+      if (parsedTextLines.length === 0) return;
+      guideStage.style.height = Math.max(centerCore.scrollHeight, 2500) + 'px';
+      scrollToAlignTop(currentLineIndex);
+      setupActiveLine(currentLineIndex, currentCharIndexFloat);
+      lastAnimTimestamp = performance.now();
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function scrollToAlignTop(idx) {
+      const line = parsedTextLines[idx];
+      if (line) centerCore.scrollTop = Math.max(0, line.topGlobal - 18);
+    }
+
+    function getVisibleBottomLineIndex() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      let lastVisibleIdx = currentLineIndex;
+      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
+        if (parsedTextLines[i].underLineY <= viewportBottom - 16) lastVisibleIdx = i;
+        else break;
+      }
+      return lastVisibleIdx;
+    }
+
+    function checkAndTriggerPageFlip() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      if (markA_Index !== -1 && markB_Index !== -1) {
+        const lineA = parsedTextLines[markA_Index];
+        const lineB = parsedTextLines[markB_Index];
+        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) return;
+      }
+      const nextIndex = currentLineIndex + 1;
+      if (nextIndex < parsedTextLines.length) {
+        const nextLine = parsedTextLines[nextIndex];
+        if (nextLine.underLineY > (viewportBottom - 18)) scrollToAlignTop(nextIndex);
+      }
+    }
+
+    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
+      if (!line) return 0;
+      if (!line.charItems || line.charItems.length === 0) return line.x0;
+      const items = line.charItems;
+      const totalChars = items.length;
+      if (charProgressFloat <= 0) return items[0].x0;
+      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
+
+      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
+      const intraCharFraction = charProgressFloat - charIdx;
+      const item = items[charIdx];
+      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
+    }
+
+    function setupActiveLine(idx, initCurrent = 0.0) {
+      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
+      const line = parsedTextLines[idx];
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      lineActivationTimestamp = performance.now();
+
+      if (isGuideActive) {
+        if (!isAppleDevice) {
+          guideLine.style.top = line.underLineY + 'px';
+          guideLine.style.left = line.x0 + 'px';
+          guideLine.style.width = (line.x1 - line.x0) + 'px';
+          const curX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+          redDot.style.top = line.underLineY + 'px';
+          redDot.style.left = curX + 'px';
+        } else {
+          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+          guideLine.style.top = (offsetTop + (line.underLineY * scaleY)) + 'px';
+          guideLine.style.left = (offsetLeft + (line.x0 * scaleX)) + 'px';
+          guideLine.style.width = ((line.x1 - line.x0) * scaleX) + 'px';
+          const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+          redDot.style.top = (offsetTop + (line.underLineY * scaleY)) + 'px';
+          redDot.style.left = (offsetLeft + (rawX * scaleX)) + 'px';
+        }
+        guideLine.style.display = 'block';
+        redDot.style.display = 'block';
+      }
+      isTransitioningLine = false;
+    }
+
+    function stepGuideMovement(now) {
+      if (!isGuideActive || isTransitioningLine) return;
+      let delta = now - lastAnimTimestamp;
+      if (delta <= 0 || delta > 120) delta = 16.6;
+      lastAnimTimestamp = now;
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const inertiaStartIndex = Math.max(1, totalChars - 2);
+      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
+
+      if (isVoiceActive || isInTailZone) {
+        const charPerMs = (2.8 * pdfSpeed) / 1000;
+        if (isLineHeadLocked) {
+          if (currentCharIndexFloat < 0.5) {
+            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
+          }
+        } else {
+          currentCharIndexFloat += charPerMs * delta;
+        }
+        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
+      }
+
+      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
+        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
+        if (!isCurrentLineAtTargetEnd) {
+          const visibleBottomIdx = getVisibleBottomLineIndex();
+          if (currentLineIndex === visibleBottomIdx) {
+            checkAndTriggerPageFlip();
+            hasPageFlipped = true;
+          }
+        }
+      }
+
+      if (currentCharIndexFloat >= totalChars) {
+        currentCharIndexFloat = totalChars;
+        if (curLine) {
+          if (!isAppleDevice) {
+            redDot.style.left = curLine.x1 + 'px';
+            redDot.style.top = curLine.underLineY + 'px';
+          } else {
+            const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+            redDot.style.left = (offsetLeft + (curLine.x1 * scaleX)) + 'px';
+            redDot.style.top = (offsetTop + (curLine.underLineY * scaleX)) + 'px';
+          }
+        }
+
+        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
+        const nextIndex = currentLineIndex + 1;
+        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+        isTransitioningLine = true;
+        lineEndTime = performance.now();
+        peakRmsAtLineEnd = prevRms;
+        guideLine.style.display = 'none';
+        return;
+      }
+
+      if (curLine) {
+        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+        if (!isAppleDevice) {
+          redDot.style.left = rawX + 'px';
+          redDot.style.top = curLine.underLineY + 'px';
+        } else {
+          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
+          redDot.style.left = (offsetLeft + (rawX * scaleX)) + 'px';
+          redDot.style.top = (offsetTop + (curLine.underLineY * scaleX)) + 'px';
+        }
+      }
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function proceedToNextLineImmediately() {
+      if (!isTransitioningLine || !isGuideActive) return;
+      const nextIndex = currentLineIndex + 1;
+      hasPageFlipped = false;
+      currentLineIndex = nextIndex;
+      setupActiveLine(currentLineIndex, 0.0);
+      lastAnimTimestamp = performance.now();
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function handleCycleCompletion() {
+      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+      
+      const shouldStop = processCycleCompletion();
+
+      if (shouldStop) {
+        finishAndStopPermanently();
+        return;
+      }
+
+      isTransitioningLine = true;
+      guideLine.style.display = 'none';
+
+      if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
+      cycleWaitTimer = setTimeout(() => {
+        if (!isGuideActive) return;
+        hasPageFlipped = false;
+        currentLineIndex = markA_Index;
+        scrollToAlignTop(currentLineIndex);
+
+        setupActiveLine(currentLineIndex, 0.0);
+        isTransitioningLine = false;
+        lastAnimTimestamp = performance.now();
+        isVoiceActive = false;
+
+        updateModeButtonsStyle();
+
+        if (guideAnimId) cancelAnimationFrame(guideAnimId);
+        guideAnimId = requestAnimationFrame(stepGuideMovement);
+      }, 1500);
+    }
+
+    function finishAndStopPermanently() {
+      haltGuideRunnerImmediately();
+      completedCycles = 0;
+      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      updateVisualDisplay();
+    }
+
+    function haltGuideRunnerImmediately() {
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (mp4PrecisionCheckAnimId) { cancelAnimationFrame(mp4PrecisionCheckAnimId); mp4PrecisionCheckAnimId = null; }
+
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+
+      try { video.pause(); } catch(e){}
+      updateModeButtonsStyle();
+      updateVisualDisplay();
+    }
+
+    // 🌟 網頁載入初始化 (V397 極簡乾淨的開機流程)
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. 攔截 LINE：最剛硬的防護，只要有 LINE 字眼，立刻投降顯示遮罩並中斷！
+      if (/Line/i.test(navigator.userAgent)) {
+        const overlay = document.getElementById('line-browser-overlay');
+        overlay.classList.add('active');
+        return; // 🛑 絕對中斷
+      }
+
+      // 2. 顯示陪伴卡：回歸 V226 最純粹的圖片路徑讀取
+      const urlParams = new URLSearchParams(window.location.search);
+      let targetDay = parseInt(urlParams.get('day'), 10) || 1;
+
+      if (!urlParams.get('day') && !urlParams.get('start')) {
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V397_' + CURRENT_CLASSIC_ID) || '1', 10);
+        targetDay = tIdx;
+        let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
+        localStorage.setItem('TEST_CARD_INDEX_V397_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+      }
+
+      let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
+      
+      const imgDisplay = document.getElementById('companion-img-display');
+      imgDisplay.src = 'cards/' + cardFileName;
+      
+      const compOverlay = document.getElementById('companion-overlay');
+      compOverlay.classList.add('active');
+
+      // 初始畫面不下載、不渲染，等按下「背書供養」才開始！
+      handleOrientationCheck();
+    });
+  </script>
+</body>
+</html>
