@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v413 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v408 </title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 心靈陪伴卡 (預先隱藏容器防閃爍)
+       🌟 3. 心靈陪伴卡 (預先隱藏容器透明防閃爍)
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -198,9 +198,10 @@
       border-radius: 14px;
       overflow: hidden;
       
+      /* 🌟 圖片讀取前透明隱藏，避免空白框閃爍 */
       opacity: 0;
       transform: scale(0.96);
-      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
     .companion-wrapper.ready {
       opacity: 1;
@@ -273,22 +274,12 @@
 
     /* 🔴 錄音時強效呼吸閃爍特效樣式 */
     @keyframes recordingPulseStrong {
-      0%   { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; transform: scale(1.0); }
-      50%  { box-shadow: 0 0 35px rgba(239, 68, 68, 1), inset 0 0 18px rgba(255, 255, 255, 0.8); border-color: #FCA5A5; transform: scale(1.06); }
-      100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; transform: scale(1.0); }
+      0%   { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
+      50%  { box-shadow: 0 0 35px rgba(239, 68, 68, 1), inset 0 0 18px rgba(255, 255, 255, 0.8); border-color: #FCA5A5; }
+      100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
     }
     .recording-flashing {
       animation: recordingPulseStrong 0.9s infinite ease-in-out !important;
-    }
-
-    /* 🟣 唸出聲時的專屬呼吸燈效果 */
-    @keyframes voiceBreathingActive {
-      0%   { transform: scale(1.0); box-shadow: 0 0 15px rgba(147, 51, 234, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.5); }
-      50%  { transform: scale(1.08); box-shadow: 0 0 30px rgba(147, 51, 234, 1), inset 0 0 15px rgba(255, 255, 255, 0.9); }
-      100% { transform: scale(1.0); box-shadow: 0 0 15px rgba(147, 51, 234, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.5); }
-    }
-    .voice-breathing-anim {
-      animation: voiceBreathingActive 1.1s infinite ease-in-out !important;
     }
 
     /* =========================================================================
@@ -305,7 +296,6 @@
       overflow: hidden;
     }
 
-    /* 🟢 綠色通知置中顯示 */
     #schedule-toast {
       display: none;
       position: fixed;
@@ -513,7 +503,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 心靈陪伴卡 -->
+  <!-- 🌟 3. 心靈陪伴卡 (預先透明隱藏，等圖片下載好才顯示，防止閃爍) -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -605,7 +595,6 @@
   </div>
 
   <script>
-    // 🌟 確保 PDF.js Worker 核心路徑正確掛載
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
     }
@@ -624,7 +613,6 @@
       return { scaleX, scaleY, offsetTop, offsetLeft };
     }
 
-    // 🌟 三重獨立速度儲存機制
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -679,7 +667,6 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 🌟 核心架構：共用資源與模式控管
     let currentMode = 'mp4';
     let pdfSubMode = 'guide'; 
 
@@ -705,7 +692,7 @@
 
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
-    let scheduleRepeatLimit = 5; // 預設 5 遍
+    let scheduleRepeatLimit = 1;
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
@@ -738,9 +725,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V413');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V408');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V413', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V408', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -888,10 +875,7 @@
         const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
         if (localSched) scheduleData = JSON.parse(localSched);
 
-        if (!scheduleData || !Array.isArray(scheduleData)) {
-          scheduleRepeatLimit = 5;
-          return false;
-        }
+        if (!scheduleData || !Array.isArray(scheduleData)) return false;
         
         let targetPlan = null;
         const urlParams = new URLSearchParams(window.location.search);
@@ -911,7 +895,7 @@
 
         if (targetPlan && typeof targetPlan.start === 'number' && typeof targetPlan.end === 'number') {
           markA_Index = Math.max(0, targetPlan.start - 1);
-          const maxIdx = Math.max(0, (scriptureData.length > 0 ? scriptureData.length - 1 : 100));
+          const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : 100));
           markB_Index = Math.min(maxIdx, targetPlan.end - 1);
 
           currentLineIndex = markA_Index;
@@ -922,8 +906,6 @@
           if (typeof targetPlan.repeat === 'number' && targetPlan.repeat > 0) {
             scheduleRepeatLimit = targetPlan.repeat;
             isScheduleRepeatLocked = true;
-          } else {
-            scheduleRepeatLimit = 5;
           }
 
           updateVisualDisplay();
@@ -931,8 +913,6 @@
           return true;
         }
       } catch (err) {}
-      
-      scheduleRepeatLimit = 5;
       return false;
     }
 
@@ -1139,7 +1119,7 @@
     function setMp4Speed(val) {
       mp4Speed = val;
       localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
-      if (video) video.playbackRate = mp4Speed;
+      video.playbackRate = mp4Speed;
       flashSpeedToast('【跟讀快轉 ' + mp4Speed.toFixed(1) + 'x】');
     }
 
@@ -1279,9 +1259,7 @@
         videoWrap.style.display = 'flex';
         centerCore.scrollTop = 0;
         
-        mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
-        if (video) video.playbackRate = mp4Speed;
-
+        video.playbackRate = mp4Speed;
         const range = getActiveVideoRange();
         videoPausedAt = -1;
         if (range.valid) {
@@ -1296,8 +1274,6 @@
 
         ensureMicrophoneActive(); 
         
-        pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference') || '1.0');
-
         setTimeout(() => {
             if (cachedPdfBuffer && parsedTextLines.length === 0) {
                 renderPdfOnValidDimensions();
@@ -1310,11 +1286,12 @@
       showCurrentModeBanner();
     }
 
+    // 🌟 V408 原生直接綁定事件的 renderUI
     function renderUI() {
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
-          slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">重播</button>';
+          slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">播放</button>';
           slotL3.innerHTML = '';
       } else {
           slotL2.innerHTML = '<button class="circle-btn btn-color-mark-a" id="btn-mark-a">起句</button>';
@@ -1329,28 +1306,16 @@
       slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
       const btnOffering = document.getElementById('btn-offering');
-      if (btnOffering) {
-        btnOffering.removeEventListener('click', handleOfferingClick);
-        btnOffering.addEventListener('click', handleOfferingClick);
-      }
+      if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
       const btnPlay = document.getElementById('btn-play');
-      if (btnPlay) {
-        btnPlay.removeEventListener('click', togglePlaybackAction);
-        btnPlay.addEventListener('click', togglePlaybackAction);
-      }
+      if (btnPlay) btnPlay.addEventListener('click', togglePlaybackAction);
 
       const btnMarkA = document.getElementById('btn-mark-a');
-      if (btnMarkA) {
-        btnMarkA.removeEventListener('click', handleMarkAClck);
-        btnMarkA.addEventListener('click', handleMarkAClck);
-      }
+      if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
 
       const btnMarkB = document.getElementById('btn-mark-b');
-      if (btnMarkB) {
-        btnMarkB.removeEventListener('click', handleMarkBClick);
-        btnMarkB.addEventListener('click', handleMarkBClick);
-      }
+      if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
 
       const btnSpeedDown = document.getElementById('btn-speed-down');
       if (btnSpeedDown) {
@@ -1400,7 +1365,6 @@
               btn.style.borderColor = '#BAE6FD';
               btn.style.color = '#FB923C';
               btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
-              btn.classList.remove('voice-breathing-anim');
           }
       });
 
@@ -1411,26 +1375,15 @@
               btnGendu.style.borderColor = isPlaying ? '#E9D5FF' : '#A7F3D0';
               btnGendu.style.color = '#FFFFFF';
               btnGendu.style.boxShadow = isPlaying ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
-              if (isPlaying) {
-                  btnGendu.classList.add('voice-breathing-anim');
-              }
           }
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  if (isGuideActive) {
-                      btnZidu.textContent = isVoiceActive ? '唸出聲' : '導讀中';
-                      btnZidu.style.background = colorPurple;
-                      btnZidu.style.borderColor = '#E9D5FF';
-                      btnZidu.style.color = '#FFFFFF';
-                      btnZidu.classList.add('voice-breathing-anim');
-                  } else {
-                      btnZidu.textContent = '自讀';
-                      btnZidu.style.background = colorGreen;
-                      btnZidu.style.borderColor = '#A7F3D0';
-                      btnZidu.style.color = '#FFFFFF';
-                      btnZidu.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
-                  }
+                  btnZidu.textContent = isGuideActive ? (isVoiceActive ? '背誦中' : '導讀中') : '自讀';
+                  btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
+                  btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
+                  btnZidu.style.color = '#FFFFFF';
+                  btnZidu.style.boxShadow = isGuideActive ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
               }
           } else if (pdfSubMode === 'compare') {
               if (btnRecord) {
@@ -1536,90 +1489,32 @@
       toggleReliableRecordAction();
     }
 
-    function renderHighQualityCoin(ctx, x, y, radius, opacity, type) {
+    function renderRealisticCoin(ctx, x, y, radius, opacity, symbolText) {
       ctx.save();
       ctx.translate(x, y);
-      ctx.globalAlpha = Math.min(1.0, Math.max(0.85, opacity));
+      ctx.globalAlpha = Math.min(1.0, Math.max(0.88, opacity));
 
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
-      let grad = ctx.createRadialGradient(-radius*0.3, -radius*0.3, radius*0.1, 0, 0, radius);
-      grad.addColorStop(0, '#FFF68F');
-      grad.addColorStop(0.5, '#FFD700');
-      grad.addColorStop(1, '#B8860B');
-      ctx.fillStyle = grad;
+      ctx.fillStyle = '#FFD700';
       ctx.fill();
-      ctx.lineWidth = radius * 0.12;
-      ctx.strokeStyle = '#DAA520';
+      ctx.lineWidth = 4.0;
+      ctx.strokeStyle = '#D4AF37';
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(0, 0, radius * 0.72, 0, Math.PI * 2);
-      ctx.strokeStyle = '#FFEE55';
-      ctx.lineWidth = radius * 0.05;
+      ctx.arc(0, 0, radius * 0.78, 0, Math.PI * 2);
+      ctx.strokeStyle = '#FFF176';
+      ctx.lineWidth = 2.0;
       ctx.stroke();
 
-      ctx.fillStyle = '#654321';
-      ctx.font = '900 ' + Math.floor(radius * 1.05) + 'px sans-serif';
+      ctx.fillStyle = '#B26A00';
+      ctx.font = '900 ' + Math.floor(radius * 1.1) + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(type === 'fu' ? '福' : '慧', 0, 1.5);
+      ctx.fillText(symbolText, 0, 1.5);
 
       ctx.restore();
-    }
-
-    function triggerLeaderboardCoinRain() {
-      const canvas = document.getElementById('flowerCanvas');
-      if (!canvas) return;
-      canvas.style.display = 'block';
-      const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      const coins = [];
-      const count = 50;
-      for (let i = 0; i < count; i++) {
-        coins.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          radius: Math.random() * 8 + 14,
-          speedY: Math.random() * 1.8 + 1.2,
-          speedX: (Math.random() - 0.5) * 1.0,
-          rotation: Math.random() * Math.PI,
-          vRot: (Math.random() - 0.5) * 0.06,
-          opacity: 0.96,
-          type: i % 2 === 0 ? 'fu' : 'hui'
-        });
-      }
-
-      let startTime = performance.now();
-      const duration = 5800;
-
-      function animateCoins(now) {
-        let elapsed = now - startTime;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        coins.forEach(c => {
-          c.y += c.speedY;
-          c.x += c.speedX + Math.sin(c.y / 35) * 0.5;
-          c.rotation += c.vRot;
-
-          renderHighQualityCoin(ctx, c.x, c.y, c.radius, c.opacity, c.type);
-
-          if (c.y > canvas.height + 30) {
-            c.y = -30;
-            c.x = Math.random() * canvas.width;
-          }
-        });
-
-        if (elapsed < duration) {
-          requestAnimationFrame(animateCoins);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          canvas.style.display = 'none';
-        }
-      }
-      requestAnimationFrame(animateCoins);
     }
 
     function triggerRecordCoinSplash() {
@@ -1638,6 +1533,7 @@
 
       const coins = [];
       const count = 32;
+      const symbols = ['福', '慧'];
       for (let i = 0; i < count; i++) {
         const angle = -Math.PI * 0.82 + Math.random() * (Math.PI * 0.64);
         const speed = Math.random() * 9 + 5;
@@ -1651,7 +1547,7 @@
           rotation: Math.random() * Math.PI,
           vRot: (Math.random() - 0.5) * 0.15,
           opacity: 1.0,
-          type: i % 2 === 0 ? 'fu' : 'hui'
+          symbol: symbols[i % symbols.length]
         });
       }
 
@@ -1669,7 +1565,7 @@
           c.rotation += c.vRot;
           c.opacity = Math.max(0, 1 - elapsed / duration);
 
-          renderHighQualityCoin(ctx, c.x, c.y, c.radius, c.opacity, c.type);
+          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity, c.symbol);
         });
 
         if (elapsed < duration) {
@@ -1700,23 +1596,10 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    function calculateSentenceCount() {
-      if (currentMode === 'mp4') {
-        let aIdx = markA_Index >= 0 ? markA_Index : 0;
-        let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
-        if (bIdx < aIdx) bIdx = aIdx;
-        return Math.max(1, Math.abs(bIdx - aIdx) + 1);
-      }
-      if (parsedTextLines.length === 0) return 0;
-      const start = (markA_Index !== -1) ? markA_Index : 0;
-      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
-      return Math.max(1, Math.abs(end - start) + 1);
-    }
-
     function processCycleCompletion() {
       const todayStr = getNormalizedDateStr();
       let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
-      const limit = scheduleRepeatLimit || 5;
+      const limit = scheduleRepeatLimit || 1;
       
       const earned = calculateSentenceCount();
       addCoins(earned);
@@ -1729,14 +1612,14 @@
         if (dailyDone >= limit) {
           isScheduleRepeatLocked = false;
           completedCycles = 0;
-          showToast('🎉 今日功課遍數已達標！解鎖循環與自由調整模式', 4500);
+          showToast('🎉 今日功課遍數已達標！解鎖內定 5 遍圓滿模式', 4500);
           handleTargetCycleDone();
           return true; 
         }
       } else {
         completedCycles++;
         if (completedCycles >= 5) {
-          showToast('🌟 圓滿達成 5 遍！自動循環中', 4000);
+          showToast('🌟 連續 5 遍圓滿！', 4000);
           handleTargetCycleDone();
           completedCycles = 0;
           return true; 
@@ -1749,12 +1632,16 @@
       videoPausedAt = -1;
       video.currentTime = range.start;
       
-      processCycleCompletion();
+      const shouldStop = processCycleCompletion();
 
-      video.play().then(() => {
+      if (shouldStop) {
         updateModeButtonsStyle();
-        startMp4PrecisionCheck();
-      }).catch(() => {});
+      } else {
+        video.play().then(() => {
+          updateModeButtonsStyle();
+          startMp4PrecisionCheck();
+        }).catch(() => {});
+      }
     }
 
     function handleTargetCycleDone() {
@@ -1773,20 +1660,14 @@
 
       const flowers = [];
       const lotusColors = [
-        '#FF94B8', // 1. 粉紅色 (闔家平安)
-        '#FFB300', // 2. 琥珀色 (財富圓滿)
-        '#F1F5F9', // 3. 霧白色 (能源活力)
-        '#22C55E', // 4. 翠綠色 (健康和諧)
-        '#C084FC', // 5. 粉紫色 (增長智慧)
-        '#E11D48', // 6. 水紅色 (事業成功)
-        '#3B82F6'  // 7. 寶藍色 (安心寧神/圓滿吉祥)
+        '#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'
       ];
       
       for (let i = 0; i < 70; i++) {
         flowers.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 10 + 10,
+          size: Math.random() * 9 + 8,
           speedY: Math.random() * 1.8 + 1.0,
           speedX: (Math.random() - 0.5) * 1.2,
           rotation: Math.random() * 360,
@@ -2128,10 +2009,8 @@
           recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
           recordAudioElement.src = recordedAudioBlobUrl;
           recordAudioElement.playbackRate = compareSpeed;
-          showToast('錄音完成，為您自動播放...', 3000);
+          showToast('錄音完成！點擊左側「播放」按鈕即可聆聽', 4000);
           renderUI();
-          
-          recordAudioElement.play().catch(() => {});
         };
         
         mediaRecorder.start(); 
@@ -2140,7 +2019,6 @@
         lastVoiceTime = performance.now();
         showToast('🔴 正在錄音中...', 3000);
         renderUI();
-        triggerRecordCoinSplash();
       } else {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           mediaRecorder.stop();
@@ -2152,36 +2030,38 @@
 
     function togglePlaybackAction() {
       if (!recordedAudioBlobUrl) {
-        showToast('尚無錄音檔案可供重播', 2500);
+        showToast('尚無錄音檔案可供播放', 2500);
         return;
       }
       
       if (isGuideActive) haltGuideRunnerImmediately();
 
-      recordAudioElement.currentTime = 0;
-      recordAudioElement.playbackRate = compareSpeed;
-      recordAudioElement.play().then(() => {
-        showToast('▶ 正在重播錄音...', 2000);
+      if (recordAudioElement.paused) {
+        recordAudioElement.playbackRate = compareSpeed;
+        recordAudioElement.play().then(() => {
+          renderUI();
+        }).catch((err) => {
+          showToast('播放失敗', 2000);
+        });
+      } else {
+        recordAudioElement.pause();
         renderUI();
-      }).catch((err) => {
-        showToast('播放失敗', 2000);
-      });
+      }
     }
 
-    // 🌟 移除多餘的 isGuideActive 限制，讓供養隨時可以開啟
+    // 🌟 V408 原生供養點擊函數
     function handleOfferingClick() {
       const displayCoinsCount = document.getElementById('display-coins-count');
       const inputClassId = document.getElementById('input-class-id');
       const inputUserName = document.getElementById('input-user-name');
       const offeringOverlay = document.getElementById('offering-modal-overlay');
 
-      if (displayCoinsCount) displayCoinsCount.textContent = `${getStoredCoins()} 枚`;
+      if (displayCoinsCount) displayCoinsCount.textContent = (localStorage.getItem('user_accumulated_coins') || '0') + ' 枚';
       if (inputClassId) inputClassId.value = localStorage.getItem('user_class_id') || '';
       if (inputUserName) inputUserName.value = localStorage.getItem('user_profile_name') || '';
       if (offeringOverlay) offeringOverlay.style.display = 'flex';
     }
 
-    // 🌟 供養相關輔助函數
     function getStoredCoins() {
       return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
     }
@@ -2192,6 +2072,12 @@
     }
     function resetCoins() {
       localStorage.setItem('user_accumulated_coins', '0');
+    }
+    function calculateSentenceCount() {
+      if (parsedTextLines.length === 0) return 1;
+      const start = (markA_Index !== -1) ? markA_Index : 0;
+      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
+      return Math.max(1, Math.abs(end - start) + 1);
     }
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
@@ -2229,8 +2115,6 @@
 
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
-        
-        triggerLeaderboardCoinRain();
       }
 
       const timeoutTimer = setTimeout(() => { if (!isDone) handleSuccess(null); }, 10000);
@@ -2433,7 +2317,34 @@
     function handleCycleCompletion() {
       if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
       
-      const shouldStop = processCycleCompletion();
+      const todayStr = getNormalizedDateStr();
+      let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
+      const limit = scheduleRepeatLimit || 1;
+      
+      const earned = calculateSentenceCount();
+      addCoins(earned);
+      showToast('✅ 完成一遍，福慧幣 +' + earned, 2000);
+
+      if (isScheduleRepeatLocked) {
+        dailyDone++;
+        localStorage.setItem('DAILY_DONE_CYCLES_' + todayStr, dailyDone.toString());
+        
+        if (dailyDone >= limit) {
+          isScheduleRepeatLocked = false;
+          completedCycles = 0;
+          showToast('🎉 今日功課遍數已達標！解鎖內定 5 遍圓滿模式', 4500);
+          handleTargetCycleDone();
+          return;
+        }
+      } else {
+        completedCycles++;
+        if (completedCycles >= 5) {
+          showToast('🌟 連續 5 遍圓滿！', 4000);
+          handleTargetCycleDone();
+          completedCycles = 0;
+          return;
+        }
+      }
 
       isTransitioningLine = true;
       guideLine.style.display = 'none';
@@ -2457,13 +2368,76 @@
       }, 1500);
     }
 
-    function finishAndStopPermanently() {
-      haltGuideRunnerImmediately();
-      completedCycles = 0;
-      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
-      currentCharIndexFloat = 0.0;
-      isLineHeadLocked = true;
-      updateVisualDisplay();
+    function handleTargetCycleDone() {
+      const todayStr = getNormalizedDateStr();
+      localStorage.setItem('SCHEDULE_DONE_' + todayStr, 'true');
+      triggerSevenColoredLotusFlowerRain();
+    }
+
+    function triggerSevenColoredLotusFlowerRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const flowers = [];
+      const lotusColors = ['#FF5252', '#FFEB3B', '#4CAF50', '#00BCD4', '#9C27B0', '#FF9800', '#E91E63'];
+      
+      for (let i = 0; i < 60; i++) {
+        flowers.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 10 + 8,
+          speedY: Math.random() * 1.5 + 1.0,
+          speedX: (Math.random() - 0.5) * 1.0,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 2,
+          color: lotusColors[Math.floor(Math.random() * lotusColors.length)],
+          opacity: 0.9
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5000;
+
+      function animateRain(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        flowers.forEach(f => {
+          f.y += f.speedY;
+          f.x += f.speedX;
+          f.rotation += f.rotationSpeed;
+
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate((f.rotation * Math.PI) / 180);
+          ctx.globalAlpha = f.opacity;
+
+          ctx.fillStyle = f.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, f.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+
+          if (f.y > canvas.height + 20) {
+            f.y = -20;
+            f.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateRain);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateRain);
     }
 
     function haltGuideRunnerImmediately() {
@@ -2483,7 +2457,6 @@
       updateVisualDisplay();
     }
 
-    // 🌟 網頁載入初始化 (V413)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2497,10 +2470,10 @@
       let targetDay = parseInt(urlParams.get('day'), 10) || 1;
 
       if (!urlParams.get('day') && !urlParams.get('start')) {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V413_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V408_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V413_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V408_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
@@ -2508,11 +2481,12 @@
       const imgDisplay = document.getElementById('companion-img-display');
       const compWrapper = document.querySelector('.companion-wrapper');
 
+      // 🌟 僅加上載入防閃爍監聽，其餘完全保持 V408 原始碼
       imgDisplay.onload = () => {
-          compWrapper.classList.add('ready');
+        compWrapper.classList.add('ready');
       };
       imgDisplay.onerror = () => {
-          compWrapper.classList.add('ready');
+        compWrapper.classList.add('ready');
       };
       imgDisplay.src = 'cards/' + cardFileName;
       
