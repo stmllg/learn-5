@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v393 (宣紙水墨禪意精確版)</title>
+  <title>歡喜背書橫式雙模播放器 v394 (宣紙水墨禪意精確版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -400,7 +400,7 @@
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
 
-    /* 互斥高亮樣式 (供 JS 動態添加) */
+    /* 互斥高亮樣式 */
     .active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF !important; }
 
     #center-core {
@@ -596,14 +596,14 @@
   </div>
 
   <script>
-    // 🌟 全域防護：若在 LINE 內建瀏覽器，強制鎖死所有後續程式
+    // 🌟 全域防護：若在 LINE 內建瀏覽器，強制鎖死所有後續程式，阻擋載入
     const isLineApp = /Line\//i.test(navigator.userAgent);
     let isCompanionDismissed = false;
     let hasEnteredReciting = false;
 
-    // 🌟 確保 PDF.js Worker 核心路徑改回最相容模式 (修復 CORS 與白畫面問題)
+    // 🌟 確保 PDF.js Worker 核心路徑正確掛載
     if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
     }
 
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
@@ -737,9 +737,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V393');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V394');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V393', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V394', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -807,7 +807,7 @@
       } catch (err) {}
 
       if (!isManualSelected) applyScheduleToState();
-      setMode('mp4'); 
+      setMode('mp4'); // 強制將初始畫面定軌在跟讀模式
     }
 
     async function renderPdfOnValidDimensions() {
@@ -855,7 +855,7 @@
       try {
         const db = await openDatabase();
         const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).put({ data: data, tag: key });
+        tx.objectStore(STORE_NAME).put({ data: data, tag: tag }, key);
       } catch (e) {}
     }
 
@@ -1055,27 +1055,22 @@
         video.pause();
         videoWrap.style.display = 'none';
         
+        // 保障渲染：強制顯示 container 並刷新尺寸
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
         ensureMicrophoneActive(); 
         
-        if (cachedPdfBuffer && parsedTextLines.length === 0) {
-            showToast('經文排版中，請稍候...', 2000);
-            window.requestAnimationFrame(() => {
-                setTimeout(() => { renderPdfOnValidDimensions(); }, 100);
-            });
-        } else if (!cachedPdfBuffer) {
-            showToast('下載經文中，請稍候...', 3000);
-            fetch('./scripture.pdf').then(r => r.arrayBuffer()).then(buf => {
-                cachedPdfBuffer = buf;
-                renderPdfOnValidDimensions();
-            }).catch(e => {
-                showToast("經文下載失敗，請檢查網路", 3000);
-            });
-        } else {
-            scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-        }
+        // 🌟 雙重保障渲染：利用 requestAnimationFrame 確保瀏覽器重新排版完成
+        window.requestAnimationFrame(() => {
+            setTimeout(() => {
+                if (cachedPdfBuffer && parsedTextLines.length === 0) {
+                    renderPdfOnValidDimensions();
+                } else {
+                    scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+                }
+            }, 100);
+        });
       }
       renderUI();
       showCurrentModeBanner();
@@ -1248,12 +1243,12 @@
       if (isGuideActive) {
           haltGuideRunnerImmediately();
       } else {
-          // 🌟 防呆：若未設定起終點，不再用語音警告，直接自動設為全篇
+          if (parsedTextLines.length === 0) {
+              showToast("經文處理中，請稍候", 2000);
+              return;
+          }
+          // 🌟 防呆：若未設定起終點，自動設定全篇
           if (markA_Index === -1 || markB_Index === -1) { 
-              if (parsedTextLines.length === 0) {
-                  showToast("經文處理中，請稍候", 2000);
-                  return;
-              }
               markA_Index = 0;
               markB_Index = parsedTextLines.length - 1;
               updateVisualDisplay();
@@ -1261,7 +1256,6 @@
           }
 
           isGuideActive = true;
-          if (parsedTextLines.length === 0) { isGuideActive = false; return; }
           if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
 
           isVoiceActive = false;
@@ -1681,10 +1675,7 @@
       const btnMarkB = document.getElementById('btn-mark-b');
       if (!btnMarkB) return;
       const selectedB = getLineAtButtonBottom(btnMarkB);
-      if (markA_Index !== -1 && selectedB < markA_Index) { 
-        showToast("終點不能在起點之前", 2500); 
-        return; 
-      }
+      if (markA_Index !== -1 && selectedB < markA_Index) { speakPrompt("終點不能在起點之前"); return; }
       
       isManualSelected = true;
       markB_Index = selectedB;
@@ -1724,7 +1715,7 @@
       updateModeButtonsStyle();
     }
 
-    // 🌟 共用麥克風引擎
+    // 🌟 共用麥克風引擎：單一啟動、長保待命
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -2055,162 +2046,4 @@
           }
         }
 
-        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
-        const nextIndex = currentLineIndex + 1;
-        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
-
-        isTransitioningLine = true;
-        lineEndTime = performance.now();
-        peakRmsAtLineEnd = prevRms;
-        guideLine.style.display = 'none';
-        return;
-      }
-
-      if (curLine) {
-        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
-        if (!isAppleDevice) {
-          redDot.style.left = rawX + 'px';
-          redDot.style.top = curLine.underLineY + 'px';
-        } else {
-          const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
-          redDot.style.left = (offsetLeft + (rawX * scaleX)) + 'px';
-          redDot.style.top = (offsetTop + (curLine.underLineY * scaleX)) + 'px';
-        }
-      }
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function proceedToNextLineImmediately() {
-      if (!isTransitioningLine || !isGuideActive) return;
-      const nextIndex = currentLineIndex + 1;
-      hasPageFlipped = false;
-      currentLineIndex = nextIndex;
-      setupActiveLine(currentLineIndex, 0.0);
-      lastAnimTimestamp = performance.now();
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function handleCycleCompletion() {
-      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-      
-      const shouldStop = processCycleCompletion();
-
-      if (shouldStop) {
-        finishAndStopPermanently();
-        return;
-      }
-
-      isTransitioningLine = true;
-      guideLine.style.display = 'none';
-
-      if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
-      cycleWaitTimer = setTimeout(() => {
-        if (!isGuideActive) return;
-        hasPageFlipped = false;
-        currentLineIndex = markA_Index;
-        scrollToAlignTop(currentLineIndex);
-
-        setupActiveLine(currentLineIndex, 0.0);
-        isTransitioningLine = false;
-        lastAnimTimestamp = performance.now();
-        isVoiceActive = false;
-
-        updateModeButtonsStyle();
-
-        if (guideAnimId) cancelAnimationFrame(guideAnimId);
-        guideAnimId = requestAnimationFrame(stepGuideMovement);
-      }, 1500);
-    }
-
-    function finishAndStopPermanently() {
-      haltGuideRunnerImmediately();
-      completedCycles = 0;
-      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
-      currentCharIndexFloat = 0.0;
-      isLineHeadLocked = true;
-      updateVisualDisplay();
-    }
-
-    function haltGuideRunnerImmediately() {
-      if (guideAnimId) cancelAnimationFrame(guideAnimId);
-      guideAnimId = null;
-      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-      if (mp4PrecisionCheckAnimId) { cancelAnimationFrame(mp4PrecisionCheckAnimId); mp4PrecisionCheckAnimId = null; }
-
-      isGuideActive = false;
-      isTransitioningLine = false;
-
-      guideLine.style.display = 'none';
-      redDot.style.display = 'none';
-
-      try { video.pause(); } catch(e){}
-      updateModeButtonsStyle();
-      updateVisualDisplay();
-    }
-
-    // 🌟 網頁載入初始化
-    window.addEventListener('DOMContentLoaded', async () => {
-      // 🚨 強制鎖死機制：只要是 LINE 瀏覽器，完全不執行後續載入
-      if (isLineApp) {
-        document.getElementById('line-browser-overlay').classList.add('active');
-        return; 
-      }
-
-      checkDailyResetOnStartup();
-      renderUI();
-
-      try {
-        const sRes = await fetch('./sentences.json');
-        if (sRes.ok) {
-          scriptureData = await sRes.json();
-          localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(scriptureData));
-        }
-      } catch (e) {
-        const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
-        if (localSent) {
-          try { scriptureData = JSON.parse(localSent); } catch (e) {}
-        }
-      }
-
-      getLocalFile('video_file').then(localVideo => {
-        if (localVideo && localVideo.data) {
-          video.src = URL.createObjectURL(new Blob([localVideo.data], { type: 'video/mp4' }));
-        } else {
-          video.src = './chant_video.mp4';
-        }
-      });
-
-      getLocalFile('pdf_file').then(async localPdf => {
-        if (localPdf && localPdf.data) {
-          cachedPdfBuffer = localPdf.data;
-          // 背景預先強制渲染一次 PDF，達到切換時零等待
-          renderPdfOnValidDimensions();
-        } else {
-          try {
-            const pRes = await fetch('./scripture.pdf');
-            if (pRes.ok) {
-              const buf = await pRes.arrayBuffer();
-              await saveLocalFile('pdf_file', buf, 'init_pdf');
-              cachedPdfBuffer = buf;
-              renderPdfOnValidDimensions();
-            }
-          } catch(e){}
-        }
-      });
-
-      video.addEventListener('loadedmetadata', () => {
-        if (currentMode === 'mp4' && video.paused) {
-            const range = getActiveVideoRange();
-            if (range.valid) { try { video.currentTime = range.start; } catch(e){} }
-        }
-      });
-
-      // 無論如何都顯示陪伴卡，等待使用者按「背書供養」
-      await evaluateWarmCompanionCard();
-      document.getElementById('companion-overlay').classList.add('active');
-      handleOrientationCheck();
-    });
-  </script>
-</body>
-</html>
+        if (guideAnimId) { cancelAnimationFrame(guideAnimId
