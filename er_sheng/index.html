@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v515 (座標精準校準與智慧提示版)</title>
+  <title>歡喜背書橫式雙模播放器 v516 (提示時間減半與按鈕中心精準對準版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -239,7 +239,7 @@
       background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
     }
 
-    /* 🌟 中央高雅提示浮窗 (起句終句精準導引)[cite: 4] */
+    /* 🌟 中央高雅提示浮窗 (顯示時間已縮短為一半) */
     #center-prompt-banner {
       display: none;
       position: fixed;
@@ -745,23 +745,23 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 每日持久化計數讀寫 (V515)
+    // 🌟 每日持久化計數讀寫 (V516)
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V515_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V516_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V515_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V516_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V515_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V516_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V515_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V516_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -771,9 +771,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V515');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V516');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V515', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V516', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -1155,9 +1155,9 @@
       }, duration);
     }
 
-    // 🌟 需求 4：切換到比對模式時，不用再顯示提示
     function showCurrentModeBanner() {}
 
+    // 🌟 提示時間縮減為原本的一半 (2.25秒)
     function showCenterPrompt(title, subtitle = '') {
       if (!centerPromptBanner) return;
       centerPromptBanner.innerHTML = `<div style="font-size: 26px; font-weight: 900; color: #FBBF24;">${title}</div>` + (subtitle ? `<div style="font-size: 15px; color: #CBD5E1; font-weight: 700; margin-top: 6px;">${subtitle}</div>` : '');
@@ -1171,7 +1171,7 @@
           centerPromptBanner.style.opacity = '';
           centerPromptBanner.style.transform = '';
         }, 300);
-      }, 4500);
+      }, 2250);
     }
 
     function setMp4Speed(val) {
@@ -1526,7 +1526,7 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  // 🌟 需求 2：自讀顯示為紫色時，只出現「唸出聲」文字，不夾雜其他提示
+                  // 🌟 自讀顯示為紫色時，只出現「唸出聲」文字
                   btnZidu.textContent = isGuideEffectActive() ? '唸出聲' : '自讀';
                   const active = isGuideEffectActive();
                   btnZidu.style.background = active ? colorPurple : colorGreen;
@@ -1772,7 +1772,7 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V515_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V516_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日定課已圓滿！已完成，計數歸零', 5500);
@@ -1933,11 +1933,11 @@
       lineElement.style.display = 'block';
     }
 
-    // 🌟 絕對精準的座標對應函式：直接對應 PDF 頁面原始點陣與實際渲染尺寸，徹底解決全螢幕誤差
+    // 🌟 絕對精準的座標對應：明確以按鈕正中間對準經文行下緣底線
     function getLineAtButtonBottom(buttonElement) {
       if (parsedTextLines.length === 0) return 0;
       const btnRect = buttonElement.getBoundingClientRect();
-      const targetScreenY = btnRect.top + (btnRect.height / 2);
+      const targetScreenY = btnRect.top + (btnRect.height / 2); // 按鈕垂直正中間
 
       let closestIdx = 0, minDiff = Infinity;
 
@@ -1990,7 +1990,7 @@
       }
     }
 
-    // 🌟 需求 1 & 3：跟讀模式下點擊起句/終句彈出「請切到自讀模式」；自讀模式下點擊則顯示「上下移動把句子對準我，再按確認」
+    // 🌟 智慧判斷起句點擊：跟讀模式提示切到自讀；自讀模式提示對準句子
     function handleMarkAClck() {
       if (currentMode === 'mp4') {
         showCenterPrompt("請切到自讀模式", "上下移動把句子對準我，再按確認");
@@ -2022,6 +2022,7 @@
       }
     }
 
+    // 🌟 智慧判斷終句點擊：跟讀模式提示切到自讀；自讀模式提示對準句子
     function handleMarkBClick() {
       if (currentMode === 'mp4') {
         showCenterPrompt("請切到自讀模式", "上下移動把句子對準我，再按確認");
@@ -2646,7 +2647,7 @@
       updateVisualDisplay();
     }
 
-    // 網頁載入初始化 (V515)
+    // 網頁載入初始化 (V516)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2669,10 +2670,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V515_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V516_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V515_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V516_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
