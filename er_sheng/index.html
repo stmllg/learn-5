@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v503 (原版穩定與獨立計數還原版)</title>
+  <title>歡喜背書橫式雙模播放器 v504 (自讀比對強效載入與獨立計數完美版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -721,7 +721,7 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 獨立跟讀與自讀遍數持久化讀寫函式 (同日重啟自動載入)
+    // 🌟 獨立跟讀與自讀遍數持久化記憶與讀寫
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
       return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_' + todayStr) || '0', 10);
@@ -742,9 +742,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V503');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V504');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V503', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V504', todayStr);
         setTodayGenduCycles(0);
         setTodayZiduCycles(0);
         isScheduleRepeatLocked = true;
@@ -789,7 +789,7 @@
       }, 350);
     }
 
-    // 🌟 V503 啟動流程：完全採用 V421 原生架構，同時確保背景預先解析 PDF
+    // 🌟 採用老師提供的完美 setMode 與穩定啟動流程
     async function activateMainReciteEntry() {
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -1272,46 +1272,112 @@
       }
     }, { passive: true });
 
+    // 🌟 採用老師提供的完美 setMode 函式
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
-      
-      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+
+      if (isUserRecording && mediaRecorder) {
+        mediaRecorder.stop();
+      }
+
       isUserRecording = false;
-      if (recordAudioElement) recordAudioElement.pause();
+
+      if (recordAudioElement) {
+        recordAudioElement.pause();
+      }
 
       currentMode = mode;
       pdfSubMode = subMode;
 
       if (currentMode === 'mp4') {
-        releaseMicrophoneResources(); 
+        releaseMicrophoneResources();
+
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
+
         centerCore.scrollTop = 0;
-        
+
         video.playbackRate = mp4Speed;
+
         const range = getActiveVideoRange();
         videoPausedAt = -1;
+
         if (range.valid) {
-            try { video.currentTime = range.start; } catch(e){}
+          try {
+            video.currentTime = range.start;
+          } catch (e) {}
         }
+
       } else if (currentMode === 'pdf') {
         video.pause();
+
         videoWrap.style.display = 'none';
-        
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
-        ensureMicrophoneActive(); 
-        
-        setTimeout(() => {
-            if (cachedPdfBuffer && parsedTextLines.length === 0) {
-                renderPdfOnValidDimensions();
-            } else {
-                scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+        ensureMicrophoneActive();
+
+        setTimeout(async () => {
+          try {
+            if (!cachedPdfBuffer) {
+              const localPdf = await getLocalFile('pdf_file');
+
+              if (localPdf && localPdf.data) {
+                cachedPdfBuffer = localPdf.data;
+              } else {
+                const response = await fetch(
+                  './scripture.pdf?nocache=' + Date.now(),
+                  { cache: 'no-store' }
+                );
+
+                if (!response.ok) {
+                  throw new Error(
+                    '找不到 scripture.pdf，HTTP ' + response.status
+                  );
+                }
+
+                cachedPdfBuffer = await response.arrayBuffer();
+
+                try {
+                  await saveLocalFile(
+                    'pdf_file',
+                    cachedPdfBuffer,
+                    'mode-load'
+                  );
+                } catch (saveError) {
+                  console.warn('PDF 快取儲存失敗：', saveError);
+                }
+              }
             }
-        }, 50);
+
+            if (!window.pdfjsLib) {
+              throw new Error('PDF 閱讀元件尚未載入，請稍後再試');
+            }
+
+            if (
+              !pdfCanvas.width ||
+              !pdfCanvas.height ||
+              parsedTextLines.length === 0
+            ) {
+              await renderPdfOnValidDimensions();
+            } else {
+              scrollToAlignTop(
+                markA_Index !== -1 ? markA_Index : 0
+              );
+            }
+
+          } catch (err) {
+            console.error('PDF 載入或顯示失敗：', err);
+
+            showToast(
+              'PDF 無法顯示：' + err.message,
+              5000
+            );
+          }
+        }, 120);
       }
+
       renderUI();
       showCurrentModeBanner();
     }
@@ -2387,7 +2453,24 @@
       }, 1500);
     }
 
-    // 網頁載入初始化 (V503)
+    function haltGuideRunnerImmediately() {
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (mp4PrecisionCheckAnimId) { cancelAnimationFrame(mp4PrecisionCheckAnimId); mp4PrecisionCheckAnimId = null; }
+
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+
+      try { video.pause(); } catch(e){}
+      updateModeButtonsStyle();
+      updateVisualDisplay();
+    }
+
+    // 網頁載入初始化 (V504)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2396,17 +2479,6 @@
       }
 
       checkDailyResetOnStartup();
-
-      try {
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
-        if (!localSched) {
-          const res = await fetch('./schedule.json');
-          if (res.ok) {
-            const schedData = await res.json();
-            localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(schedData));
-          }
-        }
-      } catch (e) {}
 
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
@@ -2421,10 +2493,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V503_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V504_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V503_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V504_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
