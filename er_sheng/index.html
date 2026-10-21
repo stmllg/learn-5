@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v420 (自讀比對完美還原版)</title>
+  <title>歡喜背書橫式雙模播放器 v421 (特效雙全與自讀秒開完美版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -769,7 +769,7 @@
       }, 350);
     }
 
-    // 🌟 V408 原生完整啟動流程 (完整恢復 PDF 載入與解析)
+    // 🌟 100% 完整 V408 原始啟動流程（含 PDF 載入與背景解析，確保自讀比對一按就開）
     async function activateMainReciteEntry() {
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -803,7 +803,7 @@
         } catch(e){}
       }
 
-      // 🌟 關鍵修復：這裡就是 V408 原本讓 PDF 解析啟動的唯一關鍵
+      // 🌟 背景預先解析 PDF，確保自讀/比對點擊時不需等待
       if (cachedPdfBuffer && parsedTextLines.length === 0) {
         await renderPdfOnValidDimensions();
       }
@@ -1493,41 +1493,41 @@
       toggleReliableRecordAction();
     }
 
-    function renderRealisticCoin(ctx, x, y, radius, opacity, symbolText) {
+    // 🌟 高質感金幣繪製
+    function renderHighQualityCoin(ctx, x, y, radius, opacity, type) {
       ctx.save();
       ctx.translate(x, y);
-      ctx.globalAlpha = Math.min(1.0, Math.max(0.88, opacity));
+      ctx.globalAlpha = Math.min(1.0, Math.max(0.85, opacity));
 
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
-      ctx.fillStyle = '#FFD700';
+      let grad = ctx.createRadialGradient(-radius*0.3, -radius*0.3, radius*0.1, 0, 0, radius);
+      grad.addColorStop(0, '#FFF68F');
+      grad.addColorStop(0.5, '#FFD700');
+      grad.addColorStop(1, '#B8860B');
+      ctx.fillStyle = grad;
       ctx.fill();
-      ctx.lineWidth = 4.0;
-      ctx.strokeStyle = '#D4AF37';
+      ctx.lineWidth = radius * 0.12;
+      ctx.strokeStyle = '#DAA520';
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(0, 0, radius * 0.78, 0, Math.PI * 2);
-      ctx.strokeStyle = '#FFF176';
-      ctx.lineWidth = 2.0;
+      ctx.arc(0, 0, radius * 0.72, 0, Math.PI * 2);
+      ctx.strokeStyle = '#FFEE55';
+      ctx.lineWidth = radius * 0.05;
       ctx.stroke();
 
-      ctx.fillStyle = '#B26A00';
-      ctx.font = '900 ' + Math.floor(radius * 1.1) + 'px sans-serif';
+      ctx.fillStyle = '#654321';
+      ctx.font = '900 ' + Math.floor(radius * 1.05) + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(symbolText, 0, 1.5);
+      ctx.fillText(type === 'fu' ? '福' : '慧', 0, 1.5);
 
       ctx.restore();
     }
 
-    function triggerRecordCoinSplash() {
-      const btn = document.getElementById('btn-record');
-      if (!btn) return;
-      const rect = btn.getBoundingClientRect();
-      const startX = rect.left + rect.width / 2;
-      const startY = rect.top + rect.height / 2;
-
+    // 🌟 供養成功金幣雨特效
+    function triggerLeaderboardCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
       canvas.style.display = 'block';
@@ -1536,50 +1536,49 @@
       canvas.height = window.innerHeight;
 
       const coins = [];
-      const count = 32;
-      const symbols = ['福', '慧'];
+      const count = 50;
       for (let i = 0; i < count; i++) {
-        const angle = -Math.PI * 0.82 + Math.random() * (Math.PI * 0.64);
-        const speed = Math.random() * 9 + 5;
         coins.push({
-          x: startX,
-          y: startY,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 6.5,
-          gravity: 0.40,
-          radius: Math.random() * 8 + 16,
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          radius: Math.random() * 8 + 14,
+          speedY: Math.random() * 1.8 + 1.2,
+          speedX: (Math.random() - 0.5) * 1.0,
           rotation: Math.random() * Math.PI,
-          vRot: (Math.random() - 0.5) * 0.15,
-          opacity: 1.0,
-          symbol: symbols[i % symbols.length]
+          vRot: (Math.random() - 0.5) * 0.06,
+          opacity: 0.96,
+          type: i % 2 === 0 ? 'fu' : 'hui'
         });
       }
 
       let startTime = performance.now();
-      const duration = 1600;
+      const duration = 5800;
 
-      function animate(now) {
+      function animateCoins(now) {
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         coins.forEach(c => {
-          c.x += c.vx;
-          c.y += c.vy;
-          c.vy += c.gravity;
+          c.y += c.speedY;
+          c.x += c.speedX + Math.sin(c.y / 35) * 0.5;
           c.rotation += c.vRot;
-          c.opacity = Math.max(0, 1 - elapsed / duration);
 
-          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity, c.symbol);
+          renderHighQualityCoin(ctx, c.x, c.y, c.radius, c.opacity, c.type);
+
+          if (c.y > canvas.height + 30) {
+            c.y = -30;
+            c.x = Math.random() * canvas.width;
+          }
         });
 
         if (elapsed < duration) {
-          requestAnimationFrame(animate);
+          requestAnimationFrame(animateCoins);
         } else {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           canvas.style.display = 'none';
         }
       }
-      requestAnimationFrame(animate);
+      requestAnimationFrame(animateCoins);
     }
 
     let mp4PrecisionCheckAnimId = null;
@@ -1654,6 +1653,7 @@
       triggerSevenColoredLotusFlowerRain();
     }
 
+    // 🌟 七色蓮花雨
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -2040,7 +2040,6 @@
       }
     }
 
-    // 🌟 V408 原生供養按鈕邏輯 + 夾帶 start/group 參數與金幣雨
     function handleOfferingClick() {
       const displayCoinsCount = document.getElementById('display-coins-count');
       const inputClassId = document.getElementById('input-class-id');
@@ -2454,7 +2453,7 @@
       updateVisualDisplay();
     }
 
-    // 網頁載入初始化 (V420)
+    // 網頁載入初始化 (V421)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
