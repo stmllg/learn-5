@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v509 (比對三段直覺操作與開機定課提示版)</title>
+  <title>歡喜背書橫式雙模播放器 v510 (比對錄音預熱暖機與開機定課提示版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -721,30 +721,30 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 每日持久化計數讀寫 (localStorage 隨時記錄，離開重開不遺失)
+    // 🌟 每日持久化計數讀寫 (V510)
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V509_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V510_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V509_' + todayStr, val.toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V510_' + todayStr, val.toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V509_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V510_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V509_' + todayStr, val.toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V510_' + todayStr, val.toString());
     }
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V509');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V510');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V509', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V510', todayStr);
         setTodayGenduCycles(0);
         setTodayZiduCycles(0);
         isScheduleRepeatLocked = true;
@@ -1283,6 +1283,22 @@
       }
     }, { passive: true });
 
+    // 🌟 配合比對模式暖機預熱
+    async function preWarmMediaRecorder() {
+      try {
+        if (!micStream) {
+          await ensureMicrophoneActive();
+        }
+        if (micStream && MediaRecorder.isTypeSupported('audio/webm')) {
+          const dummy = new MediaRecorder(micStream);
+          dummy.start();
+          setTimeout(() => {
+            if (dummy.state === 'recording') dummy.stop();
+          }, 150);
+        }
+      } catch(e) {}
+    }
+
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
 
@@ -1327,6 +1343,10 @@
         guideStage.style.display = 'block';
 
         ensureMicrophoneActive();
+
+        if (subMode === 'compare') {
+          preWarmMediaRecorder();
+        }
 
         setTimeout(async () => {
           try {
@@ -1586,12 +1606,12 @@
       triggerAppFullscreen();
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
         setMode('pdf', 'compare');
+        preWarmMediaRecorder();
         showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2500);
         return;
       }
 
       if (isUserRecording) {
-        // 正在錄音中 -> 停止錄音，並自動播放錄音結果
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           mediaRecorder.stop();
         }
@@ -1604,7 +1624,6 @@
           }
         }, 200);
       } else {
-        // 尚未錄音 -> 開始錄音
         if (parsedTextLines.length === 0) {
           showToast("經文處理中，請稍等片刻", 2000);
           return;
@@ -1719,39 +1738,36 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 動態循環檢查：未達排程依排程次數灑花暫停；達標解鎖後每 5 遍循環灑花暫停，並提示定課解除鎖定
+    // 🌟 動態循環檢查：未達排程依排程次數灑花暫停；達標解鎖後每 5 遍循環灑花暫停
     function checkAndTriggerDynamicRain(totalToday) {
       const todayStr = getNormalizedDateStr();
       const targetLimit = scheduleRepeatLimit || 5;
 
-      // 1. 若尚未達到今日排程目標
       if (totalToday < targetLimit) {
         return false; 
       }
 
-      // 2. 若剛好達到今日排程目標（第一次達標灑花，並提示解除鎖定）
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V509_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V510_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日定課已圓滿！已解除鎖定，進入自主加強學習模式（每 5 遍一循環）', 5500);
           speakPrompt('今日定課已圓滿，已解除鎖定');
           triggerSevenColoredLotusFlowerRain();
           localStorage.setItem(scheduleDoneKey, 'true');
-          return true; // 達到目標，暫停循環
+          return true;
         }
         return false;
       }
 
-      // 3. 若已超過排程目標（解鎖後的自主精進：每滿 5 遍循環一次）
       if (totalToday > targetLimit) {
         const extraCount = totalToday - targetLimit;
         if (extraCount > 0 && extraCount % 5 === 0) {
-          const milestoneKey = `MILESTONE_FLOWER_V509_${todayStr}_${totalToday}`;
+          const milestoneKey = `MILESTONE_FLOWER_V510_${todayStr}_${totalToday}`;
           if (!localStorage.getItem(milestoneKey)) {
             showToast(`🌟 自主加強學習累計滿 ${totalToday} 遍（5 遍一循環圓滿）！`, 4500);
             triggerSevenColoredLotusFlowerRain();
             localStorage.setItem(milestoneKey, 'true');
-            return true; // 滿 5 遍，暫停循環
+            return true;
           }
         }
       }
@@ -2578,7 +2594,7 @@
       updateVisualDisplay();
     }
 
-    // 網頁載入初始化 (V509)
+    // 網頁載入初始化 (V510)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2601,10 +2617,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V509_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V510_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V509_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V510_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
