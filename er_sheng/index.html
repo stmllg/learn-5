@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v414 (排程與陪伴卡聯動版)</title>
+  <title>歡喜背書橫式雙模播放器 v415 (雲端附加日期與群組版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 心靈陪伴卡 (預先隱藏容器防閃爍)
+       🌟 3. 心靈陪伴卡 (預先透明隱藏防閃爍)
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -691,7 +691,7 @@
 
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
-    let scheduleRepeatLimit = 5; // 🌟 嚴格預設為 5 遍，防止 1 遍就收工
+    let scheduleRepeatLimit = 5;
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
@@ -724,9 +724,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V414');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V415');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V414', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V415', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -866,7 +866,6 @@
       } catch (e) {}
     }
 
-    // 🌟 修正：精準依據 ?start=2026-10-20 計算當前天數與對應排程
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -1606,7 +1605,7 @@
     function processCycleCompletion() {
       const todayStr = getNormalizedDateStr();
       let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
-      const limit = scheduleRepeatLimit || 5; // 🌟 預設 5 遍防呆
+      const limit = scheduleRepeatLimit || 5;
       
       const earned = calculateSentenceCount();
       addCoins(earned);
@@ -1626,7 +1625,7 @@
       } else {
         completedCycles++;
         if (completedCycles >= 5) {
-          showToast('🌟 圓滿達成 5 遍！', 4000);
+          showToast('🌟 連續 5 遍圓滿！', 4000);
           handleTargetCycleDone();
           completedCycles = 0;
           return true; 
@@ -2088,6 +2087,7 @@
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
 
+    // 🌟 修正：點擊確認供養時，額外夾帶網址中的 startDate 與 groupName 參數傳給雲端
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
@@ -2101,6 +2101,11 @@
 
       btnConfirmOffering.disabled = true;
       btnConfirmOffering.textContent = '連線供養中...';
+
+      // 抓取網址中的 start 與 group 參數
+      const urlParams = new URLSearchParams(window.location.search);
+      const startDateParam = urlParams.get('start') || '';
+      const groupParam = urlParams.get('group') || '';
 
       const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
       let isDone = false;
@@ -2127,7 +2132,7 @@
       window[callbackName] = (res) => handleSuccess(res);
 
       const scriptTag = document.createElement('script');
-      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&callback=${callbackName}&t=${Date.now()}`;
+      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&startDate=${encodeURIComponent(startDateParam)}&groupName=${encodeURIComponent(groupParam)}&callback=${callbackName}&t=${Date.now()}`;
       scriptTag.onerror = () => { if (!isDone) handleSuccess(null); };
       document.body.appendChild(scriptTag);
     });
@@ -2338,7 +2343,7 @@
         if (dailyDone >= limit) {
           isScheduleRepeatLocked = false;
           completedCycles = 0;
-          showToast('🎉 今日功課遍數已達標！解鎖 5 遍圓滿模式', 4500);
+          showToast('🎉 今日功課遍數已達標！解鎖循環模式', 4500);
           handleTargetCycleDone();
           return;
         }
@@ -2463,7 +2468,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 網頁載入初始化 (V414 支援 ?start= 參數精準計算天數與透明隱藏防閃爍)
+    // 🌟 網頁載入初始化 (V415)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2473,7 +2478,7 @@
 
       checkDailyResetOnStartup();
 
-      // 1. 優先從本地或網路同步載入 schedule.json 確保排程存在
+      // 1. 預先同步載入 schedule.json 存入本機快取
       try {
         const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
         if (!localSched) {
@@ -2485,7 +2490,7 @@
         }
       } catch (e) {}
 
-      // 2. 依據 ?start= 參數精準計算今天是第幾天
+      // 2. 依據 ?start= 參數精準計算今天是第幾天並顯示對應陪伴卡
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
       const startStr = urlParams.get('start');
@@ -2499,10 +2504,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V414_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V415_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V414_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V415_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
@@ -2510,7 +2515,6 @@
       const imgDisplay = document.getElementById('companion-img-display');
       const compWrapper = document.querySelector('.companion-wrapper');
 
-      // 🌟 圖片載入完成才顯示，杜絕閃爍
       imgDisplay.onload = () => {
         compWrapper.classList.add('ready');
       };
