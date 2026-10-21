@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v506 (自讀達標完美停止與排行榜安全防護版)</title>
+  <title>歡喜背書橫式雙模播放器 v508 (每日持久化計數與動態循環版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -721,7 +721,7 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 獨立跟讀與自讀遍數持久化記憶與讀寫
+    // 🌟 獨立跟讀與自讀遍數持久化讀寫 (localStorage 隨時記錄，離開重開不遺失)
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
       return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_' + todayStr) || '0', 10);
@@ -742,9 +742,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V506');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V508');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V506', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V508', todayStr);
         setTodayGenduCycles(0);
         setTodayZiduCycles(0);
         isScheduleRepeatLocked = true;
@@ -889,7 +889,7 @@
       } catch (e) {}
     }
 
-    // 🌟 修正二：排程遍數解鎖邏輯
+    // 🌟 排程遍數讀取與解鎖設定
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -1692,53 +1692,67 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 修正二：跟讀與自讀遍數計數及花雨防護 key 調整
-    function processGenduCycleCompletion() {
+    // 🌟 核心升級：動態檢查遍數（未達排程依排程次數灑花暫停；達標解鎖後固定每 5 遍循環灑花暫停）
+    function checkAndTriggerDynamicRain(totalToday) {
       const todayStr = getNormalizedDateStr();
-      let genduDone = getTodayGenduCycles() + 1;
-      setTodayGenduCycles(genduDone);
-      
-      const limit = scheduleRepeatLimit || 5;
-      const totalToday = genduDone + getTodayZiduCycles();
-      
-      const earned = calculateSentenceCount();
-      addCoins(earned);
-      showToast('✅ 跟讀完成一遍，福慧幣 +' + earned + ' (今日跟讀: ' + genduDone + '/' + limit + ')', 2500);
+      const targetLimit = scheduleRepeatLimit || 5;
 
-      if (totalToday >= limit) {
-        const doneKey = 'SCHEDULE_FLOWER_DONE_V505_' + todayStr;
-        if (!localStorage.getItem(doneKey)) {
-          showToast('🎉 今日功課總遍數已達標！', 4500);
-          triggerSevenColoredLotusFlowerRain();
-          localStorage.setItem(doneKey, 'true');
-        }
-        return true;
+      // 1. 若尚未達到今日排程目標
+      if (totalToday < targetLimit) {
+        return false; 
       }
+
+      // 2. 若剛好達到今日排程目標（第一次達標灑花）
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V508_' + todayStr;
+      if (totalToday === targetLimit) {
+        if (!localStorage.getItem(scheduleDoneKey)) {
+          showToast('🎉 今日功課總遍數已達標！排程圓滿', 4500);
+          triggerSevenColoredLotusFlowerRain();
+          localStorage.setItem(scheduleDoneKey, 'true');
+          return true; // 達到目標，應停止循環
+        }
+        return false;
+      }
+
+      // 3. 若已超過排程目標（解鎖後的自主精進：每滿 5 遍循環一次）
+      if (totalToday > targetLimit) {
+        const extraCount = totalToday - targetLimit;
+        if (extraCount > 0 && extraCount % 5 === 0) {
+          const milestoneKey = `MILESTONE_FLOWER_V508_${todayStr}_${totalToday}`;
+          if (!localStorage.getItem(milestoneKey)) {
+            showToast(`🌟 自主精進累計滿 ${totalToday} 遍，圓滿吉祥！`, 4500);
+            triggerSevenColoredLotusFlowerRain();
+            localStorage.setItem(milestoneKey, 'true');
+            return true; // 滿 5 遍，應停止循環
+          }
+        }
+      }
+
       return false;
     }
 
-    function processZiduCycleCompletion() {
-      const todayStr = getNormalizedDateStr();
-      let ziduDone = getTodayZiduCycles() + 1;
-      setTodayZiduCycles(ziduDone);
+    function processGenduCycleCompletion() {
+      const genduDone = getTodayGenduCycles() + 1;
+      setTodayGenduCycles(genduDone);
       
-      const limit = scheduleRepeatLimit || 5;
-      const totalToday = getTodayGenduCycles() + ziduDone;
-      
+      const totalToday = genduDone + getTodayZiduCycles();
       const earned = calculateSentenceCount();
       addCoins(earned);
-      showToast('✅ 自讀完成一遍，福慧幣 +' + earned + ' (今日自讀: ' + ziduDone + '/' + limit + ')', 2500);
+      showToast('✅ 跟讀完成一遍，福慧幣 +' + earned + ' (今日總計: ' + totalToday + ' 遍)', 2500);
 
-      if (totalToday >= limit) {
-        const doneKey = 'SCHEDULE_FLOWER_DONE_V505_' + todayStr;
-        if (!localStorage.getItem(doneKey)) {
-          showToast('🎉 今日功課總遍數已達標！', 4500);
-          triggerSevenColoredLotusFlowerRain();
-          localStorage.setItem(doneKey, 'true');
-        }
-        return true;
-      }
-      return false;
+      return checkAndTriggerDynamicRain(totalToday);
+    }
+
+    function processZiduCycleCompletion() {
+      const ziduDone = getTodayZiduCycles() + 1;
+      setTodayZiduCycles(ziduDone);
+      
+      const totalToday = getTodayGenduCycles() + ziduDone;
+      const earned = calculateSentenceCount();
+      addCoins(earned);
+      showToast('✅ 自讀完成一遍，福慧幣 +' + earned + ' (今日總計: ' + totalToday + ' 遍)', 2500);
+
+      return checkAndTriggerDynamicRain(totalToday);
     }
 
     function handleMp4CycleEnd(range) {
@@ -1748,7 +1762,9 @@
       const shouldStop = processGenduCycleCompletion();
 
       if (shouldStop) {
+        video.pause();
         updateModeButtonsStyle();
+        showToast('⏸️ 已達本階段循環目標，自動暫停', 3000);
       } else {
         video.play().then(() => {
           updateModeButtonsStyle();
@@ -2189,7 +2205,7 @@
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
 
-    // 🌟 修正三：嚴格保護福慧幣與排行榜連線機制
+    // 🌟 嚴格保護福慧幣與排行榜連線機制
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
@@ -2488,7 +2504,7 @@
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
-    // 🌟 修正一：自讀達標後停止循環並灑花
+    // 🌟 自讀完成一遍後的動態檢查與暫停控制
     function handleCycleCompletion() {
       if (guideAnimId) {
         cancelAnimationFrame(guideAnimId);
@@ -2499,6 +2515,7 @@
 
       if (shouldStop) {
         haltGuideRunnerImmediately();
+        showToast('⏸️ 已達本階段循環目標，自動暫停', 3000);
         return;
       }
 
@@ -2543,7 +2560,7 @@
       updateVisualDisplay();
     }
 
-    // 網頁載入初始化 (V506)
+    // 網頁載入初始化 (V508)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2566,10 +2583,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V506_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V508_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V506_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V508_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
