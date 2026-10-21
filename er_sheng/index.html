@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v513 (起句終句二階段確認互動版)</title>
+  <title>歡喜背書橫式雙模播放器 v514 (中央浮窗提示與狀態精簡版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -239,6 +239,35 @@
       background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
     }
 
+    /* 🌟 仿截圖風格的中央高雅提示浮窗 (用於起句終句導引)[cite: 4] */
+    #center-prompt-banner {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: radial-gradient(circle at center, #1E293B 0%, #080D1A 100%);
+      color: #FBBF24;
+      border: 3px solid #F59E0B;
+      padding: 24px 40px;
+      border-radius: 20px;
+      z-index: 180000;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+      letter-spacing: 1.5px;
+    }
+    #center-prompt-banner.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
     /* 🔴 錄音時強效呼吸閃爍特效樣式 */
     @keyframes recordingPulseStrong {
       0%   { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
@@ -340,7 +369,7 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 🌟 全按鍵文字放最大化設定 (方型按鍵：跟讀、自讀、比對、供養) */
+    /* 🌟 全按鍵文字放最大化設定 (方型按鍵) */
     .square-btn {
       width: 62px !important;
       height: 62px !important;
@@ -501,8 +530,8 @@
     </div>
   </div>
 
-  <!-- ✨ 開幕大圖示動畫 Banner (已關閉) -->
-  <div id="mode-grand-banner"></div>
+  <!-- ✨ 中央精緻浮窗提示 Banner (用於起句終句導引，不擋左側) -->
+  <div id="center-prompt-banner"></div>
 
   <!-- 狀態浮標 (置中) -->
   <div id="schedule-toast">📅 載入進度中...</div>
@@ -618,7 +647,7 @@
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
     const companionOverlay = document.getElementById('companion-overlay');
     const companionImgDisplay = document.getElementById('companion-img-display');
-    const modeGrandBanner = document.getElementById('mode-grand-banner');
+    const centerPromptBanner = document.getElementById('center-prompt-banner');
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -686,7 +715,6 @@
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
-    // 🌟 起句終句二階段確認互動狀態旗標
     let isMarkingAState = false;
     let isMarkingBState = false;
 
@@ -717,23 +745,23 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 每日持久化計數讀寫 (V512/V513：完成後歸零)
+    // 🌟 每日持久化計數讀寫 (V514)
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V513_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V514_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V513_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V514_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V513_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V514_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V513_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V514_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -743,9 +771,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V513');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V514');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V513', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V514', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -1127,7 +1155,25 @@
       }, duration);
     }
 
+    // 🌟 需求 1 & 4：切換模式或進入比對模式時不顯示任何提示
     function showCurrentModeBanner() {}
+
+    // 🌟 顯示中央精緻浮窗提示 (替代底部 Toast，不擋左側)
+    function showCenterPrompt(title, subtitle = '') {
+      if (!centerPromptBanner) return;
+      centerPromptBanner.innerHTML = `<div style="font-size: 26px; font-weight: 900; color: #FBBF24;">${title}</div>` + (subtitle ? `<div style="font-size: 15px; color: #CBD5E1; font-weight: 700; margin-top: 6px;">${subtitle}</div>` : '');
+      centerPromptBanner.classList.add('active');
+      clearTimeout(centerPromptBanner._timer);
+      centerPromptBanner._timer = setTimeout(() => {
+        centerPromptBanner.style.opacity = '0';
+        centerPromptBanner.style.transform = 'translate(-50%, -50%) scale(0.9)';
+        setTimeout(() => {
+          centerPromptBanner.classList.remove('active');
+          centerPromptBanner.style.opacity = '';
+          centerPromptBanner.style.transform = '';
+        }, 300);
+      }, 4500);
+    }
 
     function setMp4Speed(val) {
       mp4Speed = val;
@@ -1384,14 +1430,12 @@
     }
 
     function renderUI() {
-      // 🌟 供養按鈕：方型外型，金橙色底色，文字「背書供養」
       slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
           slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">播放</button>';
           slotL3.innerHTML = '';
       } else {
-          // 🌟 起句 / 終句按鈕根據互動狀態（isMarkingAState / isMarkingBState）顯示「確認」與紫色外觀
           const textA = isMarkingAState ? '確認' : '起句';
           const textB = isMarkingBState ? '確認' : '終句';
           const styleA = isMarkingAState ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important;' : '';
@@ -1474,7 +1518,6 @@
       if (currentMode === 'mp4') {
           if (btnGendu) {
               const isPlaying = video && !video.paused;
-              // 🌟 狀態文字：跟讀變紫色時改為「跟我唸」
               btnGendu.textContent = isPlaying ? '跟我唸' : '跟讀';
               btnGendu.style.background = isPlaying ? colorPurple : colorGreen;
               btnGendu.style.borderColor = isPlaying ? '#E9D5FF' : '#A7F3D0';
@@ -1484,12 +1527,13 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  // 🌟 狀態文字：自讀變紫色時改為「唸出聲」
-                  btnZidu.textContent = isGuideActive ? (isVoiceActive ? '唸出聲' : '讀中') : '自讀';
-                  btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
-                  btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
+                  // 🌟 需求 2：自讀顯示為紫色時，只出現「唸出聲」文字，不夾雜其他提示
+                  btnZidu.textContent = isGuideEffectActive() ? '唸出聲' : '自讀';
+                  const active = isGuideEffectActive();
+                  btnZidu.style.background = active ? colorPurple : colorGreen;
+                  btnZidu.style.borderColor = active ? '#E9D5FF' : '#A7F3D0';
                   btnZidu.style.color = '#FFFFFF';
-                  btnZidu.style.boxShadow = isGuideActive ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
+                  btnZidu.style.boxShadow = active ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
               }
           } else if (pdfSubMode === 'compare') {
               if (btnRecord) {
@@ -1501,6 +1545,10 @@
               }
           }
       }
+    }
+
+    function isGuideEffectActive() {
+      return isGuideActive;
     }
 
     function handleGenduClick() {
@@ -1587,7 +1635,6 @@
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
         setMode('pdf', 'compare');
         preWarmMediaRecorder();
-        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2500);
         return;
       }
 
@@ -1718,7 +1765,6 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 需求 3：完成今日課程或自主 5 遍後，計數歸零
     function checkAndTriggerDynamicRain(totalToday) {
       const todayStr = getNormalizedDateStr();
       const targetLimit = scheduleRepeatLimit || 5;
@@ -1727,7 +1773,7 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V513_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V514_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日定課已圓滿！已完成，計數歸零', 5500);
@@ -1942,8 +1988,12 @@
       }
     }
 
-    // 🌟 需求：起句二階段互動（第1下出 Banner 並變紫色「確認」，第2下確認並回復）
+    // 🌟 需求 3 & 1：在跟讀模式下點擊起句/終句，強制提示必須切到自讀模式（使用中央浮窗樣式）
     function handleMarkAClck() {
+      if (currentMode === 'mp4') {
+        showCenterPrompt("請切到自讀模式", "上下移動把句子對準我，再按確認");
+        return;
+      }
       if (isGuideActive || currentMode !== 'pdf') return;
       if (parsedTextLines.length === 0) return;
       const btnMarkA = document.getElementById('btn-mark-a');
@@ -1952,7 +2002,7 @@
       if (!isMarkingAState) {
         isMarkingAState = true;
         isMarkingBState = false;
-        showToast("請切到自讀模式，上下移動把句子對準我，再按確認", 6000);
+        showCenterPrompt("請切到自讀模式", "上下移動把句子對準我，再按確認");
         renderUI();
       } else {
         isManualSelected = true;
@@ -1970,8 +2020,11 @@
       }
     }
 
-    // 🌟 需求：終句二階段互動（第1下出 Banner 並變紫色「確認」，第2下確認並回復）
     function handleMarkBClick() {
+      if (currentMode === 'mp4') {
+        showCenterPrompt("請切到自讀模式", "上下移動把句子對準我，再按確認");
+        return;
+      }
       if (isGuideActive || currentMode !== 'pdf') return;
       if (parsedTextLines.length === 0) return;
       const btnMarkB = document.getElementById('btn-mark-b');
@@ -1980,7 +2033,7 @@
       if (!isMarkingBState) {
         isMarkingBState = true;
         isMarkingAState = false;
-        showToast("請切到自讀模式，上下移動把句子對準我，再按確認", 6000);
+        showCenterPrompt("請切到自讀模式", "上下移動把句子對準我，再按確認");
         renderUI();
       } else {
         const selectedB = getLineAtButtonBottom(btnMarkB);
@@ -2591,7 +2644,7 @@
       updateVisualDisplay();
     }
 
-    // 網頁載入初始化 (V513)
+    // 網頁載入初始化 (V514)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2614,10 +2667,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V513_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V514_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V513_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V514_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
