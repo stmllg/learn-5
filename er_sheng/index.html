@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v417 (自讀比對修復完整版)</title>
+  <title>歡喜背書橫式雙模播放器 v419 (V408 穩定原汁原味版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 心靈陪伴卡 (透明隱藏防閃爍)
+       🌟 3. 心靈陪伴卡 (透明防閃爍)
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -197,7 +197,6 @@
       box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
       border-radius: 14px;
       overflow: hidden;
-      
       opacity: 0;
       transform: scale(0.96);
       transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -502,7 +501,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 心靈陪伴卡 (透明隱藏防閃爍) -->
+  <!-- 🌟 3. 心靈陪伴卡 (透明防閃爍) -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -724,9 +723,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V417');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V418');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V417', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V418', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -770,7 +769,7 @@
       }, 350);
     }
 
-    // 🌟 完整恢復 V408 的 PDF 載入與初始化邏輯
+    // 🌟 V408 原生完整啟動流程 + 背景預先解析 PDF
     async function activateMainReciteEntry() {
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -802,6 +801,11 @@
             cachedPdfBuffer = buf;
           }
         } catch(e){}
+      }
+
+      // 🌟 背景預先解析 PDF，確保自讀與比對點擊時秒開
+      if (cachedPdfBuffer) {
+        await renderPdfOnValidDimensions();
       }
 
       if (!isManualSelected) applyScheduleToState();
@@ -1293,6 +1297,7 @@
       showCurrentModeBanner();
     }
 
+    // 🌟 V408 原生直接綁定事件的 renderUI
     function renderUI() {
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
       
@@ -1527,7 +1532,7 @@
       ctx.restore();
     }
 
-    // 🌟 還原點 2：供養成功連線後灑下高質感福幣/慧幣雨
+    // 🌟 供養成功金幣雨特效
     function triggerLeaderboardCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1654,7 +1659,7 @@
       triggerSevenColoredLotusFlowerRain();
     }
 
-    // 🌟 還原點 1：完成遍數時的七色五瓣蓮花雨
+    // 🌟 完成遍數七色蓮花雨
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -2086,7 +2091,7 @@
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
 
-    // 🌟 供養確認按鈕：夾帶 start 與 group 參數並觸發金幣雨
+    // 🌟 確認供養按鈕：夾帶 start 與 group 參數並觸發金幣雨
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
@@ -2385,7 +2390,7 @@
       triggerSevenColoredLotusFlowerRain();
     }
 
-    // 網頁載入初始化 (V417)
+    // 網頁載入初始化 (V418)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2419,10 +2424,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V417_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V418_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V417_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V418_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
