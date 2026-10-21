@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v504 (自讀比對強效載入與獨立計數完美版)</title>
+  <title>歡喜背書橫式雙模播放器 v505 (花雨完美觸發與排行榜安全防護版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -742,9 +742,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V504');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V505');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V504', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V505', todayStr);
         setTodayGenduCycles(0);
         setTodayZiduCycles(0);
         isScheduleRepeatLocked = true;
@@ -789,7 +789,6 @@
       }, 350);
     }
 
-    // 🌟 採用老師提供的完美 setMode 與穩定啟動流程
     async function activateMainReciteEntry() {
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -1272,7 +1271,6 @@
       }
     }, { passive: true });
 
-    // 🌟 採用老師提供的完美 setMode 函式
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
 
@@ -1382,7 +1380,6 @@
       showCurrentModeBanner();
     }
 
-    // 🌟 100% V408 原生直接綁定事件的 renderUI
     function renderUI() {
       slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
       
@@ -1691,7 +1688,7 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 獨立跟讀與自讀計數記錄與合計目標達成檢核
+    // 🌟 修正一：獨立跟讀與自讀計數，並改用專屬花雨紀錄鍵與順序調整
     function processGenduCycleCompletion() {
       const todayStr = getNormalizedDateStr();
       let genduDone = getTodayGenduCycles() + 1;
@@ -1705,11 +1702,11 @@
       showToast('✅ 跟讀完成一遍，福慧幣 +' + earned + ' (今日跟讀: ' + genduDone + '/' + limit + ')', 2500);
 
       if (totalToday >= limit) {
-        const doneKey = 'SCHEDULE_DONE_' + todayStr;
+        const doneKey = 'SCHEDULE_FLOWER_DONE_V505_' + todayStr;
         if (!localStorage.getItem(doneKey)) {
-          localStorage.setItem(doneKey, 'true');
-          showToast('🎉 今日功課總遍數已達標！跟讀圓滿', 4500);
+          showToast('🎉 今日功課總遍數已達標！', 4500);
           triggerSevenColoredLotusFlowerRain();
+          localStorage.setItem(doneKey, 'true');
         }
         return true;
       }
@@ -1729,11 +1726,11 @@
       showToast('✅ 自讀完成一遍，福慧幣 +' + earned + ' (今日自讀: ' + ziduDone + '/' + limit + ')', 2500);
 
       if (totalToday >= limit) {
-        const doneKey = 'SCHEDULE_DONE_' + todayStr;
+        const doneKey = 'SCHEDULE_FLOWER_DONE_V505_' + todayStr;
         if (!localStorage.getItem(doneKey)) {
-          localStorage.setItem(doneKey, 'true');
-          showToast('🎉 今日功課總遍數已達標！自讀圓滿', 4500);
+          showToast('🎉 今日功課總遍數已達標！', 4500);
           triggerSevenColoredLotusFlowerRain();
+          localStorage.setItem(doneKey, 'true');
         }
         return true;
       }
@@ -2188,6 +2185,7 @@
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
 
+    // 🌟 修正二：嚴格的供養成功/失敗與逾時攔截機制，避免未取得排行榜時清空福慧幣
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
@@ -2209,12 +2207,38 @@
       const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
       let isDone = false;
 
-      function handleSuccess(data) {
+      function handleFailure(message) {
         if (isDone) return;
         isDone = true;
         clearTimeout(timeoutTimer);
         delete window[callbackName];
-        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+        if (scriptTag && scriptTag.parentNode) {
+          scriptTag.parentNode.removeChild(scriptTag);
+        }
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+        showToast(message, 5000);
+      }
+
+      function handleSuccess(data) {
+        if (isDone) return;
+        if (
+          !data ||
+          (
+            !Array.isArray(data.todayTop3) &&
+            !Array.isArray(data.totalTop3)
+          )
+        ) {
+          handleFailure('未取得排行榜資料，福慧幣已保留，請稍後重試');
+          return;
+        }
+
+        isDone = true;
+        clearTimeout(timeoutTimer);
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) {
+          scriptTag.parentNode.removeChild(scriptTag);
+        }
 
         resetCoins();
         displayCoinsCount.textContent = '0 枚';
@@ -2229,12 +2253,27 @@
         triggerLeaderboardCoinRain();
       }
 
-      const timeoutTimer = setTimeout(() => { if (!isDone) handleSuccess(null); }, 10000);
+      const timeoutTimer = setTimeout(() => {
+        handleFailure('排行榜連線逾時，福慧幣尚未清除，請稍後重試');
+      }, 10000);
+
       window[callbackName] = (res) => handleSuccess(res);
 
       const scriptTag = document.createElement('script');
-      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&startDate=${encodeURIComponent(startDateParam)}&groupName=${encodeURIComponent(groupParam)}&callback=${callbackName}&t=${Date.now()}`;
-      scriptTag.onerror = () => { if (!isDone) handleSuccess(null); };
+      scriptTag.src =
+        `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}` +
+        `&userName=${encodeURIComponent(userName)}` +
+        `&coins=${coinsToOffer}` +
+        `&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}` +
+        `&startDate=${encodeURIComponent(startDateParam)}` +
+        `&groupName=${encodeURIComponent(groupParam)}` +
+        `&callback=${callbackName}` +
+        `&t=${Date.now()}`;
+
+      scriptTag.onerror = () => {
+        handleFailure('排行榜連線失敗，福慧幣尚未清除，請檢查網路');
+      };
+
       document.body.appendChild(scriptTag);
     });
 
@@ -2470,7 +2509,7 @@
       updateVisualDisplay();
     }
 
-    // 網頁載入初始化 (V504)
+    // 網頁載入初始化 (V505)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2493,10 +2532,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V504_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V505_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V504_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V505_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
