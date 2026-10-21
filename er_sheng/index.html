@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v510 (比對錄音預熱暖機與開機定課提示版)</title>
+  <title>歡喜背書橫式雙模播放器 v511 (關閉切換Banner與背書供養方型美化版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -239,37 +239,6 @@
       background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
     }
 
-    /* =========================================================================
-       ✨ 4. 模式切換開幕大圖示動畫 Banner
-       ========================================================================= */
-    #mode-grand-banner {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.85);
-      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
-      color: #FBBF24;
-      border: 3px solid #F59E0B;
-      padding: 26px 52px;
-      border-radius: 24px;
-      z-index: 150000;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95);
-      text-align: center;
-      pointer-events: none;
-      opacity: 0;
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease;
-      letter-spacing: 2px;
-    }
-    #mode-grand-banner.active {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1;
-    }
-
     /* 🔴 錄音時強效呼吸閃爍特效樣式 */
     @keyframes recordingPulseStrong {
       0%   { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
@@ -393,7 +362,30 @@
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
     /* 按鍵專屬配色 */
-    .btn-color-offering { background-color: #B45309 !important; border: 2.5px solid #FDE68A !important; color: #FEF3C7 !important; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8) !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+    /* 🌟 供養按鈕美化：改為與右側模式完全相同的方型外型，底色金橙色，文字「背書供養」 */
+    .btn-color-offering {
+      width: 60px !important;
+      height: 60px !important;
+      border-radius: 14px !important;
+      border: 2.5px solid #FDE68A !important;
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
+      color: #FEF3C7 !important;
+      font-size: 14px !important;
+      font-weight: 900 !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85) !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.2;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform 0.15s ease-out, box-shadow 0.3s ease;
+    }
+    .btn-color-offering:active { transform: scale(0.90); opacity: 0.85; }
+
     .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
     .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
     .btn-color-play { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; font-size: 15px !important; }
@@ -509,7 +501,7 @@
     </div>
   </div>
 
-  <!-- ✨ 開幕大圖示動畫 Banner -->
+  <!-- ✨ 開幕大圖示動畫 Banner (已依需求取消顯示) -->
   <div id="mode-grand-banner"></div>
 
   <!-- 狀態浮標 (置中) -->
@@ -721,30 +713,30 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 每日持久化計數讀寫 (V510)
+    // 🌟 每日持久化計數讀寫 (V511)
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V510_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V511_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V510_' + todayStr, val.toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V511_' + todayStr, val.toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V510_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V511_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V510_' + todayStr, val.toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V511_' + todayStr, val.toString());
     }
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V510');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V511');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V510', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V511', todayStr);
         setTodayGenduCycles(0);
         setTodayZiduCycles(0);
         isScheduleRepeatLocked = true;
@@ -942,7 +934,6 @@
           updateVisualDisplay();
           scrollToAlignTop(markA_Index);
 
-          // 🌟 開機首度提示今日定課範圍與遍數
           const sA = markA_Index + 1;
           const sB = markB_Index + 1;
           showToast(`📅 今日定課：第 ${sA} 句 ～ 第 ${sB} 句（共 ${scheduleRepeatLimit} 遍）`, 5000);
@@ -1129,32 +1120,9 @@
       }, duration);
     }
 
-    function showModeBanner(title, subtitle) {
-      if (!modeGrandBanner) return;
-      modeGrandBanner.innerHTML = '<div style="font-size: 34px; font-weight: 900; color: #FBBF24;">' + title + '</div><div style="font-size: 16px; color: #CBD5E1; font-weight: 700; letter-spacing: 1.5px;">' + subtitle + '</div>';
-      modeGrandBanner.classList.add('active');
-      clearTimeout(modeGrandBanner._timer);
-      modeGrandBanner._timer = setTimeout(() => {
-        modeGrandBanner.style.opacity = '0';
-        modeGrandBanner.style.transform = 'translate(-50%, -50%) scale(0.9)';
-        setTimeout(() => {
-          modeGrandBanner.classList.remove('active');
-          modeGrandBanner.style.opacity = '';
-          modeGrandBanner.style.transform = '';
-        }, 350);
-      }, 2000);
-    }
-
+    // 🌟 需求 1：切換模式時，將開幕大圖示動畫 Banner 的顯示關閉（不做任何 Banner 顯示）
     function showCurrentModeBanner() {
-      if (currentMode === 'mp4') {
-        showModeBanner('📖 跟讀模式', '影音同步・經典隨讀');
-      } else if (currentMode === 'pdf') {
-        if (pdfSubMode === 'compare') {
-            showModeBanner('🎙️ 比對模式', '精確收音・回放比對');
-        } else {
-            showModeBanner('📖 自讀模式', '靜心默背・字句導讀');
-        }
-      }
+      // 故意留空，完全關閉模式切換時的大圖示浮窗 Banner
     }
 
     function setMp4Speed(val) {
@@ -1283,7 +1251,6 @@
       }
     }, { passive: true });
 
-    // 🌟 配合比對模式暖機預熱
     async function preWarmMediaRecorder() {
       try {
         if (!micStream) {
@@ -1413,7 +1380,8 @@
     }
 
     function renderUI() {
-      slotL1.innerHTML = '<button class="circle-btn btn-color-offering" id="btn-offering">供養</button>';
+      // 🌟 需求 2：供養鍵美化：改為與右側三種模式相同的方型外型，底色金橙色，文字為「背書供養」四字
+      slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
           slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">播放</button>';
@@ -1601,7 +1569,6 @@
       }
     }
 
-    // 🌟 改善 1：比對按鈕三段式直覺操作（切換模式 ➔ 開始錄音 ➔ 停止並自動播放）
     function handleRecordModeClick() {
       triggerAppFullscreen();
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
@@ -1738,7 +1705,6 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 動態循環檢查：未達排程依排程次數灑花暫停；達標解鎖後每 5 遍循環灑花暫停
     function checkAndTriggerDynamicRain(totalToday) {
       const todayStr = getNormalizedDateStr();
       const targetLimit = scheduleRepeatLimit || 5;
@@ -1747,7 +1713,7 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V510_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V511_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日定課已圓滿！已解除鎖定，進入自主加強學習模式（每 5 遍一循環）', 5500);
@@ -1762,7 +1728,7 @@
       if (totalToday > targetLimit) {
         const extraCount = totalToday - targetLimit;
         if (extraCount > 0 && extraCount % 5 === 0) {
-          const milestoneKey = `MILESTONE_FLOWER_V510_${todayStr}_${totalToday}`;
+          const milestoneKey = `MILESTONE_FLOWER_V511_${todayStr}_${totalToday}`;
           if (!localStorage.getItem(milestoneKey)) {
             showToast(`🌟 自主加強學習累計滿 ${totalToday} 遍（5 遍一循環圓滿）！`, 4500);
             triggerSevenColoredLotusFlowerRain();
@@ -2594,7 +2560,7 @@
       updateVisualDisplay();
     }
 
-    // 網頁載入初始化 (V510)
+    // 網頁載入初始化 (V511)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2617,10 +2583,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V510_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V511_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V510_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V511_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
