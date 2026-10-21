@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v419 (V408 穩定原汁原味版)</title>
+  <title>歡喜背書橫式雙模播放器 v419 (V408 原汁原味修復版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -501,7 +501,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 心靈陪伴卡 (透明防閃爍) -->
+  <!-- 🌟 3. 心靈陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -690,7 +690,7 @@
 
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
-    let scheduleRepeatLimit = 5;
+    let scheduleRepeatLimit = 1;
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
@@ -723,9 +723,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V418');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V408');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V418', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V408', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -769,7 +769,7 @@
       }, 350);
     }
 
-    // 🌟 V408 原生完整啟動流程 + 背景預先解析 PDF
+    // 🌟 完全還原 V408 原始啟動流程
     async function activateMainReciteEntry() {
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -801,11 +801,6 @@
             cachedPdfBuffer = buf;
           }
         } catch(e){}
-      }
-
-      // 🌟 背景預先解析 PDF，確保自讀與比對點擊時秒開
-      if (cachedPdfBuffer) {
-        await renderPdfOnValidDimensions();
       }
 
       if (!isManualSelected) applyScheduleToState();
@@ -879,10 +874,7 @@
         const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
         if (localSched) scheduleData = JSON.parse(localSched);
 
-        if (!scheduleData || !Array.isArray(scheduleData)) {
-          scheduleRepeatLimit = 5;
-          return false;
-        }
+        if (!scheduleData || !Array.isArray(scheduleData)) return false;
         
         let targetPlan = null;
         const urlParams = new URLSearchParams(window.location.search);
@@ -913,8 +905,6 @@
           if (typeof targetPlan.repeat === 'number' && targetPlan.repeat > 0) {
             scheduleRepeatLimit = targetPlan.repeat;
             isScheduleRepeatLocked = true;
-          } else {
-            scheduleRepeatLimit = 5;
           }
 
           updateVisualDisplay();
@@ -922,8 +912,6 @@
           return true;
         }
       } catch (err) {}
-      
-      scheduleRepeatLimit = 5;
       return false;
     }
 
@@ -1500,40 +1488,41 @@
       toggleReliableRecordAction();
     }
 
-    function renderHighQualityCoin(ctx, x, y, radius, opacity, type) {
+    function renderRealisticCoin(ctx, x, y, radius, opacity, symbolText) {
       ctx.save();
       ctx.translate(x, y);
-      ctx.globalAlpha = Math.min(1.0, Math.max(0.85, opacity));
+      ctx.globalAlpha = Math.min(1.0, Math.max(0.88, opacity));
 
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
-      let grad = ctx.createRadialGradient(-radius*0.3, -radius*0.3, radius*0.1, 0, 0, radius);
-      grad.addColorStop(0, '#FFF68F');
-      grad.addColorStop(0.5, '#FFD700');
-      grad.addColorStop(1, '#B8860B');
-      ctx.fillStyle = grad;
+      ctx.fillStyle = '#FFD700';
       ctx.fill();
-      ctx.lineWidth = radius * 0.12;
-      ctx.strokeStyle = '#DAA520';
+      ctx.lineWidth = 4.0;
+      ctx.strokeStyle = '#D4AF37';
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(0, 0, radius * 0.72, 0, Math.PI * 2);
-      ctx.strokeStyle = '#FFEE55';
-      ctx.lineWidth = radius * 0.05;
+      ctx.arc(0, 0, radius * 0.78, 0, Math.PI * 2);
+      ctx.strokeStyle = '#FFF176';
+      ctx.lineWidth = 2.0;
       ctx.stroke();
 
-      ctx.fillStyle = '#654321';
-      ctx.font = '900 ' + Math.floor(radius * 1.05) + 'px sans-serif';
+      ctx.fillStyle = '#B26A00';
+      ctx.font = '900 ' + Math.floor(radius * 1.1) + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(type === 'fu' ? '福' : '慧', 0, 1.5);
+      ctx.fillText(symbolText, 0, 1.5);
 
       ctx.restore();
     }
 
-    // 🌟 供養成功金幣雨特效
-    function triggerLeaderboardCoinRain() {
+    function triggerRecordCoinSplash() {
+      const btn = document.getElementById('btn-record');
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const startX = rect.left + rect.width / 2;
+      const startY = rect.top + rect.height / 2;
+
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
       canvas.style.display = 'block';
@@ -1542,49 +1531,50 @@
       canvas.height = window.innerHeight;
 
       const coins = [];
-      const count = 50;
+      const count = 32;
+      const symbols = ['福', '慧'];
       for (let i = 0; i < count; i++) {
+        const angle = -Math.PI * 0.82 + Math.random() * (Math.PI * 0.64);
+        const speed = Math.random() * 9 + 5;
         coins.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          radius: Math.random() * 8 + 14,
-          speedY: Math.random() * 1.8 + 1.2,
-          speedX: (Math.random() - 0.5) * 1.0,
+          x: startX,
+          y: startY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 6.5,
+          gravity: 0.40,
+          radius: Math.random() * 8 + 16,
           rotation: Math.random() * Math.PI,
-          vRot: (Math.random() - 0.5) * 0.06,
-          opacity: 0.96,
-          type: i % 2 === 0 ? 'fu' : 'hui'
+          vRot: (Math.random() - 0.5) * 0.15,
+          opacity: 1.0,
+          symbol: symbols[i % symbols.length]
         });
       }
 
       let startTime = performance.now();
-      const duration = 5800;
+      const duration = 1600;
 
-      function animateCoins(now) {
+      function animate(now) {
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         coins.forEach(c => {
-          c.y += c.speedY;
-          c.x += c.speedX + Math.sin(c.y / 35) * 0.5;
+          c.x += c.vx;
+          c.y += c.vy;
+          c.vy += c.gravity;
           c.rotation += c.vRot;
+          c.opacity = Math.max(0, 1 - elapsed / duration);
 
-          renderHighQualityCoin(ctx, c.x, c.y, c.radius, c.opacity, c.type);
-
-          if (c.y > canvas.height + 30) {
-            c.y = -30;
-            c.x = Math.random() * canvas.width;
-          }
+          renderRealisticCoin(ctx, c.x, c.y, c.radius, c.opacity, c.symbol);
         });
 
         if (elapsed < duration) {
-          requestAnimationFrame(animateCoins);
+          requestAnimationFrame(animate);
         } else {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           canvas.style.display = 'none';
         }
       }
-      requestAnimationFrame(animateCoins);
+      requestAnimationFrame(animate);
     }
 
     let mp4PrecisionCheckAnimId = null;
@@ -1608,7 +1598,7 @@
     function processCycleCompletion() {
       const todayStr = getNormalizedDateStr();
       let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
-      const limit = scheduleRepeatLimit || 5;
+      const limit = scheduleRepeatLimit || 1;
       
       const earned = calculateSentenceCount();
       addCoins(earned);
@@ -1621,7 +1611,7 @@
         if (dailyDone >= limit) {
           isScheduleRepeatLocked = false;
           completedCycles = 0;
-          showToast('🎉 今日功課遍數已達標！解鎖循環模式', 4500);
+          showToast('🎉 今日功課遍數已達標！解鎖內定 5 遍圓滿模式', 4500);
           handleTargetCycleDone();
           return true; 
         }
@@ -1659,7 +1649,6 @@
       triggerSevenColoredLotusFlowerRain();
     }
 
-    // 🌟 完成遍數七色蓮花雨
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1669,34 +1658,32 @@
       canvas.height = window.innerHeight;
 
       const flowers = [];
-      const lotusColors = [
-        '#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'
-      ];
+      const lotusColors = ['#FF5252', '#FFEB3B', '#4CAF50', '#00BCD4', '#9C27B0', '#FF9800', '#E91E63'];
       
-      for (let i = 0; i < 70; i++) {
+      for (let i = 0; i < 60; i++) {
         flowers.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 9 + 8,
-          speedY: Math.random() * 1.8 + 1.0,
-          speedX: (Math.random() - 0.5) * 1.2,
+          size: Math.random() * 10 + 8,
+          speedY: Math.random() * 1.5 + 1.0,
+          speedX: (Math.random() - 0.5) * 1.0,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 2.5,
+          rotationSpeed: (Math.random() - 0.5) * 2,
           color: lotusColors[Math.floor(Math.random() * lotusColors.length)],
-          opacity: 0.94
+          opacity: 0.9
         });
       }
 
       let startTime = performance.now();
-      const duration = 5800;
+      const duration = 5000;
 
-      function animateLotusRain(now) {
+      function animateRain(now) {
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         flowers.forEach(f => {
           f.y += f.speedY;
-          f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
+          f.x += f.speedX;
           f.rotation += f.rotationSpeed;
 
           ctx.save();
@@ -1704,39 +1691,28 @@
           ctx.rotate((f.rotation * Math.PI) / 180);
           ctx.globalAlpha = f.opacity;
 
-          for (let j = 0; j < 5; j++) {
-            const angle = (j * 2 * Math.PI) / 5;
-            const dist = f.size * 0.40;
-            const cx = Math.cos(angle) * dist;
-            const cy = Math.sin(angle) * dist;
-            ctx.fillStyle = f.color;
-            ctx.beginPath();
-            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          ctx.fillStyle = (f.color === '#F1F5F9') ? '#FEF08A' : '#FFFFFF';
+          ctx.fillStyle = f.color;
           ctx.beginPath();
-          ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
+          ctx.arc(0, 0, f.size, 0, Math.PI * 2);
           ctx.fill();
 
           ctx.restore();
 
-          if (f.y > canvas.height + 30) {
-            f.y = -30;
+          if (f.y > canvas.height + 20) {
+            f.y = -20;
             f.x = Math.random() * canvas.width;
           }
         });
 
         if (elapsed < duration) {
-          requestAnimationFrame(animateLotusRain);
+          requestAnimationFrame(animateRain);
         } else {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           canvas.style.display = 'none';
         }
       }
 
-      requestAnimationFrame(animateLotusRain);
+      requestAnimationFrame(animateRain);
     }
 
     function renderMarkerLine(lineElement, lineObj) {
@@ -1985,13 +1961,13 @@
           if ((isGuideActive || isUserRecording) && (performance.now() - lastVoiceTime > 20000)) {
             if (isGuideActive) {
               haltGuideRunnerImmediately();
-              showToast("讀誦逾時 20 秒無聲，已為您自動停止", 4500);
+              showToast("讀誦逾時 20 秒無聲,已為您自動停止", 4500);
             }
             if (isUserRecording) {
               if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
               isUserRecording = false;
               renderUI();
-              showToast("收音閒置 20 秒，已自動為您結束並保留錄音", 4500);
+              showToast("收音閒置 20 秒,已自動為您結束並保留錄音", 4500);
             }
             lastVoiceTime = performance.now();
           }
@@ -2059,6 +2035,7 @@
       }
     }
 
+    // 🌟 V408 原生供養按鈕邏輯 + 夾帶 start/group 參數與金幣雨
     function handleOfferingClick() {
       const displayCoinsCount = document.getElementById('display-coins-count');
       const inputClassId = document.getElementById('input-class-id');
@@ -2091,7 +2068,6 @@
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
 
-    // 🌟 確認供養按鈕：夾帶 start 與 group 參數並觸發金幣雨
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
@@ -2335,7 +2311,7 @@
       
       const todayStr = getNormalizedDateStr();
       let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
-      const limit = scheduleRepeatLimit || 5;
+      const limit = scheduleRepeatLimit || 1;
       
       const earned = calculateSentenceCount();
       addCoins(earned);
@@ -2348,7 +2324,7 @@
         if (dailyDone >= limit) {
           isScheduleRepeatLocked = false;
           completedCycles = 0;
-          showToast('🎉 今日功課遍數已達標！解鎖循環模式', 4500);
+          showToast('🎉 今日功課遍數已達標！解鎖內定 5 遍圓滿模式', 4500);
           handleTargetCycleDone();
           return;
         }
@@ -2390,7 +2366,91 @@
       triggerSevenColoredLotusFlowerRain();
     }
 
-    // 網頁載入初始化 (V418)
+    // 🌟 七色蓮花雨
+    function triggerSevenColoredLotusFlowerRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const flowers = [];
+      const lotusColors = ['#FF5252', '#FFEB3B', '#4CAF50', '#00BCD4', '#9C27B0', '#FF9800', '#E91E63'];
+      
+      for (let i = 0; i < 60; i++) {
+        flowers.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 10 + 8,
+          speedY: Math.random() * 1.5 + 1.0,
+          speedX: (Math.random() - 0.5) * 1.0,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 2,
+          color: lotusColors[Math.floor(Math.random() * lotusColors.length)],
+          opacity: 0.9
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5000;
+
+      function animateRain(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        flowers.forEach(f => {
+          f.y += f.speedY;
+          f.x += f.speedX;
+          f.rotation += f.rotationSpeed;
+
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate((f.rotation * Math.PI) / 180);
+          ctx.globalAlpha = f.opacity;
+
+          ctx.fillStyle = f.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, f.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+
+          if (f.y > canvas.height + 20) {
+            f.y = -20;
+            f.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateRain);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateRain);
+    }
+
+    function haltGuideRunnerImmediately() {
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = null;
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      if (mp4PrecisionCheckAnimId) { cancelAnimationFrame(mp4PrecisionCheckAnimId); mp4PrecisionCheckAnimId = null; }
+
+      isGuideActive = false;
+      isTransitioningLine = false;
+
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+
+      try { video.pause(); } catch(e){}
+      updateModeButtonsStyle();
+      updateVisualDisplay();
+    }
+
+    // 🌟 網頁載入初始化 (V419 原汁原味恢復)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2399,17 +2459,6 @@
       }
 
       checkDailyResetOnStartup();
-
-      try {
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
-        if (!localSched) {
-          const res = await fetch('./schedule.json');
-          if (res.ok) {
-            const schedData = await res.json();
-            localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(schedData));
-          }
-        }
-      } catch (e) {}
 
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
@@ -2424,10 +2473,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V418_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V408_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V418_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V408_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
