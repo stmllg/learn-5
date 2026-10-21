@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v408 </title>
+  <title>歡喜背書橫式雙模播放器 v414 (排程與陪伴卡聯動版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -166,7 +166,7 @@
     }
 
     /* =========================================================================
-       🌟 3. 心靈陪伴卡 (預先隱藏容器透明防閃爍)
+       🌟 3. 心靈陪伴卡 (預先隱藏容器防閃爍)
        ========================================================================= */
     #companion-overlay {
       display: none;
@@ -198,10 +198,9 @@
       border-radius: 14px;
       overflow: hidden;
       
-      /* 🌟 圖片讀取前透明隱藏，避免空白框閃爍 */
       opacity: 0;
       transform: scale(0.96);
-      transition: opacity 0.3s ease, transform 0.3s ease;
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .companion-wrapper.ready {
       opacity: 1;
@@ -503,7 +502,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 心靈陪伴卡 (預先透明隱藏，等圖片下載好才顯示，防止閃爍) -->
+  <!-- 🌟 3. 心靈陪伴卡 (透明隱藏防閃爍) -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -692,7 +691,7 @@
 
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
-    let scheduleRepeatLimit = 1;
+    let scheduleRepeatLimit = 5; // 🌟 嚴格預設為 5 遍，防止 1 遍就收工
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
@@ -725,9 +724,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V408');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V414');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V408', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V414', todayStr);
         isScheduleRepeatLocked = true;
         completedCycles = 0;
       }
@@ -867,6 +866,7 @@
       } catch (e) {}
     }
 
+    // 🌟 修正：精準依據 ?start=2026-10-20 計算當前天數與對應排程
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -875,7 +875,10 @@
         const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
         if (localSched) scheduleData = JSON.parse(localSched);
 
-        if (!scheduleData || !Array.isArray(scheduleData)) return false;
+        if (!scheduleData || !Array.isArray(scheduleData)) {
+          scheduleRepeatLimit = 5;
+          return false;
+        }
         
         let targetPlan = null;
         const urlParams = new URLSearchParams(window.location.search);
@@ -906,6 +909,8 @@
           if (typeof targetPlan.repeat === 'number' && targetPlan.repeat > 0) {
             scheduleRepeatLimit = targetPlan.repeat;
             isScheduleRepeatLocked = true;
+          } else {
+            scheduleRepeatLimit = 5;
           }
 
           updateVisualDisplay();
@@ -913,6 +918,8 @@
           return true;
         }
       } catch (err) {}
+      
+      scheduleRepeatLimit = 5;
       return false;
     }
 
@@ -1599,7 +1606,7 @@
     function processCycleCompletion() {
       const todayStr = getNormalizedDateStr();
       let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
-      const limit = scheduleRepeatLimit || 1;
+      const limit = scheduleRepeatLimit || 5; // 🌟 預設 5 遍防呆
       
       const earned = calculateSentenceCount();
       addCoins(earned);
@@ -1612,14 +1619,14 @@
         if (dailyDone >= limit) {
           isScheduleRepeatLocked = false;
           completedCycles = 0;
-          showToast('🎉 今日功課遍數已達標！解鎖內定 5 遍圓滿模式', 4500);
+          showToast('🎉 今日功課遍數已達標！解鎖循環模式', 4500);
           handleTargetCycleDone();
           return true; 
         }
       } else {
         completedCycles++;
         if (completedCycles >= 5) {
-          showToast('🌟 連續 5 遍圓滿！', 4000);
+          showToast('🌟 圓滿達成 5 遍！', 4000);
           handleTargetCycleDone();
           completedCycles = 0;
           return true; 
@@ -2049,7 +2056,6 @@
       }
     }
 
-    // 🌟 V408 原生供養點擊函數
     function handleOfferingClick() {
       const displayCoinsCount = document.getElementById('display-coins-count');
       const inputClassId = document.getElementById('input-class-id');
@@ -2319,7 +2325,7 @@
       
       const todayStr = getNormalizedDateStr();
       let dailyDone = parseInt(localStorage.getItem('DAILY_DONE_CYCLES_' + todayStr) || '0', 10);
-      const limit = scheduleRepeatLimit || 1;
+      const limit = scheduleRepeatLimit || 5;
       
       const earned = calculateSentenceCount();
       addCoins(earned);
@@ -2332,7 +2338,7 @@
         if (dailyDone >= limit) {
           isScheduleRepeatLocked = false;
           completedCycles = 0;
-          showToast('🎉 今日功課遍數已達標！解鎖內定 5 遍圓滿模式', 4500);
+          showToast('🎉 今日功課遍數已達標！解鎖 5 遍圓滿模式', 4500);
           handleTargetCycleDone();
           return;
         }
@@ -2457,6 +2463,7 @@
       updateVisualDisplay();
     }
 
+    // 🌟 網頁載入初始化 (V414 支援 ?start= 參數精準計算天數與透明隱藏防閃爍)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2466,14 +2473,36 @@
 
       checkDailyResetOnStartup();
 
-      const urlParams = new URLSearchParams(window.location.search);
-      let targetDay = parseInt(urlParams.get('day'), 10) || 1;
+      // 1. 優先從本地或網路同步載入 schedule.json 確保排程存在
+      try {
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
+        if (!localSched) {
+          const res = await fetch('./schedule.json');
+          if (res.ok) {
+            const schedData = await res.json();
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(schedData));
+          }
+        }
+      } catch (e) {}
 
-      if (!urlParams.get('day') && !urlParams.get('start')) {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V408_' + CURRENT_CLASSIC_ID) || '1', 10);
+      // 2. 依據 ?start= 參數精準計算今天是第幾天
+      const urlParams = new URLSearchParams(window.location.search);
+      let targetDay = 1;
+      const startStr = urlParams.get('start');
+
+      if (startStr) {
+        const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
+        const startDate = new Date(sYear, sMonth - 1, sDay);
+        const now = new Date();
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        targetDay = Math.max(1, Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
+      } else if (urlParams.get('day')) {
+        targetDay = parseInt(urlParams.get('day'), 10) || 1;
+      } else {
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V414_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V408_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V414_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
@@ -2481,7 +2510,7 @@
       const imgDisplay = document.getElementById('companion-img-display');
       const compWrapper = document.querySelector('.companion-wrapper');
 
-      // 🌟 僅加上載入防閃爍監聽，其餘完全保持 V408 原始碼
+      // 🌟 圖片載入完成才顯示，杜絕閃爍
       imgDisplay.onload = () => {
         compWrapper.classList.add('ready');
       };
