@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v508 (每日持久化計數與動態循環版)</title>
+  <title>歡喜背書橫式雙模播放器 v509 (比對三段直覺操作與開機定課提示版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -721,30 +721,30 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 獨立跟讀與自讀遍數持久化讀寫 (localStorage 隨時記錄，離開重開不遺失)
+    // 🌟 每日持久化計數讀寫 (localStorage 隨時記錄，離開重開不遺失)
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V509_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_' + todayStr, val.toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V509_' + todayStr, val.toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V509_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_' + todayStr, val.toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V509_' + todayStr, val.toString());
     }
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V508');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V509');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V508', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V509', todayStr);
         setTodayGenduCycles(0);
         setTodayZiduCycles(0);
         isScheduleRepeatLocked = true;
@@ -889,7 +889,7 @@
       } catch (e) {}
     }
 
-    // 🌟 排程遍數讀取與解鎖設定
+    // 🌟 讀取排程並顯示開機提示
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -901,6 +901,7 @@
         if (!scheduleData || !Array.isArray(scheduleData)) {
           scheduleRepeatLimit = 5;
           isScheduleRepeatLocked = false;
+          showToast('📅 今日定課：預設 5 遍', 4000);
           return false;
         }
         
@@ -940,12 +941,19 @@
 
           updateVisualDisplay();
           scrollToAlignTop(markA_Index);
+
+          // 🌟 開機首度提示今日定課範圍與遍數
+          const sA = markA_Index + 1;
+          const sB = markB_Index + 1;
+          showToast(`📅 今日定課：第 ${sA} 句 ～ 第 ${sB} 句（共 ${scheduleRepeatLimit} 遍）`, 5000);
+
           return true;
         }
       } catch (err) {}
       
       scheduleRepeatLimit = 5;
       isScheduleRepeatLocked = false;
+      showToast('📅 今日定課：預設 5 遍', 4000);
       return false;
     }
 
@@ -1573,17 +1581,36 @@
       }
     }
 
+    // 🌟 改善 1：比對按鈕三段式直覺操作（切換模式 ➔ 開始錄音 ➔ 停止並自動播放）
     function handleRecordModeClick() {
       triggerAppFullscreen();
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
-          setMode('pdf', 'compare');
-          return;
+        setMode('pdf', 'compare');
+        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2500);
+        return;
       }
-      if (parsedTextLines.length === 0) {
+
+      if (isUserRecording) {
+        // 正在錄音中 -> 停止錄音，並自動播放錄音結果
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        isUserRecording = false;
+        renderUI();
+        setTimeout(() => {
+          if (recordedAudioBlobUrl) {
+            togglePlaybackAction();
+            showToast('▶️ 錄音完成，正在為您播放比對', 2500);
+          }
+        }, 200);
+      } else {
+        // 尚未錄音 -> 開始錄音
+        if (parsedTextLines.length === 0) {
           showToast("經文處理中，請稍等片刻", 2000);
           return;
+        }
+        toggleReliableRecordAction();
       }
-      toggleReliableRecordAction();
     }
 
     // 🌟 高質感金幣繪製
@@ -1692,7 +1719,7 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 核心升級：動態檢查遍數（未達排程依排程次數灑花暫停；達標解鎖後固定每 5 遍循環灑花暫停）
+    // 🌟 動態循環檢查：未達排程依排程次數灑花暫停；達標解鎖後每 5 遍循環灑花暫停，並提示定課解除鎖定
     function checkAndTriggerDynamicRain(totalToday) {
       const todayStr = getNormalizedDateStr();
       const targetLimit = scheduleRepeatLimit || 5;
@@ -1702,14 +1729,15 @@
         return false; 
       }
 
-      // 2. 若剛好達到今日排程目標（第一次達標灑花）
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V508_' + todayStr;
+      // 2. 若剛好達到今日排程目標（第一次達標灑花，並提示解除鎖定）
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V509_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
-          showToast('🎉 今日功課總遍數已達標！排程圓滿', 4500);
+          showToast('🎉 今日定課已圓滿！已解除鎖定，進入自主加強學習模式（每 5 遍一循環）', 5500);
+          speakPrompt('今日定課已圓滿，已解除鎖定');
           triggerSevenColoredLotusFlowerRain();
           localStorage.setItem(scheduleDoneKey, 'true');
-          return true; // 達到目標，應停止循環
+          return true; // 達到目標，暫停循環
         }
         return false;
       }
@@ -1718,12 +1746,12 @@
       if (totalToday > targetLimit) {
         const extraCount = totalToday - targetLimit;
         if (extraCount > 0 && extraCount % 5 === 0) {
-          const milestoneKey = `MILESTONE_FLOWER_V508_${todayStr}_${totalToday}`;
+          const milestoneKey = `MILESTONE_FLOWER_V509_${todayStr}_${totalToday}`;
           if (!localStorage.getItem(milestoneKey)) {
-            showToast(`🌟 自主精進累計滿 ${totalToday} 遍，圓滿吉祥！`, 4500);
+            showToast(`🌟 自主加強學習累計滿 ${totalToday} 遍（5 遍一循環圓滿）！`, 4500);
             triggerSevenColoredLotusFlowerRain();
             localStorage.setItem(milestoneKey, 'true');
-            return true; // 滿 5 遍，應停止循環
+            return true; // 滿 5 遍，暫停循環
           }
         }
       }
@@ -1773,7 +1801,7 @@
       }
     }
 
-    // 🌟 完整還原精緻的七色五瓣蓮花雨特效
+    // 🌟 七色五瓣蓮花雨特效
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -2118,38 +2146,28 @@
     }
 
     async function toggleReliableRecordAction() {
-      if (!isUserRecording) {
-        const ok = await ensureMicrophoneActive();
-        if (!ok) { alert('無法存取麥克風，請檢查裝置權限設定'); return; }
+      const ok = await ensureMicrophoneActive();
+      if (!ok) { alert('無法存取麥克風，請檢查裝置權限設定'); return; }
 
-        audioChunks = [];
-        mediaRecorder = new MediaRecorder(micStream);
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) audioChunks.push(e.data);
-        };
-        mediaRecorder.onstop = () => {
-          const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
-          const recordedBlob = new Blob(audioChunks, options);
-          recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
-          recordAudioElement.src = recordedAudioBlobUrl;
-          recordAudioElement.playbackRate = compareSpeed;
-          showToast('錄音完成！點擊左側「播放」按鈕即可聆聽', 4000);
-          renderUI();
-        };
-        
-        mediaRecorder.start(); 
-        
-        isUserRecording = true;
-        lastVoiceTime = performance.now();
-        showToast('🔴 正在錄音中...', 3000);
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(micStream);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
+        const recordedBlob = new Blob(audioChunks, options);
+        recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
+        recordAudioElement.src = recordedAudioBlobUrl;
+        recordAudioElement.playbackRate = compareSpeed;
         renderUI();
-      } else {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-          mediaRecorder.stop();
-        }
-        isUserRecording = false;
-        renderUI();
-      }
+      };
+      
+      mediaRecorder.start(); 
+      isUserRecording = true;
+      lastVoiceTime = performance.now();
+      showToast('🔴 正在錄音中...', 3000);
+      renderUI();
     }
 
     function togglePlaybackAction() {
@@ -2560,7 +2578,7 @@
       updateVisualDisplay();
     }
 
-    // 網頁載入初始化 (V508)
+    // 網頁載入初始化 (V509)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2583,10 +2601,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V508_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V509_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V508_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V509_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
