@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v502 (自讀秒開與雙重特效完美版)</title>
+  <title>歡喜背書橫式雙模播放器 v503 (原版穩定與獨立計數還原版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -721,7 +721,7 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 獨立的跟讀與自讀遍數持久化讀寫函式 (同日重新開啟自動載入)
+    // 🌟 獨立跟讀與自讀遍數持久化讀寫函式 (同日重啟自動載入)
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
       return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_' + todayStr) || '0', 10);
@@ -742,9 +742,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V502');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V503');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V502', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V503', todayStr);
         setTodayGenduCycles(0);
         setTodayZiduCycles(0);
         isScheduleRepeatLocked = true;
@@ -789,7 +789,7 @@
       }, 350);
     }
 
-    // 🌟 V502 完美啟動流程：點擊卡片關閉時，強制同步解析 PDF，保證自讀比對秒開
+    // 🌟 V503 啟動流程：完全採用 V421 原生架構，同時確保背景預先解析 PDF
     async function activateMainReciteEntry() {
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -823,7 +823,6 @@
         } catch(e){}
       }
 
-      // 🌟 關鍵修復：在此強制等待 PDF 解析完成，保證切換至自讀/比對時資料 100% 備妥
       if (cachedPdfBuffer && parsedTextLines.length === 0) {
         await renderPdfOnValidDimensions();
       }
@@ -2388,7 +2387,7 @@
       }, 1500);
     }
 
-    // 網頁載入初始化 (V502)
+    // 網頁載入初始化 (V503)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2422,10 +2421,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V502_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V503_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V502_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V503_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
