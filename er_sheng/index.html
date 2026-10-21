@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v419 (V408 原汁原味修復版)</title>
+  <title>歡喜背書橫式雙模播放器 v420 (自讀比對完美還原版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -501,7 +501,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 心靈陪伴卡 -->
+  <!-- 🌟 3. 心靈陪伴卡 (透明防閃爍) -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -769,7 +769,7 @@
       }, 350);
     }
 
-    // 🌟 完全還原 V408 原始啟動流程
+    // 🌟 V408 原生完整啟動流程 (完整恢復 PDF 載入與解析)
     async function activateMainReciteEntry() {
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -801,6 +801,11 @@
             cachedPdfBuffer = buf;
           }
         } catch(e){}
+      }
+
+      // 🌟 關鍵修復：這裡就是 V408 原本讓 PDF 解析啟動的唯一關鍵
+      if (cachedPdfBuffer && parsedTextLines.length === 0) {
+        await renderPdfOnValidDimensions();
       }
 
       if (!isManualSelected) applyScheduleToState();
@@ -1961,13 +1966,13 @@
           if ((isGuideActive || isUserRecording) && (performance.now() - lastVoiceTime > 20000)) {
             if (isGuideActive) {
               haltGuideRunnerImmediately();
-              showToast("讀誦逾時 20 秒無聲,已為您自動停止", 4500);
+              showToast("讀誦逾時 20 秒無聲，已為您自動停止", 4500);
             }
             if (isUserRecording) {
               if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
               isUserRecording = false;
               renderUI();
-              showToast("收音閒置 20 秒,已自動為您結束並保留錄音", 4500);
+              showToast("收音閒置 20 秒，已自動為您結束並保留錄音", 4500);
             }
             lastVoiceTime = performance.now();
           }
@@ -2366,7 +2371,6 @@
       triggerSevenColoredLotusFlowerRain();
     }
 
-    // 🌟 七色蓮花雨
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -2450,7 +2454,7 @@
       updateVisualDisplay();
     }
 
-    // 🌟 網頁載入初始化 (V419 原汁原味恢復)
+    // 網頁載入初始化 (V420)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
