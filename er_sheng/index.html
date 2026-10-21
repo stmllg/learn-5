@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v511 (關閉切換Banner與背書供養方型美化版)</title>
+  <title>歡喜背書橫式雙模播放器 v512 (全鍵字體放大與計數歸零版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -318,16 +318,17 @@
     #right-wing { width: calc(68px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; }
     .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
 
+    /* 🌟 全按鍵文字放最大化設定 (圓形按鍵) */
     .circle-btn {
-      width: 52px !important;
-      height: 52px !important;
+      width: 54px !important;
+      height: 54px !important;
       border-radius: 50%;
       border: 2.5px solid #FFFFFF;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 14px !important;
+      font-size: 16px !important;
       font-weight: 900;
       color: #FFFFFF;
       cursor: pointer;
@@ -339,9 +340,10 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
+    /* 🌟 全按鍵文字放最大化設定 (方型按鍵：跟讀、自讀、比對、供養) */
     .square-btn {
-      width: 60px !important;
-      height: 60px !important;
+      width: 62px !important;
+      height: 62px !important;
       border-radius: 14px !important;
       border: 2.5px solid #BAE6FD;
       background: #000000;
@@ -349,28 +351,28 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 17px !important;
+      font-size: 16px !important;
       font-weight: 900;
       color: #FB923C;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
       transition: transform 0.15s ease-out, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
       text-align: center;
-      line-height: 1.1;
+      line-height: 1.2;
       touch-action: manipulation;
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
     /* 按鍵專屬配色 */
-    /* 🌟 供養按鈕美化：改為與右側模式完全相同的方型外型，底色金橙色，文字「背書供養」 */
+    /* 🌟 背書供養方型按鈕：金橙色底色，字體放到最大並自動排列 */
     .btn-color-offering {
-      width: 60px !important;
-      height: 60px !important;
+      width: 62px !important;
+      height: 62px !important;
       border-radius: 14px !important;
       border: 2.5px solid #FDE68A !important;
       background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
       color: #FEF3C7 !important;
-      font-size: 14px !important;
+      font-size: 15px !important;
       font-weight: 900 !important;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85) !important;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -379,16 +381,15 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      line-height: 1.2;
+      line-height: 1.15;
       cursor: pointer;
       touch-action: manipulation;
-      transition: transform 0.15s ease-out, box-shadow 0.3s ease;
     }
     .btn-color-offering:active { transform: scale(0.90); opacity: 0.85; }
 
     .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
     .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
-    .btn-color-play { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; font-size: 15px !important; }
+    .btn-color-play { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; font-size: 16px !important; }
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
 
@@ -501,7 +502,7 @@
     </div>
   </div>
 
-  <!-- ✨ 開幕大圖示動畫 Banner (已依需求取消顯示) -->
+  <!-- ✨ 開幕大圖示動畫 Banner (已關閉) -->
   <div id="mode-grand-banner"></div>
 
   <!-- 狀態浮標 (置中) -->
@@ -713,32 +714,36 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 每日持久化計數讀寫 (V511)
+    // 🌟 每日持久化計數讀寫 (V512：完成後歸零)
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V511_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V512_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V511_' + todayStr, val.toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V512_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V511_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V512_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V511_' + todayStr, val.toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V512_' + todayStr, Math.max(0, val).toString());
+    }
+
+    function resetTodayCycles() {
+      setTodayGenduCycles(0);
+      setTodayZiduCycles(0);
     }
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V511');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V512');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V511', todayStr);
-        setTodayGenduCycles(0);
-        setTodayZiduCycles(0);
+        localStorage.setItem('APP_ACTIVE_DATE_V512', todayStr);
+        resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
     }
@@ -881,7 +886,6 @@
       } catch (e) {}
     }
 
-    // 🌟 讀取排程並顯示開機提示
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -1120,10 +1124,7 @@
       }, duration);
     }
 
-    // 🌟 需求 1：切換模式時，將開幕大圖示動畫 Banner 的顯示關閉（不做任何 Banner 顯示）
-    function showCurrentModeBanner() {
-      // 故意留空，完全關閉模式切換時的大圖示浮窗 Banner
-    }
+    function showCurrentModeBanner() {}
 
     function setMp4Speed(val) {
       mp4Speed = val;
@@ -1380,7 +1381,7 @@
     }
 
     function renderUI() {
-      // 🌟 需求 2：供養鍵美化：改為與右側三種模式相同的方型外型，底色金橙色，文字為「背書供養」四字
+      // 🌟 供養按鈕美化：改為方型外型，底色金橙色，文字為「背書供養」
       slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
@@ -1464,6 +1465,8 @@
       if (currentMode === 'mp4') {
           if (btnGendu) {
               const isPlaying = video && !video.paused;
+              // 🌟 需求 2：跟讀變紫色時，文字改為「跟我唸」
+              btnGendu.textContent = isPlaying ? '跟我唸' : '跟讀';
               btnGendu.style.background = isPlaying ? colorPurple : colorGreen;
               btnGendu.style.borderColor = isPlaying ? '#E9D5FF' : '#A7F3D0';
               btnGendu.style.color = '#FFFFFF';
@@ -1472,7 +1475,8 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  btnZidu.textContent = isGuideActive ? (isVoiceActive ? '背誦中' : '導讀中') : '自讀';
+                  // 🌟 需求 2：自讀變紫色時，文字改為「唸出聲」
+                  btnZidu.textContent = isGuideActive ? (isVoiceActive ? '唸出聲' : '讀中') : '自讀';
                   btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
                   btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
                   btnZidu.style.color = '#FFFFFF';
@@ -1705,6 +1709,7 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
+    // 🌟 需求 3：完成今日課程或自主 5 遍後，計數歸零，保持單純
     function checkAndTriggerDynamicRain(totalToday) {
       const todayStr = getNormalizedDateStr();
       const targetLimit = scheduleRepeatLimit || 5;
@@ -1713,29 +1718,25 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V511_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V512_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
-          showToast('🎉 今日定課已圓滿！已解除鎖定，進入自主加強學習模式（每 5 遍一循環）', 5500);
-          speakPrompt('今日定課已圓滿，已解除鎖定');
+          showToast('🎉 今日定課已圓滿！已完成，計數歸零', 5500);
+          speakPrompt('今日定課已圓滿');
           triggerSevenColoredLotusFlowerRain();
           localStorage.setItem(scheduleDoneKey, 'true');
+          resetTodayCycles(); // 🌟 完成後計數歸零
           return true;
         }
         return false;
       }
 
-      if (totalToday > targetLimit) {
-        const extraCount = totalToday - targetLimit;
-        if (extraCount > 0 && extraCount % 5 === 0) {
-          const milestoneKey = `MILESTONE_FLOWER_V511_${todayStr}_${totalToday}`;
-          if (!localStorage.getItem(milestoneKey)) {
-            showToast(`🌟 自主加強學習累計滿 ${totalToday} 遍（5 遍一循環圓滿）！`, 4500);
-            triggerSevenColoredLotusFlowerRain();
-            localStorage.setItem(milestoneKey, 'true');
-            return true;
-          }
-        }
+      // 自主加強學習：每滿 5 遍循環灑花，並歸零重新計算下一個 5 遍
+      if (totalToday >= 5) {
+        showToast('🌟 自主加強學習 5 遍圓滿！計數歸零', 4500);
+        triggerSevenColoredLotusFlowerRain();
+        resetTodayCycles(); // 🌟 自主 5 遍完成後計數歸零
+        return true;
       }
 
       return false;
@@ -1748,7 +1749,7 @@
       const totalToday = genduDone + getTodayZiduCycles();
       const earned = calculateSentenceCount();
       addCoins(earned);
-      showToast('✅ 跟讀完成一遍，福慧幣 +' + earned + ' (今日總計: ' + totalToday + ' 遍)', 2500);
+      showToast('✅ 跟讀完成一遍，福慧幣 +' + earned + ' (累計: ' + totalToday + ' 遍)', 2500);
 
       return checkAndTriggerDynamicRain(totalToday);
     }
@@ -1760,7 +1761,7 @@
       const totalToday = getTodayGenduCycles() + ziduDone;
       const earned = calculateSentenceCount();
       addCoins(earned);
-      showToast('✅ 自讀完成一遍，福慧幣 +' + earned + ' (今日總計: ' + totalToday + ' 遍)', 2500);
+      showToast('✅ 自讀完成一遍，福慧幣 +' + earned + ' (累計: ' + totalToday + ' 遍)', 2500);
 
       return checkAndTriggerDynamicRain(totalToday);
     }
@@ -1774,7 +1775,7 @@
       if (shouldStop) {
         video.pause();
         updateModeButtonsStyle();
-        showToast('⏸️ 已達本階段循環目標，自動暫停', 3000);
+        showToast('⏸️ 已達本階段循環目標，計數已歸零', 3000);
       } else {
         video.play().then(() => {
           updateModeButtonsStyle();
@@ -2504,7 +2505,6 @@
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
-    // 🌟 自讀完成一遍後的動態檢查與暫停控制
     function handleCycleCompletion() {
       if (guideAnimId) {
         cancelAnimationFrame(guideAnimId);
@@ -2515,7 +2515,7 @@
 
       if (shouldStop) {
         haltGuideRunnerImmediately();
-        showToast('⏸️ 已達本階段循環目標，自動暫停', 3000);
+        showToast('⏸️ 已達本階段循環目標，計數已歸零', 3000);
         return;
       }
 
@@ -2560,7 +2560,7 @@
       updateVisualDisplay();
     }
 
-    // 網頁載入初始化 (V511)
+    // 網頁載入初始化 (V512)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2583,10 +2583,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V511_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V512_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V511_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V512_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
