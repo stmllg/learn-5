@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v532 (Android完美保留與Apple自讀平滑防跳動版)</title>
+  <title>歡喜背書橫式雙模播放器 v533 (Android核心完美保留與Apple手動捲動不回彈版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -710,24 +710,38 @@
 
     let hasEnteredReciting = false;
 
+    // 🌟 智慧手動捲動偵測：防止自讀模式下搶奪使用者畫面
+    let isUserManualScrolling = false;
+    let manualScrollTimer = null;
+
+    centerCore.addEventListener('scroll', () => {
+      if (isGuideActive) {
+        isUserManualScrolling = true;
+        if (manualScrollTimer) clearTimeout(manualScrollTimer);
+        manualScrollTimer = setTimeout(() => {
+          isUserManualScrolling = false;
+        }, 1200);
+      }
+    }, { passive: true });
+
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V532_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V533_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V532_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V533_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V532_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V533_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V532_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V533_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -737,9 +751,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V532');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V533');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V532', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V533', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -1237,6 +1251,8 @@
 
     window.addEventListener('touched', (e) => {}, { passive: true });
 
+    window.addEventListener('touched-end', (e) => {}, { passive: true });
+
     window.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - touchStartX;
@@ -1627,7 +1643,7 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V532_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V533_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日定課已圓滿！已完成，計數歸零', 5500);
@@ -1692,7 +1708,7 @@
       }
     }
 
-    // 🌟 七色蓮花雨特效
+    // 🌸 七色蓮花雨特效
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1772,7 +1788,7 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 Android 成功核心嚴格保持不變
+    // 🌟 Android 核心 100% 完美保留不變
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
@@ -1786,7 +1802,6 @@
         lineElement.style.display = 'block';
         return;
       }
-      // Apple 端：以 PDF Canvas 實際渲染高精準對應，不使用強制鎖定
       const canvasRect = pdfCanvas.getBoundingClientRect();
       const scaleY = canvasRect.height / pdfCanvas.height;
       const scaleX = canvasRect.width / pdfCanvas.width;
@@ -1825,26 +1840,16 @@
       }
     }
 
-    // 🌟 嚴格修正 Apple 點擊定句因未加回 scrollTop 導致點擊偏離或抓到上一頁的根本問題
     function getLineIndexAtClientPoint(clientX, clientY) {
       if (parsedTextLines.length === 0) return 0;
       let closestIdx = 0, minDiff = Infinity;
 
       const canvasRect = pdfCanvas.getBoundingClientRect();
-      const scaleY = canvasRect.height / pdfCanvas.height;
-      const scrollTop = centerCore.scrollTop;
 
       for (let i = 0; i < parsedTextLines.length; i++) {
         const line = parsedTextLines[i];
-        let lineScreenY = 0;
-
-        if (!isAppleDevice) {
-          const scaleYAndroid = canvasRect.height / pdfCanvas.height;
-          lineScreenY = canvasRect.top + (line.underLineY * scaleYAndroid);
-        } else {
-          // Apple 修正：用畫布頂部扣除父容器頂部，加上當前 scrollTop 與行實體高度，解決捲動後點擊跑到上一頁的問題
-          lineScreenY = canvasRect.top + (line.underLineY * scaleY);
-        }
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const lineScreenY = canvasRect.top + (line.underLineY * scaleY);
 
         const diff = Math.abs(lineScreenY - clientY);
         if (diff < minDiff) {
@@ -2199,15 +2204,15 @@
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
-    // 🌟 嚴格修復 Apple 自讀啟動時畫面跳動：智慧判斷是否已在可視範圍內，避免強制硬跳
+    // 🌟 智慧防回彈：加入使用者手動捲動判斷 (isUserManualScrolling)，絕對不跟您的手動操作搶畫面
     function scrollToAlignTop(idx) {
+      if (isUserManualScrolling) return; 
       const line = parsedTextLines[idx];
       if (line) {
         const targetTop = Math.max(0, line.topGlobal - 18);
         if (isAppleDevice) {
           const viewportTop = centerCore.scrollTop;
           const viewportBottom = viewportTop + centerCore.clientHeight;
-          // 只有當目標行不在目前可見視窗時，才進行平滑捲動，絕不強行重置跳頁
           if (line.topGlobal < viewportTop || line.bottomGlobal > viewportBottom) {
             centerCore.scrollTo({ top: targetTop, behavior: 'smooth' });
           }
@@ -2436,10 +2441,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V532_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V533_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V532_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V533_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
