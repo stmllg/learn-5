@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v526 (每一句絕對真實座標精準定位與視圖鎖定版)</title>
+  <title>歡喜背書橫式雙模播放器 v527 (區塊矩形絕對命中精準版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -589,7 +589,6 @@
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    // 🌟 Apple 與 Android 獨立分流的 Canvas 比例換算
     function getAppleCanvasScale() {
       if (!isAppleDevice) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
       if (!pdfCanvas || pdfCanvas.height === 0 || pdfCanvas.width === 0) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
@@ -715,20 +714,20 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V526_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V527_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V526_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V527_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V526_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V527_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V526_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V527_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -738,9 +737,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V526');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V527');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V526', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V527', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -1628,7 +1627,7 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V526_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V527_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日定課已圓滿！已完成，計數歸零', 5500);
@@ -1773,16 +1772,10 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 嚴格分流：marker 線條繪製（Android 與 Apple 獨立通道）
+    // 🌟 嚴格分流繪製線條
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
-        // Android 專屬：精準對應 container 與 scrollTop
-        const centerRect = centerCore.getBoundingClientRect();
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleRatio = canvasRect.height / pdfCanvas.height;
-        const lineScreenTop = canvasRect.top - centerCore.getBoundingClientRect().top + (line.topGlobal * scaleRatio);
-        
         lineElement.style.top = lineObj.underLineY + 'px';
         lineElement.style.left = lineObj.x0 + 'px';
         lineElement.style.width = (lineObj.x1 - lineObj.x0) + 'px';
@@ -1824,29 +1817,31 @@
       }
     }
 
-    // 🌟 嚴格修復：以 PDF 畫布真實位置與捲動位置計算的雙系統分流觸控點擊定位
+    // 🌟 終極精準矩形命中判定 (Bounding Box Hit Testing)
     function getLineIndexAtClientPoint(clientX, clientY) {
       if (parsedTextLines.length === 0) return 0;
-      let closestIdx = 0, minDiff = Infinity;
 
-      const centerRect = centerCore.getBoundingClientRect();
       const canvasRect = pdfCanvas.getBoundingClientRect();
+      const scaleY = canvasRect.height / pdfCanvas.height;
       const scrollTop = centerCore.scrollTop;
 
+      // 將螢幕點擊的 clientY 換算為畫布內部相對於頂部的絕對 Y 座標
+      const clickPdfY = (clientY - canvasRect.top) / scaleY;
+
+      // 檢查每一個文字行的範圍 (topGlobal 到 underLineY)
       for (let i = 0; i < parsedTextLines.length; i++) {
         const line = parsedTextLines[i];
-        let lineScreenY = 0;
-
-        if (!isAppleDevice) {
-          // Android 專屬精準計算：結合畫布在畫面上的頂部、捲動位置與比例
-          const ratio = canvasRect.height / pdfCanvas.height;
-          lineScreenY = (canvasRect.top - centerRect.top) + scrollTop + (line.underLineY * ratio);
-        } else {
-          // Apple 專屬精準計算：透過專屬 scale 與 offset
-          const { scaleY, offsetTop } = getAppleCanvasScale();
-          lineScreenY = offsetTop + (line.underLineY * scaleY);
+        // 容許上下各擴大 4 像素作為舒適點擊區
+        if (clickPdfY >= (line.topGlobal - 4) && clickPdfY <= (line.underLineY + 4)) {
+          return i;
         }
+      }
 
+      // 如果剛好點在行與行之間空白處，則尋找垂直距離最近的一行
+      let closestIdx = 0, minDiff = Infinity;
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const line = parsedTextLines[i];
+        const lineScreenY = canvasRect.top + (line.underLineY * scaleY);
         const diff = Math.abs(lineScreenY - clientY);
         if (diff < minDiff) {
           minDiff = diff;
@@ -2252,11 +2247,6 @@
 
       if (isGuideActive) {
         if (!isAppleDevice) {
-          const centerRect = centerCore.getBoundingClientRect();
-          const canvasRect = pdfCanvas.getBoundingClientRect();
-          const scaleRatio = canvasRect.height / pdfCanvas.height;
-          const lineScreenTop = (canvasRect.top - centerRect.top) + centerCore.scrollTop + (line.topGlobal * scaleRatio);
-
           guideLine.style.top = line.underLineY + 'px';
           guideLine.style.left = line.x0 + 'px';
           guideLine.style.width = (line.x1 - line.x0) + 'px';
@@ -2322,7 +2312,7 @@
             const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
             const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
             redDot.style.left = (offsetLeft + (rawX * scaleX)) + 'px';
-            redDot.style.top = (offsetTop + (curLine.underLineY * scaleY)) + 'px';
+            redDot.style.top = (offsetTop + (rawX * scaleY)) + 'px';
           }
         }
 
@@ -2346,7 +2336,7 @@
         } else {
           const { scaleX, scaleY, offsetTop, offsetLeft } = getAppleCanvasScale();
           redDot.style.left = (offsetLeft + (rawX * scaleX)) + 'px';
-          redDot.style.top = (offsetTop + (curLine.underLineY * scaleY)) + 'px';
+          redDot.style.top = (offsetTop + (rawX * scaleY)) + 'px';
         }
       }
       guideAnimId = requestAnimationFrame(stepGuideMovement);
@@ -2439,10 +2429,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V526_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V527_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V526_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V527_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
