@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v522 (手指點擊定句精準對位版)</title>
+  <title>歡喜背書橫式雙模播放器 v523 (Apple與Android雙系統顯示分流與蓮花雨復原版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -340,7 +340,7 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 🌟 全按鍵文字放最大化設定 (方型按鍵：跟讀、自讀、比對、供養) */
+    /* 🌟 全按鍵文字放最大化設定 (方型按鍵) */
     .square-btn {
       width: 62px !important;
       height: 62px !important;
@@ -364,7 +364,6 @@
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
     /* 按鍵專屬配色 */
-    /* 🌟 背書供養方型按鈕：金橙色底色，字體放到最大並自動排列 */
     .btn-color-offering {
       width: 62px !important;
       height: 62px !important;
@@ -502,14 +501,11 @@
     </div>
   </div>
 
-  <!-- ✨ 開幕大圖示動畫 Banner (已關閉) -->
-  <div id="mode-grand-banner"></div>
-
   <!-- 狀態浮標 (置中) -->
   <div id="schedule-toast">📅 載入進度中...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
-  <!-- 🌸 畫布特效層 -->
+  <!-- 🌸 畫布特效層 (七色蓮花雨) -->
   <canvas id="flowerCanvas"></canvas>
 
   <!-- 4. 主視圖 -->
@@ -593,6 +589,7 @@
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+    // 🌟 Apple 與 Android 畫布縮放與坐標定位分流處理
     function getAppleCanvasScale() {
       if (!isAppleDevice) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
       if (!pdfCanvas || pdfCanvas.height === 0 || pdfCanvas.width === 0) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
@@ -619,7 +616,6 @@
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
     const companionOverlay = document.getElementById('companion-overlay');
     const companionImgDisplay = document.getElementById('companion-img-display');
-    const modeGrandBanner = document.getElementById('mode-grand-banner');
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -687,7 +683,6 @@
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
-    // 🌟 點擊選取模式旗標 (V522)
     let isSelectingMarkA = false;
     let isSelectingMarkB = false;
 
@@ -718,23 +713,22 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 每日持久化計數讀寫 (V522)
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V522_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V523_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V522_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V523_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V522_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V523_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V522_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V523_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -744,9 +738,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V522');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V523');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V522', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V523', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -754,7 +748,6 @@
 
     function handleOrientationCheck() {
       if (hasEnteredReciting) return;
-
       const isPortrait = window.innerHeight > window.innerWidth;
       if (isPortrait) {
         portraitBlocker.style.display = 'flex';
@@ -1243,8 +1236,6 @@
       }
     }, { passive: true });
 
-    window.addEventListener('touched', (e) => {}, { passive: true });
-
     window.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - touchStartX;
@@ -1385,15 +1376,19 @@
     }
 
     function renderUI() {
-      // 供養按鈕美化：改為方型外型，底色金橙色，文字為「背書供養」
       slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
           slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">播放</button>';
           slotL3.innerHTML = '';
       } else {
-          slotL2.innerHTML = '<button class="circle-btn btn-color-mark-a" id="btn-mark-a">起句</button>';
-          slotL3.innerHTML = '<button class="circle-btn btn-color-mark-b" id="btn-mark-b">終句</button>';
+          const textA = isSelectingMarkA ? '請點句' : '起句';
+          const textB = isSelectingMarkB ? '請點句' : '終句';
+          const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+          const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+
+          slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
+          slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
       }
       
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
@@ -1469,7 +1464,6 @@
       if (currentMode === 'mp4') {
           if (btnGendu) {
               const isPlaying = video && !video.paused;
-              // 🌟 需求 2：跟讀變紫色時，文字改為「跟我唸」
               btnGendu.textContent = isPlaying ? '跟我唸' : '跟讀';
               btnGendu.style.background = isPlaying ? colorPurple : colorGreen;
               btnGendu.style.borderColor = isPlaying ? '#E9D5FF' : '#A7F3D0';
@@ -1479,7 +1473,6 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  // 🌟 需求 2：自讀變紫色時，文字改為「唸出聲」
                   btnZidu.textContent = isGuideActive ? (isVoiceActive ? '唸出聲' : '讀中') : '自讀';
                   btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
                   btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
@@ -1607,94 +1600,6 @@
       }
     }
 
-    // 🌟 高質感金幣繪製
-    function renderHighQualityCoin(ctx, x, y, radius, opacity, type) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.globalAlpha = Math.min(1.0, Math.max(0.85, opacity));
-
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, Math.PI * 2);
-      let grad = ctx.createRadialGradient(-radius*0.3, -radius*0.3, radius*0.1, 0, 0, radius);
-      grad.addColorStop(0, '#FFF68F');
-      grad.addColorStop(0.5, '#FFD700');
-      grad.addColorStop(1, '#B8860B');
-      ctx.fillStyle = grad;
-      ctx.fill();
-      ctx.lineWidth = radius * 0.12;
-      ctx.strokeStyle = '#DAA520';
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(0, 0, radius * 0.72, 0, Math.PI * 2);
-      ctx.strokeStyle = '#FFEE55';
-      ctx.lineWidth = radius * 0.05;
-      ctx.stroke();
-
-      ctx.fillStyle = '#654321';
-      ctx.font = '900 ' + Math.floor(radius * 1.05) + 'px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(type === 'fu' ? '福' : '慧', 0, 1.5);
-
-      ctx.restore();
-    }
-
-    // 🌟 供養成功金幣雨特效
-    function triggerLeaderboardCoinRain() {
-      const canvas = document.getElementById('flowerCanvas');
-      if (!canvas) return;
-      canvas.style.display = 'block';
-      const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      const coins = [];
-      const count = 50;
-      for (let i = 0; i < count; i++) {
-        coins.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          radius: Math.random() * 8 + 14,
-          speedY: Math.random() * 1.8 + 1.2,
-          speedX: (Math.random() - 0.5) * 1.0,
-          rotation: Math.random() * Math.PI,
-          vRot: (Math.random() - 0.5) * 0.06,
-          opacity: 0.96,
-          type: i % 2 === 0 ? 'fu' : 'hui'
-        });
-      }
-
-      let startTime = performance.now();
-      const duration = 5800;
-
-      function animateCoins(now) {
-        let elapsed = now - startTime;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        coins.forEach(c => {
-          c.y += c.speedY;
-          c.x += c.speedX + Math.sin(c.y / 35) * 0.5;
-          c.rotation += c.vRot;
-
-          renderHighQualityCoin(ctx, c.x, c.y, c.radius, c.opacity, c.type);
-
-          if (c.y > canvas.height + 30) {
-            c.y = -30;
-            c.x = Math.random() * canvas.width;
-          }
-        });
-
-        if (elapsed < duration) {
-          requestAnimationFrame(animateCoins);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          canvas.style.display = 'none';
-        }
-      }
-      requestAnimationFrame(animateCoins);
-    }
-
     let mp4PrecisionCheckAnimId = null;
     function startMp4PrecisionCheck() {
       if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
@@ -1713,7 +1618,6 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 需求 3：完成今日課程或自主 5 遍後，計數歸零，保持單純
     function checkAndTriggerDynamicRain(totalToday) {
       const todayStr = getNormalizedDateStr();
       const targetLimit = scheduleRepeatLimit || 5;
@@ -1722,24 +1626,23 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V521_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V523_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日定課已圓滿！已完成，計數歸零', 5500);
           speakPrompt('今日定課已圓滿');
-          triggerSevenColoredLotusFlowerRain();
+          triggerSevenColoredLotusFlowerRain(); // 🌟 嚴格復原七色蓮花雨
           localStorage.setItem(scheduleDoneKey, 'true');
-          resetTodayCycles(); // 🌟 完成後計數歸零
+          resetTodayCycles();
           return true;
         }
         return false;
       }
 
-      // 自主加強學習：每滿 5 遍循環灑花，並歸零重新計算下一個 5 遍
       if (totalToday >= 5) {
         showToast('🌟 自主加強學習 5 遍圓滿！計數歸零', 4500);
-        triggerSevenColoredLotusFlowerRain();
-        resetTodayCycles(); // 🌟 自主 5 遍完成後計數歸零
+        triggerSevenColoredLotusFlowerRain(); // 🌟 嚴格復原七色蓮花雨
+        resetTodayCycles();
         return true;
       }
 
@@ -1788,7 +1691,7 @@
       }
     }
 
-    // 🌟 七色五瓣蓮花雨特效
+    // 🌟 七色五瓣蓮花雨特效 (嚴格復原)
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1828,7 +1731,28 @@
           f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
           f.rotation += f.rotationSpeed;
 
-          renderHighQualityCoin(ctx, f.x, f.y, f.size, f.opacity, f.color === '#FFB300' ? 'fu' : 'hui');
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate((f.rotation * Math.PI) / 180);
+          ctx.globalAlpha = f.opacity;
+
+          for (let j = 0; j < 5; j++) {
+            const angle = (j * 2 * Math.PI) / 5;
+            const dist = f.size * 0.40;
+            const cx = Math.cos(angle) * dist;
+            const cy = Math.sin(angle) * dist;
+            ctx.fillStyle = f.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.fillStyle = (f.color === '#F1F5F9') ? '#FEF08A' : '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
 
           if (f.y > canvas.height + 30) {
             f.y = -30;
@@ -1847,6 +1771,7 @@
       requestAnimationFrame(animateLotusRain);
     }
 
+    // 🌟 嚴格分流的 marker 繪製（Apple 與 Android 分流支援）
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
@@ -1891,7 +1816,7 @@
       }
     }
 
-    // 🌟 精準取得點擊/按住位置對應的經文行索引（完美解決偏移問題）
+    // 🌟 嚴格分流的觸控座標解析（Apple / Android 獨立通道與精準校正）
     function getLineIndexAtClientPoint(clientX, clientY) {
       if (parsedTextLines.length === 0) return 0;
       let closestIdx = 0, minDiff = Infinity;
@@ -1899,14 +1824,18 @@
       for (let i = 0; i < parsedTextLines.length; i++) {
         const line = parsedTextLines[i];
         let lineScreenY = 0;
+
         if (!isAppleDevice) {
+          // Android 專屬通道
           const centerRect = centerCore.getBoundingClientRect();
           lineScreenY = centerRect.top + line.underLineY - centerCore.scrollTop;
         } else {
+          // Apple 專屬通道 (整合 scale 與 offset)
           const { scaleY, offsetTop } = getAppleCanvasScale();
           lineScreenY = offsetTop + (line.underLineY * scaleY) - centerCore.scrollTop;
         }
-        // 增加偏移修正，確保點擊或按住時不會誤判到上一句
+
+        // 向下偏移修正，確保點擊時精準對應目標行
         const diff = Math.abs(lineScreenY - (clientY + 12));
         if (diff < minDiff) {
           minDiff = diff;
@@ -1916,29 +1845,26 @@
       return closestIdx;
     }
 
-    // 🌟 點擊起句：若在跟讀則自動切到自讀，並進入直接點擊選取狀態
     function handleMarkAClck() {
       if (currentMode !== 'pdf') {
         setMode('pdf', 'guide');
       }
       isSelectingMarkA = true;
       isSelectingMarkB = false;
-      showToast("👆 請直接在畫面上按住或點擊想要的句子設定起點", 4000);
+      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
       renderUI();
     }
 
-    // 🌟 點擊終句：若在跟讀則自動切到自讀，並進入直接點擊選取狀態
     function handleMarkBClick() {
       if (currentMode !== 'pdf') {
         setMode('pdf', 'guide');
       }
       isSelectingMarkB = true;
       isSelectingMarkA = false;
-      showToast("👆 請直接在畫面上按住或點擊想要的句子設定終點", 4000);
+      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
       renderUI();
     }
 
-    // 🌟 註冊 PDF 畫面上的觸控/點擊直接定句監聽
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         const canvasEl = document.getElementById('pdf-canvas');
@@ -1958,7 +1884,7 @@
               isSelectingMarkA = false;
               updateVisualDisplay();
               renderUI();
-              showToast("✅ 設定成功！起句已標定", 2500);
+              showToast("✅ 起句設定成功！", 2500);
             } else if (isSelectingMarkB) {
               if (markA_Index !== -1 && targetIdx < markA_Index) {
                 showToast("⚠️ 終點不能在起點之前", 2500);
@@ -1969,7 +1895,7 @@
               isSelectingMarkB = false;
               updateVisualDisplay();
               renderUI();
-              showToast("✅ 設定成功！終句已標定", 2500);
+              showToast("✅ 終句設定成功！", 2500);
             }
           });
         }
@@ -1978,31 +1904,11 @@
 
     function handleShutdownClick() {
       haltGuideRunnerImmediately();
-
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
-
       releaseMicrophoneResources();
-
       try { video.pause(); } catch (e) {}
-
-      try {
-        if ('mediaSession' in navigator) {
-          navigator.mediaSession.playbackState = 'none';
-        }
-      } catch (e) {}
-
-      try {
-        if (document.fullscreenElement || document.webkitFullscreenElement) {
-          if (document.exitFullscreen) {
-            document.exitFullscreen().catch(() => {});
-          } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-          }
-        }
-      } catch (e) {}
-
       showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
       updateModeButtonsStyle();
     }
@@ -2039,7 +1945,6 @@
         startSharedVadLoop();
         return true;
       } catch (err) {
-        console.warn("麥克風啟動失敗:", err);
         return false;
       }
     }
@@ -2057,7 +1962,6 @@
 
         if (analyser) {
           analyser.getFloatTimeDomainData(vadDataArray);
-
           let sumSquares = 0.0;
           for (let i = 0; i < vadDataArray.length; i++) {
             const val = vadDataArray[i];
@@ -2087,14 +1991,6 @@
             }
           }
 
-          if (isUserRecording) {
-            const btnRec = document.getElementById('btn-record');
-            if (btnRec) {
-              if (rms > 0.0020) btnRec.classList.add('recording-flashing');
-              else btnRec.classList.remove('recording-flashing');
-            }
-          }
-
           if (isGuideActive) {
             const timeSinceLineStart = performance.now() - lineActivationTimestamp;
             const isInsideCooldown = (timeSinceLineStart < 120);
@@ -2115,20 +2011,6 @@
             }
           }
 
-          if ((isGuideActive || isUserRecording) && (performance.now() - lastVoiceTime > 20000)) {
-            if (isGuideActive) {
-              haltGuideRunnerImmediately();
-              showToast("讀誦逾時 20 秒無聲,已為您自動停止", 4500);
-            }
-            if (isUserRecording) {
-              if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-              isUserRecording = false;
-              renderUI();
-              showToast("收音閒置 20 秒,已自動為您結束並保留錄音", 4500);
-            }
-            lastVoiceTime = performance.now();
-          }
-
           prevRms = rms;
         }
         vadCheckTimer = requestAnimationFrame(loop);
@@ -2138,7 +2020,7 @@
 
     async function toggleReliableRecordAction() {
       const ok = await ensureMicrophoneActive();
-      if (!ok) { alert('無法存取麥克風,請檢查裝置權限設定'); return; }
+      if (!ok) return;
 
       audioChunks = [];
       mediaRecorder = new MediaRecorder(micStream);
@@ -2153,29 +2035,18 @@
         recordAudioElement.playbackRate = compareSpeed;
         renderUI();
       };
-      
       mediaRecorder.start(); 
       isUserRecording = true;
-      lastVoiceTime = performance.now();
-      showToast('🔴 正在錄音中...', 3000);
       renderUI();
     }
 
     function togglePlaybackAction() {
-      if (!recordedAudioBlobUrl) {
-        showToast('尚無錄音檔案可供播放', 2500);
-        return;
-      }
-      
+      if (!recordedAudioBlobUrl) return;
       if (isGuideActive) haltGuideRunnerImmediately();
 
       if (recordAudioElement.paused) {
         recordAudioElement.playbackRate = compareSpeed;
-        recordAudioElement.play().then(() => {
-          renderUI();
-        }).catch((err) => {
-          showToast('播放失敗', 2000);
-        });
+        recordAudioElement.play().then(() => renderUI()).catch(() => {});
       } else {
         recordAudioElement.pause();
         renderUI();
@@ -2214,7 +2085,6 @@
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
 
-    // 🌟 嚴格保護福慧幣與排行榜連線機制
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
@@ -2229,7 +2099,7 @@
 
       const coinsToOffer = getStoredCoins();
       if (coinsToOffer <= 0) {
-        alert("目前福慧幣為 0 枚,請先精進背誦！");
+        alert("目前福慧幣為 0 枚，請先精進背誦！");
         return;
       }
 
@@ -2239,9 +2109,7 @@
       const urlParams = new URLSearchParams(window.location.search);
       const startDateParam = urlParams.get('start') || '';
       const groupParam = urlParams.get('group') || '';
-
-      const callbackName =
-        'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
+      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
 
       let isDone = false;
       let timeoutTimer = null;
@@ -2250,78 +2118,42 @@
       function cleanup() {
         if (timeoutTimer) clearTimeout(timeoutTimer);
         delete window[callbackName];
-
-        if (scriptTag && scriptTag.parentNode) {
-          scriptTag.parentNode.removeChild(scriptTag);
-        }
+        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
       }
 
       function handleFailure(message) {
         if (isDone) return;
         isDone = true;
-
         cleanup();
-
         btnConfirmOffering.disabled = false;
         btnConfirmOffering.textContent = '確認供養';
-
         showToast(message, 5000);
       }
 
       function handleSuccess(data) {
         if (isDone) return;
-
-        if (
-          !data ||
-          !Array.isArray(data.todayTop3) ||
-          !Array.isArray(data.totalTop3)
-        ) {
-          handleFailure(
-            '未取得完整排行榜資料,福慧幣已保留,請稍後重試'
-          );
+        if (!data || !Array.isArray(data.todayTop3) || !Array.isArray(data.totalTop3)) {
+          handleFailure('未取得完整排行榜資料，請稍後重試');
           return;
         }
-
         isDone = true;
         cleanup();
-
         resetCoins();
         displayCoinsCount.textContent = '0 枚';
         offeringOverlay.style.display = 'none';
-
         btnConfirmOffering.disabled = false;
         btnConfirmOffering.textContent = '確認供養';
-
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
-
         triggerLeaderboardCoinRain();
       }
 
-      timeoutTimer = setTimeout(() => {
-        handleFailure(
-          '排行榜連線逾時,福慧幣尚未清除,請稍後重試'
-        );
-      }, 10000);
-
+      timeoutTimer = setTimeout(() => { handleFailure('連線逾時，請稍後重試'); }, 10000);
       window[callbackName] = (res) => handleSuccess(res);
 
       scriptTag = document.createElement('script');
-      scriptTag.src =
-        `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}` +
-        `&userName=${encodeURIComponent(userName)}` +
-        `&coins=${coinsToOffer}` +
-        `&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}` +
-        `&startDate=${encodeURIComponent(startDateParam)}` +
-        `&groupName=${encodeURIComponent(groupParam)}` +
-        `&callback=${callbackName}&t=${Date.now()}`;
-
-      scriptTag.onerror = () => {
-        handleFailure(
-          '排行榜連線失敗,福慧幣尚未清除,請檢查網路'
-        );
-      };
-
+      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&startDate=${encodeURIComponent(startDateParam)}&groupName=${encodeURIComponent(groupParam)}&callback=${callbackName}&t=${Date.now()}`;
+      scriptTag.onerror = () => { handleFailure('連線失敗，請檢查網路'); };
       document.body.appendChild(scriptTag);
     });
 
@@ -2523,7 +2355,7 @@
 
       if (shouldStop) {
         haltGuideRunnerImmediately();
-        showToast('⏸️ 已達本階段循環目標,計數已歸零', 3000);
+        showToast('⏸️ 已達本階段循環目標，計數已歸零', 3000);
         return;
       }
 
@@ -2568,7 +2400,6 @@
       updateVisualDisplay();
     }
 
-    // 網頁載入初始化 (V521)
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2591,10 +2422,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V521_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V523_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V521_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V523_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
@@ -2602,12 +2433,8 @@
       const imgDisplay = document.getElementById('companion-img-display');
       const compWrapper = document.querySelector('.companion-wrapper');
 
-      imgDisplay.onload = () => {
-        compWrapper.classList.add('ready');
-      };
-      imgDisplay.onerror = () => {
-        compWrapper.classList.add('ready');
-      };
+      imgDisplay.onload = () => { compWrapper.classList.add('ready'); };
+      imgDisplay.onerror = () => { compWrapper.classList.add('ready'); };
       imgDisplay.src = 'cards/' + cardFileName;
       
       const compOverlay = document.getElementById('companion-overlay');
