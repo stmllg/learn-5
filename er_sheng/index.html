@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v521 (跟讀自動切自讀與手指點擊定位版)</title>
+  <title>歡喜背書橫式雙模播放器 v522 (手指點擊定句精準對位版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -502,7 +502,7 @@
     </div>
   </div>
 
-  <!-- ✨ 開幕大圖示動畫 Banner -->
+  <!-- ✨ 開幕大圖示動畫 Banner (已關閉) -->
   <div id="mode-grand-banner"></div>
 
   <!-- 狀態浮標 (置中) -->
@@ -687,7 +687,7 @@
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
-    // 🌟 起句/終句觸控選取模式旗標 (V521)
+    // 🌟 點擊選取模式旗標 (V522)
     let isSelectingMarkA = false;
     let isSelectingMarkB = false;
 
@@ -718,23 +718,23 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    // 🌟 每日持久化計數讀寫 (V521)
+    // 🌟 每日持久化計數讀寫 (V522)
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V521_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V522_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V521_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V522_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V521_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V522_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V521_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V522_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -744,9 +744,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V521');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V522');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V521', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V522', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -1385,20 +1385,15 @@
     }
 
     function renderUI() {
-      // 供養按鈕：方型外型，金橙色底色，文字為「背書供養」
+      // 供養按鈕美化：改為方型外型，底色金橙色，文字為「背書供養」
       slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
       
       if (currentMode === 'pdf' && pdfSubMode === 'compare') {
           slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">播放</button>';
           slotL3.innerHTML = '';
       } else {
-          const textA = isSelectingMarkA ? '請點句' : '起句';
-          const textB = isSelectingMarkB ? '請點句' : '終句';
-          const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
-          const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
-
-          slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
-          slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
+          slotL2.innerHTML = '<button class="circle-btn btn-color-mark-a" id="btn-mark-a">起句</button>';
+          slotL3.innerHTML = '<button class="circle-btn btn-color-mark-b" id="btn-mark-b">終句</button>';
       }
       
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
@@ -1474,6 +1469,7 @@
       if (currentMode === 'mp4') {
           if (btnGendu) {
               const isPlaying = video && !video.paused;
+              // 🌟 需求 2：跟讀變紫色時，文字改為「跟我唸」
               btnGendu.textContent = isPlaying ? '跟我唸' : '跟讀';
               btnGendu.style.background = isPlaying ? colorPurple : colorGreen;
               btnGendu.style.borderColor = isPlaying ? '#E9D5FF' : '#A7F3D0';
@@ -1483,6 +1479,7 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
+                  // 🌟 需求 2：自讀變紫色時，文字改為「唸出聲」
                   btnZidu.textContent = isGuideActive ? (isVoiceActive ? '唸出聲' : '讀中') : '自讀';
                   btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
                   btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
@@ -1716,6 +1713,7 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
+    // 🌟 需求 3：完成今日課程或自主 5 遍後，計數歸零，保持單純
     function checkAndTriggerDynamicRain(totalToday) {
       const todayStr = getNormalizedDateStr();
       const targetLimit = scheduleRepeatLimit || 5;
@@ -1731,16 +1729,17 @@
           speakPrompt('今日定課已圓滿');
           triggerSevenColoredLotusFlowerRain();
           localStorage.setItem(scheduleDoneKey, 'true');
-          resetTodayCycles();
+          resetTodayCycles(); // 🌟 完成後計數歸零
           return true;
         }
         return false;
       }
 
+      // 自主加強學習：每滿 5 遍循環灑花，並歸零重新計算下一個 5 遍
       if (totalToday >= 5) {
         showToast('🌟 自主加強學習 5 遍圓滿！計數歸零', 4500);
         triggerSevenColoredLotusFlowerRain();
-        resetTodayCycles();
+        resetTodayCycles(); // 🌟 自主 5 遍完成後計數歸零
         return true;
       }
 
@@ -1829,28 +1828,7 @@
           f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
           f.rotation += f.rotationSpeed;
 
-          ctx.save();
-          ctx.translate(f.x, f.y);
-          ctx.rotate((f.rotation * Math.PI) / 180);
-          ctx.globalAlpha = f.opacity;
-
-          for (let j = 0; j < 5; j++) {
-            const angle = (j * 2 * Math.PI) / 5;
-            const dist = f.size * 0.40;
-            const cx = Math.cos(angle) * dist;
-            const cy = Math.sin(angle) * dist;
-            ctx.fillStyle = f.color;
-            ctx.beginPath();
-            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          ctx.fillStyle = (f.color === '#F1F5F9') ? '#FEF08A' : '#FFFFFF';
-          ctx.beginPath();
-          ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.restore();
+          renderHighQualityCoin(ctx, f.x, f.y, f.size, f.opacity, f.color === '#FFB300' ? 'fu' : 'hui');
 
           if (f.y > canvas.height + 30) {
             f.y = -30;
@@ -1913,7 +1891,7 @@
       }
     }
 
-    // 🌟 尋找點擊位置對應的經文行索引
+    // 🌟 精準取得點擊/按住位置對應的經文行索引（完美解決偏移問題）
     function getLineIndexAtClientPoint(clientX, clientY) {
       if (parsedTextLines.length === 0) return 0;
       let closestIdx = 0, minDiff = Infinity;
@@ -1928,7 +1906,8 @@
           const { scaleY, offsetTop } = getAppleCanvasScale();
           lineScreenY = offsetTop + (line.underLineY * scaleY) - centerCore.scrollTop;
         }
-        const diff = Math.abs(lineScreenY - clientY);
+        // 增加偏移修正，確保點擊或按住時不會誤判到上一句
+        const diff = Math.abs(lineScreenY - (clientY + 12));
         if (diff < minDiff) {
           minDiff = diff;
           closestIdx = i;
@@ -1937,29 +1916,25 @@
       return closestIdx;
     }
 
-    // 🌟 點擊起句：若在跟讀則自動切自讀；進入點擊選取狀態
+    // 🌟 點擊起句：若在跟讀則自動切到自讀，並進入直接點擊選取狀態
     function handleMarkAClck() {
-      if (currentMode === 'mp4') {
+      if (currentMode !== 'pdf') {
         setMode('pdf', 'guide');
       }
-      if (currentMode !== 'pdf') return;
-
       isSelectingMarkA = true;
       isSelectingMarkB = false;
-      showToast("請在畫面上直接按住/點擊想要的句子設定起點", 4000);
+      showToast("👆 請直接在畫面上按住或點擊想要的句子設定起點", 4000);
       renderUI();
     }
 
-    // 🌟 點擊終句：若在跟讀則自動切自讀；進入點擊選取狀態
+    // 🌟 點擊終句：若在跟讀則自動切到自讀，並進入直接點擊選取狀態
     function handleMarkBClick() {
-      if (currentMode === 'mp4') {
+      if (currentMode !== 'pdf') {
         setMode('pdf', 'guide');
       }
-      if (currentMode !== 'pdf') return;
-
       isSelectingMarkB = true;
       isSelectingMarkA = false;
-      showToast("請在畫面上直接按住/點擊想要的句子設定終點", 4000);
+      showToast("👆 請直接在畫面上按住或點擊想要的句子設定終點", 4000);
       renderUI();
     }
 
@@ -1983,7 +1958,7 @@
               isSelectingMarkA = false;
               updateVisualDisplay();
               renderUI();
-              showToast("✅ 起句設定成功！", 2500);
+              showToast("✅ 設定成功！起句已標定", 2500);
             } else if (isSelectingMarkB) {
               if (markA_Index !== -1 && targetIdx < markA_Index) {
                 showToast("⚠️ 終點不能在起點之前", 2500);
@@ -1994,7 +1969,7 @@
               isSelectingMarkB = false;
               updateVisualDisplay();
               renderUI();
-              showToast("✅ 終句設定成功！", 2500);
+              showToast("✅ 設定成功！終句已標定", 2500);
             }
           });
         }
@@ -2143,13 +2118,13 @@
           if ((isGuideActive || isUserRecording) && (performance.now() - lastVoiceTime > 20000)) {
             if (isGuideActive) {
               haltGuideRunnerImmediately();
-              showToast("讀誦逾時 20 秒無聲，已為您自動停止", 4500);
+              showToast("讀誦逾時 20 秒無聲,已為您自動停止", 4500);
             }
             if (isUserRecording) {
               if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
               isUserRecording = false;
               renderUI();
-              showToast("收音閒置 20 秒，已自動為您結束並保留錄音", 4500);
+              showToast("收音閒置 20 秒,已自動為您結束並保留錄音", 4500);
             }
             lastVoiceTime = performance.now();
           }
@@ -2163,7 +2138,7 @@
 
     async function toggleReliableRecordAction() {
       const ok = await ensureMicrophoneActive();
-      if (!ok) { alert('無法存取麥克風，請檢查裝置權限設定'); return; }
+      if (!ok) { alert('無法存取麥克風,請檢查裝置權限設定'); return; }
 
       audioChunks = [];
       mediaRecorder = new MediaRecorder(micStream);
@@ -2254,7 +2229,7 @@
 
       const coinsToOffer = getStoredCoins();
       if (coinsToOffer <= 0) {
-        alert("目前福慧幣為 0 枚，請先精進背誦！");
+        alert("目前福慧幣為 0 枚,請先精進背誦！");
         return;
       }
 
@@ -2302,7 +2277,7 @@
           !Array.isArray(data.totalTop3)
         ) {
           handleFailure(
-            '未取得完整排行榜資料，福慧幣已保留，請稍後重試'
+            '未取得完整排行榜資料,福慧幣已保留,請稍後重試'
           );
           return;
         }
@@ -2325,7 +2300,7 @@
 
       timeoutTimer = setTimeout(() => {
         handleFailure(
-          '排行榜連線逾時，福慧幣尚未清除，請稍後重試'
+          '排行榜連線逾時,福慧幣尚未清除,請稍後重試'
         );
       }, 10000);
 
@@ -2343,7 +2318,7 @@
 
       scriptTag.onerror = () => {
         handleFailure(
-          '排行榜連線失敗，福慧幣尚未清除，請檢查網路'
+          '排行榜連線失敗,福慧幣尚未清除,請檢查網路'
         );
       };
 
@@ -2548,7 +2523,7 @@
 
       if (shouldStop) {
         haltGuideRunnerImmediately();
-        showToast('⏸️ 已達本階段循環目標，計數已歸零', 3000);
+        showToast('⏸️ 已達本階段循環目標,計數已歸零', 3000);
         return;
       }
 
