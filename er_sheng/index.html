@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v536 (福慧幣雨與七色五瓣花雨及按鈕提示優化版)</title>
+  <title>歡喜背書橫式雙模播放器 v537 (金閃閃立體福慧幣雨與視覺精緻美化版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -727,20 +727,20 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V536_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V537_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V536_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V537_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V536_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V537_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V536_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V537_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -750,9 +750,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V536');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V537');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V536', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V537', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -1121,6 +1121,7 @@
       } catch (e) {}
     }
 
+    // 🌟 3. 提示橫條（Toast）固定顯示 2 秒即自動消失
     function showToast(msg, duration = 2000) {
       if (!scheduleToast) return;
       scheduleToast.textContent = msg;
@@ -1488,7 +1489,7 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  // 🌟 自讀轉紫色時顯示「唸出來」三個字
+                  // 🌟 2. 自讀鍵轉紫色時顯示「唸出來」三個字
                   btnZidu.textContent = isGuideActive ? '唸出來' : '自讀';
                   btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
                   btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
@@ -1502,7 +1503,6 @@
                   btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
                   btnRecord.style.color = '#FFFFFF';
                   btnRecord.style.boxShadow = isUserRecording ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
-                  // 🌟 錄音時啟動紫色框呼吸燈效果
                   if (isUserRecording) {
                       btnRecord.classList.add('recording-flashing');
                   } else {
@@ -1648,12 +1648,12 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V536_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V537_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日定課已圓滿！已完成，計數歸零', 2000);
           speakPrompt('今日定課已圓滿');
-          triggerSevenColoredLotusFlowerRain(); // 🌟 達到今日功課完成或5遍時灑七色五瓣花
+          triggerSevenColoredLotusFlowerRain(); // 🌟 1. 定課完成圓滿灑七色五瓣花雨
           localStorage.setItem(scheduleDoneKey, 'true');
           resetTodayCycles();
           return true;
@@ -1663,7 +1663,7 @@
 
       if (totalToday >= 5) {
         showToast('🌟 自主加強學習 5 遍圓滿！計數歸零', 2000);
-        triggerSevenColoredLotusFlowerRain(); // 🌟 達到5遍完成時灑七色五瓣花
+        triggerSevenColoredLotusFlowerRain(); // 🌟 1. 5遍完成灑七色五瓣花雨
         resetTodayCycles();
         return true;
       }
@@ -1713,7 +1713,7 @@
       }
     }
 
-    // 🌟 1. 供養專屬：「古金色的、有厚度的福幣及慧幣雨」特效
+    // 🌟 1. 供養專屬：「古金色、有厚度的福幣及慧幣兩種」立體金屬雨特效
     function triggerOfferingCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1727,13 +1727,13 @@
         coins.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 10 + 13,
-          speedY: Math.random() * 1.9 + 1.1,
-          speedX: (Math.random() - 0.5) * 1.4,
+          size: Math.random() * 11 + 14,
+          speedY: Math.random() * 1.8 + 1.2,
+          speedX: (Math.random() - 0.5) * 1.3,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 2.8,
+          rotationSpeed: (Math.random() - 0.5) * 2.5,
           type: Math.random() > 0.5 ? '福' : '慧',
-          opacity: 0.96
+          opacity: 0.98
         });
       }
 
@@ -1754,42 +1754,49 @@
           ctx.rotate((c.rotation * Math.PI) / 180);
           ctx.globalAlpha = c.opacity;
 
-          // 立體厚實感陰影
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-          ctx.shadowBlur = 8;
-          ctx.shadowOffsetX = 3;
-          ctx.shadowOffsetY = 3;
+          // 立體厚實感強效陰影
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetX = 4;
+          ctx.shadowOffsetY = 4;
 
-          // 古金色漸層
-          const grad = ctx.createRadialGradient(-c.size*0.3, -c.size*0.3, c.size*0.05, 0, 0, c.size);
-          grad.addColorStop(0, '#FEF08A');
-          grad.addColorStop(0.4, '#EAB308');
-          grad.addColorStop(0.8, '#A16207');
-          grad.addColorStop(1, '#713F12');
+          // 喜悅閃耀的古金色高質感漸層
+          const grad = ctx.createRadialGradient(-c.size*0.35, -c.size*0.35, c.size*0.05, 0, 0, c.size);
+          grad.addColorStop(0, '#FFFBEB'); // 耀眼亮白金高光
+          grad.addColorStop(0.3, '#FEF08A'); // 亮金
+          grad.addColorStop(0.7, '#EAB308'); // 黃金
+          grad.addColorStop(0.9, '#CA8A04'); // 深金
+          grad.addColorStop(1, '#713F12');   // 古銅金陰影
 
           ctx.fillStyle = grad;
           ctx.beginPath();
           ctx.arc(0, 0, c.size, 0, Math.PI * 2);
           ctx.fill();
 
-          // 厚邊框
+          // 雙層立體金屬外框
           ctx.lineWidth = 3.5;
           ctx.strokeStyle = '#FEF9C3';
           ctx.stroke();
 
-          // 內環
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1.2;
           ctx.strokeStyle = '#422006';
           ctx.beginPath();
-          ctx.arc(0, 0, c.size * 0.76, 0, Math.PI * 2);
+          ctx.arc(0, 0, c.size * 0.78, 0, Math.PI * 2);
           ctx.stroke();
 
-          // 字體 (福 / 慧)
+          // 超清晰雕刻字體 (福 / 慧)
           ctx.shadowColor = 'transparent';
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '900 ' + Math.floor(c.size * 0.92) + 'px "Noto Serif TC", serif';
+          ctx.font = '900 ' + Math.floor(c.size * 0.95) + 'px "Noto Serif TC", "Songti TC", serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
+          
+          // 字體外描邊，確保在旋轉時無比清晰
+          ctx.lineWidth = 3.5;
+          ctx.strokeStyle = '#FEF3C7';
+          ctx.strokeText(c.type, 0, 1);
+
+          // 字體填色
+          ctx.fillStyle = '#78350F';
           ctx.fillText(c.type, 0, 1);
 
           ctx.restore();
@@ -1811,7 +1818,7 @@
       requestAnimationFrame(animateCoins);
     }
 
-    // 🌟 2. 定課完成專屬：「七色五瓣花雨」特效
+    // 🌟 1. 定課完成專屬：「七色五瓣花雨」特效
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1854,7 +1861,6 @@
           ctx.rotate((f.rotation * Math.PI) / 180);
           ctx.globalAlpha = f.opacity;
 
-          // 繪製五瓣花
           for (let j = 0; j < 5; j++) {
             const angle = (j * 2 * Math.PI) / 5;
             const dist = f.size * 0.45;
@@ -1866,7 +1872,6 @@
             ctx.fill();
           }
 
-          // 黃色花芯
           ctx.fillStyle = '#FEF08A';
           ctx.beginPath();
           ctx.arc(0, 0, f.size * 0.32, 0, Math.PI * 2);
@@ -2551,10 +2556,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V536_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V537_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V536_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V537_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
