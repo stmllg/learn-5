@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v523 (Apple與Android雙系統顯示分流與蓮花雨復原版)</title>
+  <title>歡喜背書橫式雙模播放器 v524 (畫布真實比例換算與雙系統分流版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -589,7 +589,7 @@
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    // 🌟 Apple 與 Android 畫布縮放與坐標定位分流處理
+    // 🌟 嚴格分流：Apple 裝置專屬 Canvas 比例計算
     function getAppleCanvasScale() {
       if (!isAppleDevice) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
       if (!pdfCanvas || pdfCanvas.height === 0 || pdfCanvas.width === 0) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
@@ -715,20 +715,20 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V523_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V524_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V523_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V524_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V523_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V524_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V523_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V524_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -738,9 +738,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V523');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V524');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V523', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V524', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -1236,6 +1236,8 @@
       }
     }, { passive: true });
 
+    window.addEventListener('touched', (e) => {}, { passive: true });
+
     window.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - touchStartX;
@@ -1626,12 +1628,12 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V523_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V524_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日定課已圓滿！已完成，計數歸零', 5500);
           speakPrompt('今日定課已圓滿');
-          triggerSevenColoredLotusFlowerRain(); // 🌟 嚴格復原七色蓮花雨
+          triggerSevenColoredLotusFlowerRain();
           localStorage.setItem(scheduleDoneKey, 'true');
           resetTodayCycles();
           return true;
@@ -1641,7 +1643,7 @@
 
       if (totalToday >= 5) {
         showToast('🌟 自主加強學習 5 遍圓滿！計數歸零', 4500);
-        triggerSevenColoredLotusFlowerRain(); // 🌟 嚴格復原七色蓮花雨
+        triggerSevenColoredLotusFlowerRain();
         resetTodayCycles();
         return true;
       }
@@ -1691,7 +1693,7 @@
       }
     }
 
-    // 🌟 七色五瓣蓮花雨特效 (嚴格復原)
+    // 🌟 嚴格復原七色蓮花雨特效
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1771,7 +1773,7 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 嚴格分流的 marker 繪製（Apple 與 Android 分流支援）
+    // 🌟 嚴格分流：marker 線條繪製
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
@@ -1816,27 +1818,28 @@
       }
     }
 
-    // 🌟 嚴格分流的觸控座標解析（Apple / Android 獨立通道與精準校正）
+    // 🌟 徹底廢除固定偏移，基於 PDF 畫布真實尺寸與雙系統分流的精準定位換算法
     function getLineIndexAtClientPoint(clientX, clientY) {
       if (parsedTextLines.length === 0) return 0;
       let closestIdx = 0, minDiff = Infinity;
+
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      const scrollOffset = centerCore.scrollTop;
 
       for (let i = 0; i < parsedTextLines.length; i++) {
         const line = parsedTextLines[i];
         let lineScreenY = 0;
 
         if (!isAppleDevice) {
-          // Android 專屬通道
-          const centerRect = centerCore.getBoundingClientRect();
-          lineScreenY = centerRect.top + line.underLineY - centerCore.scrollTop;
+          // Android 專屬換算通道：以畫布相對於視窗頂部與捲動位置計算
+          lineScreenY = canvasRect.top + (line.underLineY * (canvasRect.height / pdfCanvas.height));
         } else {
-          // Apple 專屬通道 (整合 scale 與 offset)
+          // Apple 專屬換算通道：透過高精度 scale 與 offset
           const { scaleY, offsetTop } = getAppleCanvasScale();
-          lineScreenY = offsetTop + (line.underLineY * scaleY) - centerCore.scrollTop;
+          lineScreenY = offsetTop + (line.underLineY * scaleY);
         }
 
-        // 向下偏移修正，確保點擊時精準對應目標行
-        const diff = Math.abs(lineScreenY - (clientY + 12));
+        const diff = Math.abs(lineScreenY - clientY);
         if (diff < minDiff) {
           minDiff = diff;
           closestIdx = i;
@@ -2422,10 +2425,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V523_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V524_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V523_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V524_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
