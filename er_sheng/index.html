@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v535 (福慧幣雨與錄音呼吸燈及自讀文字優化版)</title>
+  <title>歡喜背書橫式雙模播放器 v536 (福慧幣雨與七色五瓣花雨及按鈕提示優化版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -505,7 +505,7 @@
   <div id="schedule-toast">📅 載入進度中...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
-  <!-- 🌸 畫布特效層 (福慧幣雨) -->
+  <!-- 🌸 畫布特效層 -->
   <canvas id="flowerCanvas"></canvas>
 
   <!-- 4. 主視圖 -->
@@ -727,20 +727,20 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V535_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V536_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V535_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V536_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V535_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V536_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V535_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V536_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -750,9 +750,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V535');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V536');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V535', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V536', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -906,7 +906,7 @@
         if (!scheduleData || !Array.isArray(scheduleData)) {
           scheduleRepeatLimit = 5;
           isScheduleRepeatLocked = false;
-          showToast('📅 今日定課：預設 5 遍', 4000);
+          showToast('📅 今日定課：預設 5 遍', 2000);
           return false;
         }
         
@@ -949,7 +949,7 @@
 
           const sA = markA_Index + 1;
           const sB = markB_Index + 1;
-          showToast(`📅 今日定課：第 ${sA} 句 ～ 第 ${sB} 句（共 ${scheduleRepeatLimit} 遍）`, 5000);
+          showToast(`📅 今日定課：第 ${sA} 句 ～ 第 ${sB} 句（共 ${scheduleRepeatLimit} 遍）`, 2000);
 
           return true;
         }
@@ -957,7 +957,7 @@
       
       scheduleRepeatLimit = 5;
       isScheduleRepeatLocked = false;
-      showToast('📅 今日定課：預設 5 遍', 4000);
+      showToast('📅 今日定課：預設 5 遍', 2000);
       return false;
     }
 
@@ -1121,7 +1121,7 @@
       } catch (e) {}
     }
 
-    function showToast(msg, duration = 4000) {
+    function showToast(msg, duration = 2000) {
       if (!scheduleToast) return;
       scheduleToast.textContent = msg;
       scheduleToast.style.display = 'block';
@@ -1163,7 +1163,7 @@
       speedToastBadge._t = setTimeout(() => {
         speedToastBadge.style.opacity = '0';
         setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
-      }, 3000);
+      }, 2000);
     }
 
     function triggerMp4SpeedChange(delta) {
@@ -1379,7 +1379,7 @@
 
             showToast(
               'PDF 無法顯示：' + err.message,
-              5000
+              2000
             );
           }
         }, 120);
@@ -1488,8 +1488,8 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  // 🌟 自讀鍵轉紫色時文字固定顯示 [唸出聲]
-                  btnZidu.textContent = isGuideActive ? '[唸出聲]' : '自讀';
+                  // 🌟 自讀轉紫色時顯示「唸出來」三個字
+                  btnZidu.textContent = isGuideActive ? '唸出來' : '自讀';
                   btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
                   btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
                   btnZidu.style.color = '#FFFFFF';
@@ -1502,7 +1502,7 @@
                   btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
                   btnRecord.style.color = '#FFFFFF';
                   btnRecord.style.boxShadow = isUserRecording ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
-                  // 🌟 錄音時加入呼吸燈效果
+                  // 🌟 錄音時啟動紫色框呼吸燈效果
                   if (isUserRecording) {
                       btnRecord.classList.add('recording-flashing');
                   } else {
@@ -1522,7 +1522,7 @@
       
       if (video.paused) {
           const range = getActiveVideoRange();
-          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 3000); return; }
+          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 2000); return; }
           
           if (videoPausedAt >= range.start && videoPausedAt < range.end) {
               video.currentTime = videoPausedAt;
@@ -1541,7 +1541,7 @@
           video.pause();
           videoPausedAt = video.currentTime;
           updateModeButtonsStyle();
-          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
+          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 2000);
       }
     }
 
@@ -1570,7 +1570,7 @@
               markA_Index = 0;
               markB_Index = parsedTextLines.length - 1;
               updateVisualDisplay();
-              showToast("已自動為您設定全篇範圍", 2500);
+              showToast("已自動為您設定全篇範圍", 2000);
           }
 
           isGuideActive = true;
@@ -1597,7 +1597,7 @@
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
         setMode('pdf', 'compare');
         preWarmMediaRecorder();
-        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2500);
+        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2000);
         return;
       }
 
@@ -1610,7 +1610,7 @@
         setTimeout(() => {
           if (recordedAudioBlobUrl) {
             togglePlaybackAction();
-            showToast('▶️ 錄音完成，正在為您播放比對', 2500);
+            showToast('▶️ 錄音完成，正在為您播放比對', 2000);
           }
         }, 200);
       } else {
@@ -1648,12 +1648,12 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V535_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V536_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
-          showToast('🎉 今日定課已圓滿！已完成，計數歸零', 5500);
+          showToast('🎉 今日定課已圓滿！已完成，計數歸零', 2000);
           speakPrompt('今日定課已圓滿');
-          triggerCoinRain();
+          triggerSevenColoredLotusFlowerRain(); // 🌟 達到今日功課完成或5遍時灑七色五瓣花
           localStorage.setItem(scheduleDoneKey, 'true');
           resetTodayCycles();
           return true;
@@ -1662,8 +1662,8 @@
       }
 
       if (totalToday >= 5) {
-        showToast('🌟 自主加強學習 5 遍圓滿！計數歸零', 4500);
-        triggerCoinRain();
+        showToast('🌟 自主加強學習 5 遍圓滿！計數歸零', 2000);
+        triggerSevenColoredLotusFlowerRain(); // 🌟 達到5遍完成時灑七色五瓣花
         resetTodayCycles();
         return true;
       }
@@ -1678,7 +1678,7 @@
       const totalToday = genduDone + getTodayZiduCycles();
       const earned = calculateSentenceCount();
       addCoins(earned);
-      showToast('✅ 跟讀完成一遍，福慧幣 +' + earned + ' (累計: ' + totalToday + ' 遍)', 2500);
+      showToast('✅ 跟讀完成一遍，福慧幣 +' + earned + ' (累計: ' + totalToday + ' 遍)', 2000);
 
       return checkAndTriggerDynamicRain(totalToday);
     }
@@ -1690,7 +1690,7 @@
       const totalToday = getTodayGenduCycles() + ziduDone;
       const earned = calculateSentenceCount();
       addCoins(earned);
-      showToast('✅ 自讀完成一遍，福慧幣 +' + earned + ' (累計: ' + totalToday + ' 遍)', 2500);
+      showToast('✅ 自讀完成一遍，福慧幣 +' + earned + ' (累計: ' + totalToday + ' 遍)', 2000);
 
       return checkAndTriggerDynamicRain(totalToday);
     }
@@ -1704,7 +1704,7 @@
       if (shouldStop) {
         video.pause();
         updateModeButtonsStyle();
-        showToast('⏸️ 已達本階段循環目標，計數已歸零', 3000);
+        showToast('⏸️ 已達本階段循環目標，計數已歸零', 2000);
       } else {
         video.play().then(() => {
           updateModeButtonsStyle();
@@ -1713,8 +1713,8 @@
       }
     }
 
-    // 🌟 專屬「福慧幣雨」特效 (圓形金幣落下並印有「福」字)
-    function triggerCoinRain() {
+    // 🌟 1. 供養專屬：「古金色的、有厚度的福幣及慧幣雨」特效
+    function triggerOfferingCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
       canvas.style.display = 'block';
@@ -1727,12 +1727,13 @@
         coins.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 9 + 12,
-          speedY: Math.random() * 2.0 + 1.2,
-          speedX: (Math.random() - 0.5) * 1.5,
+          size: Math.random() * 10 + 13,
+          speedY: Math.random() * 1.9 + 1.1,
+          speedX: (Math.random() - 0.5) * 1.4,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 3,
-          opacity: 0.95
+          rotationSpeed: (Math.random() - 0.5) * 2.8,
+          type: Math.random() > 0.5 ? '福' : '慧',
+          opacity: 0.96
         });
       }
 
@@ -1745,7 +1746,7 @@
 
         coins.forEach(c => {
           c.y += c.speedY;
-          c.x += c.speedX + Math.sin(c.y / 45) * 0.8;
+          c.x += c.speedX + Math.sin(c.y / 45) * 0.7;
           c.rotation += c.rotationSpeed;
 
           ctx.save();
@@ -1753,22 +1754,43 @@
           ctx.rotate((c.rotation * Math.PI) / 180);
           ctx.globalAlpha = c.opacity;
 
-          // 繪製金幣外圈
-          ctx.fillStyle = '#F59E0B';
+          // 立體厚實感陰影
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetX = 3;
+          ctx.shadowOffsetY = 3;
+
+          // 古金色漸層
+          const grad = ctx.createRadialGradient(-c.size*0.3, -c.size*0.3, c.size*0.05, 0, 0, c.size);
+          grad.addColorStop(0, '#FEF08A');
+          grad.addColorStop(0.4, '#EAB308');
+          grad.addColorStop(0.8, '#A16207');
+          grad.addColorStop(1, '#713F12');
+
+          ctx.fillStyle = grad;
           ctx.beginPath();
           ctx.arc(0, 0, c.size, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.lineWidth = 2.5;
-          ctx.strokeStyle = '#FEF3C7';
+          // 厚邊框
+          ctx.lineWidth = 3.5;
+          ctx.strokeStyle = '#FEF9C3';
           ctx.stroke();
 
-          // 繪製福字
+          // 內環
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = '#422006';
+          ctx.beginPath();
+          ctx.arc(0, 0, c.size * 0.76, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // 字體 (福 / 慧)
+          ctx.shadowColor = 'transparent';
           ctx.fillStyle = '#FFFFFF';
-          ctx.font = '900 ' + Math.floor(c.size * 1.05) + 'px sans-serif';
+          ctx.font = '900 ' + Math.floor(c.size * 0.92) + 'px "Noto Serif TC", serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('福', 0, 1);
+          ctx.fillText(c.type, 0, 1);
 
           ctx.restore();
 
@@ -1789,8 +1811,88 @@
       requestAnimationFrame(animateCoins);
     }
 
+    // 🌟 2. 定課完成專屬：「七色五瓣花雨」特效
+    function triggerSevenColoredLotusFlowerRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const flowers = [];
+      const flowerColors = ['#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'];
+      
+      for (let i = 0; i < 70; i++) {
+        flowers.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 10 + 12,
+          speedY: Math.random() * 1.8 + 1.0,
+          speedX: (Math.random() - 0.5) * 1.2,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 2.5,
+          color: flowerColors[Math.floor(Math.random() * flowerColors.length)],
+          opacity: 0.94
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5800;
+
+      function animateFlowers(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        flowers.forEach(f => {
+          f.y += f.speedY;
+          f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
+          f.rotation += f.rotationSpeed;
+
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate((f.rotation * Math.PI) / 180);
+          ctx.globalAlpha = f.opacity;
+
+          // 繪製五瓣花
+          for (let j = 0; j < 5; j++) {
+            const angle = (j * 2 * Math.PI) / 5;
+            const dist = f.size * 0.45;
+            const cx = Math.cos(angle) * dist;
+            const cy = Math.sin(angle) * dist;
+            ctx.fillStyle = f.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 黃色花芯
+          ctx.fillStyle = '#FEF08A';
+          ctx.beginPath();
+          ctx.arc(0, 0, f.size * 0.32, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+
+          if (f.y > canvas.height + 30) {
+            f.y = -30;
+            f.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateFlowers);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateFlowers);
+    }
+
     function triggerLeaderboardCoinRain() {
-      triggerCoinRain();
+      triggerOfferingCoinRain();
     }
 
     // 🌟 Android 核心 100% 完美保留不變
@@ -1871,7 +1973,7 @@
       }
       isSelectingMarkA = true;
       isSelectingMarkB = false;
-      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
+      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 2000);
       renderUI();
     }
 
@@ -1881,7 +1983,7 @@
       }
       isSelectingMarkB = true;
       isSelectingMarkA = false;
-      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
+      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 2000);
       renderUI();
     }
 
@@ -1904,10 +2006,10 @@
               isSelectingMarkA = false;
               updateVisualDisplay();
               renderUI();
-              showToast("✅ 起句設定成功！", 2500);
+              showToast("✅ 起句設定成功！", 2000);
             } else if (isSelectingMarkB) {
               if (markA_Index !== -1 && targetIdx < markA_Index) {
-                showToast("⚠️ 終點不能在起點之前", 2500);
+                showToast("⚠️ 終點不能在起點之前", 2000);
                 return;
               }
               isManualSelected = true;
@@ -1915,7 +2017,7 @@
               isSelectingMarkB = false;
               updateVisualDisplay();
               renderUI();
-              showToast("✅ 終句設定成功！", 2500);
+              showToast("✅ 終句設定成功！", 2000);
             }
           });
         }
@@ -1929,7 +2031,7 @@
       if (recordAudioElement) recordAudioElement.pause();
       releaseMicrophoneResources();
       try { video.pause(); } catch (e) {}
-      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
+      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 2000);
       updateModeButtonsStyle();
     }
 
@@ -2147,7 +2249,7 @@
         cleanup();
         btnConfirmOffering.disabled = false;
         btnConfirmOffering.textContent = '確認供養';
-        showToast(message, 5000);
+        showToast(message, 2000);
       }
 
       function handleSuccess(data) {
@@ -2382,7 +2484,7 @@
 
       if (shouldStop) {
         haltGuideRunnerImmediately();
-        showToast('⏸️ 已達本階段循環目標，計數已歸零', 3000);
+        showToast('⏸️ 已達本階段循環目標，計數已歸零', 2000);
         return;
       }
 
@@ -2449,10 +2551,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V535_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V536_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V535_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V536_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
