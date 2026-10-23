@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v548 (黃金底座與供養正確金幣雨版)</title>
+  <title>歡喜背書橫式雙模播放器 v549 (修復模式切換與黃金底座版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -280,9 +280,8 @@
       box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
       pointer-events: none;
       transition: opacity 0.3s ease;
-      white-space: pre-line;
+      white-space: nowrap;
       text-align: center;
-      line-height: 1.5;
     }
 
     #speed-toast-badge {
@@ -680,6 +679,7 @@
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
     let scheduleRepeatLimit = 5;
+    let completedCycles = 0; 
     let videoPausedAt = -1;
 
     let isSelectingMarkA = false;
@@ -727,20 +727,20 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V534_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V549_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V534_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V549_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V534_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V549_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V534_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V549_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -750,9 +750,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V534');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V549');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V534', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V549', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -1488,7 +1488,6 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  // 🌟 自讀模式啟動時顯示「唸出來」
                   btnZidu.textContent = isGuideActive ? '唸出來' : '自讀';
                   btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
                   btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
@@ -1521,7 +1520,7 @@
       
       if (video.paused) {
           const range = getActiveVideoRange();
-          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 3000); return; }
+          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 2000); return; }
           
           if (videoPausedAt >= range.start && videoPausedAt < range.end) {
               video.currentTime = videoPausedAt;
@@ -1540,10 +1539,11 @@
           video.pause();
           videoPausedAt = video.currentTime;
           updateModeButtonsStyle();
-          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
+          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 2000);
       }
     }
 
+    // 🌟 恢復正確的 V533 自讀切換與啟動
     function handleZiduClick() {
       triggerAppFullscreen();
       try {
@@ -1569,7 +1569,7 @@
               markA_Index = 0;
               markB_Index = parsedTextLines.length - 1;
               updateVisualDisplay();
-              showToast("已自動為您設定全篇範圍", 2500);
+              showToast("已自動為您設定全篇範圍", 2000);
           }
 
           isGuideActive = true;
@@ -1580,7 +1580,6 @@
           isTransitioningLine = false;
           hasPageFlipped = false;
           isLineHeadLocked = true;
-          completedCycles = 0;
           currentLineIndex = markA_Index;
           currentCharIndexFloat = 0.0;
           lastVoiceTime = performance.now();
@@ -1591,12 +1590,13 @@
       }
     }
 
+    // 🌟 恢復正確的 V533 比對/錄音切換與觸發
     function handleRecordModeClick() {
       triggerAppFullscreen();
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
         setMode('pdf', 'compare');
         preWarmMediaRecorder();
-        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2500);
+        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2000);
         return;
       }
 
@@ -1609,7 +1609,7 @@
         setTimeout(() => {
           if (recordedAudioBlobUrl) {
             togglePlaybackAction();
-            showToast('▶️ 錄音完成，正在為您播放比對', 2500);
+            showToast('▶️ 錄音完成，正在為您播放比對', 2000);
           }
         }, 200);
       } else {
@@ -1647,7 +1647,7 @@
         return false; 
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V548_' + todayStr;
+      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V549_' + todayStr;
       if (totalToday === targetLimit) {
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日定課已圓滿！已完成，計數歸零', 5500);
@@ -1712,7 +1712,7 @@
       }
     }
 
-    // 🌸 七色蓮花雨特效 (定課圓滿時觸發)
+    // 🌸 七色蓮花雨特效
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1792,7 +1792,7 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 嚴格確保：確認供養後落下的絕對是古金色立體「福慧幣雨」！
+    // 🌟 古金色立體福慧幣雨 (確認供養後觸發)
     function triggerOfferingCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1967,7 +1967,7 @@
       }
       isSelectingMarkA = true;
       isSelectingMarkB = false;
-      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
+      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 2000);
       renderUI();
     }
 
@@ -1977,7 +1977,7 @@
       }
       isSelectingMarkB = true;
       isSelectingMarkA = false;
-      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
+      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 2000);
       renderUI();
     }
 
@@ -2000,10 +2000,10 @@
               isSelectingMarkA = false;
               updateVisualDisplay();
               renderUI();
-              showToast("✅ 起句設定成功！", 2500);
+              showToast("✅ 起句設定成功！", 2000);
             } else if (isSelectingMarkB) {
               if (markA_Index !== -1 && targetIdx < markA_Index) {
-                showToast("⚠️ 終點不能在起點之前", 2500);
+                showToast("⚠️ 終點不能在起點之前", 2000);
                 return;
               }
               isManualSelected = true;
@@ -2011,7 +2011,7 @@
               isSelectingMarkB = false;
               updateVisualDisplay();
               renderUI();
-              showToast("✅ 終句設定成功！", 2500);
+              showToast("✅ 終句設定成功！", 2000);
             }
           });
         }
@@ -2025,7 +2025,7 @@
       if (recordAudioElement) recordAudioElement.pause();
       releaseMicrophoneResources();
       try { video.pause(); } catch (e) {}
-      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
+      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 2000);
       updateModeButtonsStyle();
     }
 
@@ -2243,7 +2243,7 @@
         cleanup();
         btnConfirmOffering.disabled = false;
         btnConfirmOffering.textContent = '確認供養';
-        showToast(message, 5000);
+        showToast(message, 2000);
       }
 
       function handleSuccess(data) {
@@ -2261,8 +2261,7 @@
         btnConfirmOffering.textContent = '確認供養';
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
-        // 🌟 嚴格確保：確認供養後觸發的是金幣雨（triggerOfferingCoinRain）
-        triggerOfferingCoinRain();
+        triggerLeaderboardCoinRain();
       }
 
       timeoutTimer = setTimeout(() => { handleFailure('連線逾時，請稍後重試'); }, 10000);
@@ -2502,10 +2501,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V548_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V549_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V548_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V549_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
