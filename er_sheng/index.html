@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v544 (穩固黃金核心與流暢串習版)</title>
+  <title>歡喜背書橫式雙模播放器 v545 (回歸 V533 黃金核心與完美起終點串習版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -671,6 +671,7 @@
     let scheduleRepeatLimit = 5;
     let videoPausedAt = -1;
 
+    // 🌟 V545 嚴格回歸 V533 的雙階段與排程狀態
     let currentSchedulePlan = null;
     let currentStage = 'daily'; 
     let isCycleLock = false;
@@ -720,35 +721,35 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V544_' + currentStage + '_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V545_' + currentStage + '_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V544_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V545_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V544_' + currentStage + '_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V545_' + currentStage + '_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V544_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V545_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V544_daily_' + todayStr, '0');
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V544_daily_' + todayStr, '0');
-      localStorage.setItem('DAILY_GENDU_CYCLES_V544_cumulative_' + todayStr, '0');
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V544_cumulative_' + todayStr, '0');
+      localStorage.setItem('DAILY_GENDU_CYCLES_V545_daily_' + todayStr, '0');
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V545_daily_' + todayStr, '0');
+      localStorage.setItem('DAILY_GENDU_CYCLES_V545_cumulative_' + todayStr, '0');
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V545_cumulative_' + todayStr, '0');
     }
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V544');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V545');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V544', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V545', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -828,7 +829,6 @@
         await renderPdfOnValidDimensions();
       }
 
-      if (!isManualSelected) applyScheduleToState();
       syncFiveFilesInBackground();
       setMode('mp4'); 
     }
@@ -891,6 +891,7 @@
       } catch (e) {}
     }
 
+    // 🌟 嚴格回歸 V533 穩固的排程與起終點套用函式
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -1249,8 +1250,6 @@
       }
     }, { passive: true });
 
-    window.addEventListener('touched', (e) => {}, { passive: true });
-
     window.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - touchStartX;
@@ -1581,7 +1580,6 @@
           isTransitioningLine = false;
           hasPageFlipped = false;
           isLineHeadLocked = true;
-          completedCycles = 0;
           currentLineIndex = markA_Index;
           currentCharIndexFloat = 0.0;
           lastVoiceTime = performance.now();
@@ -1649,7 +1647,7 @@
       }
 
       if (currentStage === 'daily') {
-        const scheduleDoneKey = 'SCHEDULE_DAILY_DONE_V544_' + todayStr;
+        const scheduleDoneKey = 'SCHEDULE_DAILY_DONE_V545_' + todayStr;
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日新進度圓滿完成！\n🌸 正在撒下七色五瓣花雨', 3000);
           speakPrompt('今日新進度圓滿完成');
@@ -1724,8 +1722,11 @@
       return false;
     }
 
-    // 🌟 黃金穩固版統一直覺循環結算
+    // 🌟 V533 穩固的循環完成與防爆衝鎖
     function handleCycleCompletion() {
+      if (isCycleLock) return;
+      isCycleLock = true;
+
       if (currentMode === 'mp4') {
         const range = getActiveVideoRange();
         if (range.valid) handleMp4CycleEnd(range);
@@ -1735,9 +1736,6 @@
     }
 
     function handleZiduCycleCompletionAndLock() {
-      if (isCycleLock) return;
-      isCycleLock = true;
-
       if (guideAnimId) {
         cancelAnimationFrame(guideAnimId);
         guideAnimId = null;
@@ -1809,9 +1807,6 @@
     }
 
     function handleMp4CycleEnd(range) {
-      if (isCycleLock) return;
-      isCycleLock = true;
-
       videoPausedAt = -1;
       video.currentTime = range.start;
       
@@ -2124,10 +2119,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V544_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V545_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V544_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V545_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
