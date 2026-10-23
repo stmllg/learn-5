@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v546 (V533穩固核心與完美串習正知版)</title>
+  <title>歡喜背書橫式雙模播放器 v547 (結合GPT診斷與行動裝置極速響應版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -590,6 +590,17 @@
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+    function getAppleCanvasScale() {
+      if (!isAppleDevice) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
+      if (!pdfCanvas || pdfCanvas.height === 0 || pdfCanvas.width === 0) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      const scaleY = canvasRect.height / pdfCanvas.height;
+      const scaleX = canvasRect.width / pdfCanvas.width;
+      const offsetTop = pdfCanvas.offsetTop || 0;
+      const offsetLeft = pdfCanvas.offsetLeft || 0;
+      return { scaleX, scaleY, offsetTop, offsetLeft };
+    }
+
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -671,9 +682,8 @@
     let scheduleRepeatLimit = 5;
     let videoPausedAt = -1;
 
-    // 🌟 串習與階段管理
     let currentSchedulePlan = null;
-    let currentStage = 'daily'; // 'daily' 或 'cumulative'
+    let currentStage = 'daily'; 
     let isCycleLock = false;
 
     let isSelectingMarkA = false;
@@ -721,35 +731,35 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V546_' + currentStage + '_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V547_' + currentStage + '_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V546_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V547_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V546_' + currentStage + '_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V547_' + currentStage + '_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V546_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V547_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V546_daily_' + todayStr, '0');
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V546_daily_' + todayStr, '0');
-      localStorage.setItem('DAILY_GENDU_CYCLES_V546_cumulative_' + todayStr, '0');
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V546_cumulative_' + todayStr, '0');
+      localStorage.setItem('DAILY_GENDU_CYCLES_V547_daily_' + todayStr, '0');
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V547_daily_' + todayStr, '0');
+      localStorage.setItem('DAILY_GENDU_CYCLES_V547_cumulative_' + todayStr, '0');
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V547_cumulative_' + todayStr, '0');
     }
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V546');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V547');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V546', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V547', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -892,7 +902,6 @@
       } catch (e) {}
     }
 
-    // 🌟 V533 穩固的排程與起終點讀取
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -1491,7 +1500,7 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  // 🌟 自讀轉紫色時顯示「唸出來」三個字
+                  // 🌟 自讀啟動時顯示「唸出來」三個字
                   btnZidu.textContent = isGuideActive ? '唸出來' : '自讀';
                   btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
                   btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
@@ -1524,7 +1533,10 @@
       
       if (video.paused) {
           const range = getActiveVideoRange();
-          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 2000); return; }
+          if (!range.valid) { 
+            video.play().then(() => { updateModeButtonsStyle(); }).catch(() => {});
+            return; 
+          }
           
           if (videoPausedAt >= range.start && videoPausedAt < range.end) {
               video.currentTime = videoPausedAt;
@@ -1642,7 +1654,7 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 整合串習與兩階段循環邏輯
+    // 🌟 穩定串習與兩階段循環
     function checkAndTriggerDynamicRain(totalToday) {
       const todayStr = getNormalizedDateStr();
       const targetLimit = scheduleRepeatLimit || 5;
@@ -1652,7 +1664,7 @@
       }
 
       if (currentStage === 'daily') {
-        const scheduleDoneKey = 'SCHEDULE_DAILY_DONE_V546_' + todayStr;
+        const scheduleDoneKey = 'SCHEDULE_DAILY_DONE_V547_' + todayStr;
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日新進度圓滿完成！\n🌸 正在撒下七色五瓣花雨', 3000);
           speakPrompt('今日新進度圓滿完成');
@@ -2542,10 +2554,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V546_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V547_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V546_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V547_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
@@ -2566,3 +2578,4 @@
   </script>
 </body>
 </html>
+是要
