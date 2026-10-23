@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v539 (雙階段定課與3秒正知串習版)</title>
+  <title>歡喜背書橫式雙模播放器 v541 (終點防重複觸發完成鎖與完美循環版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -683,9 +683,11 @@
     let completedCycles = 0; 
     let videoPausedAt = -1;
 
-    // 🌟 雙階段任務管理 (daily 新進度 -> cumulative 串習)
     let currentSchedulePlan = null;
-    let currentStage = 'daily'; // 'daily' 或 'cumulative'
+    let currentStage = 'daily'; 
+
+    // 🌟 V541 防重複觸發完成鎖 (Cycle Lock)
+    let isCycleLock = false;
 
     let isSelectingMarkA = false;
     let isSelectingMarkB = false;
@@ -732,35 +734,35 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V539_' + currentStage + '_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V541_' + currentStage + '_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V539_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V541_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V539_' + currentStage + '_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V541_' + currentStage + '_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V539_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V541_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V539_daily_' + todayStr, '0');
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V539_daily_' + todayStr, '0');
-      localStorage.setItem('DAILY_GENDU_CYCLES_V539_cumulative_' + todayStr, '0');
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V539_cumulative_' + todayStr, '0');
+      localStorage.setItem('DAILY_GENDU_CYCLES_V541_daily_' + todayStr, '0');
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V541_daily_' + todayStr, '0');
+      localStorage.setItem('DAILY_GENDU_CYCLES_V541_cumulative_' + todayStr, '0');
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V541_cumulative_' + todayStr, '0');
     }
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V539');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V541');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V539', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V541', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -1501,7 +1503,6 @@
       } else if (currentMode === 'pdf') {
           if (pdfSubMode === 'guide') {
               if (btnZidu) {
-                  // 🌟 自讀轉紫色時顯示「唸出來」三個字
                   btnZidu.textContent = isGuideActive ? '唸出來' : '自讀';
                   btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
                   btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
@@ -1585,6 +1586,7 @@
               showToast("已自動為您設定全篇範圍", 2000);
           }
 
+          isCycleLock = false; // 🌟 解除完成鎖
           isGuideActive = true;
           if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
 
@@ -1652,7 +1654,6 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 雙階段任務與串習切換核心邏輯
     function checkAndTriggerDynamicRain(totalToday) {
       const todayStr = getNormalizedDateStr();
       const targetLimit = scheduleRepeatLimit || 5;
@@ -1662,21 +1663,21 @@
       }
 
       if (currentStage === 'daily') {
-        // 今日新進度完成！
-        const scheduleDoneKey = 'SCHEDULE_DAILY_DONE_V539_' + todayStr;
+        const scheduleDoneKey = 'SCHEDULE_DAILY_DONE_V541_' + todayStr;
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日新進度圓滿完成！\n🌸 正在撒下七色五瓣花雨', 3000);
           speakPrompt('今日新進度圓滿完成');
           triggerSevenColoredLotusFlowerRain();
           localStorage.setItem(scheduleDoneKey, 'true');
 
-          // 檢查是否有設定「今日串習」（累積複習）
+          setTodayGenduCycles(0);
+          setTodayZiduCycles(0);
+
           if (currentSchedulePlan && typeof currentSchedulePlan.cumulativeStart === 'number' && typeof currentSchedulePlan.cumulativeEnd === 'number') {
             const cStart = currentSchedulePlan.cumulativeStart;
             const cEnd = currentSchedulePlan.cumulativeEnd;
             const cRepeat = currentSchedulePlan.cumulativeRepeat || 5;
 
-            // 3秒正知停頓後再進入串習
             showToast(`⏳ 3秒後即將進入【今日串習】\n(累積複習 第 ${cStart} 至 ${cEnd} 句，共 ${cRepeat} 遍)`, 3000);
             
             if (currentMode === 'mp4') {
@@ -1694,6 +1695,7 @@
               currentLineIndex = markA_Index;
               currentCharIndexFloat = 0.0;
               isLineHeadLocked = true;
+              isCycleLock = false; // 🌟 解除完成鎖
 
               updateVisualDisplay();
               scrollToAlignTop(markA_Index);
@@ -1706,8 +1708,9 @@
                   video.currentTime = range.start;
                   video.play().then(() => {
                     updateModeButtonsStyle();
+                    isCycleLock = false;
                     startMp4PrecisionCheck();
-                  }).catch(() => {});
+                  }).catch(() => { isCycleLock = false; });
                 }
               } else if (currentMode === 'pdf' && pdfSubMode === 'guide') {
                 isGuideActive = true;
@@ -1718,14 +1721,12 @@
 
             return true;
           } else {
-            // 沒有累積串習，直接當作今日全功課圓滿
             resetTodayCycles();
             return true;
           }
         }
         return false;
       } else if (currentStage === 'cumulative') {
-        // 今日串習完成！
         showToast('🎉 今日串習與定課全數圓滿！\n🌸 恭喜福慧圓滿', 4000);
         speakPrompt('今日串習圓滿');
         triggerSevenColoredLotusFlowerRain();
@@ -1738,32 +1739,49 @@
     }
 
     function processGenduCycleCompletion() {
-      const genduDone = getTodayGenduCycles() + 1;
-      setTodayGenduCycles(genduDone);
+      let genduDone = getTodayGenduCycles() + 1;
+      const targetLimit = scheduleRepeatLimit || 5;
       
-      const totalToday = genduDone + getTodayZiduCycles();
+      const totalToday = genduDone;
       const earned = calculateSentenceCount();
       addCoins(earned);
       const stageName = (currentStage === 'cumulative') ? '【串習】' : '【跟讀】';
-      showToast(`✅ ${stageName}完成一遍，福慧幣 +${earned} (累計: ${totalToday} 遍)`, 2000);
+      showToast(`✅ ${stageName}完成一遍，福慧幣 +${earned} (本階段: ${totalToday}/${targetLimit} 遍)`, 2000);
 
-      return checkAndTriggerDynamicRain(totalToday);
+      if (genduDone >= targetLimit) {
+        setTodayGenduCycles(0);
+        setTodayZiduCycles(0);
+        return checkAndTriggerDynamicRain(targetLimit);
+      } else {
+        setTodayGenduCycles(genduDone);
+        return false;
+      }
     }
 
     function processZiduCycleCompletion() {
-      const ziduDone = getTodayZiduCycles() + 1;
-      setTodayZiduCycles(ziduDone);
+      let ziduDone = getTodayZiduCycles() + 1;
+      const targetLimit = scheduleRepeatLimit || 5;
       
-      const totalToday = getTodayGenduCycles() + ziduDone;
+      const totalToday = ziduDone;
       const earned = calculateSentenceCount();
       addCoins(earned);
       const stageName = (currentStage === 'cumulative') ? '【串習】' : '【自讀】';
-      showToast(`✅ ${stageName}完成一遍，福慧幣 +${earned} (累計: ${totalToday} 遍)`, 2000);
+      showToast(`✅ ${stageName}完成一遍，福慧幣 +${earned} (本階段: ${totalToday}/${targetLimit} 遍)`, 2000);
 
-      return checkAndTriggerDynamicRain(totalToday);
+      if (ziduDone >= targetLimit) {
+        setTodayGenduCycles(0);
+        setTodayZiduCycles(0);
+        return checkAndTriggerDynamicRain(targetLimit);
+      } else {
+        setTodayZiduCycles(ziduDone);
+        return false;
+      }
     }
 
     function handleMp4CycleEnd(range) {
+      if (isCycleLock) return;
+      isCycleLock = true; // 🌟 鎖定防止重複觸發
+
       videoPausedAt = -1;
       video.currentTime = range.start;
       
@@ -1772,15 +1790,17 @@
       if (shouldStop) {
         video.pause();
         updateModeButtonsStyle();
+        // 若到達總目標（包含3秒切換等待），由定課觸發重置鎖，此處保持鎖定
       } else {
         video.play().then(() => {
           updateModeButtonsStyle();
+          isCycleLock = false; // 🌟 解除鎖定
           startMp4PrecisionCheck();
-        }).catch(() => {});
+        }).catch(() => { isCycleLock = false; });
       }
     }
 
-    // 🌸 七色五瓣花雨特效 (定課完成或串習完成圓滿)
+    // 🌸 七色五瓣花雨特效
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1858,7 +1878,7 @@
       requestAnimationFrame(animateFlowers);
     }
 
-    // 🌟 古金色厚實福慧幣雨 (供養專屬)
+    // 🌟 古金色厚實福慧幣雨
     function triggerOfferingCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -2179,7 +2199,7 @@
             }
           }
 
-          if (isGuideActive) {
+          if (isGuideActive && !isCycleLock) { // 🌟 鎖定時停止 VAD 自動推進
             const timeSinceLineStart = performance.now() - lineActivationTimestamp;
             const isInsideCooldown = (timeSinceLineStart < 120);
 
@@ -2467,7 +2487,7 @@
     }
 
     function stepGuideMovement(now) {
-      if (!isGuideActive || isTransitioningLine) return;
+      if (!isGuideActive || isTransitioningLine || isCycleLock) return; // 🌟 鎖定時停止動畫
       let delta = now - lastAnimTimestamp;
       if (delta <= 0 || delta > 120) delta = 16.6;
       lastAnimTimestamp = now;
@@ -2512,10 +2532,22 @@
         }
 
         if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
+        
+        // 🌟 嚴格檢查終句：若到達終句尾端，立即觸發結算並上鎖
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) {
+          handleZiduCycleCompletionAndLock();
+          return;
+        }
+
         const nextIndex = currentLineIndex + 1;
-        if (markB_Index !== -1 && nextIndex > markB_Index) { handleCycleCompletion(); return; }
-        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
+        if (markB_Index !== -1 && nextIndex > markB_Index) {
+          handleZiduCycleCompletionAndLock();
+          return;
+        }
+        if (nextIndex >= parsedTextLines.length) {
+          handleZiduCycleCompletionAndLock();
+          return;
+        }
 
         isTransitioningLine = true;
         lineEndTime = performance.now();
@@ -2536,10 +2568,10 @@
     }
 
     function proceedToNextLineImmediately() {
-      if (!isTransitioningLine || !isGuideActive) return;
+      if (!isTransitioningLine || !isGuideActive || isCycleLock) return;
       const nextIndex = currentLineIndex + 1;
       if (markB_Index !== -1 && nextIndex > markB_Index) {
-        handleCycleCompletion();
+        handleZiduCycleCompletionAndLock();
         return;
       }
       hasPageFlipped = false;
@@ -2549,7 +2581,11 @@
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
-    function handleCycleCompletion() {
+    // 🌟 嚴格防重複觸發的自讀結算與上鎖函式
+    function handleZiduCycleCompletionAndLock() {
+      if (isCycleLock) return;
+      isCycleLock = true; // 鎖定！絕不允許重複觸發
+
       if (guideAnimId) {
         cancelAnimationFrame(guideAnimId);
         guideAnimId = null;
@@ -2559,6 +2595,7 @@
 
       if (shouldStop) {
         haltGuideRunnerImmediately();
+        // 達到總目標後保持上鎖，由定課重置或手動切換解除
         return;
       }
 
@@ -2568,7 +2605,10 @@
       if (cycleWaitTimer) clearTimeout(cycleWaitTimer);
 
       cycleWaitTimer = setTimeout(() => {
-        if (!isGuideActive) return;
+        if (!isGuideActive) {
+          isCycleLock = false;
+          return;
+        }
 
         hasPageFlipped = false;
         currentLineIndex = markA_Index;
@@ -2576,6 +2616,7 @@
 
         setupActiveLine(currentLineIndex, 0.0);
         isTransitioningLine = false;
+        isCycleLock = false; // 解除鎖定，準備開始下一遍！
         lastAnimTimestamp = performance.now();
         isVoiceActive = false;
 
@@ -2586,6 +2627,151 @@
       }, 1500);
     }
 
+    function processZiduCycleCompletion() {
+      let ziduDone = getTodayZiduCycles() + 1;
+      const targetLimit = scheduleRepeatLimit || 5;
+      
+      const totalToday = ziduDone;
+      const earned = calculateSentenceCount();
+      addCoins(earned);
+      const stageName = (currentStage === 'cumulative') ? '【串習】' : '【自讀】';
+      showToast(`✅ ${stageName}完成一遍，福慧幣 +${earned} (本階段: ${totalToday}/${targetLimit} 遍)`, 2000);
+
+      if (ziduDone >= targetLimit) {
+        setTodayGenduCycles(0);
+        setTodayZiduCycles(0);
+        return checkAndTriggerDynamicRain(targetLimit);
+      } else {
+        setTodayZiduCycles(ziduDone);
+        return false;
+      }
+    }
+
+    function checkAndTriggerDynamicRain(totalToday) {
+      const todayStr = getNormalizedDateStr();
+      const targetLimit = scheduleRepeatLimit || 5;
+
+      if (totalToday < targetLimit) {
+        return false; 
+      }
+
+      if (currentStage === 'daily') {
+        const scheduleDoneKey = 'SCHEDULE_DAILY_DONE_V541_' + todayStr;
+        if (!localStorage.getItem(scheduleDoneKey)) {
+          showToast('🎉 今日新進度圓滿完成！\n🌸 正在撒下七色五瓣花雨', 3000);
+          speakPrompt('今日新進度圓滿完成');
+          triggerSevenColoredLotusFlowerRain();
+          localStorage.setItem(scheduleDoneKey, 'true');
+
+          setTodayGenduCycles(0);
+          setTodayZiduCycles(0);
+
+          if (currentSchedulePlan && typeof currentSchedulePlan.cumulativeStart === 'number' && typeof currentSchedulePlan.cumulativeEnd === 'number') {
+            const cStart = currentSchedulePlan.cumulativeStart;
+            const cEnd = currentSchedulePlan.cumulativeEnd;
+            const cRepeat = currentSchedulePlan.cumulativeRepeat || 5;
+
+            showToast(`⏳ 3秒後即將進入【今日串習】\n(累積複習 第 ${cStart} 至 ${cEnd} 句，共 ${cRepeat} 遍)`, 3000);
+            
+            if (currentMode === 'mp4') {
+              video.pause();
+            } else if (currentMode === 'pdf') {
+              haltGuideRunnerImmediately();
+            }
+
+            setTimeout(() => {
+              currentStage = 'cumulative';
+              markA_Index = Math.max(0, cStart - 1);
+              const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : 100));
+              markB_Index = Math.min(maxIdx, cEnd - 1);
+              scheduleRepeatLimit = cRepeat;
+              currentLineIndex = markA_Index;
+              currentCharIndexFloat = 0.0;
+              isLineHeadLocked = true;
+              isCycleLock = false; // 解除鎖定
+
+              updateVisualDisplay();
+              scrollToAlignTop(markA_Index);
+
+              showToast(`▶️ 開始【今日串習】：第 ${cStart} 至 ${cEnd} 句（共 ${cRepeat} 遍）`, 2500);
+
+              if (currentMode === 'mp4') {
+                const range = getActiveVideoRange();
+                if (range.valid) {
+                  video.currentTime = range.start;
+                  video.play().then(() => {
+                    updateModeButtonsStyle();
+                    isCycleLock = false;
+                    startMp4PrecisionCheck();
+                  }).catch(() => { isCycleLock = false; });
+                }
+              } else if (currentMode === 'pdf' && pdfSubMode === 'guide') {
+                isGuideActive = true;
+                startGuideRunner();
+                updateModeButtonsStyle();
+              }
+            }, 3000);
+
+            return true;
+          } else {
+            resetTodayCycles();
+            return true;
+          }
+        }
+        return false;
+      } else if (currentStage === 'cumulative') {
+        showToast('🎉 今日串習與定課全數圓滿！\n🌸 恭喜福慧圓滿', 4000);
+        speakPrompt('今日串習圓滿');
+        triggerSevenColoredLotusFlowerRain();
+        resetTodayCycles();
+        currentStage = 'daily';
+        return true;
+      }
+
+      return false;
+    }
+
+    function processGenduCycleCompletion() {
+      let genduDone = getTodayGenduCycles() + 1;
+      const targetLimit = scheduleRepeatLimit || 5;
+      
+      const totalToday = genduDone;
+      const earned = calculateSentenceCount();
+      addCoins(earned);
+      const stageName = (currentStage === 'cumulative') ? '【串習】' : '【跟讀】';
+      showToast(`✅ ${stageName}完成一遍，福慧幣 +${earned} (本階段: ${totalToday}/${targetLimit} 遍)`, 2000);
+
+      if (genduDone >= targetLimit) {
+        setTodayGenduCycles(0);
+        setTodayZiduCycles(0);
+        return checkAndTriggerDynamicRain(targetLimit);
+      } else {
+        setTodayGenduCycles(genduDone);
+        return false;
+      }
+    }
+
+    function handleMp4CycleEnd(range) {
+      if (isCycleLock) return;
+      isCycleLock = true;
+
+      videoPausedAt = -1;
+      video.currentTime = range.start;
+      
+      const shouldStop = processGenduCycleCompletion();
+
+      if (shouldStop) {
+        video.pause();
+        updateModeButtonsStyle();
+      } else {
+        video.play().then(() => {
+          updateModeButtonsStyle();
+          isCycleLock = false;
+          startMp4PrecisionCheck();
+        }).catch(() => { isCycleLock = false; });
+      }
+    }
+
     function haltGuideRunnerImmediately() {
       if (guideAnimId) cancelAnimationFrame(guideAnimId);
       guideAnimId = null;
@@ -2594,6 +2780,7 @@
 
       isGuideActive = false;
       isTransitioningLine = false;
+      isCycleLock = false; // 解除鎖定
 
       guideLine.style.display = 'none';
       redDot.style.display = 'none';
@@ -2601,6 +2788,186 @@
       try { video.pause(); } catch(e){}
       updateModeButtonsStyle();
       updateVisualDisplay();
+    }
+
+    // 🌸 七色五瓣花雨特效
+    function triggerSevenColoredLotusFlowerRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const flowers = [];
+      const flowerColors = ['#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'];
+      
+      for (let i = 0; i < 70; i++) {
+        flowers.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 10 + 12,
+          speedY: Math.random() * 1.8 + 1.0,
+          speedX: (Math.random() - 0.5) * 1.2,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 2.5,
+          color: flowerColors[Math.floor(Math.random() * flowerColors.length)],
+          opacity: 0.94
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5800;
+
+      function animateFlowers(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        flowers.forEach(f => {
+          f.y += f.speedY;
+          f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
+          f.rotation += f.rotationSpeed;
+
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate((f.rotation * Math.PI) / 180);
+          ctx.globalAlpha = f.opacity;
+
+          for (let j = 0; j < 5; j++) {
+            const angle = (j * 2 * Math.PI) / 5;
+            const dist = f.size * 0.45;
+            const cx = Math.cos(angle) * dist;
+            const cy = Math.sin(angle) * dist;
+            ctx.fillStyle = f.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.fillStyle = '#FEF08A';
+          ctx.beginPath();
+          ctx.arc(0, 0, f.size * 0.32, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+
+          if (f.y > canvas.height + 30) {
+            f.y = -30;
+            f.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateFlowers);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateFlowers);
+    }
+
+    function triggerOfferingCoinRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const coins = [];
+      for (let i = 0; i < 75; i++) {
+        coins.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 11 + 14,
+          speedY: Math.random() * 1.8 + 1.2,
+          speedX: (Math.random() - 0.5) * 1.3,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 2.5,
+          type: Math.random() > 0.5 ? '福' : '慧',
+          opacity: 0.98
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5800;
+
+      function animateCoins(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        coins.forEach(c => {
+          c.y += c.speedY;
+          c.x += c.speedX + Math.sin(c.y / 45) * 0.7;
+          c.rotation += c.rotationSpeed;
+
+          ctx.save();
+          ctx.translate(c.x, c.y);
+          ctx.rotate((c.rotation * Math.PI) / 180);
+          ctx.globalAlpha = c.opacity;
+
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetX = 4;
+          ctx.shadowOffsetY = 4;
+
+          const grad = ctx.createRadialGradient(-c.size*0.35, -c.size*0.35, c.size*0.05, 0, 0, c.size);
+          grad.addColorStop(0, '#FFFBEB');
+          grad.addColorStop(0.3, '#FEF08A');
+          grad.addColorStop(0.7, '#EAB308');
+          grad.addColorStop(0.9, '#CA8A04');
+          grad.addColorStop(1, '#713F12');
+
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(0, 0, c.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.lineWidth = 3.5;
+          ctx.strokeStyle = '#FEF9C3';
+          ctx.stroke();
+
+          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = '#422006';
+          ctx.beginPath();
+          ctx.arc(0, 0, c.size * 0.78, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.shadowColor = 'transparent';
+          ctx.font = '900 ' + Math.floor(c.size * 0.95) + 'px "Noto Serif TC", "Songti TC", serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          
+          ctx.lineWidth = 3.5;
+          ctx.strokeStyle = '#FEF3C7';
+          ctx.strokeText(c.type, 0, 1);
+
+          ctx.fillStyle = '#78350F';
+          ctx.fillText(c.type, 0, 1);
+
+          ctx.restore();
+
+          if (c.y > canvas.height + 30) {
+            c.y = -30;
+            c.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateCoins);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateCoins);
+    }
+
+    function triggerLeaderboardCoinRain() {
+      triggerOfferingCoinRain();
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -2625,10 +2992,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V539_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V541_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V539_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V541_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
