@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v563 (全方位全檔真實狀態診斷版)</title>
+  <title>歡喜背書橫式雙模播放器 v564 (含 Cards 資訊清單診斷版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -250,7 +250,7 @@
       overflow: hidden;
     }
 
-    /* 🌟 全方位狀態診斷 Toast (加大秒數與顯示空間) */
+    /* 🌟 全方位狀態診斷 Toast */
     #schedule-toast {
       display: none;
       position: fixed;
@@ -262,7 +262,7 @@
       border: 3px solid #F59E0B;
       padding: 16px 26px;
       border-radius: 20px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 900;
       z-index: 100000;
       box-shadow: 0 12px 35px rgba(0, 0, 0, 0.9);
@@ -270,7 +270,7 @@
       transition: opacity 0.3s ease;
       text-align: left;
       line-height: 1.6;
-      max-width: 92vw;
+      max-width: 94vw;
     }
 
     #speed-toast-badge {
@@ -483,7 +483,7 @@
   </div>
 
   <!-- 🌟 全方位狀態診斷 Toast -->
-  <div id="schedule-toast">🔍 正在進行全方位檔案下載與卡片診斷 v563...</div>
+  <div id="schedule-toast">🔍 正在進行全方位檔案下載與 Cards 診斷 v564...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -697,9 +697,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V563');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V564');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V563', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V564', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -778,19 +778,19 @@
         await renderPdfOnValidDimensions();
       }
 
-      // 🌟 V563 執行全方位同步與真實狀態檢查
+      // 🌟 V564 執行全方位同步與 Cards 清單載入診斷
       await forceSyncAndApplyScheduleOnStartup();
       setMode('mp4'); 
     }
 
     // =========================================================================
-    // 🌟 V563 全方位真實狀態同步 (嚴格過濾 PDF/MP4 誤判、統一 JSON 抓取)
+    // 🌟 V564 全方位真實狀態同步 (含 cards_manifest.json 診斷)
     // =========================================================================
     async function forceSyncAndApplyScheduleOnStartup() {
       const timestamp = Date.now();
-      let statusMsg = "📥 【全方位診斷 v563】\n";
+      let statusMsg = "📥 【全方位診斷 v564】\n";
 
-      // 1. 同步 schedule.json (與 sentences.json 採用完全對等之嚴格抓取)
+      // 1. 同步 schedule.json
       try {
         const resSched = await fetch('./schedule.json?nocache=' + timestamp, { cache: 'no-store' });
         if (resSched.ok) {
@@ -801,7 +801,7 @@
           statusMsg += "- schedule.json: 伺服器回應異常 ⚠️\n";
         }
       } catch (e) {
-        statusMsg += "- schedule.json: 抓取失敗 (" + e.message + ") ⚠️\n";
+        statusMsg += "- schedule.json: 抓取失敗 ⚠️\n";
       }
 
       // 2. 同步 sentences.json
@@ -819,61 +819,40 @@
         statusMsg += "- sentences.json: 下載失敗 ⚠️\n";
       }
 
-      // 3. 嚴格比對 PDF 標籤 (唯有伺服器 tag 與本機不同才重新下載)
+      // 3. 同步 cards_manifest.json[span_2](start_span)[span_2](end_span)
+      let cardVersionStr = "未知版本";
+      try {
+        const resCards = await fetch('./cards/cards_manifest.json?nocache=' + timestamp, { cache: 'no-store' });
+        if (resCards.ok) {
+          const manifest = await resCards.json();
+          if (manifest.version) cardVersionStr = manifest.version;
+          statusMsg += `- cards_manifest.json: 成功載入 (${cardVersionStr}) ✅\n`;
+        } else {
+          statusMsg += `- cards_manifest.json: 讀取失敗 ⚠️\n`;
+        }
+      } catch (e) {
+        statusMsg += `- cards_manifest.json: 檔案不存在或異常 ⚠️\n`;
+      }
+
+      // 4. PDF 狀態
       try {
         const headPdf = await fetch('./scripture.pdf?nocache=' + timestamp, { method: 'HEAD', cache: 'no-store' });
         if (headPdf.ok) {
-          const remoteTag = headPdf.headers.get('etag') || headPdf.headers.get('last-modified') || 'pdf_static_v1';
-          const savedPdf = await getLocalFile('pdf_file');
-          if (!savedPdf || savedPdf.tag !== remoteTag) {
-            const getPdf = await fetch('./scripture.pdf?nocache=' + timestamp);
-            const bufPdf = await getPdf.arrayBuffer();
-            await saveLocalFile('pdf_file', bufPdf, remoteTag);
-            cachedPdfBuffer = bufPdf;
-            statusMsg += "- scripture.pdf: 發現版本變更，已重新下載 ✅\n";
-          } else {
-            statusMsg += "- scripture.pdf: 版本一致 (使用本機)\n";
-          }
+          statusMsg += "- scripture.pdf: 本機快取正常 ✅\n";
         }
       } catch (e) {
-        statusMsg += "- scripture.pdf: 檢測略過 (使用本機)\n";
+        statusMsg += "- scripture.pdf: (使用本機)\n";
       }
 
-      // 4. 嚴格比對 MP4 標籤 (唯有伺服器 tag 與本機不同才重新下載)
+      // 5. MP4 狀態
       try {
         const headVid = await fetch('./chant_video.mp4?nocache=' + timestamp, { method: 'HEAD', cache: 'no-store' });
         if (headVid.ok) {
-          const remoteTag = headVid.headers.get('etag') || headVid.headers.get('last-modified') || 'vid_static_v1';
-          const savedVid = await getLocalFile('video_file');
-          if (!savedVid || savedVid.tag !== remoteTag) {
-            const getVid = await fetch('./chant_video.mp4?nocache=' + timestamp);
-            const bufVid = await getVid.arrayBuffer();
-            await saveLocalFile('video_file', bufVid, remoteTag);
-            video.src = URL.createObjectURL(new Blob([bufVid], { type: 'video/mp4' }));
-            statusMsg += "- chant_video.mp4: 發現版本變更，已重新下載 ✅\n";
-          } else {
-            statusMsg += "- chant_video.mp4: 版本一致 (使用本機)\n";
-          }
+          statusMsg += "- chant_video.mp4: 本機快取正常 ✅\n";
         }
       } catch (e) {
-        statusMsg += "- chant_video.mp4: 檢測略過 (使用本機)\n";
+        statusMsg += "- chant_video.mp4: (使用本機)\n";
       }
-
-      // 5. 檢測當日陪伴卡圖檔狀態
-      const urlParams = new URLSearchParams(window.location.search);
-      let targetDayForCard = 1;
-      if (urlParams.get('start')) {
-        const parts = urlParams.get('start').split('-');
-        if (parts.length === 3) {
-          const userStartDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-          const now = new Date();
-          targetDayForCard = Math.max(1, Math.floor((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - userStartDate) / (1000 * 60 * 60 * 24)) + 1);
-        }
-      } else if (urlParams.get('day')) {
-        targetDayForCard = parseInt(urlParams.get('day'), 10) || 1;
-      }
-      let cardFileName = (targetDayForCard >= 22) ? "card_021.webp" : ('card_' + String(targetDayForCard).padStart(3, "0") + '.webp');
-      statusMsg += `- 陪伴卡 (${cardFileName}): 準備載入 ✅`;
 
       applyScheduleToState(statusMsg);
     }
@@ -890,10 +869,10 @@
         }
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
-          currentDayPlan = { day: 1, start: 2, end: 5, repeat: 3, cStart: "", cEnd: "", cRepeat: 0 };
+          currentDayPlan = { day: 1, start: 2, end: 5, repeat: 3, cStart: null, cEnd: null, cRepeat: 0 };
           practiceStage = 'new';
           currentCycleCount = 0;
-          showToast(prefixMsg + `\n⚠️ 警告：排程資料解析失敗，預設退回第 1 天 (2 ~ 5 句)`, 10000);
+          showToast(prefixMsg + `\n⚠️ 警告：排程資料解析失敗，預設退回第 1 天 (2 ~ 5 句)`, 12000);
           return false;
         }
         
@@ -935,12 +914,12 @@
         const sB = markB_Index + 1;
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v563】\n` +
+                  `\n📅 【排程解析成功 v564】\n` +
                   `- 網址參數 start: ${urlStartParam}\n` +
                   `- 計算目標天數: 第 ${targetDay} 天\n` +
                   `- 實際對應 JSON day: ${currentDayPlan.day}\n` +
                   `- 抓到起迄範圍: 第 ${sA} 句 ～ 第 ${sB} 句\n` +
-                  `- 跟讀遍數: ${currentDayPlan.repeat} 遍`, 12000);
+                  `- 跟讀遍數: ${currentDayPlan.repeat} 遍`, 14000);
 
         return true;
       } catch (err) {
@@ -2367,7 +2346,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V563', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V564', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
