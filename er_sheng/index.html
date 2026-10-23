@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v564 (含 Cards 資訊清單診斷版)</title>
+  <title>歡喜背書橫式雙模播放器 v565 (離線優先與全快取 Log 檢視版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -250,7 +250,7 @@
       overflow: hidden;
     }
 
-    /* 🌟 全方位狀態診斷 Toast */
+    /* 🌟 離線快取 Log 診斷 Toast面板 */
     #schedule-toast {
       display: none;
       position: fixed;
@@ -259,18 +259,18 @@
       transform: translate(-50%, -50%);
       background: rgba(15, 23, 42, 0.98);
       color: #38BDF8;
-      border: 3px solid #F59E0B;
+      border: 3px solid #10B981;
       padding: 16px 26px;
       border-radius: 20px;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 900;
       z-index: 100000;
       box-shadow: 0 12px 35px rgba(0, 0, 0, 0.9);
       pointer-events: none;
       transition: opacity 0.3s ease;
       text-align: left;
-      line-height: 1.6;
-      max-width: 94vw;
+      line-height: 1.55;
+      max-width: 95vw;
     }
 
     #speed-toast-badge {
@@ -482,8 +482,8 @@
     </div>
   </div>
 
-  <!-- 🌟 全方位狀態診斷 Toast -->
-  <div id="schedule-toast">🔍 正在進行全方位檔案下載與 Cards 診斷 v564...</div>
+  <!-- 🌟 離線快取 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v565 離線快取載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -697,9 +697,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V564');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V565');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V564', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V565', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -750,111 +750,117 @@
 
       renderUI();
       
-      const localSent = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
-      if (localSent) { try { scriptureData = JSON.parse(localSent); } catch(e){} }
+      // 🌟 V565 離線優先載入初始化
+      await loadAllAssetsOfflineFirst();
+      setMode('mp4'); 
+    }
 
-      const localVideo = await getLocalFile('video_file');
-      if (localVideo && localVideo.data) {
-        video.src = URL.createObjectURL(new Blob([localVideo.data], { type: 'video/mp4' }));
-      } else {
-        video.src = './chant_video.mp4';
+    // =========================================================================
+    // 🌟 V565 離線優先同步與快取 Log 紀錄引擎 (Offline-First)
+    // =========================================================================
+    async function loadAllAssetsOfflineFirst() {
+      let logMsg = "📦 【v565 離線快取與 Log 紀錄】\n";
+      const timestamp = Date.now();
+
+      // 1. 處理 schedule.json
+      let schedParsed = null;
+      const localSchedStr = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V565');
+      if (localSchedStr && navigator.onLine === false) {
+        try { schedParsed = JSON.parse(localSchedStr); logMsg += "- schedule.json: 離線使用本機快取 ✅\n"; } catch(e){}
+      }
+      if (!schedParsed) {
+        try {
+          const res = await fetch('./schedule.json?nocache=' + timestamp, { cache: 'no-store' });
+          if (res.ok) {
+            schedParsed = await res.json();
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V565', JSON.stringify(schedParsed));
+            logMsg += "- schedule.json: 成功從網路下載並存入本機 ✅\n";
+          }
+        } catch (e) {
+          if (localSchedStr) {
+            schedParsed = JSON.parse(localSchedStr);
+            logMsg += "- schedule.json: 網路離線，成功載入本機備份 ✅\n";
+          } else {
+            logMsg += "- schedule.json: 載入失敗 ⚠️\n";
+          }
+        }
       }
 
-      const localPdf = await getLocalFile('pdf_file');
-      if (localPdf && localPdf.data) {
-        cachedPdfBuffer = localPdf.data;
+      // 2. 處理 sentences.json
+      const localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V565');
+      if (localSentStr) {
+        try { scriptureData = JSON.parse(localSentStr); logMsg += "- sentences.json: 優先讀取本機快取 (Offline Ready) ✅\n"; } catch(e){}
+      }
+      if (scriptureData.length === 0 || navigator.onLine) {
+        try {
+          const res = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
+          if (res.ok) {
+            scriptureData = await res.json();
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V565', JSON.stringify(scriptureData));
+            if (!localSentStr) logMsg += "- sentences.json: 首次聯網下載並儲存本機 ✅\n";
+          }
+        } catch (e) {
+          if (scriptureData.length > 0) logMsg += "- sentences.json: 使用本機快取順利運行 ✅\n";
+        }
+      }
+
+      // 3. 處理 cards_manifest.json
+      try {
+        const resCards = await fetch('./cards/cards_manifest.json?nocache=' + timestamp, { cache: 'no-store' });
+        if (resCards.ok) {
+          const manifest = await resCards.json();
+          logMsg += `- cards_manifest.json: 成功載入 (${manifest.version}) ✅\n`;
+        } else {
+          logMsg += `- cards_manifest.json: 讀取異常 ⚠️\n`;
+        }
+      } catch (e) {
+        logMsg += `- cards_manifest.json: 離線模式 (略過檢查) 📦\n`;
+      }
+
+      // 4. 處理 scripture.pdf (IndexedDB 優先)
+      const savedPdf = await getLocalFile('pdf_file_v565');
+      if (savedPdf && savedPdf.data) {
+        cachedPdfBuffer = savedPdf.data;
+        logMsg += "- scripture.pdf: 完美讀取本機 IndexedDB 快取 ✅\n";
       } else {
         try {
-          const pRes = await fetch('./scripture.pdf');
-          if (pRes.ok) {
-            const buf = await pRes.arrayBuffer();
-            await saveLocalFile('pdf_file', buf, 'init_pdf');
+          const res = await fetch('./scripture.pdf?nocache=' + timestamp);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            await saveLocalFile('pdf_file_v565', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
+            logMsg += "- scripture.pdf: 首次下載並寫入本機資料庫 ✅\n";
           }
-        } catch(e){}
+        } catch (e) {
+          logMsg += "- scripture.pdf: 讀取失敗 ⚠️\n";
+        }
       }
 
       if (cachedPdfBuffer && parsedTextLines.length === 0) {
         await renderPdfOnValidDimensions();
       }
 
-      // 🌟 V564 執行全方位同步與 Cards 清單載入診斷
-      await forceSyncAndApplyScheduleOnStartup();
-      setMode('mp4'); 
-    }
-
-    // =========================================================================
-    // 🌟 V564 全方位真實狀態同步 (含 cards_manifest.json 診斷)
-    // =========================================================================
-    async function forceSyncAndApplyScheduleOnStartup() {
-      const timestamp = Date.now();
-      let statusMsg = "📥 【全方位診斷 v564】\n";
-
-      // 1. 同步 schedule.json
-      try {
-        const resSched = await fetch('./schedule.json?nocache=' + timestamp, { cache: 'no-store' });
-        if (resSched.ok) {
-          const freshSched = await resSched.json();
-          localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(freshSched));
-          statusMsg += "- schedule.json: 成功從 GitHub 下載 ✅\n";
-        } else {
-          statusMsg += "- schedule.json: 伺服器回應異常 ⚠️\n";
+      // 5. 處理 chant_video.mp4 (IndexedDB 優先)
+      const savedVid = await getLocalFile('video_file_v565');
+      if (savedVid && savedVid.data) {
+        video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
+        logMsg += "- chant_video.mp4: 完美讀取本機 IndexedDB 快取 ✅\n";
+      } else {
+        try {
+          const res = await fetch('./chant_video.mp4?nocache=' + timestamp);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            await saveLocalFile('video_file_v565', buf, 'vid_cached');
+            video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
+            logMsg += "- chant_video.mp4: 首次下載並寫入本機資料庫 ✅\n";
+          }
+        } catch (e) {
+          video.src = './chant_video.mp4';
+          logMsg += "- chant_video.mp4: 使用串流備用來源 ⚠️\n";
         }
-      } catch (e) {
-        statusMsg += "- schedule.json: 抓取失敗 ⚠️\n";
       }
 
-      // 2. 同步 sentences.json
-      try {
-        const resSent = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
-        if (resSent.ok) {
-          const freshSent = await resSent.json();
-          localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(freshSent));
-          scriptureData = freshSent;
-          statusMsg += "- sentences.json: 成功從 GitHub 下載 ✅\n";
-        } else {
-          statusMsg += "- sentences.json: 伺服器回應異常 ⚠️\n";
-        }
-      } catch (e) {
-        statusMsg += "- sentences.json: 下載失敗 ⚠️\n";
-      }
-
-      // 3. 同步 cards_manifest.json[span_2](start_span)[span_2](end_span)
-      let cardVersionStr = "未知版本";
-      try {
-        const resCards = await fetch('./cards/cards_manifest.json?nocache=' + timestamp, { cache: 'no-store' });
-        if (resCards.ok) {
-          const manifest = await resCards.json();
-          if (manifest.version) cardVersionStr = manifest.version;
-          statusMsg += `- cards_manifest.json: 成功載入 (${cardVersionStr}) ✅\n`;
-        } else {
-          statusMsg += `- cards_manifest.json: 讀取失敗 ⚠️\n`;
-        }
-      } catch (e) {
-        statusMsg += `- cards_manifest.json: 檔案不存在或異常 ⚠️\n`;
-      }
-
-      // 4. PDF 狀態
-      try {
-        const headPdf = await fetch('./scripture.pdf?nocache=' + timestamp, { method: 'HEAD', cache: 'no-store' });
-        if (headPdf.ok) {
-          statusMsg += "- scripture.pdf: 本機快取正常 ✅\n";
-        }
-      } catch (e) {
-        statusMsg += "- scripture.pdf: (使用本機)\n";
-      }
-
-      // 5. MP4 狀態
-      try {
-        const headVid = await fetch('./chant_video.mp4?nocache=' + timestamp, { method: 'HEAD', cache: 'no-store' });
-        if (headVid.ok) {
-          statusMsg += "- chant_video.mp4: 本機快取正常 ✅\n";
-        }
-      } catch (e) {
-        statusMsg += "- chant_video.mp4: (使用本機)\n";
-      }
-
-      applyScheduleToState(statusMsg);
+      applyScheduleToState(logMsg);
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -862,7 +868,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V565');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -872,7 +878,7 @@
           currentDayPlan = { day: 1, start: 2, end: 5, repeat: 3, cStart: null, cEnd: null, cRepeat: 0 };
           practiceStage = 'new';
           currentCycleCount = 0;
-          showToast(prefixMsg + `\n⚠️ 警告：排程資料解析失敗，預設退回第 1 天 (2 ~ 5 句)`, 12000);
+          showToast(prefixMsg + `\n⚠️ 警告：排程資料解析失敗，預設退回第 1 天`, 14000);
           return false;
         }
         
@@ -914,12 +920,9 @@
         const sB = markB_Index + 1;
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v564】\n` +
-                  `- 網址參數 start: ${urlStartParam}\n` +
-                  `- 計算目標天數: 第 ${targetDay} 天\n` +
-                  `- 實際對應 JSON day: ${currentDayPlan.day}\n` +
-                  `- 抓到起迄範圍: 第 ${sA} 句 ～ 第 ${sB} 句\n` +
-                  `- 跟讀遍數: ${currentDayPlan.repeat} 遍`, 14000);
+                  `\n📅 【排程解析成功 v565】\n` +
+                  `- 目標天數: 第 ${targetDay} 天 (JSON day: ${currentDayPlan.day})\n` +
+                  `- 誦讀範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)`, 16000);
 
         return true;
       } catch (err) {
@@ -1301,14 +1304,14 @@
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
-              const localPdf = await getLocalFile('pdf_file');
+              const localPdf = await getLocalFile('pdf_file_v565');
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
                 const response = await fetch('./scripture.pdf?nocache=' + Date.now(), { cache: 'no-store' });
                 if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-                await saveLocalFile('pdf_file', cachedPdfBuffer, 'mode-load');
+                await saveLocalFile('pdf_file_v565', cachedPdfBuffer, 'mode-load');
               }
             }
 
@@ -2346,7 +2349,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V564', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V565', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
