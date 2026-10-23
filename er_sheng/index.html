@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v543 (修復函式對應與完美串習流暢版)</title>
+  <title>歡喜背書橫式雙模播放器 v544 (穩固黃金核心與流暢串習版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -590,17 +590,6 @@
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    function getAppleCanvasScale() {
-      if (!isAppleDevice) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
-      if (!pdfCanvas || pdfCanvas.height === 0 || pdfCanvas.width === 0) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-      const scaleY = canvasRect.height / pdfCanvas.height;
-      const scaleX = canvasRect.width / pdfCanvas.width;
-      const offsetTop = pdfCanvas.offsetTop || 0;
-      const offsetLeft = pdfCanvas.offsetLeft || 0;
-      return { scaleX, scaleY, offsetTop, offsetLeft };
-    }
-
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -680,7 +669,6 @@
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
     let scheduleRepeatLimit = 5;
-    let completedCycles = 0; 
     let videoPausedAt = -1;
 
     let currentSchedulePlan = null;
@@ -732,35 +720,35 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V543_' + currentStage + '_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V544_' + currentStage + '_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V543_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V544_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V543_' + currentStage + '_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V544_' + currentStage + '_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V543_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V544_' + currentStage + '_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V543_daily_' + todayStr, '0');
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V543_daily_' + todayStr, '0');
-      localStorage.setItem('DAILY_GENDU_CYCLES_V543_cumulative_' + todayStr, '0');
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V543_cumulative_' + todayStr, '0');
+      localStorage.setItem('DAILY_GENDU_CYCLES_V544_daily_' + todayStr, '0');
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V544_daily_' + todayStr, '0');
+      localStorage.setItem('DAILY_GENDU_CYCLES_V544_cumulative_' + todayStr, '0');
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V544_cumulative_' + todayStr, '0');
     }
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V543');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V544');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V543', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V544', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -1661,7 +1649,7 @@
       }
 
       if (currentStage === 'daily') {
-        const scheduleDoneKey = 'SCHEDULE_DAILY_DONE_V543_' + todayStr;
+        const scheduleDoneKey = 'SCHEDULE_DAILY_DONE_V544_' + todayStr;
         if (!localStorage.getItem(scheduleDoneKey)) {
           showToast('🎉 今日新進度圓滿完成！\n🌸 正在撒下七色五瓣花雨', 3000);
           speakPrompt('今日新進度圓滿完成');
@@ -1736,7 +1724,7 @@
       return false;
     }
 
-    // 🌟 統一定義 handleCycleCompletion，防止 ReferenceError 崩潰
+    // 🌟 黃金穩固版統一直覺循環結算
     function handleCycleCompletion() {
       if (currentMode === 'mp4') {
         const range = getActiveVideoRange();
@@ -2136,10 +2124,10 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V543_' + CURRENT_CLASSIC_ID) || '1', 10);
+        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V544_' + CURRENT_CLASSIC_ID) || '1', 10);
         targetDay = tIdx;
         let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V543_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        localStorage.setItem('TEST_CARD_INDEX_V544_' + CURRENT_CLASSIC_ID, nextCycle.toString());
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
