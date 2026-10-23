@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v552 (日期相對天數與麥克風修復版)</title>
+  <title>歡喜背書橫式雙模播放器 v553 (自讀與比對功能修復版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -589,17 +589,6 @@
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    function getAppleCanvasScale() {
-      if (!isAppleDevice) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
-      if (!pdfCanvas || pdfCanvas.height === 0 || pdfCanvas.width === 0) return { scaleX: 1.0, scaleY: 1.0, offsetTop: 0, offsetLeft: 0 };
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-      const scaleY = canvasRect.height / pdfCanvas.height;
-      const scaleX = canvasRect.width / pdfCanvas.width;
-      const offsetTop = pdfCanvas.offsetTop || 0;
-      const offsetLeft = pdfCanvas.offsetLeft || 0;
-      return { scaleX, scaleY, offsetTop, offsetLeft };
-    }
-
     let mp4Speed = parseFloat(localStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -679,7 +668,7 @@
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
     let currentDayPlan = null; 
-    let practiceStage = 'new'; // 'new' 或 'cumulative'
+    let practiceStage = 'new'; 
     let currentCycleCount = 0; 
     let videoPausedAt = -1;
 
@@ -726,35 +715,16 @@
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
-    function getTodayGenduCycles() {
-      const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V552_' + todayStr) || '0', 10);
-    }
-    function setTodayGenduCycles(val) {
-      const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V552_' + todayStr, Math.max(0, val).toString());
-    }
-
-    function getTodayZiduCycles() {
-      const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V552_' + todayStr) || '0', 10);
-    }
-    function setTodayZiduCycles(val) {
-      const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V552_' + todayStr, Math.max(0, val).toString());
-    }
-
-    function resetTodayCycles() {
-      setTodayGenduCycles(0);
-      setTodayZiduCycles(0);
+    function getNormalizedDateStr() {
+      const now = new Date();
+      return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
     }
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V552');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V553');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V552', todayStr);
-        resetTodayCycles();
+        localStorage.setItem('APP_ACTIVE_DATE_V553', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -896,7 +866,7 @@
       } catch (e) {}
     }
 
-    // 🌟 修正：精準根據 10月15日 作為第1天起算，自動對應相對天數
+    // 🌟 以 2026年10月15日 為第1天起算自動計算相對天數
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -919,7 +889,6 @@
         if (urlParams.get('day')) {
           targetDay = parseInt(urlParams.get('day'), 10) || 1;
         } else {
-          // 以 2026年10月15日 為第1天起算
           const startDate = new Date(2026, 9, 15); // 9 代表 10月
           const now = new Date();
           const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1140,8 +1109,6 @@
       }, duration);
     }
 
-    function showCurrentModeBanner() {}
-
     function setMp4Speed(val) {
       mp4Speed = val;
       localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
@@ -1200,11 +1167,6 @@
       } catch (e) {}
     }
 
-    function getNormalizedDateStr() {
-      const now = new Date();
-      return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
-    }
-
     function getActiveVideoRange() {
       if (!scriptureData || scriptureData.length === 0) {
         return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
@@ -1255,10 +1217,6 @@
       }
     }, { passive: true });
 
-    window.addEventListener('touched', (e) => {}, { passive: true });
-
-    window.addEventListener('touchedEnd', (e) => {}, { passive: true });
-
     window.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - touchStartX;
@@ -1285,14 +1243,15 @@
       } catch(e) {}
     }
 
-    // 🌟 修正：確保切換模式與麥克風授權完美觸發
+    // =========================================================================
+    // 🌟 關鍵修復：setMode 完整處理自讀與比對模式切換與麥克風授權
+    // =========================================================================
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
 
       if (isUserRecording && mediaRecorder) {
         mediaRecorder.stop();
       }
-
       isUserRecording = false;
 
       if (recordAudioElement) {
@@ -1310,16 +1269,12 @@
         videoWrap.style.display = 'flex';
 
         centerCore.scrollTop = 0;
-
         video.playbackRate = mp4Speed;
 
         const range = getActiveVideoRange();
         videoPausedAt = -1;
-
         if (range.valid) {
-          try {
-            video.currentTime = range.start;
-          } catch (e) {}
+          try { video.currentTime = range.start; } catch (e) {}
         }
 
       } else if (currentMode === 'pdf') {
@@ -1329,7 +1284,7 @@
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
-        // 立即主動向瀏覽器要求麥克風權限
+        // 確保點擊切換時主動請求並開啟麥克風權限
         ensureMicrophoneActive();
 
         if (subMode === 'compare') {
@@ -1340,64 +1295,31 @@
           try {
             if (!cachedPdfBuffer) {
               const localPdf = await getLocalFile('pdf_file');
-
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
-                const response = await fetch(
-                  './scripture.pdf?nocache=' + Date.now(),
-                  { cache: 'no-store' }
-                );
-
-                if (!response.ok) {
-                  throw new Error(
-                    '找不到 scripture.pdf，HTTP ' + response.status
-                  );
-                }
-
+                const response = await fetch('./scripture.pdf?nocache=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-
-                try {
-                  await saveLocalFile(
-                    'pdf_file',
-                    cachedPdfBuffer,
-                    'mode-load'
-                  );
-                } catch (saveError) {
-                  console.warn('PDF 快取儲存失敗：', saveError);
-                }
+                await saveLocalFile('pdf_file', cachedPdfBuffer, 'mode-load');
               }
             }
 
-            if (!window.pdfjsLib) {
-              throw new Error('PDF 閱讀元件尚未載入，請稍後再試');
-            }
+            if (!window.pdfjsLib) throw new Error('PDF 閱讀元件尚未載入');
 
-            if (
-              !pdfCanvas.width ||
-              !pdfCanvas.height ||
-              parsedTextLines.length === 0
-            ) {
+            if (!pdfCanvas.width || !pdfCanvas.height || parsedTextLines.length === 0) {
               await renderPdfOnValidDimensions();
             } else {
-              scrollToAlignTop(
-                markA_Index !== -1 ? markA_Index : 0
-              );
+              scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
             }
-
           } catch (err) {
-            console.error('PDF 載入或顯示失敗：', err);
-
-            showToast(
-              'PDF 無法顯示：' + err.message,
-              5000
-            );
+            console.error('PDF 顯示失敗：', err);
+            showToast('PDF 無法顯示：' + err.message, 4000);
           }
         }, 120);
       }
 
       renderUI();
-      showCurrentModeBanner();
     }
 
     function renderUI() {
@@ -1554,6 +1476,7 @@
       }
     }
 
+    // 🌟 修正自讀按鈕點擊：確保切換至 PDF 導引模式並啟動自動跟隨
     function handleZiduClick() {
       triggerAppFullscreen();
       try {
@@ -1592,12 +1515,14 @@
           currentCharIndexFloat = 0.0;
           lastVoiceTime = performance.now();
 
-          ensureMicrophoneActive(); 
-          startGuideRunner();
-          updateModeButtonsStyle();
+          ensureMicrophoneActive().then(() => {
+            startGuideRunner();
+            updateModeButtonsStyle();
+          });
       }
     }
 
+    // 🌟 修正比對按鈕點擊：切換至比對模式並觸發錄音
     function handleRecordModeClick() {
       triggerAppFullscreen();
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
@@ -2020,7 +1945,9 @@
       updateModeButtonsStyle();
     }
 
-    // 🌟 確保麥克風主動權限提示與連線穩定
+    // =========================================================================
+    // 🌟 確保麥克風主動權限提示與 VAD 音訊迴圈穩定運作
+    // =========================================================================
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -2290,6 +2217,15 @@
 
     btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
 
+    function haltGuideRunnerImmediately() {
+      isGuideActive = false;
+      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+      updateModeButtonsStyle();
+    }
+
     function startGuideRunner() {
       if (parsedTextLines.length === 0) return;
       guideStage.style.height = Math.max(centerCore.scrollHeight, 2500) + 'px';
@@ -2486,14 +2422,13 @@
       if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        // 以 2026年10月15日 為第1天起算自動計算相對天數
         const startDate = new Date(2026, 9, 15);
         const now = new Date();
         const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const diffDays = Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
         targetDay = Math.max(1, diffDays);
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V552', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V553', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
