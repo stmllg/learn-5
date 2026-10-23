@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v554 (完全打通切換與事件修復版)</title>
+  <title>歡喜背書橫式雙模播放器 v555 (網址優先與全新開始修復版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -722,9 +722,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V554');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V555');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V554', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V555', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -866,7 +866,9 @@
       } catch (e) {}
     }
 
-    // 🌟 以 2026年10月15日 為第1天起算自動計算相對天數
+    // =========================================================================
+    // 🌟 核心修正：強制網址優先判定，確保每次測試都是全新開始
+    // =========================================================================
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -886,10 +888,23 @@
         let targetDay = 1;
         const urlParams = new URLSearchParams(window.location.search);
         
+        // 優先讀取網址參數 (如 ?day=6 或 ?date=1020)
         if (urlParams.get('day')) {
           targetDay = parseInt(urlParams.get('day'), 10) || 1;
+        } else if (urlParams.get('date')) {
+          // 支援用日期參數計算 (例: ?date=1020 代表 10月20日)
+          const dateStr = urlParams.get('date'); // 格式 1020
+          if (dateStr.length === 4) {
+            const m = parseInt(dateStr.substring(0, 2), 10) - 1;
+            const d = parseInt(dateStr.substring(2, 4), 10);
+            const targetDateObj = new Date(2026, m, d);
+            const startDate = new Date(2026, 9, 15); // 10月15日為第1天
+            const diffDays = Math.floor((targetDateObj - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            targetDay = Math.max(1, diffDays);
+          }
         } else {
-          const startDate = new Date(2026, 9, 15); // 9 代表 10月
+          // 若無網址參數，則以今天實際日期計算
+          const startDate = new Date(2026, 9, 15);
           const now = new Date();
           const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           const diffDays = Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
@@ -1243,9 +1258,6 @@
       } catch(e) {}
     }
 
-    // =========================================================================
-    // 🌟 完全打通的 setMode 與模式切換邏輯
-    // =========================================================================
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
 
@@ -1475,7 +1487,6 @@
       }
     }
 
-    // 🌟 自讀按鈕點擊：切換至 PDF 自讀導引模式
     function handleZiduClick() {
       triggerAppFullscreen();
       try {
@@ -1521,7 +1532,6 @@
       }
     }
 
-    // 🌟 比對按鈕點擊：切換至 PDF 比對與錄音模式
     function handleRecordModeClick() {
       triggerAppFullscreen();
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
@@ -2415,8 +2425,20 @@
 
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
+      
+      // 🌟 確保網址參數優先，並自動支援 ?day=x 或 ?date=MMDD 測試
       if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
+      } else if (urlParams.get('date')) {
+        const dateStr = urlParams.get('date');
+        if (dateStr.length === 4) {
+          const m = parseInt(dateStr.substring(0, 2), 10) - 1;
+          const d = parseInt(dateStr.substring(2, 4), 10);
+          const targetDateObj = new Date(2026, m, d);
+          const startDate = new Date(2026, 9, 15);
+          const diffDays = Math.floor((targetDateObj - startDate) / (1000 * 60 * 60 * 24)) + 1;
+          targetDay = Math.max(1, diffDays);
+        }
       } else {
         const startDate = new Date(2026, 9, 15);
         const now = new Date();
@@ -2424,7 +2446,7 @@
         const diffDays = Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
         targetDay = Math.max(1, diffDays);
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V554', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V555', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
