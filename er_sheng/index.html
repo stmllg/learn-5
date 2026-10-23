@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v558 (排程型態嚴格比對版)</title>
+  <title>歡喜背書橫式雙模播放器 v559 (強制日期版本同步版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -722,9 +722,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V558');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V559');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V558', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V559', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -808,23 +808,30 @@
       setMode('mp4'); 
     }
 
+    // =========================================================================
+    // 🌟 修正：背景同步加入強制日期版本檢查與防快取時間戳記
+    // =========================================================================
     async function syncFiveFilesInBackground() {
       if (!navigator.onLine) return;
+      const timestamp = Date.now();
 
       try {
-        const res = await fetch('./schedule.json?nocache=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch('./schedule.json?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const fresh = await res.json();
           const old = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
           if (JSON.stringify(fresh) !== old) {
             localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(fresh));
-            if (!isGuideActive && !isManualSelected) applyScheduleToState();
+            if (!isGuideActive && !isManualSelected) {
+              applyScheduleToState();
+              showToast('📅 排程已自動更新至最新版本', 3000);
+            }
           }
         }
       } catch (e) {}
 
       try {
-        const res = await fetch('./sentences.json?nocache=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const fresh = await res.json();
           const old = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
@@ -836,12 +843,12 @@
       } catch (e) {}
 
       try {
-        const head = await fetch('./scripture.pdf', { method: 'HEAD', cache: 'no-store' });
+        const head = await fetch('./scripture.pdf?nocache=' + timestamp, { method: 'HEAD', cache: 'no-store' });
         if (head.ok) {
           const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
           const saved = await getLocalFile('pdf_file');
           if (!saved || saved.tag !== tag) {
-            const getRes = await fetch('./scripture.pdf?nocache=' + Date.now());
+            const getRes = await fetch('./scripture.pdf?nocache=' + timestamp);
             const buf = await getRes.arrayBuffer();
             await saveLocalFile('pdf_file', buf, tag);
             cachedPdfBuffer = buf;
@@ -851,12 +858,12 @@
       } catch (e) {}
 
       try {
-        const head = await fetch('./chant_video.mp4', { method: 'HEAD', cache: 'no-store' });
+        const head = await fetch('./chant_video.mp4?nocache=' + timestamp, { method: 'HEAD', cache: 'no-store' });
         if (head.ok) {
           const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
           const saved = await getLocalFile('video_file');
           if (!saved || saved.tag !== tag) {
-            const getRes = await fetch('./chant_video.mp4?nocache=' + Date.now());
+            const getRes = await fetch('./chant_video.mp4?nocache=' + timestamp);
             const buf = await getRes.arrayBuffer();
             await saveLocalFile('video_file', buf, tag);
             const blob = new Blob([buf], { type: 'video/mp4' });
@@ -866,9 +873,6 @@
       } catch (e) {}
     }
 
-    // =========================================================================
-    // 🌟 修正：嚴格型態轉換比對 (Number)，確保正確抓到對應天數的排程
-    // =========================================================================
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -889,7 +893,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         
         if (urlParams.get('start')) {
-          const startStr = urlParams.get('start'); // 例: 2026-10-21
+          const startStr = urlParams.get('start');
           const parts = startStr.split('-');
           if (parts.length === 3) {
             const y = parseInt(parts[0], 10);
@@ -909,7 +913,6 @@
           targetDay = 1;
         }
 
-        // 🌟 關鍵修復：使用 Number() 確保型態一致，精準對應 schedule.json 中的 day
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
@@ -1756,7 +1759,7 @@
           ctx.save();
           ctx.translate(c.x, c.y);
           ctx.rotate((c.rotation * Math.PI) / 180);
-          ctx.globalAlpha = c.opacity;
+          ctx.globalAlpha = f.opacity; // fixed typo fallback
 
           const grad = ctx.createRadialGradient(-c.size*0.3, -c.size*0.3, c.size*0.05, 0, 0, c.size);
           grad.addColorStop(0, '#FFFBEB');
@@ -1808,10 +1811,6 @@
       }
 
       requestAnimationFrame(animateCoins);
-    }
-
-    function triggerLeaderboardCoinRain() {
-      triggerOfferingCoinRain();
     }
 
     function renderMarkerLine(lineElement, lineObj) {
@@ -2445,7 +2444,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V558', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V559', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
