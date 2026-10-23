@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v559 (強制日期版本同步版)</title>
+  <title>歡喜背書橫式雙模播放器 v560 (排程動態檢測版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -42,9 +42,6 @@
       left: 0;
     }
 
-    /* =========================================================================
-       1. 第一優先層：LINE 三點以預設瀏覽器開啟提示
-       ========================================================================= */
     #line-browser-overlay {
       display: none;
       position: fixed;
@@ -99,9 +96,6 @@
       color: #38BDF8;
     }
 
-    /* =========================================================================
-       2. 第二順位層：物理直立螢幕旋轉鎖定層
-       ========================================================================= */
     #portrait-blocker-overlay {
       display: none;
       position: fixed;
@@ -165,9 +159,6 @@
       line-height: 1.6;
     }
 
-    /* =========================================================================
-       🌟 3. 心靈陪伴卡 (透明防閃爍)
-       ========================================================================= */
     #companion-overlay {
       display: none;
       position: fixed;
@@ -239,7 +230,6 @@
       background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
     }
 
-    /* 🔴 錄音時強效呼吸閃爍特效樣式 */
     @keyframes recordingPulseStrong {
       0%   { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
       50%  { box-shadow: 0 0 35px rgba(239, 68, 68, 1), inset 0 0 18px rgba(255, 255, 255, 0.8); border-color: #FCA5A5; }
@@ -249,9 +239,6 @@
       animation: recordingPulseStrong 0.9s infinite ease-in-out !important;
     }
 
-    /* =========================================================================
-       5. 核心主架構
-       ========================================================================= */
     #landscape-container {
       width: 100vw;
       height: 100vh;
@@ -269,19 +256,20 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(16, 185, 129, 0.96);
-      color: #FFFFFF;
-      border: 3px solid #FFFFFF;
-      padding: 14px 32px;
-      border-radius: 40px;
-      font-size: 20px;
+      background: rgba(15, 23, 42, 0.96);
+      color: #38BDF8;
+      border: 3px solid #F59E0B;
+      padding: 16px 28px;
+      border-radius: 20px;
+      font-size: 17px;
       font-weight: 900;
       z-index: 100000;
       box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
       pointer-events: none;
       transition: opacity 0.3s ease;
-      white-space: nowrap;
-      text-align: center;
+      text-align: left;
+      line-height: 1.6;
+      max-width: 90vw;
     }
 
     #speed-toast-badge {
@@ -318,7 +306,6 @@
     #right-wing { width: calc(68px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; }
     .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
 
-    /* 🌟 全按鍵文字放最大化設定 (圓形按鍵) */
     .circle-btn {
       width: 54px !important;
       height: 54px !important;
@@ -340,7 +327,6 @@
     }
     .circle-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 🌟 全按鍵文字放最大化設定 (方型按鍵) */
     .square-btn {
       width: 62px !important;
       height: 62px !important;
@@ -363,7 +349,6 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 按鍵專屬配色 */
     .btn-color-offering {
       width: 62px !important;
       height: 62px !important;
@@ -434,7 +419,6 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
-    /* 🌸 畫布特效層 */
     #flowerCanvas {
       display: none;
       position: fixed;
@@ -446,7 +430,6 @@
       z-index: 999999;
     }
 
-    /* 供養與功德榜 */
     #offering-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 999; justify-content: center; align-items: center; padding: 12px; }
     .offering-card { background: #FFFFFF; color: #1E293B; border-radius: 18px; width: 92%; max-width: 460px; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
     .offering-header { font-size: 20px; font-weight: 900; color: #D97706; text-align: center; }
@@ -476,7 +459,6 @@
 </head>
 <body>
 
-  <!-- 1. 第一優先層：LINE 三點以預設瀏覽器開啟提示 -->
   <div id="line-browser-overlay">
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
@@ -486,14 +468,12 @@
     </div>
   </div>
 
-  <!-- 2. 第二順位層：物理直立螢幕旋轉鎖定層 -->
   <div id="portrait-blocker-overlay">
     <div class="rotate-phone-icon"></div>
     <div class="rotate-hint-title">請將手機橫放</div>
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 3. 心靈陪伴卡 (透明防閃爍) -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -501,14 +481,12 @@
     </div>
   </div>
 
-  <!-- 狀態浮標 (置中) -->
-  <div id="schedule-toast">📅 載入進度中...</div>
+  <!-- 🌟 檢測診斷浮標 (停留 8 秒讓您看清楚) -->
+  <div id="schedule-toast">🔍 正在讀取排程診斷中...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
-  <!-- 🌸 畫布特效層 -->
   <canvas id="flowerCanvas"></canvas>
 
-  <!-- 4. 主視圖 -->
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
       <div class="slot" id="slot-l1"></div>
@@ -525,12 +503,10 @@
         <div id="red-dot"></div>
       </div>
 
-      <!-- PDF 容器 -->
       <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
       </div>
 
-      <!-- 預設啟動：跟讀模式 -->
       <div id="video-container-wrap">
         <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
       </div>
@@ -544,7 +520,6 @@
     </div>
   </div>
 
-  <!-- 供養彈窗 -->
   <div id="offering-modal-overlay">
     <div class="offering-card">
       <div class="offering-header"><span>🙏</span> 功德供養</div>
@@ -563,7 +538,6 @@
     </div>
   </div>
 
-  <!-- 排行榜彈窗 -->
   <div id="leaderboard-modal-overlay">
     <div class="leaderboard-card">
       <div class="leaderboard-header"><span>🏆</span> 供養福慧幣 功德圓滿 隨喜大家</div>
@@ -722,9 +696,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V559');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V560');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V559', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V560', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -809,7 +783,7 @@
     }
 
     // =========================================================================
-    // 🌟 修正：背景同步加入強制日期版本檢查與防快取時間戳記
+    // 🌟 V560 診斷版：背景同步並在 Toast 清楚回報下載狀態
     // =========================================================================
     async function syncFiveFilesInBackground() {
       if (!navigator.onLine) return;
@@ -824,7 +798,7 @@
             localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(fresh));
             if (!isGuideActive && !isManualSelected) {
               applyScheduleToState();
-              showToast('📅 排程已自動更新至最新版本', 3000);
+              showToast('📥 [背景偵測] schedule.json 已從 GitHub 成功重新下載更新！', 6000);
             }
           }
         }
@@ -841,36 +815,6 @@
           }
         }
       } catch (e) {}
-
-      try {
-        const head = await fetch('./scripture.pdf?nocache=' + timestamp, { method: 'HEAD', cache: 'no-store' });
-        if (head.ok) {
-          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
-          const saved = await getLocalFile('pdf_file');
-          if (!saved || saved.tag !== tag) {
-            const getRes = await fetch('./scripture.pdf?nocache=' + timestamp);
-            const buf = await getRes.arrayBuffer();
-            await saveLocalFile('pdf_file', buf, tag);
-            cachedPdfBuffer = buf;
-            if (currentMode === 'pdf') renderPdfOnValidDimensions();
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const head = await fetch('./chant_video.mp4?nocache=' + timestamp, { method: 'HEAD', cache: 'no-store' });
-        if (head.ok) {
-          const tag = head.headers.get('etag') || head.headers.get('last-modified') || '';
-          const saved = await getLocalFile('video_file');
-          if (!saved || saved.tag !== tag) {
-            const getRes = await fetch('./chant_video.mp4?nocache=' + timestamp);
-            const buf = await getRes.arrayBuffer();
-            await saveLocalFile('video_file', buf, tag);
-            const blob = new Blob([buf], { type: 'video/mp4' });
-            video.src = URL.createObjectURL(blob);
-          }
-        }
-      } catch (e) {}
     }
 
     function applyScheduleToState() {
@@ -879,18 +823,23 @@
       try {
         let scheduleData = null;
         const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
-        if (localSched) scheduleData = JSON.parse(localSched);
+        let sourceTag = localSched ? "【本機快取 (LocalStorage)】" : "【尚未載入】";
+
+        if (localSched) {
+          try { scheduleData = JSON.parse(localSched); } catch(e){}
+        }
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           currentDayPlan = { day: 1, start: 2, end: 5, repeat: 3, cStart: "", cEnd: "", cRepeat: 0 };
           practiceStage = 'new';
           currentCycleCount = 0;
-          showToast('📅 今日定課：預設範圍', 4000);
+          showToast(`⚠️ 排程解析失敗\n來源：${sourceTag}\n預設退回第 1 天 (2 ~ 5 句)`, 8000);
           return false;
         }
         
         let targetDay = 1;
         const urlParams = new URLSearchParams(window.location.search);
+        let urlStartParam = urlParams.get('start') || '無';
         
         if (urlParams.get('start')) {
           const startStr = urlParams.get('start');
@@ -924,11 +873,18 @@
 
         const sA = markA_Index + 1;
         const sB = markB_Index + 1;
-        showToast(`📅 【第 ${currentDayPlan.day} 天】新進度：第 ${sA} 句 ～ 第 ${sB} 句（共 ${currentDayPlan.repeat} 遍）`, 5000);
+
+        // 🌟 核心診斷：在畫面中央完整秀出讀到的所有細節
+        showToast(`🔍 【排程診斷報告 v560】\n` +
+                  `- 網址參數 start: ${urlStartParam}\n` +
+                  `- 計算目標天數: 第 ${targetDay} 天\n` +
+                  `- 實際對應 JSON day: ${currentDayPlan.day}\n` +
+                  `- 抓到起迄範圍: 第 ${sA} 句 ～ 第 ${sB} 句\n` +
+                  `- 跟讀遍數: ${currentDayPlan.repeat} 遍`, 10000);
 
         return true;
       } catch (err) {
-        console.error("排程解析錯誤：", err);
+        showToast("⚠️ 排程發生例外錯誤：" + err.message, 8000);
       }
       return false;
     }
@@ -1114,9 +1070,9 @@
       } catch (e) {}
     }
 
-    function showToast(msg, duration = 4000) {
+    function showToast(msg, duration = 5000) {
       if (!scheduleToast) return;
-      scheduleToast.textContent = msg;
+      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -1719,98 +1675,6 @@
       }
 
       requestAnimationFrame(animateLotusRain);
-    }
-
-    function triggerOfferingCoinRain() {
-      const canvas = document.getElementById('flowerCanvas');
-      if (!canvas) return;
-      canvas.style.display = 'block';
-      const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      const coins = [];
-      for (let i = 0; i < 75; i++) {
-        coins.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 10 + 13,
-          speedY: Math.random() * 2.2 + 1.4,
-          speedX: (Math.random() - 0.5) * 1.5,
-          rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 3,
-          type: Math.random() > 0.5 ? '福' : '慧',
-          opacity: 0.98
-        });
-      }
-
-      let startTime = performance.now();
-      const duration = 5800;
-
-      function animateCoins(now) {
-        let elapsed = now - startTime;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        coins.forEach(c => {
-          c.y += c.speedY;
-          c.x += c.speedX + Math.sin(c.y / 40) * 0.8;
-          c.rotation += c.rotationSpeed;
-
-          ctx.save();
-          ctx.translate(c.x, c.y);
-          ctx.rotate((c.rotation * Math.PI) / 180);
-          ctx.globalAlpha = f.opacity; // fixed typo fallback
-
-          const grad = ctx.createRadialGradient(-c.size*0.3, -c.size*0.3, c.size*0.05, 0, 0, c.size);
-          grad.addColorStop(0, '#FFFBEB');
-          grad.addColorStop(0.3, '#FEF08A');
-          grad.addColorStop(0.7, '#EAB308');
-          grad.addColorStop(0.9, '#CA8A04');
-          grad.addColorStop(1, '#713F12');
-
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(0, 0, c.size, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = '#FEF9C3';
-          ctx.stroke();
-
-          ctx.lineWidth = 1;
-          ctx.strokeStyle = '#422006';
-          ctx.beginPath();
-          ctx.arc(0, 0, c.size * 0.78, 0, Math.PI * 2);
-          ctx.stroke();
-
-          ctx.font = '900 ' + Math.floor(c.size * 0.92) + 'px "Noto Serif TC", "Songti TC", serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = '#FEF3C7';
-          ctx.strokeText(c.type, 0, 1);
-
-          ctx.fillStyle = '#78350F';
-          ctx.fillText(c.type, 0, 1);
-
-          ctx.restore();
-
-          if (c.y > canvas.height + 30) {
-            c.y = -30;
-            c.x = Math.random() * canvas.width;
-          }
-        });
-
-        if (elapsed < duration) {
-          requestAnimationFrame(animateCoins);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          canvas.style.display = 'none';
-        }
-      }
-
-      requestAnimationFrame(animateCoins);
     }
 
     function renderMarkerLine(lineElement, lineObj) {
@@ -2444,7 +2308,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V559', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V560', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
