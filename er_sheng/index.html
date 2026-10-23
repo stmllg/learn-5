@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v556 (支援 start 網址日期解析版)</title>
+  <title>歡喜背書橫式雙模播放器 v557 (個人相對起跑日計算版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -722,9 +722,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V556');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V557');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V556', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V557', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -867,7 +867,7 @@
     }
 
     // =========================================================================
-    // 🌟 核心修正：完美支援 ?start=YYYY-MM-DD 網址日期解析
+    // 🌟 核心修正：以網址 start 作為個人起跑日，與今天相比算出相對天數 (day)
     // =========================================================================
     function applyScheduleToState() {
       if (isManualSelected) return false;
@@ -888,38 +888,28 @@
         let targetDay = 1;
         const urlParams = new URLSearchParams(window.location.search);
         
-        // 1. 優先解析網址上的 ?start=YYYY-MM-DD 參數
+        // 1. 若網址有帶 ?start=YYYY-MM-DD，以此作為個人起跑日，計算今天（現在）是第幾天
         if (urlParams.get('start')) {
-          const startStr = urlParams.get('start'); // 格式 2026-10-21
+          const startStr = urlParams.get('start'); // 例: 2026-10-21
           const parts = startStr.split('-');
           if (parts.length === 3) {
             const y = parseInt(parts[0], 10);
             const m = parseInt(parts[1], 10) - 1;
             const d = parseInt(parts[2], 10);
-            const targetDateObj = new Date(y, m, d);
-            const startDate = new Date(2026, 9, 15); // 10月15日為第1天
-            const diffDays = Math.floor((targetDateObj - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            const userStartDate = new Date(y, m, d);
+            
+            const now = new Date();
+            const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            // 相對天數 = 今天 - 個人起跑日 + 1
+            const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
             targetDay = Math.max(1, diffDays);
           }
         } else if (urlParams.get('day')) {
           targetDay = parseInt(urlParams.get('day'), 10) || 1;
-        } else if (urlParams.get('date')) {
-          const dateStr = urlParams.get('date'); // 格式 1020
-          if (dateStr.length === 4) {
-            const m = parseInt(dateStr.substring(0, 2), 10) - 1;
-            const d = parseInt(dateStr.substring(2, 4), 10);
-            const targetDateObj = new Date(2026, m, d);
-            const startDate = new Date(2026, 9, 15);
-            const diffDays = Math.floor((targetDateObj - startDate) / (1000 * 60 * 60 * 24)) + 1;
-            targetDay = Math.max(1, diffDays);
-          }
         } else {
-          // 若無網址參數，則以今天實際日期計算
-          const startDate = new Date(2026, 9, 15);
-          const now = new Date();
-          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const diffDays = Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-          targetDay = Math.max(1, diffDays);
+          // 若無網址參數，預設為第 1 天
+          targetDay = 1;
         }
 
         currentDayPlan = scheduleData.find(item => item.day === targetDay) || scheduleData[scheduleData.length - 1];
@@ -2437,39 +2427,28 @@
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
       
-      // 🌟 完美支援 ?start=YYYY-MM-DD 網址日期解析
+      // 🌟 以網址 start 作為個人起跑日，與今天相比算出相對天數 (day)
       if (urlParams.get('start')) {
-        const startStr = urlParams.get('start');
+        const startStr = urlParams.get('start'); // 例: 2026-10-21
         const parts = startStr.split('-');
         if (parts.length === 3) {
           const y = parseInt(parts[0], 10);
           const m = parseInt(parts[1], 10) - 1;
           const d = parseInt(parts[2], 10);
-          const targetDateObj = new Date(y, m, d);
-          const startDate = new Date(2026, 9, 15);
-          const diffDays = Math.floor((targetDateObj - startDate) / (1000 * 60 * 60 * 24)) + 1;
+          const userStartDate = new Date(y, m, d);
+          
+          const now = new Date();
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          
+          const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
           targetDay = Math.max(1, diffDays);
         }
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
-      } else if (urlParams.get('date')) {
-        const dateStr = urlParams.get('date');
-        if (dateStr.length === 4) {
-          const m = parseInt(dateStr.substring(0, 2), 10) - 1;
-          const d = parseInt(dateStr.substring(2, 4), 10);
-          const targetDateObj = new Date(2026, m, d);
-          const startDate = new Date(2026, 9, 15);
-          const diffDays = Math.floor((targetDateObj - startDate) / (1000 * 60 * 60 * 24)) + 1;
-          targetDay = Math.max(1, diffDays);
-        }
       } else {
-        const startDate = new Date(2026, 9, 15);
-        const now = new Date();
-        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const diffDays = Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-        targetDay = Math.max(1, diffDays);
+        targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V556', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V557', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
@@ -2489,4 +2468,3 @@
   </script>
 </body>
 </html>
-好
