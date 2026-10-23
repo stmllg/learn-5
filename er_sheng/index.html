@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v553 (自讀與比對功能修復版)</title>
+  <title>歡喜背書橫式雙模播放器 v554 (完全打通切換與事件修復版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -722,9 +722,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V553');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V554');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V553', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V554', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -1244,7 +1244,7 @@
     }
 
     // =========================================================================
-    // 🌟 關鍵修復：setMode 完整處理自讀與比對模式切換與麥克風授權
+    // 🌟 完全打通的 setMode 與模式切換邏輯
     // =========================================================================
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
@@ -1284,7 +1284,6 @@
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
-        // 確保點擊切換時主動請求並開啟麥克風權限
         ensureMicrophoneActive();
 
         if (subMode === 'compare') {
@@ -1476,7 +1475,7 @@
       }
     }
 
-    // 🌟 修正自讀按鈕點擊：確保切換至 PDF 導引模式並啟動自動跟隨
+    // 🌟 自讀按鈕點擊：切換至 PDF 自讀導引模式
     function handleZiduClick() {
       triggerAppFullscreen();
       try {
@@ -1522,7 +1521,7 @@
       }
     }
 
-    // 🌟 修正比對按鈕點擊：切換至比對模式並觸發錄音
+    // 🌟 比對按鈕點擊：切換至 PDF 比對與錄音模式
     function handleRecordModeClick() {
       triggerAppFullscreen();
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
@@ -1945,9 +1944,6 @@
       updateModeButtonsStyle();
     }
 
-    // =========================================================================
-    // 🌟 確保麥克風主動權限提示與 VAD 音訊迴圈穩定運作
-    // =========================================================================
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -2428,7 +2424,7 @@
         const diffDays = Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
         targetDay = Math.max(1, diffDays);
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V553', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V554', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
