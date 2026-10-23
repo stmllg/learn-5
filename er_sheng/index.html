@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v549 (修復模式切換與黃金底座版)</title>
+  <title>歡喜背書橫式雙模播放器 v551 (雙階段排程與黃金底座版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -678,8 +678,9 @@
 
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
-    let scheduleRepeatLimit = 5;
-    let completedCycles = 0; 
+    let currentDayPlan = null; // 當天排程物件
+    let practiceStage = 'new'; // 'new' 代表新進度階段, 'cumulative' 代表串習複習階段
+    let currentCycleCount = 0; // 當前階段已完成遍數
     let videoPausedAt = -1;
 
     let isSelectingMarkA = false;
@@ -727,20 +728,20 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V549_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V551_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V549_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V551_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V549_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V551_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V549_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V551_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -750,9 +751,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V549');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V551');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V549', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V551', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -858,6 +859,7 @@
           const fresh = await res.json();
           const old = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
           if (JSON.stringify(fresh) !== old) {
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE' in window ? '' : '', ''); // placeholder
             localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(fresh));
             scriptureData = fresh;
           }
@@ -895,6 +897,7 @@
       } catch (e) {}
     }
 
+    // 🌟 核心：套用雙階段排程邏輯 (新進度 ➔ 串習複習)
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -904,61 +907,63 @@
         if (localSched) scheduleData = JSON.parse(localSched);
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
-          scheduleRepeatLimit = 5;
-          isScheduleRepeatLocked = false;
-          showToast('📅 今日定課：預設 5 遍', 4000);
+          currentDayPlan = { start: 1, end: 10, repeat: 3, cStart: "", cEnd: "", cRepeat: 0 };
+          practiceStage = 'new';
+          currentCycleCount = 0;
+          showToast('📅 今日定課：預設範圍', 4000);
           return false;
         }
         
-        let targetPlan = null;
+        let targetDay = 1;
         const urlParams = new URLSearchParams(window.location.search);
-        const startStr = urlParams.get('start');
-
-        if (startStr) {
-          const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
-          const startDate = new Date(sYear, sMonth - 1, sDay);
-          const now = new Date();
-          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const targetDay = Math.max(1, Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
-          targetPlan = scheduleData.find(item => item.day === targetDay) || scheduleData[scheduleData.length - 1];
+        if (urlParams.get('day')) {
+          targetDay = parseInt(urlParams.get('day'), 10) || 1;
         } else {
-          const todayStr = getNormalizedDateStr();
-          targetPlan = scheduleData.find(item => item.date === todayStr) || scheduleData[0];
+          // 預設用 day 1 或根據日期計算
+          targetDay = parseInt(localStorage.getItem('CURRENT_SCHEDULE_DAY_V551') || '1', 10);
         }
 
-        if (targetPlan && typeof targetPlan.start === 'number' && typeof targetPlan.end === 'number') {
-          markA_Index = Math.max(0, targetPlan.start - 1);
-          const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : 100));
-          markB_Index = Math.min(maxIdx, targetPlan.end - 1);
+        currentDayPlan = scheduleData.find(item => item.day === targetDay) || scheduleData[0];
+        if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-          currentLineIndex = markA_Index;
-          currentCharIndexFloat = 0.0;
-          isLineHeadLocked = true;
-          videoPausedAt = -1;
+        // 初始設定為「新進度階段」
+        practiceStage = 'new';
+        currentCycleCount = 0;
 
-          if (typeof targetPlan.repeat === 'number' && targetPlan.repeat > 0) {
-            scheduleRepeatLimit = targetPlan.repeat;
-          } else {
-            scheduleRepeatLimit = 5;
-          }
+        setupStageRange();
+        isScheduleRepeatLocked = false;
 
-          isScheduleRepeatLocked = false;
+        const sA = markA_Index + 1;
+        const sB = markB_Index + 1;
+        showToast(`📅 第 ${currentDayPlan.day} 天新進度：第 ${sA} 句 ～ 第 ${sB} 句（共 ${currentDayPlan.repeat} 遍）`, 5000);
 
-          updateVisualDisplay();
-          scrollToAlignTop(markA_Index);
-
-          const sA = markA_Index + 1;
-          const sB = markB_Index + 1;
-          showToast(`📅 今日定課：第 ${sA} 句 ～ 第 ${sB} 句（共 ${scheduleRepeatLimit} 遍）`, 5000);
-
-          return true;
-        }
-      } catch (err) {}
-      
-      scheduleRepeatLimit = 5;
-      isScheduleRepeatLocked = false;
-      showToast('📅 今日定課：預設 5 遍', 4000);
+        return true;
+      } catch (err) {
+        console.error("排程解析錯誤：", err);
+      }
       return false;
+    }
+
+    // 根據當前階段 (new / cumulative) 設定起訖範圍
+    function setupStageRange() {
+      if (!currentDayPlan) return;
+      const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : 100));
+
+      if (practiceStage === 'new') {
+        markA_Index = Math.max(0, (currentDayPlan.start || 1) - 1);
+        markB_Index = Math.min(maxIdx, (currentDayPlan.end || 1) - 1);
+      } else if (practiceStage === 'cumulative') {
+        markA_Index = Math.max(0, (currentDayPlan.cStart || 1) - 1);
+        markB_Index = Math.min(maxIdx, (currentDayPlan.cEnd || 1) - 1);
+      }
+
+      currentLineIndex = markA_Index;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      videoPausedAt = -1;
+
+      updateVisualDisplay();
+      scrollToAlignTop(markA_Index);
     }
 
     async function renderPdfOnValidDimensions() {
@@ -1250,6 +1255,8 @@
 
     window.addEventListener('touched', (e) => {}, { passive: true });
 
+    window.addEventListener('touchedEnd', (e) => {}, { passive: true });
+
     window.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - touchStartX;
@@ -1520,7 +1527,7 @@
       
       if (video.paused) {
           const range = getActiveVideoRange();
-          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 2000); return; }
+          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 3000); return; }
           
           if (videoPausedAt >= range.start && videoPausedAt < range.end) {
               video.currentTime = videoPausedAt;
@@ -1539,11 +1546,10 @@
           video.pause();
           videoPausedAt = video.currentTime;
           updateModeButtonsStyle();
-          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 2000);
+          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
       }
     }
 
-    // 🌟 恢復正確的 V533 自讀切換與啟動
     function handleZiduClick() {
       triggerAppFullscreen();
       try {
@@ -1566,10 +1572,8 @@
           }
           
           if (markA_Index === -1 || markB_Index === -1) { 
-              markA_Index = 0;
-              markB_Index = parsedTextLines.length - 1;
-              updateVisualDisplay();
-              showToast("已自動為您設定全篇範圍", 2000);
+              setupStageRange();
+              showToast("已自動載入今日排程範圍", 2500);
           }
 
           isGuideActive = true;
@@ -1590,13 +1594,12 @@
       }
     }
 
-    // 🌟 恢復正確的 V533 比對/錄音切換與觸發
     function handleRecordModeClick() {
       triggerAppFullscreen();
       if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
         setMode('pdf', 'compare');
         preWarmMediaRecorder();
-        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2000);
+        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2500);
         return;
       }
 
@@ -1609,7 +1612,7 @@
         setTimeout(() => {
           if (recordedAudioBlobUrl) {
             togglePlaybackAction();
-            showToast('▶️ 錄音完成，正在為您播放比對', 2000);
+            showToast('▶️ 錄音完成，正在為您播放比對', 2500);
           }
         }, 200);
       } else {
@@ -1639,80 +1642,74 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    function checkAndTriggerDynamicRain(totalToday) {
-      const todayStr = getNormalizedDateStr();
-      const targetLimit = scheduleRepeatLimit || 5;
-
-      if (totalToday < targetLimit) {
-        return false; 
+    // 🌟 處理雙階段循環完成與動態雨 (新進度 ➔ 灑花 ➔ 串習複習 ➔ 圓滿灑花)
+    function handleCycleCompletion() {
+      if (currentMode === 'mp4') {
+        video.pause();
+      } else if (currentMode === 'pdf' && pdfSubMode === 'guide') {
+        haltGuideRunnerImmediately();
       }
 
-      const scheduleDoneKey = 'SCHEDULE_FLOWER_DONE_V549_' + todayStr;
-      if (totalToday === targetLimit) {
-        if (!localStorage.getItem(scheduleDoneKey)) {
-          showToast('🎉 今日定課已圓滿！已完成，計數歸零', 5500);
-          speakPrompt('今日定課已圓滿');
-          triggerSevenColoredLotusFlowerRain();
-          localStorage.setItem(scheduleDoneKey, 'true');
-          resetTodayCycles();
-          return true;
+      const targetRepeat = (practiceStage === 'new') ? (currentDayPlan.repeat || 3) : (currentDayPlan.cRepeat || 1);
+      currentCycleCount++;
+
+      const earned = calculateSentenceCount();
+      addCoins(earned);
+
+      if (currentCycleCount < targetRepeat) {
+        // 本階段尚未完成指定遍數，繼續本階段下一遍
+        showToast(`✅ ${practiceStage === 'new' ? '新進度' : '串習複習'}完成第 ${currentCycleCount} 遍（共 ${targetRepeat} 遍）`, 2000);
+        setupStageRange();
+        if (currentMode === 'mp4') {
+          setTimeout(() => { handleGenduClick(); }, 500);
+        } else if (currentMode === 'pdf' && pdfSubMode === 'guide') {
+          setTimeout(() => { handleZiduClick(); }, 500);
         }
-        return false;
+      } else {
+        // 本階段遍數已達成！
+        if (practiceStage === 'new') {
+          // 檢查當天是否有設定串習範圍 (cRepeat > 0 且 cEnd 存在)
+          const hasCumulative = currentDayPlan.cRepeat > 0 && currentDayPlan.cEnd && currentDayPlan.cEnd > 0;
+
+          if (hasCumulative) {
+            // 第一階段（新進度）完成：灑七色花雨、語音提示、3秒緩衝後進入第二階段串習
+            triggerSevenColoredLotusFlowerRain();
+            speakPrompt('新進度圓滿，準備進入串習複習');
+            showToast('🎉 新進度圓滿！3秒後自動進入串習複習...', 4000);
+
+            setTimeout(() => {
+              practiceStage = 'cumulative';
+              currentCycleCount = 0;
+              setupStageRange();
+              showToast(`🔄 開始今日串習複習（第 1 / ${currentDayPlan.cRepeat} 遍）`, 3000);
+              if (currentMode === 'mp4') {
+                handleGenduClick();
+              } else if (currentMode === 'pdf' && pdfSubMode === 'guide') {
+                handleZiduClick();
+              }
+            }, 3000);
+          } else {
+            // 沒有串習，直接當日總圓滿 ➔ 灑花
+            triggerSevenColoredLotusFlowerRain();
+            speakPrompt('今日定課已圓滿');
+            showToast('🎉 今日定課已圓滿！', 5500);
+          }
+        } else {
+          // 第二階段（串習複習）也圓滿：總圓滿 ➔ 灑花
+          triggerSevenColoredLotusFlowerRain();
+          speakPrompt('今日串習複習圓滿');
+          showToast('🎉 今日串習與定課全部圓滿！', 5500);
+        }
       }
-
-      if (totalToday >= 5) {
-        showToast('🌟 自主加強學習 5 遍圓滿！計數歸零', 4500);
-        triggerSevenColoredLotusFlowerRain();
-        resetTodayCycles();
-        return true;
-      }
-
-      return false;
-    }
-
-    function processGenduCycleCompletion() {
-      const genduDone = getTodayGenduCycles() + 1;
-      setTodayGenduCycles(genduDone);
-      
-      const totalToday = genduDone + getTodayZiduCycles();
-      const earned = calculateSentenceCount();
-      addCoins(earned);
-      showToast('✅ 跟讀完成一遍，福慧幣 +' + earned + ' (累計: ' + totalToday + ' 遍)', 2500);
-
-      return checkAndTriggerDynamicRain(totalToday);
-    }
-
-    function processZiduCycleCompletion() {
-      const ziduDone = getTodayZiduCycles() + 1;
-      setTodayZiduCycles(ziduDone);
-      
-      const totalToday = getTodayGenduCycles() + ziduDone;
-      const earned = calculateSentenceCount();
-      addCoins(earned);
-      showToast('✅ 自讀完成一遍，福慧幣 +' + earned + ' (累計: ' + totalToday + ' 遍)', 2500);
-
-      return checkAndTriggerDynamicRain(totalToday);
     }
 
     function handleMp4CycleEnd(range) {
       videoPausedAt = -1;
       video.currentTime = range.start;
-      
-      const shouldStop = processGenduCycleCompletion();
-
-      if (shouldStop) {
-        video.pause();
-        updateModeButtonsStyle();
-        showToast('⏸️ 已達本階段循環目標，計數已歸零', 3000);
-      } else {
-        video.play().then(() => {
-          updateModeButtonsStyle();
-          startMp4PrecisionCheck();
-        }).catch(() => {});
-      }
+      handleCycleCompletion();
     }
 
-    // 🌸 七色蓮花雨特效
+    // 🌸 七色蓮花雨特效 (定課或串習圓滿時觸發)
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1792,7 +1789,7 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 古金色立體福慧幣雨 (確認供養後觸發)
+    // 🌟 嚴格確保：確認供養後落下的絕對是古金色立體「福慧幣雨」！
     function triggerOfferingCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1967,7 +1964,7 @@
       }
       isSelectingMarkA = true;
       isSelectingMarkB = false;
-      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 2000);
+      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
       renderUI();
     }
 
@@ -1977,7 +1974,7 @@
       }
       isSelectingMarkB = true;
       isSelectingMarkA = false;
-      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 2000);
+      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
       renderUI();
     }
 
@@ -2000,10 +1997,10 @@
               isSelectingMarkA = false;
               updateVisualDisplay();
               renderUI();
-              showToast("✅ 起句設定成功！", 2000);
+              showToast("✅ 起句設定成功！", 2500);
             } else if (isSelectingMarkB) {
               if (markA_Index !== -1 && targetIdx < markA_Index) {
-                showToast("⚠️ 終點不能在起點之前", 2000);
+                showToast("⚠️ 終點不能在起點之前", 2500);
                 return;
               }
               isManualSelected = true;
@@ -2011,7 +2008,7 @@
               isSelectingMarkB = false;
               updateVisualDisplay();
               renderUI();
-              showToast("✅ 終句設定成功！", 2000);
+              showToast("✅ 終句設定成功！", 2500);
             }
           });
         }
@@ -2025,7 +2022,7 @@
       if (recordAudioElement) recordAudioElement.pause();
       releaseMicrophoneResources();
       try { video.pause(); } catch (e) {}
-      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 2000);
+      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
       updateModeButtonsStyle();
     }
 
@@ -2243,7 +2240,7 @@
         cleanup();
         btnConfirmOffering.disabled = false;
         btnConfirmOffering.textContent = '確認供養';
-        showToast(message, 2000);
+        showToast(message, 5000);
       }
 
       function handleSuccess(data) {
@@ -2261,7 +2258,8 @@
         btnConfirmOffering.textContent = '確認供養';
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
-        triggerLeaderboardCoinRain();
+        // 🌟 嚴格確保：確認供養後觸發的是古金色立體金幣雨
+        triggerOfferingCoinRain();
       }
 
       timeoutTimer = setTimeout(() => { handleFailure('連線逾時，請稍後重試'); }, 10000);
@@ -2490,21 +2488,11 @@
 
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
-      const startStr = urlParams.get('start');
-
-      if (startStr) {
-        const [sYear, sMonth, sDay] = startStr.split('-').map(Number);
-        const startDate = new Date(sYear, sMonth - 1, sDay);
-        const now = new Date();
-        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        targetDay = Math.max(1, Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
-      } else if (urlParams.get('day')) {
+      if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
+        localStorage.setItem('CURRENT_SCHEDULE_DAY_V551', targetDay.toString());
       } else {
-        let tIdx = parseInt(localStorage.getItem('TEST_CARD_INDEX_V549_' + CURRENT_CLASSIC_ID) || '1', 10);
-        targetDay = tIdx;
-        let nextCycle = tIdx >= 22 ? 1 : tIdx + 1;
-        localStorage.setItem('TEST_CARD_INDEX_V549_' + CURRENT_CLASSIC_ID, nextCycle.toString());
+        targetDay = parseInt(localStorage.getItem('CURRENT_SCHEDULE_DAY_V551') || '1', 10);
       }
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
