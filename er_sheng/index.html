@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v551 (雙階段排程與黃金底座版)</title>
+  <title>歡喜背書橫式雙模播放器 v552 (日期相對天數與麥克風修復版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -678,9 +678,9 @@
 
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
-    let currentDayPlan = null; // 當天排程物件
-    let practiceStage = 'new'; // 'new' 代表新進度階段, 'cumulative' 代表串習複習階段
-    let currentCycleCount = 0; // 當前階段已完成遍數
+    let currentDayPlan = null; 
+    let practiceStage = 'new'; // 'new' 或 'cumulative'
+    let currentCycleCount = 0; 
     let videoPausedAt = -1;
 
     let isSelectingMarkA = false;
@@ -728,20 +728,20 @@
 
     function getTodayGenduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V551_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_GENDU_CYCLES_V552_' + todayStr) || '0', 10);
     }
     function setTodayGenduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_GENDU_CYCLES_V551_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_GENDU_CYCLES_V552_' + todayStr, Math.max(0, val).toString());
     }
 
     function getTodayZiduCycles() {
       const todayStr = getNormalizedDateStr();
-      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V551_' + todayStr) || '0', 10);
+      return parseInt(localStorage.getItem('DAILY_ZIDU_CYCLES_V552_' + todayStr) || '0', 10);
     }
     function setTodayZiduCycles(val) {
       const todayStr = getNormalizedDateStr();
-      localStorage.setItem('DAILY_ZIDU_CYCLES_V551_' + todayStr, Math.max(0, val).toString());
+      localStorage.setItem('DAILY_ZIDU_CYCLES_V552_' + todayStr, Math.max(0, val).toString());
     }
 
     function resetTodayCycles() {
@@ -751,9 +751,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V551');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V552');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V551', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V552', todayStr);
         resetTodayCycles();
         isScheduleRepeatLocked = true;
       }
@@ -859,7 +859,6 @@
           const fresh = await res.json();
           const old = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
           if (JSON.stringify(fresh) !== old) {
-            localStorage.setItem('OFFLINE_SCHEDULE_CACHE' in window ? '' : '', ''); // placeholder
             localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(fresh));
             scriptureData = fresh;
           }
@@ -897,7 +896,7 @@
       } catch (e) {}
     }
 
-    // 🌟 核心：套用雙階段排程邏輯 (新進度 ➔ 串習複習)
+    // 🌟 修正：精準根據 10月15日 作為第1天起算，自動對應相對天數
     function applyScheduleToState() {
       if (isManualSelected) return false;
 
@@ -907,7 +906,7 @@
         if (localSched) scheduleData = JSON.parse(localSched);
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
-          currentDayPlan = { start: 1, end: 10, repeat: 3, cStart: "", cEnd: "", cRepeat: 0 };
+          currentDayPlan = { day: 1, start: 2, end: 5, repeat: 3, cStart: "", cEnd: "", cRepeat: 0 };
           practiceStage = 'new';
           currentCycleCount = 0;
           showToast('📅 今日定課：預設範圍', 4000);
@@ -916,17 +915,21 @@
         
         let targetDay = 1;
         const urlParams = new URLSearchParams(window.location.search);
+        
         if (urlParams.get('day')) {
           targetDay = parseInt(urlParams.get('day'), 10) || 1;
         } else {
-          // 預設用 day 1 或根據日期計算
-          targetDay = parseInt(localStorage.getItem('CURRENT_SCHEDULE_DAY_V551') || '1', 10);
+          // 以 2026年10月15日 為第1天起算
+          const startDate = new Date(2026, 9, 15); // 9 代表 10月
+          const now = new Date();
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const diffDays = Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+          targetDay = Math.max(1, diffDays);
         }
 
-        currentDayPlan = scheduleData.find(item => item.day === targetDay) || scheduleData[0];
+        currentDayPlan = scheduleData.find(item => item.day === targetDay) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        // 初始設定為「新進度階段」
         practiceStage = 'new';
         currentCycleCount = 0;
 
@@ -935,7 +938,7 @@
 
         const sA = markA_Index + 1;
         const sB = markB_Index + 1;
-        showToast(`📅 第 ${currentDayPlan.day} 天新進度：第 ${sA} 句 ～ 第 ${sB} 句（共 ${currentDayPlan.repeat} 遍）`, 5000);
+        showToast(`📅 【第 ${currentDayPlan.day} 天】新進度：第 ${sA} 句 ～ 第 ${sB} 句（共 ${currentDayPlan.repeat} 遍）`, 5000);
 
         return true;
       } catch (err) {
@@ -944,7 +947,6 @@
       return false;
     }
 
-    // 根據當前階段 (new / cumulative) 設定起訖範圍
     function setupStageRange() {
       if (!currentDayPlan) return;
       const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : 100));
@@ -1283,6 +1285,7 @@
       } catch(e) {}
     }
 
+    // 🌟 修正：確保切換模式與麥克風授權完美觸發
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
 
@@ -1326,6 +1329,7 @@
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
+        // 立即主動向瀏覽器要求麥克風權限
         ensureMicrophoneActive();
 
         if (subMode === 'compare') {
@@ -1642,7 +1646,6 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 處理雙階段循環完成與動態雨 (新進度 ➔ 灑花 ➔ 串習複習 ➔ 圓滿灑花)
     function handleCycleCompletion() {
       if (currentMode === 'mp4') {
         video.pause();
@@ -1657,7 +1660,6 @@
       addCoins(earned);
 
       if (currentCycleCount < targetRepeat) {
-        // 本階段尚未完成指定遍數，繼續本階段下一遍
         showToast(`✅ ${practiceStage === 'new' ? '新進度' : '串習複習'}完成第 ${currentCycleCount} 遍（共 ${targetRepeat} 遍）`, 2000);
         setupStageRange();
         if (currentMode === 'mp4') {
@@ -1666,13 +1668,10 @@
           setTimeout(() => { handleZiduClick(); }, 500);
         }
       } else {
-        // 本階段遍數已達成！
         if (practiceStage === 'new') {
-          // 檢查當天是否有設定串習範圍 (cRepeat > 0 且 cEnd 存在)
           const hasCumulative = currentDayPlan.cRepeat > 0 && currentDayPlan.cEnd && currentDayPlan.cEnd > 0;
 
           if (hasCumulative) {
-            // 第一階段（新進度）完成：灑七色花雨、語音提示、3秒緩衝後進入第二階段串習
             triggerSevenColoredLotusFlowerRain();
             speakPrompt('新進度圓滿，準備進入串習複習');
             showToast('🎉 新進度圓滿！3秒後自動進入串習複習...', 4000);
@@ -1689,13 +1688,11 @@
               }
             }, 3000);
           } else {
-            // 沒有串習，直接當日總圓滿 ➔ 灑花
             triggerSevenColoredLotusFlowerRain();
             speakPrompt('今日定課已圓滿');
             showToast('🎉 今日定課已圓滿！', 5500);
           }
         } else {
-          // 第二階段（串習複習）也圓滿：總圓滿 ➔ 灑花
           triggerSevenColoredLotusFlowerRain();
           speakPrompt('今日串習複習圓滿');
           showToast('🎉 今日串習與定課全部圓滿！', 5500);
@@ -1709,7 +1706,6 @@
       handleCycleCompletion();
     }
 
-    // 🌸 七色蓮花雨特效 (定課或串習圓滿時觸發)
     function triggerSevenColoredLotusFlowerRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1789,7 +1785,6 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 嚴格確保：確認供養後落下的絕對是古金色立體「福慧幣雨」！
     function triggerOfferingCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1886,7 +1881,6 @@
       triggerOfferingCoinRain();
     }
 
-    // 🌟 Android 核心 100% 完美保留不變
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
       if (!isAppleDevice) {
@@ -2026,6 +2020,7 @@
       updateModeButtonsStyle();
     }
 
+    // 🌟 確保麥克風主動權限提示與連線穩定
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -2058,6 +2053,7 @@
         startSharedVadLoop();
         return true;
       } catch (err) {
+        showToast("⚠️ 無法取得麥克風權限，請確認瀏覽器設定", 4000);
         return false;
       }
     }
@@ -2258,7 +2254,6 @@
         btnConfirmOffering.textContent = '確認供養';
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
-        // 🌟 嚴格確保：確認供養後觸發的是古金色立體金幣雨
         triggerOfferingCoinRain();
       }
 
@@ -2490,10 +2485,15 @@
       let targetDay = 1;
       if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
-        localStorage.setItem('CURRENT_SCHEDULE_DAY_V551', targetDay.toString());
       } else {
-        targetDay = parseInt(localStorage.getItem('CURRENT_SCHEDULE_DAY_V551') || '1', 10);
+        // 以 2026年10月15日 為第1天起算自動計算相對天數
+        const startDate = new Date(2026, 9, 15);
+        const now = new Date();
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const diffDays = Math.floor((todayDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        targetDay = Math.max(1, diffDays);
       }
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V552', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
