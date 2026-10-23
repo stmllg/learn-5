@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v560 (排程動態檢測版)</title>
+  <title>歡喜背書橫式雙模播放器 v561 (強制雲端優先與全檔下載診斷版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -481,8 +481,8 @@
     </div>
   </div>
 
-  <!-- 🌟 檢測診斷浮標 (停留 8 秒讓您看清楚) -->
-  <div id="schedule-toast">🔍 正在讀取排程診斷中...</div>
+  <!-- 🌟 診斷測試浮標 -->
+  <div id="schedule-toast">🔍 正在進行雲端同步與排程診斷...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -696,9 +696,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V560');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V561');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V560', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V561', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -777,18 +777,87 @@
         await renderPdfOnValidDimensions();
       }
 
-      if (!isManualSelected) applyScheduleToState();
-      syncFiveFilesInBackground();
+      // 🌟 V561 核心調整：開機時強制先同步雲端檔案，確保第一次也有最新資料
+      await forceSyncAndApplyScheduleOnStartup();
       setMode('mp4'); 
     }
 
     // =========================================================================
-    // 🌟 V560 診斷版：背景同步並在 Toast 清楚回報下載狀態
+    // 🌟 V561 關鍵修復：啟動同步與強制雲端優先讀取
     // =========================================================================
+    async function forceSyncAndApplyScheduleOnStartup() {
+      const timestamp = Date.now();
+      let downloadStatusMsg = "📥 【同步診斷 v561】\n";
+
+      try {
+        // 1. 同步 schedule.json
+        const resSched = await fetch('./schedule.json?nocache=' + timestamp, { cache: 'no-store' });
+        if (resSched.ok) {
+          const freshSched = await resSched.json();
+          localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(freshSched));
+          downloadStatusMsg += "- schedule.json: 成功從 GitHub 下載 ✅\n";
+        } else {
+          downloadStatusMsg += "- schedule.json: 雲端讀取失敗，使用本機快取 ⚠️\n";
+        }
+      } catch (e) {
+        downloadStatusMsg += "- schedule.json: 網路異常，使用本機快取 ⚠️\n";
+      }
+
+      try {
+        // 2. 同步 sentences.json
+        const resSent = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
+        if (resSent.ok) {
+          const freshSent = await resSent.json();
+          localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(freshSent));
+          scriptureData = freshSent;
+          downloadStatusMsg += "- sentences.json: 成功從 GitHub 下載 ✅\n";
+        }
+      } catch (e) {}
+
+      try {
+        // 3. 同步 PDF 檔頭
+        const headPdf = await fetch('./scripture.pdf?nocache=' + timestamp, { method: 'HEAD', cache: 'no-store' });
+        if (headPdf.ok) {
+          const tag = headPdf.headers.get('etag') || headPdf.headers.get('last-modified') || '';
+          const savedPdf = await getLocalFile('pdf_file');
+          if (!savedPdf || savedPdf.tag !== tag) {
+            const getPdf = await fetch('./scripture.pdf?nocache=' + timestamp);
+            const bufPdf = await getPdf.arrayBuffer();
+            await saveLocalFile('pdf_file', bufPdf, tag);
+            cachedPdfBuffer = bufPdf;
+            downloadStatusMsg += "- scripture.pdf: 發現新版本已重新下載 ✅\n";
+          } else {
+            downloadStatusMsg += "- scripture.pdf: 版本一致 (使用本機)\n";
+          }
+        }
+      } catch (e) {}
+
+      try {
+        // 4. 同步 MP4 檔頭
+        const headVid = await fetch('./chant_video.mp4?nocache=' + timestamp, { method: 'HEAD', cache: 'no-store' });
+        if (headVid.ok) {
+          const tag = headVid.headers.get('etag') || headVid.headers.get('last-modified') || '';
+          const savedVid = await getLocalFile('video_file');
+          if (!savedVid || savedVid.tag !== tag) {
+            const getVid = await fetch('./chant_video.mp4?nocache=' + timestamp);
+            const bufVid = await getVid.arrayBuffer();
+            await saveLocalFile('video_file', bufVid, tag);
+            video.src = URL.createObjectURL(new Blob([bufVid], { type: 'video/mp4' }));
+            downloadStatusMsg += "- chant_video.mp4: 發現新版本已重新下載 ✅\n";
+          } else {
+            downloadStatusMsg += "- chant_video.mp4: 版本一致 (使用本機)\n";
+          }
+        }
+      } catch (e) {}
+
+      // 套用排程狀態
+      applyScheduleToState(downloadStatusMsg);
+    }
+
     async function syncFiveFilesInBackground() {
+      // 背景定期同步維持不變
       if (!navigator.onLine) return;
       const timestamp = Date.now();
-
       try {
         const res = await fetch('./schedule.json?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
@@ -797,33 +866,19 @@
           if (JSON.stringify(fresh) !== old) {
             localStorage.setItem('OFFLINE_SCHEDULE_CACHE', JSON.stringify(fresh));
             if (!isGuideActive && !isManualSelected) {
-              applyScheduleToState();
-              showToast('📥 [背景偵測] schedule.json 已從 GitHub 成功重新下載更新！', 6000);
+              applyScheduleToState("📥 [背景更新] schedule.json 已自動刷新！\n");
             }
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const res = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
-        if (res.ok) {
-          const fresh = await res.json();
-          const old = localStorage.getItem('OFFLINE_SENTENCES_CACHE');
-          if (JSON.stringify(fresh) !== old) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE', JSON.stringify(fresh));
-            scriptureData = fresh;
           }
         }
       } catch (e) {}
     }
 
-    function applyScheduleToState() {
+    function applyScheduleToState(prefixMsg = "") {
       if (isManualSelected) return false;
 
       try {
         let scheduleData = null;
         const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE');
-        let sourceTag = localSched ? "【本機快取 (LocalStorage)】" : "【尚未載入】";
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -833,7 +888,7 @@
           currentDayPlan = { day: 1, start: 2, end: 5, repeat: 3, cStart: "", cEnd: "", cRepeat: 0 };
           practiceStage = 'new';
           currentCycleCount = 0;
-          showToast(`⚠️ 排程解析失敗\n來源：${sourceTag}\n預設退回第 1 天 (2 ~ 5 句)`, 8000);
+          showToast(prefixMsg + `⚠️ 警告：找不到有效排程，預設退回第 1 天 (2 ~ 5 句)`, 8000);
           return false;
         }
         
@@ -874,8 +929,9 @@
         const sA = markA_Index + 1;
         const sB = markB_Index + 1;
 
-        // 🌟 核心診斷：在畫面中央完整秀出讀到的所有細節
-        showToast(`🔍 【排程診斷報告 v560】\n` +
+        // 🌟 完整秀出下載狀態與排程對應結果
+        showToast(prefixMsg + 
+                  `📅 【排程解析成功 v561】\n` +
                   `- 網址參數 start: ${urlStartParam}\n` +
                   `- 計算目標天數: 第 ${targetDay} 天\n` +
                   `- 實際對應 JSON day: ${currentDayPlan.day}\n` +
@@ -1027,7 +1083,6 @@
 
           updateVisualDisplay();
           scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-          if (!isManualSelected) applyScheduleToState();
       } catch(e) {
           console.error("PDF 解析錯誤: ", e);
       }
@@ -2308,7 +2363,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V560', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V561', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
