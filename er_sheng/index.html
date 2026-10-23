@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v568 (串習切換定位精修版)</title>
+  <title>歡喜背書橫式雙模播放器 v569 (排程資訊與串習切換修復版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -481,8 +481,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v568 串習切換定位精修版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v568 智慧比對與定位載入】...</div>
+  <!-- 🌟 v569 排程資訊與串習切換修復版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v569 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -696,9 +696,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V568');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V569');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V568', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V569', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -749,17 +749,17 @@
 
       renderUI();
       
-      // 🌟 V568 智慧比對載入引擎
+      // 🌟 V569 智慧比對載入引擎
       await loadAllAssetsSmartSync();
       setMode('mp4'); 
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v568 智慧版本比對載入】\n";
+      let logMsg = "📦 【v569 智慧版本比對載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
-      const localSchedStr = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V568');
+      const localSchedStr = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V569');
       if (localSchedStr) {
         try { schedParsed = JSON.parse(localSchedStr); logMsg += "- schedule.json: 讀取本機快取 (秒開) ✅\n"; } catch(e){}
       }
@@ -770,7 +770,7 @@
           const freshSched = await res.json();
           const freshStr = JSON.stringify(freshSched);
           if (freshStr !== localSchedStr) {
-            localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V568', freshStr);
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V569', freshStr);
             schedParsed = freshSched;
             logMsg = logMsg.replace("- schedule.json: 讀取本機快取 (秒開) ✅", "- schedule.json: 偵測遠端更新，已自動更新本機 🔄");
           }
@@ -782,7 +782,7 @@
           const res = await fetch('./schedule.json?nocache=' + timestamp);
           if (res.ok) {
             schedParsed = await res.json();
-            localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V568', JSON.stringify(schedParsed));
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V569', JSON.stringify(schedParsed));
             logMsg += "- schedule.json: 首次載入並存入本機 ✅\n";
           }
         } catch (e) {
@@ -790,7 +790,7 @@
         }
       }
 
-      const localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V568');
+      const localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V569');
       if (localSentStr) {
         try { scriptureData = JSON.parse(localSentStr); logMsg += "- sentences.json: 讀取本機快取 (秒開) ✅\n"; } catch(e){}
       }
@@ -801,7 +801,7 @@
           const freshSent = await res.json();
           const freshSentStr = JSON.stringify(freshSent);
           if (freshSentStr !== localSentStr) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V568', freshSentStr);
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V569', freshSentStr);
             scriptureData = freshSent;
             logMsg = logMsg.replace("- sentences.json: 讀取本機快取 (秒開) ✅", "- sentences.json: 偵測遠端更新，已自動更新本機 🔄");
           }
@@ -813,7 +813,7 @@
           const res = await fetch('./sentences.json?nocache=' + timestamp);
           if (res.ok) {
             scriptureData = await res.json();
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V568', JSON.stringify(scriptureData));
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V569', JSON.stringify(scriptureData));
             logMsg += "- sentences.json: 首次載入並存入本機 ✅\n";
           }
         } catch (e) {
@@ -833,7 +833,7 @@
         logMsg += `- cards_manifest.json: 離線模式 (略過檢查) 📦\n`;
       }
 
-      const savedPdf = await getLocalFile('pdf_file_v568');
+      const savedPdf = await getLocalFile('pdf_file_v569');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
         logMsg += "- scripture.pdf: 讀取本機 IndexedDB 快取 ✅\n";
@@ -842,7 +842,7 @@
           const res = await fetch('./scripture.pdf?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v568', buf, 'pdf_cached');
+            await saveLocalFile('pdf_file_v569', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
             logMsg += "- scripture.pdf: 首次下載並寫入本機 ✅\n";
           }
@@ -855,7 +855,7 @@
         await renderPdfOnValidDimensions();
       }
 
-      const savedVid = await getLocalFile('video_file_v568');
+      const savedVid = await getLocalFile('video_file_v569');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
         logMsg += "- chant_video.mp4: 讀取本機 IndexedDB 快取 ✅\n";
@@ -864,7 +864,7 @@
           const res = await fetch('./chant_video.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v568', buf, 'vid_cached');
+            await saveLocalFile('video_file_v569', buf, 'vid_cached');
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
             logMsg += "- chant_video.mp4: 首次下載並寫入本機 ✅\n";
           }
@@ -882,7 +882,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V568');
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V569');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -898,7 +898,6 @@
         
         let targetDay = 1;
         const urlParams = new URLSearchParams(window.location.search);
-        let urlStartParam = urlParams.get('start') || '無';
         
         if (urlParams.get('start')) {
           const startStr = urlParams.get('start');
@@ -933,10 +932,19 @@
         const sA = markA_Index + 1;
         const sB = markB_Index + 1;
 
+        // 🌟 完整串習排程資訊串接
+        let cumulativeInfoStr = '';
+        if (currentDayPlan.cRepeat && currentDayPlan.cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd) {
+          cumulativeInfoStr = `\n- 串習複習: 第 ${currentDayPlan.cStart} 句 ～ 第 ${currentDayPlan.cEnd} 句 (${currentDayPlan.cRepeat}遍)`;
+        } else {
+          cumulativeInfoStr = `\n- 串習複習: 無`;
+        }
+
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v568】\n` +
+                  `\n📅 【排程解析成功 v569】\n` +
                   `- 目標天數: 第 ${targetDay} 天 (JSON day: ${currentDayPlan.day})\n` +
-                  `- 誦讀範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)`, 16000);
+                  `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
+                  cumulativeInfoStr, 16000);
 
         return true;
       } catch (err) {
@@ -1318,14 +1326,14 @@
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
-              const localPdf = await getLocalFile('pdf_file_v568');
+              const localPdf = await getLocalFile('pdf_file_v569');
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
                 const response = await fetch('./scripture.pdf?nocache=' + Date.now());
                 if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-                await saveLocalFile('pdf_file_v568', cachedPdfBuffer, 'mode-load');
+                await saveLocalFile('pdf_file_v569', cachedPdfBuffer, 'mode-load');
               }
             }
 
@@ -1615,8 +1623,9 @@
           setTimeout(() => { handleZiduClick(); }, 500);
         }
       } else {
+        // 🌟 嚴格檢修：在此處明確判斷目前是否為新進度階段，且確實有串習需求
         if (practiceStage === 'new') {
-          const hasCumulative = currentDayPlan.cRepeat > 0 && currentDayPlan.cEnd && currentDayPlan.cEnd > 0;
+          const hasCumulative = currentDayPlan.cRepeat && currentDayPlan.cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
 
           if (hasCumulative) {
             triggerSevenColoredLotusFlowerRain();
@@ -1624,10 +1633,10 @@
             showToast('🎉 新進度圓滿！3秒後自動進入串習複習...', 4000);
 
             setTimeout(() => {
+              // 🌟 確實切換狀態為 cumulative 並重置圈數與範圍
               practiceStage = 'cumulative';
               currentCycleCount = 0;
               
-              // 🌟 嚴格檢修：切換到串習時強制重新設定起訖點與畫面定位
               setupStageRange();
               updateVisualDisplay();
               scrollToAlignTop(markA_Index);
@@ -1645,6 +1654,7 @@
             showToast('🎉 今日定課已圓滿！', 5500);
           }
         } else {
+          // 若本來就是 cumulative 階段跑完，代表全部圓滿
           triggerSevenColoredLotusFlowerRain();
           speakPrompt('今日串習複習圓滿');
           showToast('🎉 今日串習與定課全部圓滿！', 5500);
@@ -2368,7 +2378,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V568', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V569', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
