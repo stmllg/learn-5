@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v572 (供養金幣灑花修復版)</title>
+  <title>歡喜背書橫式雙模播放器 v573 (福慧金幣字樣與平滑掉落版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -463,7 +463,7 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong><code>「以預設瀏覽器開啟」</code></strong>（Safari 或 Chrome）。
+        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
       </div>
     </div>
   </div>
@@ -481,8 +481,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v572 供養金幣特效修復版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v572 載入中】...</div>
+  <!-- 🌟 v573 福慧金幣字樣與平滑掉落版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -696,9 +696,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V572');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V573');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V572', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V573', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -749,17 +749,17 @@
 
       renderUI();
       
-      // 🌟 V572 智慧比對載入引擎
+      // 🌟 V573 智慧比對載入引擎
       await loadAllAssetsSmartSync();
       setMode('mp4'); 
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v572 智慧版本比對載入】\n";
+      let logMsg = "📦 【v573 智慧版本比對載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
-      const localSchedStr = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V572');
+      const localSchedStr = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V573');
       if (localSchedStr) {
         try { schedParsed = JSON.parse(localSchedStr); logMsg += "- schedule.json: 讀取本機快取 (秒開) ✅\n"; } catch(e){}
       }
@@ -770,7 +770,7 @@
           const freshSched = await res.json();
           const freshStr = JSON.stringify(freshSched);
           if (freshStr !== localSchedStr) {
-            localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V572', freshStr);
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V573', freshStr);
             schedParsed = freshSched;
             logMsg = logMsg.replace("- schedule.json: 讀取本機快取 (秒開) ✅", "- schedule.json: 偵測遠端更新，已自動更新本機 🔄");
           }
@@ -782,7 +782,7 @@
           const res = await fetch('./schedule.json?nocache=' + timestamp);
           if (res.ok) {
             schedParsed = await res.json();
-            localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V572', JSON.stringify(schedParsed));
+            localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V573', JSON.stringify(schedParsed));
             logMsg += "- schedule.json: 首次載入並存入本機 ✅\n";
           }
         } catch (e) {
@@ -790,7 +790,7 @@
         }
       }
 
-      const localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V572');
+      const localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V573');
       if (localSentStr) {
         try { scriptureData = JSON.parse(localSentStr); logMsg += "- sentences.json: 讀取本機快取 (秒開) ✅\n"; } catch(e){}
       }
@@ -801,7 +801,7 @@
           const freshSent = await res.json();
           const freshSentStr = JSON.stringify(freshSent);
           if (freshSentStr !== localSentStr) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V572', freshSentStr);
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V573', freshSentStr);
             scriptureData = freshSent;
             logMsg = logMsg.replace("- sentences.json: 讀取本機快取 (秒開) ✅", "- sentences.json: 偵測遠端更新，已自動更新本機 🔄");
           }
@@ -813,7 +813,7 @@
           const res = await fetch('./sentences.json?nocache=' + timestamp);
           if (res.ok) {
             scriptureData = await res.json();
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V572', JSON.stringify(scriptureData));
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V573', JSON.stringify(scriptureData));
             logMsg += "- sentences.json: 首次載入並存入本機 ✅\n";
           }
         } catch (e) {
@@ -833,7 +833,7 @@
         logMsg += `- cards_manifest.json: 離線模式 (略過檢查) 📦\n`;
       }
 
-      const savedPdf = await getLocalFile('pdf_file_v572');
+      const savedPdf = await getLocalFile('pdf_file_v573');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
         logMsg += "- scripture.pdf: 讀取本機 IndexedDB 快取 ✅\n";
@@ -842,7 +842,7 @@
           const res = await fetch('./scripture.pdf?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v572', buf, 'pdf_cached');
+            await saveLocalFile('pdf_file_v573', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
             logMsg += "- scripture.pdf: 首次下載並寫入本機 ✅\n";
           }
@@ -855,7 +855,7 @@
         await renderPdfOnValidDimensions();
       }
 
-      const savedVid = await getLocalFile('video_file_v572');
+      const savedVid = await getLocalFile('video_file_v573');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
         logMsg += "- chant_video.mp4: 讀取本機 IndexedDB 快取 ✅\n";
@@ -864,7 +864,7 @@
           const res = await fetch('./chant_video.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v572', buf, 'vid_cached');
+            await saveLocalFile('video_file_v573', buf, 'vid_cached');
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
             logMsg += "- chant_video.mp4: 首次下載並寫入本機 ✅\n";
           }
@@ -882,7 +882,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V572');
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V573');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -940,7 +940,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v572】\n` +
+                  `\n📅 【排程解析成功 v573】\n` +
                   `- 目標天數: 第 ${targetDay} 天 (JSON day: ${currentDayPlan.day})\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -1325,14 +1325,14 @@
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
-              const localPdf = await getLocalFile('pdf_file_v572');
+              const localPdf = await getLocalFile('pdf_file_v573');
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
                 const response = await fetch('./scripture.pdf?nocache=' + Date.now());
                 if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-                await saveLocalFile('pdf_file_v572', cachedPdfBuffer, 'mode-load');
+                await saveLocalFile('pdf_file_v573', cachedPdfBuffer, 'mode-load');
               }
             }
 
@@ -1750,7 +1750,7 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 補上「確認供養成功後」的福慧金幣灑落特效
+    // 🌟 嚴格依據要求：精緻的福慧金幣（寫有「福」、「慧」字樣，平滑落下絕不抖動）
     function triggerOfferingCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1760,24 +1760,24 @@
       canvas.height = window.innerHeight;
 
       const coins = [];
-      const coinColors = ['#F59E0B', '#FBBF24', '#FEF3C7', '#D97706', '#FCD34D'];
+      const labels = ['福', '慧'];
       
-      for (let i = 0; i < 60; i++) {
+      for (let i = 0; i < 55; i++) {
         coins.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 8 + 8,
-          speedY: Math.random() * 2.2 + 1.2,
-          speedX: (Math.random() - 0.5) * 1.5,
-          rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 3.0,
-          color: coinColors[Math.floor(Math.random() * coinColors.length)],
-          opacity: 0.95
+          radius: Math.random() * 12 + 14,
+          speedY: Math.random() * 1.5 + 0.8, // 溫和穩定的下落速度，確保平順不抖動
+          speedX: (Math.random() - 0.5) * 0.8,
+          rotation: Math.random() * Math.PI * 2,
+          rotationSpeed: (Math.random() - 0.5) * 0.04,
+          label: labels[i % labels.length],
+          opacity: 0.98
         });
       }
 
       let startTime = performance.now();
-      const duration = 5000;
+      const duration = 5500;
 
       function animateCoinRain(now) {
         let elapsed = now - startTime;
@@ -1785,29 +1785,43 @@
 
         coins.forEach(c => {
           c.y += c.speedY;
-          c.x += c.speedX + Math.sin(c.y / 40) * 0.8;
+          c.x += c.speedX + Math.sin(c.y / 50) * 0.5;
           c.rotation += c.rotationSpeed;
 
           ctx.save();
           ctx.translate(c.x, c.y);
-          ctx.rotate((c.rotation * Math.PI) / 180);
+          ctx.rotate(c.rotation);
           ctx.globalAlpha = c.opacity;
 
-          ctx.fillStyle = c.color;
+          // 金幣主體漸層色
+          const grad = ctx.createRadialGradient(-2, -2, 2, 0, 0, c.radius);
+          grad.addColorStop(0, '#FEF08A');
+          grad.addColorStop(0.5, '#F59E0B');
+          grad.addColorStop(1, '#B45309');
+
+          ctx.fillStyle = grad;
           ctx.beginPath();
-          ctx.arc(0, 0, c.size, 0, Math.PI * 2);
+          ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.strokeStyle = '#FFFFFF';
-          ctx.lineWidth = 1.5;
+          // 金幣精緻雙層外框
+          ctx.strokeStyle = '#FEF3C7';
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(0, 0, c.size * 0.75, 0, Math.PI * 2);
+          ctx.arc(0, 0, c.radius * 0.82, 0, Math.PI * 2);
           ctx.stroke();
+
+          // 金幣上的「福」與「慧」字樣
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = `bold ${Math.floor(c.radius * 0.9)}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(c.label, 0, 1);
 
           ctx.restore();
 
-          if (c.y > canvas.height + 30) {
-            c.y = -30;
+          if (c.y > canvas.height + 40) {
+            c.y = -40;
             c.x = Math.random() * canvas.width;
           }
         });
@@ -2196,7 +2210,7 @@
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
         
-        // 🌟 點擊確認供養成功並取得排行榜後，完美觸發福慧金幣落下特效！
+        // 🌟 完美觸發寫有「福」、「慧」字樣且平滑不抖動的金幣落下特效
         triggerOfferingCoinRain();
       }
 
@@ -2456,7 +2470,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V572', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V573', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
