@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.9 (功德迴向長按鈕版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.10 (全自動記憶與手勢返回版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -432,7 +432,6 @@
     .offering-card { background: #FFFFFF; color: #1E293B; border-radius: 18px; width: 92%; max-width: 460px; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
     .offering-header { font-size: 20px; font-weight: 900; color: #D97706; text-align: center; }
     
-    /* 🌟 新增：今日背書功德迴向長按鈕樣式 */
     .btn-dedication-long {
       width: 100%;
       padding: 12px 16px;
@@ -502,8 +501,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.9 功德迴向長按鈕版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.9 載入中】...</div>
+  <!-- 🌟 v573.10 自動記憶與手勢返回版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.10 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -541,7 +540,6 @@
     </div>
   </div>
 
-  <!-- 🌟 功德供養 Modal（已加入今日背書功德迴向長按鈕） -->
   <div id="offering-modal-overlay">
     <div class="offering-card">
       <div class="offering-header"><span>🙏</span> 功德供養</div>
@@ -633,7 +631,7 @@
     const displayCoinsCount = document.getElementById('display-coins-count');
     const btnConfirmOffering = document.getElementById('btn-confirm-offering');
     const btnCancelOffering = document.getElementById('btn-cancel-offering');
-    const btnPlayDedication = document.getElementById('btn-play-dedication'); // 🌟 迴向按鈕參照
+    const btnPlayDedication = document.getElementById('btn-play-dedication');
 
     const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
     const todayRankList = document.getElementById('today-rank-list');
@@ -700,6 +698,115 @@
     let hasEnteredReciting = false;
     let isUserManualScrolling = false;
     let manualScrollTimer = null;
+
+    // 🌟 智慧自動存檔函數 (儲存當前完整狀態)
+    function saveCurrentAppState() {
+      if (!hasEnteredReciting) return;
+      const state = {
+        currentMode: currentMode,
+        pdfSubMode: pdfSubMode,
+        practicePhase: practicePhase,
+        currentCycleCount: currentCycleCount,
+        videoCurrentTime: (currentMode === 'mp4' ? video.currentTime : 0),
+        currentLineIndex: currentLineIndex,
+        markA_Index: markA_Index,
+        markB_Index: markB_Index,
+        isManualSelected: isManualSelected,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('APP_SAVED_STATE_V573', JSON.stringify(state));
+    }
+
+    // 🌟 嘗試讀取並恢復上次離開的進度
+    function tryRestoreSavedAppState() {
+      const savedStr = localStorage.getItem('APP_SAVED_STATE_V573');
+      if (!savedStr) return false;
+      try {
+        const state = JSON.parse(savedStr);
+        currentMode = state.currentMode || 'mp4';
+        pdfSubMode = state.pdfSubMode || 'guide';
+        practicePhase = state.practicePhase || 'new_gendu';
+        currentCycleCount = state.currentCycleCount || 0;
+        currentLineIndex = state.currentLineIndex || 0;
+        markA_Index = state.markA_Index !== undefined ? state.markA_Index : -1;
+        markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
+        isManualSelected = state.isManualSelected || false;
+
+        renderUI();
+
+        if (currentMode === 'mp4') {
+          setMode('mp4');
+          if (state.videoCurrentTime > 0) {
+            video.currentTime = state.videoCurrentTime;
+          }
+        } else {
+          setMode('pdf', pdfSubMode);
+        }
+
+        const phaseName = getPhaseName(practicePhase);
+        showToast(`✨ 已為您自動接續上次進度\n(${phaseName})`, 5000);
+        return true;
+      } catch(e) {
+        return false;
+      }
+    }
+
+    function getPhaseName(phase) {
+      switch(phase) {
+        case 'new_gendu': return '新進度跟讀';
+        case 'new_zidu': return '新進度自讀';
+        case 'cumulative_gendu': return '串習複習跟讀';
+        case 'cumulative_zidu': return '串習複習自讀';
+        case 'completed': return '已圓滿解鎖';
+        default: return '定課中';
+      }
+    }
+
+    // 🌟 註冊背景即時存檔事件 (螢幕鎖屏/切換背景/關閉分頁)
+    window.addEventListener('beforeunload', () => { saveCurrentAppState(); });
+    window.addEventListener('pagehide', () => { saveCurrentAppState(); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        saveCurrentAppState();
+      }
+    });
+
+    // 🌟 左右滑動手勢偵測：滑動時自動存檔並優雅返回陪伴卡休息
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1 && hasEnteredReciting) {
+        const deltaX = e.changedTouches[0].clientX - swipeStartX;
+        const deltaY = e.changedTouches[0].clientY - swipeStartY;
+        // 水平滑動距離大於 90px 且大於垂直移動的 1.5 倍
+        if (Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+          handleReturnToCompanionCard();
+        }
+      }
+    }, { passive: true });
+
+    function handleReturnToCompanionCard() {
+      saveCurrentAppState(); // 瞬間自動存檔
+      haltGuideRunnerImmediately();
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+      isUserRecording = false;
+      if (recordAudioElement) recordAudioElement.pause();
+      releaseMicrophoneResources();
+      try { video.pause(); } catch(e) {}
+
+      hasEnteredReciting = false;
+      companionOverlay.style.display = 'flex';
+      companionOverlay.style.opacity = '1';
+      companionOverlay.classList.add('active');
+      showToast('💤 已為您自動存檔並返回休息', 3500);
+    }
 
     centerCore.addEventListener('scroll', () => {
       if (isGuideActive) {
@@ -789,7 +896,11 @@
           localStorage.setItem('buddha_played_' + todayStr, 'true');
           await playDailyBuddhaVideoSequence();
         } else {
-          setMode('mp4');
+          // 嘗試自動接續上次進度，若無則進入預設模式
+          const restored = tryRestoreSavedAppState();
+          if (!restored) {
+            setMode('mp4');
+          }
         }
       }, 350);
     }
@@ -815,7 +926,8 @@
       try {
         await video.play();
       } catch(e) {
-        setMode('mp4');
+        const restored = tryRestoreSavedAppState();
+        if (!restored) setMode('mp4');
         return;
       }
 
@@ -828,15 +940,18 @@
             video.src = './chant_video.mp4';
           }
           showToast('✨ 念佛圓滿，開始今日定課', 3000);
-          setMode('mp4');
+          
+          const restored = tryRestoreSavedAppState();
+          if (!restored) {
+            setMode('mp4');
+          }
         });
       };
     }
 
-    // 🌟 點擊「今日背書功德迴向」按鈕後的播放邏輯
     if (btnPlayDedication) {
       btnPlayDedication.addEventListener('click', async () => {
-        offeringOverlay.style.display = 'none'; // 關閉供養視窗
+        offeringOverlay.style.display = 'none';
         
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
@@ -862,7 +977,6 @@
           return;
         }
 
-        // 迴向影片播放完畢後自動恢復播放器畫面
         video.onended = () => {
           video.onended = null;
           getLocalFile('video_file_v573').then(savedVid => {
@@ -883,7 +997,7 @@
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.9 迴向長按鈕快取載入】\n";
+      let logMsg = "📦 【v573.10 自動記憶快取載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -1064,7 +1178,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.9】\n` +
+                  `\n📅 【排程解析成功 v573.10】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -1273,12 +1387,14 @@
       localStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
       video.playbackRate = mp4Speed;
       flashSpeedToast('【跟讀快轉 ' + mp4Speed.toFixed(1) + 'x】');
+      saveCurrentAppState();
     }
 
     function setPdfSpeed(val) {
       pdfSpeed = val;
       localStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
       flashSpeedToast('【自讀語速 ' + pdfSpeed.toFixed(1) + 'x】');
+      saveCurrentAppState();
     }
 
     function setCompareSpeed(val) {
@@ -1286,6 +1402,7 @@
       localStorage.setItem('user_compare_speed_preference', compareSpeed.toFixed(1));
       if (recordAudioElement) recordAudioElement.playbackRate = compareSpeed;
       flashSpeedToast('【比對播放 ' + compareSpeed.toFixed(1) + 'x】');
+      saveCurrentAppState();
     }
 
     function flashSpeedToast(text) {
@@ -1462,6 +1579,7 @@
         }, 120);
       }
 
+      saveCurrentAppState();
       renderUI();
     }
 
@@ -1629,6 +1747,7 @@
           video.play().then(() => {
               updateModeButtonsStyle();
               startMp4PrecisionCheck();
+              saveCurrentAppState();
           }).catch((err) => {
               video.currentTime = range.start;
               video.play().then(() => updateModeButtonsStyle()).catch(() => {});
@@ -1638,6 +1757,7 @@
           videoPausedAt = video.currentTime;
           updateModeButtonsStyle();
           showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
+          saveCurrentAppState();
       }
     }
 
@@ -1661,6 +1781,7 @@
 
       if (isGuideActive) {
           haltGuideRunnerImmediately();
+          saveCurrentAppState();
       } else {
           if (parsedTextLines.length === 0) {
               showToast("經文處理中，請稍候", 2000);
@@ -1682,6 +1803,7 @@
           ensureMicrophoneActive().then(() => {
             startGuideRunner();
             updateModeButtonsStyle();
+            saveCurrentAppState();
           });
       }
     }
@@ -1756,6 +1878,7 @@
               isSelectingMarkA = false;
               updateVisualDisplay();
               renderUI();
+              saveCurrentAppState();
               showToast("✅ 起句設定成功！", 2500);
             } else if (isSelectingMarkB) {
               if (markA_Index !== -1 && targetIdx < markA_Index) {
@@ -1767,6 +1890,7 @@
               isSelectingMarkB = false;
               updateVisualDisplay();
               renderUI();
+              saveCurrentAppState();
               showToast("✅ 終句設定成功！", 2500);
             }
           });
@@ -1884,6 +2008,7 @@
           showToast("🎉 今日串習與定課全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
         }
       }
+      saveCurrentAppState();
     }
 
     function handleMp4CycleEnd(range) {
@@ -2119,13 +2244,14 @@
     }
 
     function handleShutdownClick() {
+      saveCurrentAppState();
       haltGuideRunnerImmediately();
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
       releaseMicrophoneResources();
       try { video.pause(); } catch (e) {}
-      showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
+      showToast("已自動存檔，並釋放所有媒體資源", 3000);
       updateModeButtonsStyle();
     }
 
@@ -2288,10 +2414,12 @@
     function addCoins(amount) {
       const total = getStoredCoins() + amount;
       localStorage.setItem('user_accumulated_coins', total.toString());
+      saveCurrentAppState();
       return total;
     }
     function resetCoins() {
       localStorage.setItem('user_accumulated_coins', '0');
+      saveCurrentAppState();
     }
     function calculateSentenceCount() {
       if (parsedTextLines.length === 0) return 1;
