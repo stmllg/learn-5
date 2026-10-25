@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.17 (迴向影片完整播放版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.18 (自讀語速自主調整版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -571,8 +571,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.17 迴向影片完整播放版 -->
-  <div id="schedule-toast">📦 【v573.17 載入中】...</div>
+  <!-- 🌟 v573.18 自讀語速調整解鎖版 -->
+  <div id="schedule-toast">📦 【v573.18 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -714,7 +714,6 @@
     let pdfSubMode = 'guide'; 
     let practicePhase = 'new_gendu'; 
 
-    // 🌟 新增：識別目前是否正在播放「念佛」或「迴向」等不需範圍限制的特別影片
     let isSpecialVideoPlaying = false;
 
     let audioContext = null;
@@ -1009,7 +1008,6 @@
       }, 350);
     }
 
-    // 🌟 播放念佛影片：設為特別影片模式，並確保按鈕正確顯示跟讀
     async function playDailyBuddhaVideoSequence() {
       currentMode = 'mp4';
       isSpecialVideoPlaying = true;
@@ -1071,7 +1069,6 @@
       });
     }
 
-    // 🌟 播放功德迴向影片：設為特別影片模式，播完才結束
     if (btnPlayDedication) {
       btnPlayDedication.addEventListener('click', async () => {
         offeringOverlay.style.display = 'none';
@@ -1144,7 +1141,7 @@
       const isFirstCheckToday = (lastCheckDate !== todayStr);
 
       let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v573.17 系統更新檢查】\n";
+      let logMsg = "📦 【v573.18 系統更新檢查】\n";
 
       let schedParsed = null;
       const localSchedStr = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V573');
@@ -1730,7 +1727,15 @@
         slotL1.innerHTML = '';
         slotL2.innerHTML = '';
         slotL3.innerHTML = '';
-        slotL4.innerHTML = '';
+        
+        // 🌟 修正：即使尚未完全解除功能，只要切到「自讀模式（pdfSubMode === 'guide'）」，右下角就顯示快慢鍵讓長輩調整語速！
+        if (currentMode === 'pdf' && pdfSubMode === 'guide') {
+          slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
+          slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+        } else {
+          slotL4.innerHTML = '';
+          slotR4.innerHTML = '';
+        }
       }
 
       slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
@@ -2027,7 +2032,6 @@
     function startMp4PrecisionCheck() {
       if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
       function check() {
-        // 🌟 若正在播放特別影片（念佛或迴向），則跳過範圍限制，不強行切斷
         if (isSpecialVideoPlaying) {
           mp4PrecisionCheckAnimId = requestAnimationFrame(check);
           return;
