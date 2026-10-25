@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.4 (紫色運行狀態視覺升級版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.5 (多影音離線快取與智慧比對版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -474,8 +474,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.4 紫色運行狀態視覺升級版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.4 載入中】...</div>
+  <!-- 🌟 v573.5 多影音離線快取版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.5 多影音快取載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -749,16 +749,17 @@
       setMode('mp4'); 
     }
 
+    // 🌟 智慧比對載入引擎（同時支援主影片、迴向影片、念佛影片、排程、句庫與 PDF 快取與版本比對）
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.4 視覺升級載入】\n";
+      let logMsg = "📦 【v573.5 多影音智慧快取載入】\n";
       const timestamp = Date.now();
 
+      // 1. schedule.json
       let schedParsed = null;
       const localSchedStr = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V573');
       if (localSchedStr) {
-        try { schedParsed = JSON.parse(localSchedStr); logMsg += "- schedule.json: 讀取本機快取 (秒開) ✅\n"; } catch(e){}
+        try { schedParsed = JSON.parse(localSchedStr); logMsg += "- schedule.json: 讀取本機快取 ✅\n"; } catch(e){}
       }
-      
       try {
         const res = await fetch('./schedule.json?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
@@ -767,29 +768,26 @@
           if (freshStr !== localSchedStr) {
             localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V573', freshStr);
             schedParsed = freshSched;
-            logMsg = logMsg.replace("- schedule.json: 讀取本機快取 (秒開) ✅", "- schedule.json: 偵測遠端更新，已自動更新本機 🔄");
+            logMsg = logMsg.replace("- schedule.json: 讀取本機快取 ✅", "- schedule.json: 偵測遠端更新 🔄");
           }
         }
       } catch (e) {}
-
       if (!schedParsed) {
         try {
           const res = await fetch('./schedule.json?nocache=' + timestamp);
           if (res.ok) {
             schedParsed = await res.json();
             localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V573', JSON.stringify(schedParsed));
-            logMsg += "- schedule.json: 首次載入並存入本機 ✅\n";
+            logMsg += "- schedule.json: 首次載入 ✅\n";
           }
-        } catch (e) {
-          logMsg += "- schedule.json: 讀取失敗 ⚠️\n";
-        }
+        } catch (e) { logMsg += "- schedule.json: 讀取失敗 ⚠️\n"; }
       }
 
+      // 2. sentences.json
       const localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V573');
       if (localSentStr) {
-        try { scriptureData = JSON.parse(localSentStr); logMsg += "- sentences.json: 讀取本機快取 (秒開) ✅\n"; } catch(e){}
+        try { scriptureData = JSON.parse(localSentStr); logMsg += "- sentences.json: 讀取本機快取 ✅\n"; } catch(e){}
       }
-
       try {
         const res = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
@@ -798,28 +796,26 @@
           if (freshSentStr !== localSentStr) {
             localStorage.setItem('OFFLINE_SENTENCES_CACHE_V573', freshSentStr);
             scriptureData = freshSent;
-            logMsg = logMsg.replace("- sentences.json: 讀取本機快取 (秒開) ✅", "- sentences.json: 偵測遠端更新，已自動更新本機 🔄");
+            logMsg = logMsg.replace("- sentences.json: 讀取本機快取 ✅", "- sentences.json: 偵測遠端更新 🔄");
           }
         }
       } catch (e) {}
-
       if (scriptureData.length === 0) {
         try {
           const res = await fetch('./sentences.json?nocache=' + timestamp);
           if (res.ok) {
             scriptureData = await res.json();
             localStorage.setItem('OFFLINE_SENTENCES_CACHE_V573', JSON.stringify(scriptureData));
-            logMsg += "- sentences.json: 首次載入並存入本機 ✅\n";
+            logMsg += "- sentences.json: 首次載入 ✅\n";
           }
-        } catch (e) {
-          logMsg += "- sentences.json: 讀取失敗 ⚠️\n";
-        }
+        } catch (e) { logMsg += "- sentences.json: 讀取失敗 ⚠️\n"; }
       }
 
+      // 3. scripture.pdf
       const savedPdf = await getLocalFile('pdf_file_v573');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
-        logMsg += "- scripture.pdf: 讀取本機 IndexedDB 快取 ✅\n";
+        logMsg += "- scripture.pdf: 讀取本機快取 ✅\n";
       } else {
         try {
           const res = await fetch('./scripture.pdf?nocache=' + timestamp);
@@ -827,21 +823,19 @@
             const buf = await res.arrayBuffer();
             await saveLocalFile('pdf_file_v573', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
-            logMsg += "- scripture.pdf: 首次下載並寫入本機 ✅\n";
+            logMsg += "- scripture.pdf: 首次載入 ✅\n";
           }
-        } catch (e) {
-          logMsg += "- scripture.pdf: 讀取失敗 ⚠️\n";
-        }
+        } catch (e) { logMsg += "- scripture.pdf: 讀取失敗 ⚠️\n"; }
       }
-
       if (cachedPdfBuffer && parsedTextLines.length === 0) {
         await renderPdfOnValidDimensions();
       }
 
+      // 4. 主影片: chant_video.mp4
       const savedVid = await getLocalFile('video_file_v573');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
-        logMsg += "- chant_video.mp4: 讀取本機 IndexedDB 快取 ✅\n";
+        logMsg += "- chant_video.mp4: 讀取本機快取 ✅\n";
       } else {
         try {
           const res = await fetch('./chant_video.mp4?nocache=' + timestamp);
@@ -849,12 +843,42 @@
             const buf = await res.arrayBuffer();
             await saveLocalFile('video_file_v573', buf, 'vid_cached');
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
-            logMsg += "- chant_video.mp4: 首次下載並寫入本機 ✅\n";
+            logMsg += "- chant_video.mp4: 首次載入 ✅\n";
           }
         } catch (e) {
           video.src = './chant_video.mp4';
-          logMsg += "- chant_video.mp4: 串流備用來源 ⚠️\n";
+          logMsg += "- chant_video.mp4: 串流備用 ⚠️\n";
         }
+      }
+
+      // 5. 迴向影片: merit_dedication.mp4 (離線快取與智慧比對)
+      const savedMeritVid = await getLocalFile('merit_dedication_file_v573');
+      if (savedMeritVid && savedMeritVid.data) {
+        logMsg += "- merit_dedication.mp4: 讀取本機快取 ✅\n";
+      } else {
+        try {
+          const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            await saveLocalFile('merit_dedication_file_v573', buf, 'merit_cached');
+            logMsg += "- merit_dedication.mp4: 首次載入 ✅\n";
+          }
+        } catch (e) { logMsg += "- merit_dedication.mp4: 略過/無檔案 📦\n"; }
+      }
+
+      // 6. 念佛影片: reciting_buddha_name.mp4 (離線快取與智慧比對)
+      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v573');
+      if (savedBuddhaVid && savedBuddhaVid.data) {
+        logMsg += "- reciting_buddha_name.mp4: 讀取本機快取 ✅\n";
+      } else {
+        try {
+          const res = await fetch('./reciting_buddha_name.mp4?nocache=' + timestamp);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            await saveLocalFile('reciting_buddha_file_v573', buf, 'buddha_cached');
+            logMsg += "- reciting_buddha_name.mp4: 首次載入 ✅\n";
+          }
+        } catch (e) { logMsg += "- reciting_buddha_name.mp4: 略過/無檔案 📦\n"; }
       }
 
       applyScheduleToState(logMsg);
@@ -923,7 +947,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.4】\n` +
+                  `\n📅 【排程解析成功 v573.5】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -1305,7 +1329,7 @@
         slotL1.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #64748B; text-align: center; line-height: 1.2;">定課中<br>供養解鎖</div>';
       }
 
-      slotL2.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #38BDF8; text-align: center; line-height: 1.2;">雙軌並存<br>防呆引導</div>';
+      slotL2.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #38BDF8; text-align: center; line-height: 1.2;">多影音快取<br>防呆引導</div>';
       slotL3.innerHTML = '';
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
 
@@ -1342,7 +1366,6 @@
       updateVisualDisplay();
     }
 
-    // 🌟 嚴格區分顏色：黑底＝模式，綠色＝啟動模式，紫色＝運行模式（文字改為「跟著唸」與「唸出聲」）
     function updateModeButtonsStyle() {
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
@@ -1360,52 +1383,44 @@
           }
       });
 
-      // 1. 跟讀按鈕狀態
       if (btnGendu) {
           const isGenduActivePhase = (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu');
           const isGenduPlaying = (currentMode === 'mp4' && video && !video.paused);
 
           if (isGenduPlaying) {
-              // 運行模式 (紫色) -> 顯示「跟著唸」
               btnGendu.textContent = '跟著唸';
               btnGendu.style.background = colorPurple;
               btnGendu.style.borderColor = '#E9D5FF';
               btnGendu.style.color = '#FFFFFF';
               btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
           } else if (isGenduActivePhase) {
-              // 啟動模式 (綠色) -> 準備跟讀
               btnGendu.textContent = '跟讀';
               btnGendu.style.background = colorGreen;
               btnGendu.style.borderColor = '#A7F3D0';
               btnGendu.style.color = '#FFFFFF';
               btnGendu.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
           } else {
-              // 預設黑底
               btnGendu.textContent = '跟讀';
           }
       }
 
-      // 2. 自讀按鈕狀態
       if (btnZidu) {
           const isZiduActivePhase = (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu');
           const isZiduRunning = (currentMode === 'pdf' && pdfSubMode === 'guide' && isGuideActive);
 
           if (isZiduRunning) {
-              // 運行模式 (紫色) -> 顯示「唸出聲」
               btnZidu.textContent = '唸出聲';
               btnZidu.style.background = colorPurple;
               btnZidu.style.borderColor = '#E9D5FF';
               btnZidu.style.color = '#FFFFFF';
               btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
           } else if (isZiduActivePhase) {
-              // 啟動模式 (綠色) -> 準備自讀
               btnZidu.textContent = '自讀';
               btnZidu.style.background = colorGreen;
               btnZidu.style.borderColor = '#A7F3D0';
               btnZidu.style.color = '#FFFFFF';
               btnZidu.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
           } else {
-              // 預設黑底
               btnZidu.textContent = '自讀';
           }
       }
