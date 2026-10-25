@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.7 (今日首次念佛自動播放版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.8 (快慢按鈕防呆隱藏版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -479,8 +479,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.7 今日首次念佛自動播放版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.7 載入中】...</div>
+  <!-- 🌟 v573.8 快慢按鈕防呆隱藏版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.8 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -744,7 +744,6 @@
       } catch (e) {}
     }
 
-    // 🌟 點擊「開始定課」後的處理邏輯（加入今日首次念佛影片自動播放）
     async function closeCompanionCard() {
       hasEnteredReciting = true;
       companionOverlay.style.opacity = '0';
@@ -757,7 +756,6 @@
         renderUI();
         await loadAllAssetsSmartSync();
 
-        // 🌟 檢查今天是否已經播放過念佛影片 (`reciting_buddha_name.mp4`)
         const todayStr = getNormalizedDateStr();
         const hasPlayedBuddha = localStorage.getItem('buddha_played_' + todayStr);
 
@@ -765,12 +763,11 @@
           localStorage.setItem('buddha_played_' + todayStr, 'true');
           await playDailyBuddhaVideoSequence();
         } else {
-          setMode('mp4'); // 已經播過直接進入跟讀
+          setMode('mp4');
         }
       }, 350);
     }
 
-    // 🌟 播放今日首次念佛影片一次
     async function playDailyBuddhaVideoSequence() {
       pdfContainerWrap.style.display = 'none';
       guideStage.style.display = 'none';
@@ -796,11 +793,8 @@
         return;
       }
 
-      // 影片播放結束後自動切入正常跟讀模式
       video.onended = () => {
         video.onended = null;
-        
-        // 恢復正常主影片源
         getLocalFile('video_file_v573').then(savedVid => {
           if (savedVid && savedVid.data) {
             video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
@@ -818,7 +812,7 @@
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.7 念佛自動播放快取載入】\n";
+      let logMsg = "📦 【v573.8 快慢按鈕隱藏快取載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -895,7 +889,6 @@
         await renderPdfOnValidDimensions();
       }
 
-      // 主影片快取
       const savedVid = await getLocalFile('video_file_v573');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
@@ -912,7 +905,6 @@
         } catch (e) { video.src = './chant_video.mp4'; }
       }
 
-      // 念佛影片快取 (reciting_buddha_name.mp4)
       const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v573');
       if (!savedBuddhaVid) {
         try {
@@ -920,12 +912,10 @@
           if (res.ok) {
             const buf = await res.arrayBuffer();
             await saveLocalFile('reciting_buddha_file_v573', buf, 'buddha_cached');
-            logMsg += "- reciting_buddha_name.mp4: 快取成功 ✅\n";
           }
         } catch (e) {}
       }
 
-      // 迴向影片快取 (merit_dedication.mp4)
       const savedMeritVid = await getLocalFile('merit_dedication_file_v573');
       if (!savedMeritVid) {
         try {
@@ -933,7 +923,6 @@
           if (res.ok) {
             const buf = await res.arrayBuffer();
             await saveLocalFile('merit_dedication_file_v573', buf, 'merit_cached');
-            logMsg += "- merit_dedication.mp4: 快取成功 ✅\n";
           }
         } catch (e) {}
       }
@@ -1004,7 +993,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.7】\n` +
+                  `\n📅 【排程解析成功 v573.8】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -1405,6 +1394,7 @@
       renderUI();
     }
 
+    // 🌟 核心動態介面渲染：定課完成前隱藏快慢鍵與供養鍵，圓滿後全面解鎖顯示
     function renderUI() {
       if (practicePhase === 'completed') {
         slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
@@ -1418,13 +1408,19 @@
 
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
+        
+        // 🌟 圓滿後解鎖顯示「慢-」與「快+」按鈕
+        slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
+        slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
       } else {
         slotL1.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #64748B; text-align: center; line-height: 1.2;">定課中<br>供養解鎖</div>';
         slotL2.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #38BDF8; text-align: center; line-height: 1.2;">嚴格防呆<br>導引中</div>';
         slotL3.innerHTML = '';
+        
+        // 🌟 定課完成前隱藏「慢-」與「快+」按鈕，避免誤觸
+        slotL4.innerHTML = '';
+        slotR4.innerHTML = '';
       }
-
-      slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
 
       slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
       slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
@@ -1434,8 +1430,6 @@
       } else {
         slotR3.innerHTML = '';
       }
-
-      slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
       const btnMarkA = document.getElementById('btn-mark-a');
       if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
@@ -1788,7 +1782,7 @@
             renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿，功能已全部解鎖");
-            showToast("🎉 今日定課已圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習", 6000);
+            showToast("🎉 今日定課已圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
           }
         }
       } else if (practicePhase === 'cumulative_gendu') {
@@ -1819,7 +1813,7 @@
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
-          showToast("🎉 今日串習與定課全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習", 6000);
+          showToast("🎉 今日串習與定課全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
         }
       }
     }
