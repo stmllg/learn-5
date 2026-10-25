@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.1 (長輩防呆引導版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.2 (雙軌並存自讀防呆版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -230,15 +230,6 @@
       background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
     }
 
-    @keyframes recordingPulseStrong {
-      0%   { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
-      50%  { box-shadow: 0 0 35px rgba(239, 68, 68, 1), inset 0 0 18px rgba(255, 255, 255, 0.8); border-color: #FCA5A5; }
-      100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(239, 68, 68, 0.5); border-color: #EF4444; }
-    }
-    .recording-flashing {
-      animation: recordingPulseStrong 0.9s infinite ease-in-out !important;
-    }
-
     #landscape-container {
       width: 100vw;
       height: 100vh;
@@ -371,13 +362,8 @@
     }
     .btn-color-offering:active { transform: scale(0.90); opacity: 0.85; }
 
-    .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
-    .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
-    .btn-color-play { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; font-size: 16px !important; }
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
-
-    .active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF !important; }
 
     #center-core {
       flex: 1;
@@ -481,8 +467,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.1 長輩防呆引導版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.1 載入中】...</div>
+  <!-- 🌟 v573.2 雙軌並存自讀防呆版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.2 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -569,9 +555,6 @@
     let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
 
-    let compareSpeed = parseFloat(localStorage.getItem('user_compare_speed_preference') || '1.0');
-    if (isNaN(compareSpeed) || compareSpeed < 0.5 || compareSpeed > 2.5) compareSpeed = 1.0;
-
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
     const lineBrowserOverlay = document.getElementById('line-browser-overlay');
@@ -619,7 +602,6 @@
     let currentMode = 'mp4';
     let pdfSubMode = 'guide'; 
 
-    // 🌟 V573.1 長輩嚴格防呆階段狀態機
     let practicePhase = 'new_gendu'; // 'new_gendu' -> 'new_zidu' -> 'cumulative_gendu' -> 'cumulative_zidu' -> 'completed'
 
     let audioContext = null;
@@ -627,12 +609,6 @@
     let micStream = null;
     let vadCheckTimer = null;
     let lastVoiceTime = 0; 
-
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isUserRecording = false;
-    let recordedAudioBlobUrl = null;
-    let recordAudioElement = new Audio();
 
     let scriptureData = [];
     let currentPdfDoc = null;
@@ -647,9 +623,6 @@
     let currentDayPlan = null; 
     let currentCycleCount = 0; 
     let videoPausedAt = -1;
-
-    let isSelectingMarkA = false;
-    let isSelectingMarkB = false;
 
     let guideAnimId = null;
     let cycleWaitTimer = null;
@@ -667,7 +640,7 @@
     let lineActivationTimestamp = 0;
 
     let isVoiceActive = false;
-    let isTouchingDisplay = false;
+    let isTouchingDisplay = false; // 🌟 雙軌並存：手指觸碰螢幕旗標
     let baseNoiseLevel = 0.0015;
     let dynamicThreshold = 0.0020;
     let calibrationSamples = [];
@@ -675,7 +648,6 @@
     let silentFrameCount = 0;
 
     let hasEnteredReciting = false;
-
     let isUserManualScrolling = false;
     let manualScrollTimer = null;
 
@@ -689,7 +661,24 @@
       }
     }, { passive: true });
 
-    recordAudioElement.addEventListener('ended', () => { renderUI(); });
+    // 🌟 自讀模式專用：手指觸碰螢幕雙軌並存驅動小紅點
+    centerCore.addEventListener('touchstart', (e) => {
+      if (currentMode === 'pdf' && pdfSubMode === 'guide' && isGuideActive) {
+        isTouchingDisplay = true;
+      }
+    }, { passive: true });
+
+    centerCore.addEventListener('touchend', (e) => {
+      if (currentMode === 'pdf' && pdfSubMode === 'guide' && isGuideActive) {
+        isTouchingDisplay = false;
+      }
+    }, { passive: true });
+
+    centerCore.addEventListener('touchcancel', (e) => {
+      if (currentMode === 'pdf' && pdfSubMode === 'guide' && isGuideActive) {
+        isTouchingDisplay = false;
+      }
+    }, { passive: true });
 
     function getNormalizedDateStr() {
       const now = new Date();
@@ -755,7 +744,7 @@
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.1 長輩防呆智慧載入】\n";
+      let logMsg = "📦 【v573.2 雙軌並存防呆智慧載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -928,7 +917,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.1】\n` +
+                  `\n📅 【排程解析成功 v573.2】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -1145,13 +1134,6 @@
       flashSpeedToast('【自讀語速 ' + pdfSpeed.toFixed(1) + 'x】');
     }
 
-    function setCompareSpeed(val) {
-      compareSpeed = val;
-      localStorage.setItem('user_compare_speed_preference', compareSpeed.toFixed(1));
-      if (recordAudioElement) recordAudioElement.playbackRate = compareSpeed;
-      flashSpeedToast('【比對播放 ' + compareSpeed.toFixed(1) + 'x】');
-    }
-
     function flashSpeedToast(text) {
       speedToastBadge.textContent = text;
       speedToastBadge.style.display = 'block';
@@ -1171,11 +1153,6 @@
     function triggerPdfSpeedChange(delta) {
       let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
       setPdfSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
-    }
-
-    function triggerCompareSpeedChange(delta) {
-      let newSpeed = Math.round((compareSpeed + delta) * 10) / 10;
-      setCompareSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
     }
 
     function speakPrompt(text) {
@@ -1254,15 +1231,6 @@
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
 
-      if (isUserRecording && mediaRecorder) {
-        mediaRecorder.stop();
-      }
-      isUserRecording = false;
-
-      if (recordAudioElement) {
-        recordAudioElement.pause();
-      }
-
       currentMode = mode;
       pdfSubMode = subMode;
 
@@ -1324,7 +1292,7 @@
 
     function renderUI() {
       slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
-      slotL2.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #38BDF8; text-align: center; line-height: 1.2;">嚴格<br>防呆引導</div>';
+      slotL2.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #38BDF8; text-align: center; line-height: 1.2;">雙軌並存<br>防呆引導</div>';
       slotL3.innerHTML = '';
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
 
@@ -1401,7 +1369,6 @@
       }
     }
 
-    // 🔒 鎖定跟讀點擊（非跟讀階段不允許隨意切換）
     function handleGenduClick() {
       triggerAppFullscreen();
       if (practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
@@ -1439,7 +1406,6 @@
       }
     }
 
-    // 🔒 鎖定自讀點擊（未完成跟讀前不允許切換）
     function handleZiduClick() {
       triggerAppFullscreen();
       if (practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
@@ -1503,7 +1469,6 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🔄 階段自動推進與圓滿邏輯
     function handleCycleCompletion() {
       if (currentMode === 'mp4') {
         video.pause();
@@ -1527,7 +1492,6 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          // 🌟 新進度跟讀圓滿 -> 自動切換自讀並播報指定語音
           practicePhase = 'new_zidu';
           currentCycleCount = 0;
           setupStageRange();
@@ -1575,7 +1539,6 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          // 🌟 串習跟讀圓滿 -> 自動切換自讀並播報指定語音
           practicePhase = 'cumulative_zidu';
           currentCycleCount = 0;
           setupStageRange();
@@ -1866,6 +1829,8 @@
           if (isCalibrating) calibrationSamples.push(rms);
 
           const deltaRms = rms - prevRms;
+          
+          // 🌟 雙軌並存關鍵：當「聲音能量大於閾值」或者「手指觸碰螢幕 (isTouchingDisplay)」時，都視為有動力向前推進
           const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
 
           if (hasVoiceEnergy) {
@@ -1889,15 +1854,15 @@
             const timeSinceLineStart = performance.now() - lineActivationTimestamp;
             const isInsideCooldown = (timeSinceLineStart < 120);
 
-            if (isLineHeadLocked && !isInsideCooldown && deltaRms > (dynamicThreshold * 0.25)) {
+            if (isLineHeadLocked && !isInsideCooldown && (deltaRms > (dynamicThreshold * 0.25) || isTouchingDisplay)) {
               isLineHeadLocked = false;
             }
 
             if (isTransitioningLine) {
               const elapsed = performance.now() - lineEndTime;
-              if (elapsed > 40 && deltaRms > (dynamicThreshold * 0.40)) {
+              if (elapsed > 40 && (deltaRms > (dynamicThreshold * 0.40) || isTouchingDisplay)) {
                 proceedToNextLineImmediately();
-              } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70)) {
+              } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70) && !isTouchingDisplay) {
                 proceedToNextLineImmediately();
               } else if (elapsed >= 200) {
                 proceedToNextLineImmediately();
@@ -2160,7 +2125,8 @@
       const inertiaStartIndex = Math.max(1, totalChars - 2);
       const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
 
-      if (isVoiceActive || isInTailZone) {
+      // 🌟 雙軌並存：若正在說話或正在觸碰螢幕，紅點即向前推進
+      if (isVoiceActive || isTouchingDisplay || isInTailZone) {
         const charPerMs = (2.8 * pdfSpeed) / 1000;
         if (isLineHeadLocked) {
           if (currentCharIndexFloat < 0.5) {
