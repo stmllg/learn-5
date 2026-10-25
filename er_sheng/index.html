@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.3 (供養按鈕防呆圓滿解鎖版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.4 (紫色運行狀態視覺升級版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -328,7 +328,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 16px !important;
+      font-size: 14px !important;
       font-weight: 900;
       color: #FB923C;
       cursor: pointer;
@@ -347,7 +347,7 @@
       border: 2.5px solid #FDE68A !important;
       background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
       color: #FEF3C7 !important;
-      font-size: 15px !important;
+      font-size: 14px !important;
       font-weight: 900 !important;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85) !important;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -474,8 +474,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.3 供養按鈕防呆圓滿解鎖版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.3 載入中】...</div>
+  <!-- 🌟 v573.4 紫色運行狀態視覺升級版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.4 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -750,7 +750,7 @@
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.3 供養按鈕防呆載入】\n";
+      let logMsg = "📦 【v573.4 視覺升級載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -923,7 +923,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.3】\n` +
+                  `\n📅 【排程解析成功 v573.4】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -1297,7 +1297,6 @@
     }
 
     function renderUI() {
-      // 🌟 核心防呆：未圓滿前隱藏供養按鈕（保留空間或顯示引導文字），圓滿後才顯示閃爍供養按鈕
       if (practicePhase === 'completed') {
         slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
         const btnOffering = document.getElementById('btn-offering');
@@ -1343,6 +1342,7 @@
       updateVisualDisplay();
     }
 
+    // 🌟 嚴格區分顏色：黑底＝模式，綠色＝啟動模式，紫色＝運行模式（文字改為「跟著唸」與「唸出聲」）
     function updateModeButtonsStyle() {
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
@@ -1360,22 +1360,53 @@
           }
       });
 
-      if (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu') {
-          if (btnGendu) {
-              const isPlaying = video && !video.paused;
-              btnGendu.textContent = isPlaying ? '跟讀中' : '跟讀';
-              btnGendu.style.background = isPlaying ? colorPurple : colorGreen;
-              btnGendu.style.borderColor = isPlaying ? '#E9D5FF' : '#A7F3D0';
+      // 1. 跟讀按鈕狀態
+      if (btnGendu) {
+          const isGenduActivePhase = (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu');
+          const isGenduPlaying = (currentMode === 'mp4' && video && !video.paused);
+
+          if (isGenduPlaying) {
+              // 運行模式 (紫色) -> 顯示「跟著唸」
+              btnGendu.textContent = '跟著唸';
+              btnGendu.style.background = colorPurple;
+              btnGendu.style.borderColor = '#E9D5FF';
               btnGendu.style.color = '#FFFFFF';
-              btnGendu.style.boxShadow = isPlaying ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
+              btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
+          } else if (isGenduActivePhase) {
+              // 啟動模式 (綠色) -> 準備跟讀
+              btnGendu.textContent = '跟讀';
+              btnGendu.style.background = colorGreen;
+              btnGendu.style.borderColor = '#A7F3D0';
+              btnGendu.style.color = '#FFFFFF';
+              btnGendu.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
+          } else {
+              // 預設黑底
+              btnGendu.textContent = '跟讀';
           }
-      } else if (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu') {
-          if (btnZidu) {
-              btnZidu.textContent = isGuideActive ? '自讀中' : '自讀';
-              btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
-              btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
+      }
+
+      // 2. 自讀按鈕狀態
+      if (btnZidu) {
+          const isZiduActivePhase = (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu');
+          const isZiduRunning = (currentMode === 'pdf' && pdfSubMode === 'guide' && isGuideActive);
+
+          if (isZiduRunning) {
+              // 運行模式 (紫色) -> 顯示「唸出聲」
+              btnZidu.textContent = '唸出聲';
+              btnZidu.style.background = colorPurple;
+              btnZidu.style.borderColor = '#E9D5FF';
               btnZidu.style.color = '#FFFFFF';
-              btnZidu.style.boxShadow = isGuideActive ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
+              btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
+          } else if (isZiduActivePhase) {
+              // 啟動模式 (綠色) -> 準備自讀
+              btnZidu.textContent = '自讀';
+              btnZidu.style.background = colorGreen;
+              btnZidu.style.borderColor = '#A7F3D0';
+              btnZidu.style.color = '#FFFFFF';
+              btnZidu.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
+          } else {
+              // 預設黑底
+              btnZidu.textContent = '自讀';
           }
       }
     }
@@ -1545,7 +1576,7 @@
             }, 3000);
           } else {
             practicePhase = 'completed';
-            renderUI(); // 🌟 重新整理 UI 顯示供養按鈕
+            renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿，請進行背書供養");
             showToast("🎉 今日定課已圓滿！\n請點擊左側「背書供養」按鈕", 6000);
@@ -1578,7 +1609,7 @@
           setTimeout(() => { handleZiduClick(); }, 500);
         } else {
           practicePhase = 'completed';
-          renderUI(); // 🌟 重新整理 UI 顯示供養按鈕
+          renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿，請進行背書供養");
           showToast("🎉 今日串習與定課全部圓滿！\n請點擊左側「背書供養」按鈕", 6000);
