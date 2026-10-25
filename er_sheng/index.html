@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.6 (圓滿自主解鎖全功能版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.7 (今日首次念佛自動播放版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -479,8 +479,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.6 圓滿自主解鎖全功能版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.6 載入中】...</div>
+  <!-- 🌟 v573.7 今日首次念佛自動播放版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.7 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -744,32 +744,81 @@
       } catch (e) {}
     }
 
-    function closeCompanionCard() {
+    // 🌟 點擊「開始定課」後的處理邏輯（加入今日首次念佛影片自動播放）
+    async function closeCompanionCard() {
       hasEnteredReciting = true;
       companionOverlay.style.opacity = '0';
       triggerAppFullscreen();
 
-      setTimeout(() => {
+      setTimeout(async () => {
         companionOverlay.classList.remove('active');
         companionOverlay.style.display = 'none';
-        activateMainReciteEntry();
+        
+        renderUI();
+        await loadAllAssetsSmartSync();
+
+        // 🌟 檢查今天是否已經播放過念佛影片 (`reciting_buddha_name.mp4`)
+        const todayStr = getNormalizedDateStr();
+        const hasPlayedBuddha = localStorage.getItem('buddha_played_' + todayStr);
+
+        if (!hasPlayedBuddha) {
+          localStorage.setItem('buddha_played_' + todayStr, 'true');
+          await playDailyBuddhaVideoSequence();
+        } else {
+          setMode('mp4'); // 已經播過直接進入跟讀
+        }
       }, 350);
     }
 
-    async function activateMainReciteEntry() {
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') { audioContext.resume(); }
-      } catch (err) {}
+    // 🌟 播放今日首次念佛影片一次
+    async function playDailyBuddhaVideoSequence() {
+      pdfContainerWrap.style.display = 'none';
+      guideStage.style.display = 'none';
+      videoWrap.style.display = 'flex';
 
-      renderUI();
-      await loadAllAssetsSmartSync();
-      setMode('mp4'); 
+      const savedBuddha = await getLocalFile('reciting_buddha_file_v573');
+      let buddhaUrl = '';
+      if (savedBuddha && savedBuddha.data) {
+        buddhaUrl = URL.createObjectURL(new Blob([savedBuddha.data], { type: 'video/mp4' }));
+      } else {
+        buddhaUrl = './reciting_buddha_name.mp4';
+      }
+
+      video.src = buddhaUrl;
+      video.currentTime = 0;
+      video.playbackRate = 1.0;
+      showToast('🙏【今日念佛清心】播放中...', 5000);
+
+      try {
+        await video.play();
+      } catch(e) {
+        setMode('mp4');
+        return;
+      }
+
+      // 影片播放結束後自動切入正常跟讀模式
+      video.onended = () => {
+        video.onended = null;
+        
+        // 恢復正常主影片源
+        getLocalFile('video_file_v573').then(savedVid => {
+          if (savedVid && savedVid.data) {
+            video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
+          } else {
+            video.src = './chant_video.mp4';
+          }
+          showToast('✨ 念佛圓滿，開始今日定課', 3000);
+          setMode('mp4');
+        });
+      };
+    }
+
+    async function activateMainReciteEntry() {
+      closeCompanionCard();
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.6 圓滿解鎖快取載入】\n";
+      let logMsg = "📦 【v573.7 念佛自動播放快取載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -846,6 +895,7 @@
         await renderPdfOnValidDimensions();
       }
 
+      // 主影片快取
       const savedVid = await getLocalFile('video_file_v573');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
@@ -859,23 +909,10 @@
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
             logMsg += "- chant_video.mp4: 首次載入 ✅\n";
           }
-        } catch (e) {
-          video.src = './chant_video.mp4';
-          logMsg += "- chant_video.mp4: 串流備用 ⚠️\n";
-        }
+        } catch (e) { video.src = './chant_video.mp4'; }
       }
 
-      const savedMeritVid = await getLocalFile('merit_dedication_file_v573');
-      if (!savedMeritVid) {
-        try {
-          const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('merit_dedication_file_v573', buf, 'merit_cached');
-          }
-        } catch (e) {}
-      }
-
+      // 念佛影片快取 (reciting_buddha_name.mp4)
       const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v573');
       if (!savedBuddhaVid) {
         try {
@@ -883,6 +920,20 @@
           if (res.ok) {
             const buf = await res.arrayBuffer();
             await saveLocalFile('reciting_buddha_file_v573', buf, 'buddha_cached');
+            logMsg += "- reciting_buddha_name.mp4: 快取成功 ✅\n";
+          }
+        } catch (e) {}
+      }
+
+      // 迴向影片快取 (merit_dedication.mp4)
+      const savedMeritVid = await getLocalFile('merit_dedication_file_v573');
+      if (!savedMeritVid) {
+        try {
+          const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            await saveLocalFile('merit_dedication_file_v573', buf, 'merit_cached');
+            logMsg += "- merit_dedication.mp4: 快取成功 ✅\n";
           }
         } catch (e) {}
       }
@@ -953,7 +1004,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.6】\n` +
+                  `\n📅 【排程解析成功 v573.7】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -1354,7 +1405,6 @@
       renderUI();
     }
 
-    // 🌟 核心動態介面渲染：未圓滿前防呆鎖定，圓滿後解鎖供養按鈕與全功能（起終句、跟讀、自讀、比對）
     function renderUI() {
       if (practicePhase === 'completed') {
         slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
@@ -1379,7 +1429,6 @@
       slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
       slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
       
-      // 🌟 圓滿後解鎖右側比對模式按鈕
       if (practicePhase === 'completed') {
         slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
       } else {
@@ -1446,7 +1495,6 @@
           }
       });
 
-      // 1. 跟讀按鈕
       if (btnGendu) {
           const isGenduActivePhase = (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu' || practicePhase === 'completed');
           const isGenduPlaying = (currentMode === 'mp4' && video && !video.paused);
@@ -1465,7 +1513,6 @@
           }
       }
 
-      // 2. 自讀按鈕
       if (btnZidu) {
           const isZiduActivePhase = (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu' || practicePhase === 'completed');
           const isZiduRunning = (currentMode === 'pdf' && pdfSubMode === 'guide' && isGuideActive);
@@ -1484,7 +1531,6 @@
           }
       }
 
-      // 3. 比對按鈕（圓滿後解鎖）
       if (btnRecord && practicePhase === 'completed') {
           if (pdfSubMode === 'compare') {
               btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
@@ -1739,7 +1785,7 @@
             }, 3000);
           } else {
             practicePhase = 'completed';
-            renderUI(); // 🌟 解鎖全功能與供養按鈕
+            renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿，功能已全部解鎖");
             showToast("🎉 今日定課已圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習", 6000);
@@ -1770,7 +1816,7 @@
           setTimeout(() => { handleZiduClick(); }, 500);
         } else {
           practicePhase = 'completed';
-          renderUI(); // 🌟 解鎖全功能與供養按鈕
+          renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
           showToast("🎉 今日串習與定課全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習", 6000);
