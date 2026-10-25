@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.8 (快慢按鈕防呆隱藏版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.9 (功德迴向長按鈕版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -431,6 +431,29 @@
     #offering-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 999; justify-content: center; align-items: center; padding: 12px; }
     .offering-card { background: #FFFFFF; color: #1E293B; border-radius: 18px; width: 92%; max-width: 460px; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
     .offering-header { font-size: 20px; font-weight: 900; color: #D97706; text-align: center; }
+    
+    /* 🌟 新增：今日背書功德迴向長按鈕樣式 */
+    .btn-dedication-long {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      font-weight: 900;
+      color: #78350F;
+      background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%);
+      border: 2px solid #D97706;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+      cursor: pointer;
+      text-align: center;
+      letter-spacing: 1px;
+      transition: transform 0.15s ease-out, background 0.2s ease;
+      margin-bottom: 4px;
+    }
+    .btn-dedication-long:active {
+      transform: scale(0.97);
+      background: linear-gradient(135deg, #FDE68A 0%, #D97706 100%);
+    }
+
     .offering-row { display: flex; flex-direction: row; gap: 12px; width: 100%; }
     .offering-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
     .offering-field label { font-size: 14px; font-weight: 800; color: #475569; }
@@ -479,8 +502,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.8 快慢按鈕防呆隱藏版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.8 載入中】...</div>
+  <!-- 🌟 v573.9 功德迴向長按鈕版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.9 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -518,9 +541,11 @@
     </div>
   </div>
 
+  <!-- 🌟 功德供養 Modal（已加入今日背書功德迴向長按鈕） -->
   <div id="offering-modal-overlay">
     <div class="offering-card">
       <div class="offering-header"><span>🙏</span> 功德供養</div>
+      <button id="btn-play-dedication" class="btn-dedication-long">🙏 今日背書功德迴向</button>
       <div class="offering-row">
         <div class="offering-field"><label>班號：</label><input type="text" id="input-class-id" class="offering-input" placeholder="例: 22宗009"></div>
         <div class="offering-field"><label>姓名：</label><input type="text" id="input-user-name" class="offering-input" placeholder="請輸入姓名"></div>
@@ -608,6 +633,7 @@
     const displayCoinsCount = document.getElementById('display-coins-count');
     const btnConfirmOffering = document.getElementById('btn-confirm-offering');
     const btnCancelOffering = document.getElementById('btn-cancel-offering');
+    const btnPlayDedication = document.getElementById('btn-play-dedication'); // 🌟 迴向按鈕參照
 
     const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
     const todayRankList = document.getElementById('today-rank-list');
@@ -807,12 +833,57 @@
       };
     }
 
+    // 🌟 點擊「今日背書功德迴向」按鈕後的播放邏輯
+    if (btnPlayDedication) {
+      btnPlayDedication.addEventListener('click', async () => {
+        offeringOverlay.style.display = 'none'; // 關閉供養視窗
+        
+        pdfContainerWrap.style.display = 'none';
+        guideStage.style.display = 'none';
+        videoWrap.style.display = 'flex';
+
+        const savedMerit = await getLocalFile('merit_dedication_file_v573');
+        let meritUrl = '';
+        if (savedMerit && savedMerit.data) {
+          meritUrl = URL.createObjectURL(new Blob([savedMerit.data], { type: 'video/mp4' }));
+        } else {
+          meritUrl = './merit_dedication.mp4';
+        }
+
+        video.src = meritUrl;
+        video.currentTime = 0;
+        video.playbackRate = 1.0;
+        showToast('🙏【背書功德迴向】播放中...', 5000);
+
+        try {
+          await video.play();
+        } catch(e) {
+          setMode('mp4');
+          return;
+        }
+
+        // 迴向影片播放完畢後自動恢復播放器畫面
+        video.onended = () => {
+          video.onended = null;
+          getLocalFile('video_file_v573').then(savedVid => {
+            if (savedVid && savedVid.data) {
+              video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
+            } else {
+              video.src = './chant_video.mp4';
+            }
+            showToast('✨ 迴向圓滿，隨喜功德', 3000);
+            setMode('mp4');
+          });
+        };
+      });
+    }
+
     async function activateMainReciteEntry() {
       closeCompanionCard();
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.8 快慢按鈕隱藏快取載入】\n";
+      let logMsg = "📦 【v573.9 迴向長按鈕快取載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -993,7 +1064,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.8】\n` +
+                  `\n📅 【排程解析成功 v573.9】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -1394,7 +1465,6 @@
       renderUI();
     }
 
-    // 🌟 核心動態介面渲染：定課完成前隱藏快慢鍵與供養鍵，圓滿後全面解鎖顯示
     function renderUI() {
       if (practicePhase === 'completed') {
         slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
@@ -1409,7 +1479,6 @@
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
         
-        // 🌟 圓滿後解鎖顯示「慢-」與「快+」按鈕
         slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
         slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
       } else {
@@ -1417,7 +1486,6 @@
         slotL2.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #38BDF8; text-align: center; line-height: 1.2;">嚴格防呆<br>導引中</div>';
         slotL3.innerHTML = '';
         
-        // 🌟 定課完成前隱藏「慢-」與「快+」按鈕，避免誤觸
         slotL4.innerHTML = '';
         slotR4.innerHTML = '';
       }
