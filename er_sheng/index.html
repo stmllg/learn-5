@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.10 (全自動記憶與手勢返回版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.11 (隨喜回來確認版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -228,6 +228,67 @@
     .btn-card-orange:active {
       transform: scale(0.95);
       background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
+    }
+
+    /* 🌟「隨喜回來」確認彈出卡片樣式 */
+    #restore-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh; height: 100dvh;
+      z-index: 30000;
+      background: rgba(4, 7, 15, 0.94);
+      backdrop-filter: blur(8px);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .restore-card {
+      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
+      border: 3px solid #10B981;
+      border-radius: 22px;
+      max-width: 440px;
+      width: 92%;
+      padding: 28px 24px;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .restore-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #34D399;
+      letter-spacing: 2px;
+    }
+    .restore-desc {
+      font-size: 17px;
+      line-height: 1.6;
+      color: #E2E8F0;
+      background: rgba(15, 23, 42, 0.75);
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px dashed rgba(52, 211, 153, 0.4);
+    }
+    .btn-restore-confirm {
+      padding: 14px 24px;
+      font-size: 19px;
+      font-weight: 900;
+      color: #064E3B;
+      background: linear-gradient(135deg, #A7F3D0 0%, #34D399 100%);
+      border: 2px solid #10B981;
+      border-radius: 26px;
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: transform 0.15s ease-out;
+    }
+    .btn-restore-confirm:active {
+      transform: scale(0.96);
+      background: linear-gradient(135deg, #34D399 0%, #059669 100%);
     }
 
     #landscape-container {
@@ -483,7 +544,7 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
+        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong><span>以預設瀏覽器開啟</span></strong>（Safari 或 Chrome）。
       </div>
     </div>
   </div>
@@ -501,8 +562,19 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.10 自動記憶與手勢返回版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.10 載入中】...</div>
+  <!-- 🌟 隨喜回來確認彈出視窗 -->
+  <div id="restore-modal-overlay">
+    <div class="restore-card">
+      <div class="restore-title">🙏 隨喜回來・繼續精進</div>
+      <div class="restore-desc" id="restore-desc-text">
+        偵測到您上次的背書進度。<br>請準備好後點擊下方按鈕，回到播放畫面。
+      </div>
+      <button class="btn-restore-confirm" onclick="confirmRestoreState()">🙏 隨喜回來，準備好了</button>
+    </div>
+  </div>
+
+  <!-- 🌟 v573.11 隨喜回來確認版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.11 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -599,6 +671,8 @@
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
     const companionOverlay = document.getElementById('companion-overlay');
     const companionImgDisplay = document.getElementById('companion-img-display');
+    const restoreModalOverlay = document.getElementById('restore-modal-overlay');
+    const restoreDescText = document.getElementById('restore-desc-text');
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -641,7 +715,7 @@
     let currentMode = 'mp4';
     let pdfSubMode = 'guide'; 
 
-    let practicePhase = 'new_gendu'; // 'new_gendu' -> 'new_zidu' -> 'cumulative_gendu' -> 'cumulative_zidu' -> 'completed'
+    let practicePhase = 'new_gendu'; 
 
     let audioContext = null;
     let analyser = null;
@@ -699,7 +773,8 @@
     let isUserManualScrolling = false;
     let manualScrollTimer = null;
 
-    // 🌟 智慧自動存檔函數 (儲存當前完整狀態)
+    let pendingRestoredState = null;
+
     function saveCurrentAppState() {
       if (!hasEnteredReciting) return;
       const state = {
@@ -717,38 +792,54 @@
       localStorage.setItem('APP_SAVED_STATE_V573', JSON.stringify(state));
     }
 
-    // 🌟 嘗試讀取並恢復上次離開的進度
-    function tryRestoreSavedAppState() {
+    function checkAndPrepareRestoreState() {
       const savedStr = localStorage.getItem('APP_SAVED_STATE_V573');
       if (!savedStr) return false;
       try {
-        const state = JSON.parse(savedStr);
-        currentMode = state.currentMode || 'mp4';
-        pdfSubMode = state.pdfSubMode || 'guide';
-        practicePhase = state.practicePhase || 'new_gendu';
-        currentCycleCount = state.currentCycleCount || 0;
-        currentLineIndex = state.currentLineIndex || 0;
-        markA_Index = state.markA_Index !== undefined ? state.markA_Index : -1;
-        markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
-        isManualSelected = state.isManualSelected || false;
-
-        renderUI();
-
-        if (currentMode === 'mp4') {
-          setMode('mp4');
-          if (state.videoCurrentTime > 0) {
-            video.currentTime = state.videoCurrentTime;
-          }
-        } else {
-          setMode('pdf', pdfSubMode);
-        }
-
-        const phaseName = getPhaseName(practicePhase);
-        showToast(`✨ 已為您自動接續上次進度\n(${phaseName})`, 5000);
+        pendingRestoredState = JSON.parse(savedStr);
+        const phaseName = getPhaseName(pendingRestoredState.practicePhase || 'new_gendu');
+        const modeName = (pendingRestoredState.currentMode === 'mp4') ? '跟讀模式' : '自讀模式';
+        restoreDescText.innerHTML = `上次背書進度：<br><strong style="color: #34D399;">${phaseName} (${modeName})</strong><br>準備好後請按下方按鈕回到畫面。`;
+        restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
         return false;
       }
+    }
+
+    function confirmRestoreState() {
+      if (!pendingRestoredState) {
+        restoreModalOverlay.style.display = 'none';
+        return;
+      }
+
+      const state = pendingRestoredState;
+      currentMode = state.currentMode || 'mp4';
+      pdfSubMode = state.pdfSubMode || 'guide';
+      practicePhase = state.practicePhase || 'new_gendu';
+      currentCycleCount = state.currentCycleCount || 0;
+      currentLineIndex = state.currentLineIndex || 0;
+      markA_Index = state.markA_Index !== undefined ? state.markA_Index : -1;
+      markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
+      isManualSelected = state.isManualSelected || false;
+
+      renderUI();
+
+      if (currentMode === 'mp4') {
+        // 設定為 mp4 模式但不自動播放，讓使用者手動按跟讀才播放
+        video.pause();
+        videoWrap.style.display = 'flex';
+        pdfContainerWrap.style.display = 'none';
+        guideStage.style.display = 'none';
+        if (state.videoCurrentTime > 0) {
+          video.currentTime = state.videoCurrentTime;
+        }
+      } else {
+        setMode('pdf', pdfSubMode);
+      }
+
+      restoreModalOverlay.style.display = 'none';
+      showToast('✨ 已回到上次進度，請按「跟讀」或「自讀」開始運行', 5000);
     }
 
     function getPhaseName(phase) {
@@ -762,7 +853,6 @@
       }
     }
 
-    // 🌟 註冊背景即時存檔事件 (螢幕鎖屏/切換背景/關閉分頁)
     window.addEventListener('beforeunload', () => { saveCurrentAppState(); });
     window.addEventListener('pagehide', () => { saveCurrentAppState(); });
     document.addEventListener('visibilitychange', () => {
@@ -771,7 +861,6 @@
       }
     });
 
-    // 🌟 左右滑動手勢偵測：滑動時自動存檔並優雅返回陪伴卡休息
     let swipeStartX = 0;
     let swipeStartY = 0;
     window.addEventListener('touchstart', (e) => {
@@ -785,7 +874,6 @@
       if (e.changedTouches.length === 1 && hasEnteredReciting) {
         const deltaX = e.changedTouches[0].clientX - swipeStartX;
         const deltaY = e.changedTouches[0].clientY - swipeStartY;
-        // 水平滑動距離大於 90px 且大於垂直移動的 1.5 倍
         if (Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
           handleReturnToCompanionCard();
         }
@@ -793,13 +881,19 @@
     }, { passive: true });
 
     function handleReturnToCompanionCard() {
-      saveCurrentAppState(); // 瞬間自動存檔
+      saveCurrentAppState();
       haltGuideRunnerImmediately();
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
       releaseMicrophoneResources();
-      try { video.pause(); } catch(e) {}
+      
+      try { 
+        video.pause(); 
+        video.currentTime = 0;
+        video.removeAttribute('src');
+        video.load(); 
+      } catch(e) {}
 
       hasEnteredReciting = false;
       companionOverlay.style.display = 'flex';
@@ -896,9 +990,9 @@
           localStorage.setItem('buddha_played_' + todayStr, 'true');
           await playDailyBuddhaVideoSequence();
         } else {
-          // 嘗試自動接續上次進度，若無則進入預設模式
-          const restored = tryRestoreSavedAppState();
-          if (!restored) {
+          // 檢查是否有上次保留的進度，若有則跳出「隨喜回來」確認視窗
+          const hasRestore = checkAndPrepareRestoreState();
+          if (!hasRestore) {
             setMode('mp4');
           }
         }
@@ -926,8 +1020,8 @@
       try {
         await video.play();
       } catch(e) {
-        const restored = tryRestoreSavedAppState();
-        if (!restored) setMode('mp4');
+        const hasRestore = checkAndPrepareRestoreState();
+        if (!hasRestore) setMode('mp4');
         return;
       }
 
@@ -941,8 +1035,8 @@
           }
           showToast('✨ 念佛圓滿，開始今日定課', 3000);
           
-          const restored = tryRestoreSavedAppState();
-          if (!restored) {
+          const hasRestore = checkAndPrepareRestoreState();
+          if (!hasRestore) {
             setMode('mp4');
           }
         });
@@ -997,7 +1091,7 @@
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.10 自動記憶快取載入】\n";
+      let logMsg = "📦 【v573.11 隨喜回來快取載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -1178,7 +1272,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.10】\n` +
+                  `\n📅 【排程解析成功 v573.11】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -2250,7 +2344,14 @@
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
       releaseMicrophoneResources();
-      try { video.pause(); } catch (e) {}
+      
+      try { 
+        video.pause(); 
+        video.currentTime = 0;
+        video.removeAttribute('src'); // 🌟 清除影片來源，消除通知欄殘留播放面板
+        video.load(); 
+      } catch (e) {}
+
       showToast("已自動存檔，並釋放所有媒體資源", 3000);
       updateModeButtonsStyle();
     }
