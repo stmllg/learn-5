@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.2 (雙軌並存自讀防呆版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.3 (供養按鈕防呆圓滿解鎖版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -359,8 +359,15 @@
       line-height: 1.15;
       cursor: pointer;
       touch-action: manipulation;
+      animation: offeringGlowPulse 1.8s infinite ease-in-out;
     }
     .btn-color-offering:active { transform: scale(0.90); opacity: 0.85; }
+
+    @keyframes offeringGlowPulse {
+      0%   { box-shadow: 0 0 10px rgba(245, 158, 11, 0.7); transform: scale(1); }
+      50%  { box-shadow: 0 0 25px rgba(245, 158, 11, 1); transform: scale(1.04); }
+      100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.7); transform: scale(1); }
+    }
 
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
@@ -463,12 +470,12 @@
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
-      <button class="btn-card-orange" onclick="closeCompanionCard()">背書供養</button>
+      <button class="btn-card-orange" onclick="closeCompanionCard()">開始定課</button>
     </div>
   </div>
 
-  <!-- 🌟 v573.2 雙軌並存自讀防呆版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.2 載入中】...</div>
+  <!-- 🌟 v573.3 供養按鈕防呆圓滿解鎖版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.3 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -640,7 +647,7 @@
     let lineActivationTimestamp = 0;
 
     let isVoiceActive = false;
-    let isTouchingDisplay = false; // 🌟 雙軌並存：手指觸碰螢幕旗標
+    let isTouchingDisplay = false; 
     let baseNoiseLevel = 0.0015;
     let dynamicThreshold = 0.0020;
     let calibrationSamples = [];
@@ -661,7 +668,6 @@
       }
     }, { passive: true });
 
-    // 🌟 自讀模式專用：手指觸碰螢幕雙軌並存驅動小紅點
     centerCore.addEventListener('touchstart', (e) => {
       if (currentMode === 'pdf' && pdfSubMode === 'guide' && isGuideActive) {
         isTouchingDisplay = true;
@@ -744,7 +750,7 @@
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.2 雙軌並存防呆智慧載入】\n";
+      let logMsg = "📦 【v573.3 供養按鈕防呆載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -917,7 +923,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.2】\n` +
+                  `\n📅 【排程解析成功 v573.3】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -1291,7 +1297,15 @@
     }
 
     function renderUI() {
-      slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
+      // 🌟 核心防呆：未圓滿前隱藏供養按鈕（保留空間或顯示引導文字），圓滿後才顯示閃爍供養按鈕
+      if (practicePhase === 'completed') {
+        slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
+        const btnOffering = document.getElementById('btn-offering');
+        if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+      } else {
+        slotL1.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #64748B; text-align: center; line-height: 1.2;">定課中<br>供養解鎖</div>';
+      }
+
       slotL2.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #38BDF8; text-align: center; line-height: 1.2;">雙軌並存<br>防呆引導</div>';
       slotL3.innerHTML = '';
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
@@ -1300,9 +1314,6 @@
       slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
       slotR3.innerHTML = '';
       slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
-
-      const btnOffering = document.getElementById('btn-offering');
-      if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
       const btnSpeedDown = document.getElementById('btn-speed-down');
       if (btnSpeedDown) {
@@ -1371,6 +1382,10 @@
 
     function handleGenduClick() {
       triggerAppFullscreen();
+      if (practicePhase === 'completed') {
+        showToast("🎉 今日定課已圓滿，請點擊左側「背書供養」按鈕進行供養", 3000);
+        return;
+      }
       if (practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
         showToast("⚠️ 目前為自讀階段，請依照語音與紅點引導唸誦", 3000);
         return;
@@ -1408,6 +1423,10 @@
 
     function handleZiduClick() {
       triggerAppFullscreen();
+      if (practicePhase === 'completed') {
+        showToast("🎉 今日定課已圓滿，請點擊左側「背書供養」按鈕進行供養", 3000);
+        return;
+      }
       if (practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
         showToast("⚠️ 請先完成跟讀，系統將自動帶您進入自讀階段", 3000);
         return;
@@ -1525,10 +1544,11 @@
               handleGenduClick(); 
             }, 3000);
           } else {
-            triggerSevenColoredLotusFlowerRain();
-            speakPrompt("今日定課已圓滿");
-            showToast("🎉 今日定課已圓滿！", 5500);
             practicePhase = 'completed';
+            renderUI(); // 🌟 重新整理 UI 顯示供養按鈕
+            triggerSevenColoredLotusFlowerRain();
+            speakPrompt("今日定課已圓滿，請進行背書供養");
+            showToast("🎉 今日定課已圓滿！\n請點擊左側「背書供養」按鈕", 6000);
           }
         }
       } else if (practicePhase === 'cumulative_gendu') {
@@ -1557,10 +1577,11 @@
           setupStageRange();
           setTimeout(() => { handleZiduClick(); }, 500);
         } else {
-          triggerSevenColoredLotusFlowerRain();
-          speakPrompt("今日串習與定課全部圓滿");
-          showToast("🎉 今日串習與定課全部圓滿！隨喜功德", 5500);
           practicePhase = 'completed';
+          renderUI(); // 🌟 重新整理 UI 顯示供養按鈕
+          triggerSevenColoredLotusFlowerRain();
+          speakPrompt("今日串習與定課全部圓滿，請進行背書供養");
+          showToast("🎉 今日串習與定課全部圓滿！\n請點擊左側「背書供養」按鈕", 6000);
         }
       }
     }
@@ -1829,8 +1850,6 @@
           if (isCalibrating) calibrationSamples.push(rms);
 
           const deltaRms = rms - prevRms;
-          
-          // 🌟 雙軌並存關鍵：當「聲音能量大於閾值」或者「手指觸碰螢幕 (isTouchingDisplay)」時，都視為有動力向前推進
           const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
 
           if (hasVoiceEnergy) {
@@ -2125,7 +2144,6 @@
       const inertiaStartIndex = Math.max(1, totalChars - 2);
       const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
 
-      // 🌟 雙軌並存：若正在說話或正在觸碰螢幕，紅點即向前推進
       if (isVoiceActive || isTouchingDisplay || isInTailZone) {
         const charPerMs = (2.8 * pdfSpeed) / 1000;
         if (isLineHeadLocked) {
