@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.11 (隨喜回來確認版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.12 (完整影音 Log 顯示版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -230,7 +230,6 @@
       background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
     }
 
-    /* 🌟「隨喜回來」確認彈出卡片樣式 */
     #restore-modal-overlay {
       display: none;
       position: fixed;
@@ -544,7 +543,7 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong><span>以預設瀏覽器開啟</span></strong>（Safari 或 Chrome）。
+        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
       </div>
     </div>
   </div>
@@ -562,7 +561,6 @@
     </div>
   </div>
 
-  <!-- 🌟 隨喜回來確認彈出視窗 -->
   <div id="restore-modal-overlay">
     <div class="restore-card">
       <div class="restore-title">🙏 隨喜回來・繼續精進</div>
@@ -573,8 +571,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.11 隨喜回來確認版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.11 載入中】...</div>
+  <!-- 🌟 v573.12 完整影音 Log 顯示版 -->
+  <div id="schedule-toast">📦 【v573.12 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -826,7 +824,6 @@
       renderUI();
 
       if (currentMode === 'mp4') {
-        // 設定為 mp4 模式但不自動播放，讓使用者手動按跟讀才播放
         video.pause();
         videoWrap.style.display = 'flex';
         pdfContainerWrap.style.display = 'none';
@@ -990,7 +987,6 @@
           localStorage.setItem('buddha_played_' + todayStr, 'true');
           await playDailyBuddhaVideoSequence();
         } else {
-          // 檢查是否有上次保留的進度，若有則跳出「隨喜回來」確認視窗
           const hasRestore = checkAndPrepareRestoreState();
           if (!hasRestore) {
             setMode('mp4');
@@ -1091,7 +1087,7 @@
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.11 隨喜回來快取載入】\n";
+      let logMsg = "📦 【v573.12 完整影音快取載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -1184,26 +1180,34 @@
         } catch (e) { video.src = './chant_video.mp4'; }
       }
 
+      // 🌟 補上：念佛影片快取檢查與 Log 顯示
       const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v573');
-      if (!savedBuddhaVid) {
+      if (savedBuddhaVid && savedBuddhaVid.data) {
+        logMsg += "- reciting_buddha_name.mp4: 讀取本機快取 ✅\n";
+      } else {
         try {
           const res = await fetch('./reciting_buddha_name.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
             await saveLocalFile('reciting_buddha_file_v573', buf, 'buddha_cached');
+            logMsg += "- reciting_buddha_name.mp4: 首次載入 ✅\n";
           }
-        } catch (e) {}
+        } catch (e) { logMsg += "- reciting_buddha_name.mp4: 讀取失敗 ⚠️\n"; }
       }
 
+      // 🌟 補上：迴向影片快取檢查與 Log 顯示
       const savedMeritVid = await getLocalFile('merit_dedication_file_v573');
-      if (!savedMeritVid) {
+      if (savedMeritVid && savedMeritVid.data) {
+        logMsg += "- merit_dedication.mp4: 讀取本機快取 ✅\n";
+      } else {
         try {
           const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
             await saveLocalFile('merit_dedication_file_v573', buf, 'merit_cached');
+            logMsg += "- merit_dedication.mp4: 首次載入 ✅\n";
           }
-        } catch (e) {}
+        } catch (e) { logMsg += "- merit_dedication.mp4: 讀取失敗 ⚠️\n"; }
       }
 
       applyScheduleToState(logMsg);
@@ -1272,7 +1276,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.11】\n` +
+                  `\n📅 【排程解析成功 v573.12】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -2348,7 +2352,7 @@
       try { 
         video.pause(); 
         video.currentTime = 0;
-        video.removeAttribute('src'); // 🌟 清除影片來源，消除通知欄殘留播放面板
+        video.removeAttribute('src'); 
         video.load(); 
       } catch (e) {}
 
