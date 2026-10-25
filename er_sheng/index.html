@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.12 (完整影音 Log 顯示版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.13 (同日暫存與跨夜保護版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -571,8 +571,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.12 完整影音 Log 顯示版 -->
-  <div id="schedule-toast">📦 【v573.12 載入中】...</div>
+  <!-- 🌟 v573.13 同日暫存與跨夜保護版 -->
+  <div id="schedule-toast">📦 【v573.13 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -773,6 +773,12 @@
 
     let pendingRestoredState = null;
 
+    function getNormalizedDateStr() {
+      const now = new Date();
+      return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
+    }
+
+    // 🌟 儲存當前狀態（包含儲存時的日期字串，供同日比對使用）
     function saveCurrentAppState() {
       if (!hasEnteredReciting) return;
       const state = {
@@ -785,22 +791,34 @@
         markA_Index: markA_Index,
         markB_Index: markB_Index,
         isManualSelected: isManualSelected,
+        savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
       localStorage.setItem('APP_SAVED_STATE_V573', JSON.stringify(state));
     }
 
+    // 🌟 檢查並準備恢復狀態（嚴格限制：「自動接續」僅限同一天；跨日則自動清除舊暫存）
     function checkAndPrepareRestoreState() {
       const savedStr = localStorage.getItem('APP_SAVED_STATE_V573');
       if (!savedStr) return false;
       try {
-        pendingRestoredState = JSON.parse(savedStr);
+        const state = JSON.parse(savedStr);
+        const todayStr = getNormalizedDateStr();
+
+        // 🌟 跨日嚴格防呆：若暫存日期不是今天，視為隔天新的一天，清除舊暫存並直接使用新排程
+        if (state.savedDateStr !== todayStr) {
+          localStorage.removeItem('APP_SAVED_STATE_V573');
+          return false;
+        }
+
+        pendingRestoredState = state;
         const phaseName = getPhaseName(pendingRestoredState.practicePhase || 'new_gendu');
         const modeName = (pendingRestoredState.currentMode === 'mp4') ? '跟讀模式' : '自讀模式';
         restoreDescText.innerHTML = `上次背書進度：<br><strong style="color: #34D399;">${phaseName} (${modeName})</strong><br>準備好後請按下方按鈕回到畫面。`;
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
+        localStorage.removeItem('APP_SAVED_STATE_V573');
         return false;
       }
     }
@@ -928,11 +946,6 @@
     }, { passive: true });
 
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
-
-    function getNormalizedDateStr() {
-      const now = new Date();
-      return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
-    }
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
@@ -1087,7 +1100,7 @@
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.12 完整影音快取載入】\n";
+      let logMsg = "📦 【v573.13 跨夜保護快取載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -1180,7 +1193,6 @@
         } catch (e) { video.src = './chant_video.mp4'; }
       }
 
-      // 🌟 補上：念佛影片快取檢查與 Log 顯示
       const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v573');
       if (savedBuddhaVid && savedBuddhaVid.data) {
         logMsg += "- reciting_buddha_name.mp4: 讀取本機快取 ✅\n";
@@ -1195,7 +1207,6 @@
         } catch (e) { logMsg += "- reciting_buddha_name.mp4: 讀取失敗 ⚠️\n"; }
       }
 
-      // 🌟 補上：迴向影片快取檢查與 Log 顯示
       const savedMeritVid = await getLocalFile('merit_dedication_file_v573');
       if (savedMeritVid && savedMeritVid.data) {
         logMsg += "- merit_dedication.mp4: 讀取本機快取 ✅\n";
@@ -1276,7 +1287,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.12】\n` +
+                  `\n📅 【排程解析成功 v573.13】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
