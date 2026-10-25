@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.5 (多影音離線快取與智慧比對版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.6 (圓滿自主解鎖全功能版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -306,7 +306,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 16px !important;
+      font-size: 15px !important;
       font-weight: 900;
       color: #FFFFFF;
       cursor: pointer;
@@ -369,8 +369,13 @@
       100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.7); transform: scale(1); }
     }
 
+    .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
+    .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
+    .btn-color-play { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; font-size: 16px !important; }
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
+
+    .active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF !important; }
 
     #center-core {
       flex: 1;
@@ -474,8 +479,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.5 多影音離線快取版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573.5 多影音快取載入中】...</div>
+  <!-- 🌟 v573.6 圓滿自主解鎖全功能版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.6 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -562,6 +567,9 @@
     let pdfSpeed = parseFloat(localStorage.getItem('user_pdf_speed_preference') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
 
+    let compareSpeed = parseFloat(localStorage.getItem('user_compare_speed_preference') || '1.0');
+    if (isNaN(compareSpeed) || compareSpeed < 0.5 || compareSpeed > 2.5) compareSpeed = 1.0;
+
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
     const lineBrowserOverlay = document.getElementById('line-browser-overlay');
@@ -617,6 +625,12 @@
     let vadCheckTimer = null;
     let lastVoiceTime = 0; 
 
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isUserRecording = false;
+    let recordedAudioBlobUrl = null;
+    let recordAudioElement = new Audio();
+
     let scriptureData = [];
     let currentPdfDoc = null;
     let parsedTextLines = [];
@@ -630,6 +644,9 @@
     let currentDayPlan = null; 
     let currentCycleCount = 0; 
     let videoPausedAt = -1;
+
+    let isSelectingMarkA = false;
+    let isSelectingMarkB = false;
 
     let guideAnimId = null;
     let cycleWaitTimer = null;
@@ -685,6 +702,8 @@
         isTouchingDisplay = false;
       }
     }, { passive: true });
+
+    recordAudioElement.addEventListener('ended', () => { renderUI(); });
 
     function getNormalizedDateStr() {
       const now = new Date();
@@ -749,12 +768,10 @@
       setMode('mp4'); 
     }
 
-    // 🌟 智慧比對載入引擎（同時支援主影片、迴向影片、念佛影片、排程、句庫與 PDF 快取與版本比對）
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573.5 多影音智慧快取載入】\n";
+      let logMsg = "📦 【v573.6 圓滿解鎖快取載入】\n";
       const timestamp = Date.now();
 
-      // 1. schedule.json
       let schedParsed = null;
       const localSchedStr = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V573');
       if (localSchedStr) {
@@ -783,7 +800,6 @@
         } catch (e) { logMsg += "- schedule.json: 讀取失敗 ⚠️\n"; }
       }
 
-      // 2. sentences.json
       const localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V573');
       if (localSentStr) {
         try { scriptureData = JSON.parse(localSentStr); logMsg += "- sentences.json: 讀取本機快取 ✅\n"; } catch(e){}
@@ -811,7 +827,6 @@
         } catch (e) { logMsg += "- sentences.json: 讀取失敗 ⚠️\n"; }
       }
 
-      // 3. scripture.pdf
       const savedPdf = await getLocalFile('pdf_file_v573');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
@@ -831,7 +846,6 @@
         await renderPdfOnValidDimensions();
       }
 
-      // 4. 主影片: chant_video.mp4
       const savedVid = await getLocalFile('video_file_v573');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
@@ -851,34 +865,26 @@
         }
       }
 
-      // 5. 迴向影片: merit_dedication.mp4 (離線快取與智慧比對)
       const savedMeritVid = await getLocalFile('merit_dedication_file_v573');
-      if (savedMeritVid && savedMeritVid.data) {
-        logMsg += "- merit_dedication.mp4: 讀取本機快取 ✅\n";
-      } else {
+      if (!savedMeritVid) {
         try {
           const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
             await saveLocalFile('merit_dedication_file_v573', buf, 'merit_cached');
-            logMsg += "- merit_dedication.mp4: 首次載入 ✅\n";
           }
-        } catch (e) { logMsg += "- merit_dedication.mp4: 略過/無檔案 📦\n"; }
+        } catch (e) {}
       }
 
-      // 6. 念佛影片: reciting_buddha_name.mp4 (離線快取與智慧比對)
       const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v573');
-      if (savedBuddhaVid && savedBuddhaVid.data) {
-        logMsg += "- reciting_buddha_name.mp4: 讀取本機快取 ✅\n";
-      } else {
+      if (!savedBuddhaVid) {
         try {
           const res = await fetch('./reciting_buddha_name.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
             await saveLocalFile('reciting_buddha_file_v573', buf, 'buddha_cached');
-            logMsg += "- reciting_buddha_name.mp4: 首次載入 ✅\n";
           }
-        } catch (e) { logMsg += "- reciting_buddha_name.mp4: 略過/無檔案 📦\n"; }
+        } catch (e) {}
       }
 
       applyScheduleToState(logMsg);
@@ -947,7 +953,7 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573.5】\n` +
+                  `\n📅 【排程解析成功 v573.6】\n` +
                   `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
@@ -1164,6 +1170,13 @@
       flashSpeedToast('【自讀語速 ' + pdfSpeed.toFixed(1) + 'x】');
     }
 
+    function setCompareSpeed(val) {
+      compareSpeed = val;
+      localStorage.setItem('user_compare_speed_preference', compareSpeed.toFixed(1));
+      if (recordAudioElement) recordAudioElement.playbackRate = compareSpeed;
+      flashSpeedToast('【比對播放 ' + compareSpeed.toFixed(1) + 'x】');
+    }
+
     function flashSpeedToast(text) {
       speedToastBadge.textContent = text;
       speedToastBadge.style.display = 'block';
@@ -1183,6 +1196,11 @@
     function triggerPdfSpeedChange(delta) {
       let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
       setPdfSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
+    }
+
+    function triggerCompareSpeedChange(delta) {
+      let newSpeed = Math.round((compareSpeed + delta) * 10) / 10;
+      setCompareSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
     }
 
     function speakPrompt(text) {
@@ -1258,8 +1276,23 @@
       }
     }, { passive: true });
 
+    async function preWarmMediaRecorder() {
+      try {
+        if (!micStream) await ensureMicrophoneActive();
+        if (micStream && MediaRecorder.isTypeSupported('audio/webm')) {
+          const dummy = new MediaRecorder(micStream);
+          dummy.start();
+          setTimeout(() => { if (dummy.state === 'recording') dummy.stop(); }, 150);
+        }
+      } catch(e) {}
+    }
+
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
+
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+      isUserRecording = false;
+      if (recordAudioElement) recordAudioElement.pause();
 
       currentMode = mode;
       pdfSubMode = subMode;
@@ -1288,6 +1321,7 @@
         guideStage.style.display = 'block';
 
         ensureMicrophoneActive();
+        if (subMode === 'compare') preWarmMediaRecorder();
 
         setTimeout(async () => {
           try {
@@ -1320,29 +1354,52 @@
       renderUI();
     }
 
+    // 🌟 核心動態介面渲染：未圓滿前防呆鎖定，圓滿後解鎖供養按鈕與全功能（起終句、跟讀、自讀、比對）
     function renderUI() {
       if (practicePhase === 'completed') {
         slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
         const btnOffering = document.getElementById('btn-offering');
         if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+
+        const textA = isSelectingMarkA ? '請點句' : '起句';
+        const textB = isSelectingMarkB ? '請點句' : '終句';
+        const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+        const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+
+        slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
+        slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
       } else {
         slotL1.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #64748B; text-align: center; line-height: 1.2;">定課中<br>供養解鎖</div>';
+        slotL2.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #38BDF8; text-align: center; line-height: 1.2;">嚴格防呆<br>導引中</div>';
+        slotL3.innerHTML = '';
       }
 
-      slotL2.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #38BDF8; text-align: center; line-height: 1.2;">多影音快取<br>防呆引導</div>';
-      slotL3.innerHTML = '';
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
 
       slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
       slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
-      slotR3.innerHTML = '';
+      
+      // 🌟 圓滿後解鎖右側比對模式按鈕
+      if (practicePhase === 'completed') {
+        slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
+      } else {
+        slotR3.innerHTML = '';
+      }
+
       slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+
+      const btnMarkA = document.getElementById('btn-mark-a');
+      if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
+
+      const btnMarkB = document.getElementById('btn-mark-b');
+      if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
 
       const btnSpeedDown = document.getElementById('btn-speed-down');
       if (btnSpeedDown) {
         btnSpeedDown.addEventListener('click', (e) => {
           e.stopPropagation();
           if (currentMode === 'mp4') triggerMp4SpeedChange(-0.1); 
+          else if (pdfSubMode === 'compare') triggerCompareSpeedChange(-0.1);
           else triggerPdfSpeedChange(-0.1);
         });
       }
@@ -1353,11 +1410,15 @@
       const btnZidu = document.getElementById('btn-zidu');
       if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
 
+      const btnRecord = document.getElementById('btn-record');
+      if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
+
       const btnSpeedUp = document.getElementById('btn-speed-up');
       if (btnSpeedUp) {
         btnSpeedUp.addEventListener('click', (e) => {
           e.stopPropagation();
           if (currentMode === 'mp4') triggerMp4SpeedChange(+0.1); 
+          else if (pdfSubMode === 'compare') triggerCompareSpeedChange(+0.1);
           else triggerPdfSpeedChange(+0.1);
         });
       }
@@ -1369,22 +1430,25 @@
     function updateModeButtonsStyle() {
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
+      const btnRecord = document.getElementById('btn-record');
 
       const colorBlack = '#000000';
       const colorGreen = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
       const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
 
-      [btnGendu, btnZidu].forEach(btn => {
+      [btnGendu, btnZidu, btnRecord].forEach(btn => {
           if (btn) {
               btn.style.background = colorBlack;
               btn.style.borderColor = '#BAE6FD';
               btn.style.color = '#FB923C';
               btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+              btn.classList.remove('recording-flashing');
           }
       });
 
+      // 1. 跟讀按鈕
       if (btnGendu) {
-          const isGenduActivePhase = (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu');
+          const isGenduActivePhase = (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu' || practicePhase === 'completed');
           const isGenduPlaying = (currentMode === 'mp4' && video && !video.paused);
 
           if (isGenduPlaying) {
@@ -1395,17 +1459,15 @@
               btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
           } else if (isGenduActivePhase) {
               btnGendu.textContent = '跟讀';
-              btnGendu.style.background = colorGreen;
-              btnGendu.style.borderColor = '#A7F3D0';
-              btnGendu.style.color = '#FFFFFF';
-              btnGendu.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
-          } else {
-              btnGendu.textContent = '跟讀';
+              btnGendu.style.background = (currentMode === 'mp4') ? colorGreen : colorBlack;
+              btnGendu.style.borderColor = (currentMode === 'mp4') ? '#A7F3D0' : '#BAE6FD';
+              btnGendu.style.color = (currentMode === 'mp4') ? '#FFFFFF' : '#FB923C';
           }
       }
 
+      // 2. 自讀按鈕
       if (btnZidu) {
-          const isZiduActivePhase = (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu');
+          const isZiduActivePhase = (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu' || practicePhase === 'completed');
           const isZiduRunning = (currentMode === 'pdf' && pdfSubMode === 'guide' && isGuideActive);
 
           if (isZiduRunning) {
@@ -1416,23 +1478,27 @@
               btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
           } else if (isZiduActivePhase) {
               btnZidu.textContent = '自讀';
-              btnZidu.style.background = colorGreen;
-              btnZidu.style.borderColor = '#A7F3D0';
-              btnZidu.style.color = '#FFFFFF';
-              btnZidu.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
-          } else {
-              btnZidu.textContent = '自讀';
+              btnZidu.style.background = (currentMode === 'pdf' && pdfSubMode === 'guide') ? colorGreen : colorBlack;
+              btnZidu.style.borderColor = (currentMode === 'pdf' && pdfSubMode === 'guide') ? '#A7F3D0' : '#BAE6FD';
+              btnZidu.style.color = (currentMode === 'pdf' && pdfSubMode === 'guide') ? '#FFFFFF' : '#FB923C';
+          }
+      }
+
+      // 3. 比對按鈕（圓滿後解鎖）
+      if (btnRecord && practicePhase === 'completed') {
+          if (pdfSubMode === 'compare') {
+              btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
+              btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
+              btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
+              btnRecord.style.color = '#FFFFFF';
+              if (isUserRecording) btnRecord.classList.add('recording-flashing');
           }
       }
     }
 
     function handleGenduClick() {
       triggerAppFullscreen();
-      if (practicePhase === 'completed') {
-        showToast("🎉 今日定課已圓滿，請點擊左側「背書供養」按鈕進行供養", 3000);
-        return;
-      }
-      if (practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
+      if (practicePhase !== 'completed' && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
         showToast("⚠️ 目前為自讀階段，請依照語音與紅點引導唸誦", 3000);
         return;
       }
@@ -1469,11 +1535,7 @@
 
     function handleZiduClick() {
       triggerAppFullscreen();
-      if (practicePhase === 'completed') {
-        showToast("🎉 今日定課已圓滿，請點擊左側「背書供養」按鈕進行供養", 3000);
-        return;
-      }
-      if (practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
+      if (practicePhase !== 'completed' && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
         showToast("⚠️ 請先完成跟讀，系統將自動帶您進入自讀階段", 3000);
         return;
       }
@@ -1505,7 +1567,7 @@
           isTransitioningLine = false;
           hasPageFlipped = false;
           isLineHeadLocked = true;
-          currentLineIndex = markA_Index;
+          currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
           currentCharIndexFloat = 0.0;
           lastVoiceTime = performance.now();
 
@@ -1515,6 +1577,94 @@
           });
       }
     }
+
+    function handleRecordModeClick() {
+      triggerAppFullscreen();
+      if (practicePhase !== 'completed') {
+        showToast("⚠️ 請先完成今日定課與串習後方可解鎖比對功能", 3000);
+        return;
+      }
+
+      if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
+        setMode('pdf', 'compare');
+        preWarmMediaRecorder();
+        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2500);
+        return;
+      }
+
+      if (isUserRecording) {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        isUserRecording = false;
+        renderUI();
+        setTimeout(() => {
+          if (recordedAudioBlobUrl) {
+            togglePlaybackAction();
+            showToast('▶️ 錄音完成，正在為您播放比對', 2500);
+          }
+        }, 200);
+      } else {
+        if (parsedTextLines.length === 0) {
+          showToast("經文處理中，請稍等片刻", 2000);
+          return;
+        }
+        toggleReliableRecordAction();
+      }
+    }
+
+    function handleMarkAClck() {
+      if (practicePhase !== 'completed') return;
+      if (currentMode !== 'pdf') setMode('pdf', 'guide');
+      isSelectingMarkA = true;
+      isSelectingMarkB = false;
+      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
+      renderUI();
+    }
+
+    function handleMarkBClick() {
+      if (practicePhase !== 'completed') return;
+      if (currentMode !== 'pdf') setMode('pdf', 'guide');
+      isSelectingMarkB = true;
+      isSelectingMarkA = false;
+      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
+      renderUI();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const canvasEl = document.getElementById('pdf-canvas');
+        if (canvasEl) {
+          canvasEl.addEventListener('click', (e) => {
+            if (currentMode !== 'pdf') return;
+            if (!isSelectingMarkA && !isSelectingMarkB) return;
+
+            const clientX = e.clientX;
+            const clientY = e.clientY;
+            const targetIdx = getLineIndexAtClientPoint(clientX, clientY);
+
+            if (isSelectingMarkA) {
+              isManualSelected = true;
+              markA_Index = targetIdx;
+              if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
+              isSelectingMarkA = false;
+              updateVisualDisplay();
+              renderUI();
+              showToast("✅ 起句設定成功！", 2500);
+            } else if (isSelectingMarkB) {
+              if (markA_Index !== -1 && targetIdx < markA_Index) {
+                showToast("⚠️ 終點不能在起點之前", 2500);
+                return;
+              }
+              isManualSelected = true;
+              markB_Index = targetIdx;
+              isSelectingMarkB = false;
+              updateVisualDisplay();
+              renderUI();
+              showToast("✅ 終句設定成功！", 2500);
+            }
+          });
+        }
+      }, 1000);
+    });
 
     let mp4PrecisionCheckAnimId = null;
     function startMp4PrecisionCheck() {
@@ -1565,9 +1715,7 @@
           speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。");
           showToast("🎉 新進度跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
 
-          setTimeout(() => { 
-            handleZiduClick(); 
-          }, 1200);
+          setTimeout(() => { handleZiduClick(); }, 1200);
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
@@ -1591,10 +1739,10 @@
             }, 3000);
           } else {
             practicePhase = 'completed';
-            renderUI();
+            renderUI(); // 🌟 解鎖全功能與供養按鈕
             triggerSevenColoredLotusFlowerRain();
-            speakPrompt("今日定課已圓滿，請進行背書供養");
-            showToast("🎉 今日定課已圓滿！\n請點擊左側「背書供養」按鈕", 6000);
+            speakPrompt("今日定課已圓滿，功能已全部解鎖");
+            showToast("🎉 今日定課已圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習", 6000);
           }
         }
       } else if (practicePhase === 'cumulative_gendu') {
@@ -1613,9 +1761,7 @@
           speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。");
           showToast("🎉 串習複習跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
 
-          setTimeout(() => { 
-            handleZiduClick(); 
-          }, 1200);
+          setTimeout(() => { handleZiduClick(); }, 1200);
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
@@ -1624,10 +1770,10 @@
           setTimeout(() => { handleZiduClick(); }, 500);
         } else {
           practicePhase = 'completed';
-          renderUI();
+          renderUI(); // 🌟 解鎖全功能與供養按鈕
           triggerSevenColoredLotusFlowerRain();
-          speakPrompt("今日串習與定課全部圓滿，請進行背書供養");
-          showToast("🎉 今日串習與定課全部圓滿！\n請點擊左側「背書供養」按鈕", 6000);
+          speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
+          showToast("🎉 今日串習與定課全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習", 6000);
         }
       }
     }
@@ -1822,14 +1968,53 @@
     }
 
     function updateVisualDisplay() {
+      if (currentMode === 'pdf') {
+        if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
+          const btnMarkADom = document.getElementById('btn-mark-a');
+          if (btnMarkADom) btnMarkADom.classList.add('active-mark');
+          renderMarkerLine(markALine, parsedTextLines[markA_Index]);
+        } else {
+          markALine.style.display = 'none';
+        }
+
+        if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
+          const btnMarkBDom = document.getElementById('btn-mark-b');
+          if (btnMarkBDom) btnMarkBDom.classList.add('active-mark');
+          renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
+        } else {
+          markBLine.style.display = 'none';
+        }
+      }
+
       if (!isGuideActive && currentMode === 'pdf') {
         guideLine.style.display = 'none';
         redDot.style.display = 'none';
       }
     }
 
+    function getLineIndexAtClientPoint(clientX, clientY) {
+      if (parsedTextLines.length === 0) return 0;
+      let closestIdx = 0, minDiff = Infinity;
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const line = parsedTextLines[i];
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const lineScreenY = canvasRect.top + (line.underLineY * scaleY);
+        const diff = Math.abs(lineScreenY - clientY);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = i;
+        }
+      }
+      return closestIdx;
+    }
+
     function handleShutdownClick() {
       haltGuideRunnerImmediately();
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+      isUserRecording = false;
+      if (recordAudioElement) recordAudioElement.pause();
       releaseMicrophoneResources();
       try { video.pause(); } catch (e) {}
       showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
@@ -1940,6 +2125,41 @@
         vadCheckTimer = requestAnimationFrame(loop);
       }
       vadCheckTimer = requestAnimationFrame(loop);
+    }
+
+    async function toggleReliableRecordAction() {
+      const ok = await ensureMicrophoneActive();
+      if (!ok) return;
+
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(micStream);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
+        const recordedBlob = new Blob(audioChunks, options);
+        recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
+        recordAudioElement.src = recordedAudioBlobUrl;
+        recordAudioElement.playbackRate = compareSpeed;
+        renderUI();
+      };
+      mediaRecorder.start(); 
+      isUserRecording = true;
+      renderUI();
+    }
+
+    function togglePlaybackAction() {
+      if (!recordedAudioBlobUrl) return;
+      if (isGuideActive) haltGuideRunnerImmediately();
+
+      if (recordAudioElement.paused) {
+        recordAudioElement.playbackRate = compareSpeed;
+        recordAudioElement.play().then(() => renderUI()).catch(() => {});
+      } else {
+        recordAudioElement.pause();
+        renderUI();
+      }
     }
 
     function handleOfferingClick() {
