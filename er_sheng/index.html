@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.16 (防黑屏穩健版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.17 (迴向影片完整播放版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -571,8 +571,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.16 防黑屏與模式同步版 -->
-  <div id="schedule-toast">📦 【v573.16 載入中】...</div>
+  <!-- 🌟 v573.17 迴向影片完整播放版 -->
+  <div id="schedule-toast">📦 【v573.17 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -712,8 +712,10 @@
 
     let currentMode = 'mp4';
     let pdfSubMode = 'guide'; 
-
     let practicePhase = 'new_gendu'; 
+
+    // 🌟 新增：識別目前是否正在播放「念佛」或「迴向」等不需範圍限制的特別影片
+    let isSpecialVideoPlaying = false;
 
     let audioContext = null;
     let analyser = null;
@@ -836,6 +838,7 @@
       markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
       isManualSelected = state.isManualSelected || false;
 
+      isSpecialVideoPlaying = false;
       renderUI();
 
       if (currentMode === 'mp4') {
@@ -907,6 +910,7 @@
         video.load(); 
       } catch(e) {}
 
+      isSpecialVideoPlaying = false;
       hasEnteredReciting = false;
       companionOverlay.style.display = 'flex';
       companionOverlay.style.opacity = '1';
@@ -1005,9 +1009,10 @@
       }, 350);
     }
 
-    // 🌟 強化防呆的念佛影片播放序列（確保切到跟讀模式且絕不黑屏）
+    // 🌟 播放念佛影片：設為特別影片模式，並確保按鈕正確顯示跟讀
     async function playDailyBuddhaVideoSequence() {
       currentMode = 'mp4';
+      isSpecialVideoPlaying = true;
       pdfContainerWrap.style.display = 'none';
       guideStage.style.display = 'none';
       videoWrap.style.display = 'flex';
@@ -1028,24 +1033,29 @@
 
       video.onended = () => {
         video.onended = null;
+        video.onerror = null;
+        isSpecialVideoPlaying = false;
         proceedAfterVideoSequence();
       };
 
       video.onerror = () => {
+        video.onended = null;
         video.onerror = null;
+        isSpecialVideoPlaying = false;
         proceedAfterVideoSequence();
       };
 
       try {
         await video.play();
+        startMp4PrecisionCheck();
       } catch(e) {
+        isSpecialVideoPlaying = false;
         proceedAfterVideoSequence();
       }
     }
 
     function proceedAfterVideoSequence() {
-      video.onended = null;
-      video.onerror = null;
+      isSpecialVideoPlaying = false;
       getLocalFile('video_file_v573').then(savedVid => {
         if (savedVid && savedVid.data) {
           video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
@@ -1061,12 +1071,13 @@
       });
     }
 
-    // 🌟 強化防呆的功德迴向影片播放
+    // 🌟 播放功德迴向影片：設為特別影片模式，播完才結束
     if (btnPlayDedication) {
       btnPlayDedication.addEventListener('click', async () => {
         offeringOverlay.style.display = 'none';
         
         currentMode = 'mp4';
+        isSpecialVideoPlaying = true;
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
@@ -1087,25 +1098,30 @@
 
         video.onended = () => {
           video.onended = null;
+          video.onerror = null;
+          isSpecialVideoPlaying = false;
           finishDedicationVideo();
         };
 
         video.onerror = () => {
+          video.onended = null;
           video.onerror = null;
+          isSpecialVideoPlaying = false;
           finishDedicationVideo();
         };
 
         try {
           await video.play();
+          startMp4PrecisionCheck();
         } catch(e) {
+          isSpecialVideoPlaying = false;
           finishDedicationVideo();
         }
       });
     }
 
     function finishDedicationVideo() {
-      video.onended = null;
-      video.onerror = null;
+      isSpecialVideoPlaying = false;
       getLocalFile('video_file_v573').then(savedVid => {
         if (savedVid && savedVid.data) {
           video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
@@ -1128,7 +1144,7 @@
       const isFirstCheckToday = (lastCheckDate !== todayStr);
 
       let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v573.16 系統更新檢查】\n";
+      let logMsg = "📦 【v573.17 系統更新檢查】\n";
 
       let schedParsed = null;
       const localSchedStr = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V573');
@@ -1144,7 +1160,6 @@
             localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V573', freshStr);
             schedParsed = freshSched;
             hasAnyUpdateDetected = true;
-            logMsg += "- schedule.json: 偵測遠端更新 🔄\n";
           }
         }
       } catch (e) {}
@@ -1155,7 +1170,6 @@
             schedParsed = await res.json();
             localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V573', JSON.stringify(schedParsed));
             hasAnyUpdateDetected = true;
-            logMsg += "- schedule.json: 首次載入 ✅\n";
           }
         } catch (e) {}
       }
@@ -1170,7 +1184,6 @@
             localStorage.setItem('OFFLINE_SENTENCES_CACHE_V573', freshSentStr);
             scriptureData = freshSent;
             hasAnyUpdateDetected = true;
-            logMsg += "- sentences.json: 偵測遠端更新 🔄\n";
           }
         }
       } catch (e) {}
@@ -2014,6 +2027,12 @@
     function startMp4PrecisionCheck() {
       if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
       function check() {
+        // 🌟 若正在播放特別影片（念佛或迴向），則跳過範圍限制，不強行切斷
+        if (isSpecialVideoPlaying) {
+          mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+          return;
+        }
+
         if (currentMode === 'mp4' && !video.paused && !video.ended) {
           const range = getActiveVideoRange();
           if (range.valid && video.currentTime >= range.end) {
