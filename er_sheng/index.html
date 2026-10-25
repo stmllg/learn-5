@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573.14 (智能靜默更新與乾淨畫面版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.15 (穩定完美版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -571,8 +571,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573.14 智能靜默更新與乾淨畫面版 -->
-  <div id="schedule-toast">📦 【v573.14 載入中】...</div>
+  <!-- 🌟 v573.15 穩定完美版 -->
+  <div id="schedule-toast">📦 【v573.15 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1104,9 +1104,8 @@
       const isFirstCheckToday = (lastCheckDate !== todayStr);
 
       let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v573.14 系統更新檢查】\n";
+      let logMsg = "📦 【v573.15 系統更新檢查】\n";
 
-      // 1. schedule.json 檢查
       let schedParsed = null;
       const localSchedStr = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V573');
       if (localSchedStr) {
@@ -1137,7 +1136,6 @@
         } catch (e) {}
       }
 
-      // 2. sentences.json 檢查
       let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V573');
       try {
         const res = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
@@ -1167,7 +1165,6 @@
         }
       }
 
-      // 3. scripture.pdf 檢查
       const savedPdf = await getLocalFile('pdf_file_v573');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
@@ -1187,7 +1184,6 @@
         await renderPdfOnValidDimensions();
       }
 
-      // 4. chant_video.mp4 檢查
       const savedVid = await getLocalFile('video_file_v573');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
@@ -1204,7 +1200,6 @@
         } catch (e) { video.src = './chant_video.mp4'; }
       }
 
-      // 5. reciting_buddha_name.mp4 檢查
       const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v573');
       if (!savedBuddhaVid || !savedBuddhaVid.data) {
         try {
@@ -1217,7 +1212,6 @@
         } catch (e) {}
       }
 
-      // 6. merit_dedication.mp4 檢查
       const savedMeritVid = await getLocalFile('merit_dedication_file_v573');
       if (!savedMeritVid || !savedMeritVid.data) {
         try {
@@ -1230,7 +1224,6 @@
         } catch (e) {}
       }
 
-      // 若為今天第一次開機，且真正偵測到更新，才彈出 Toast 提示；否則保持完全靜默乾淨
       if (isFirstCheckToday) {
         localStorage.setItem('LAST_ASSET_CHECK_DATE_V573', todayStr);
         if (hasAnyUpdateDetected) {
@@ -1305,7 +1298,7 @@
 
         if (prefixMsg) {
           showToast(prefixMsg + 
-                    `\n📅 【排程解析成功 v573.14】\n` +
+                    `\n📅 【排程解析成功 v573.15】\n` +
                     `- 目標天數: 第 ${targetDay} 天\n` +
                     `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                     cumulativeInfoStr, 16000);
@@ -1728,7 +1721,7 @@
         slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
         slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
       } else {
-        // 🌟 保持畫面乾淨整潔：左一與左二顯示清空
+        // 🌟 保持左翼乾淨：清空未解鎖前的文字與提示，維持穩定容器結構
         slotL1.innerHTML = '';
         slotL2.innerHTML = '';
         slotL3.innerHTML = '';
@@ -2323,4 +2316,584 @@
 
       lineElement.style.top = (lineObj.underLineY * scaleY) + 'px';
       lineElement.style.left = (lineObj.x0 * scaleX) + 'px';
-      lineElement.style.width = ((
+      lineElement.style.width = ((lineObj.x1 - lineObj.x0) * scaleX) + 'px';
+      lineElement.style.display = 'block';
+    }
+
+    function updateVisualDisplay() {
+      if (currentMode === 'pdf') {
+        if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
+          const btnMarkADom = document.getElementById('btn-mark-a');
+          if (btnMarkADom) btnMarkADom.classList.add('active-mark');
+          renderMarkerLine(markALine, parsedTextLines[markA_Index]);
+        } else {
+          markALine.style.display = 'none';
+        }
+
+        if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
+          const btnMarkBDom = document.getElementById('btn-mark-b');
+          if (btnMarkBDom) btnMarkBDom.classList.add('active-mark');
+          renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
+        } else {
+          markBLine.style.display = 'none';
+        }
+      }
+
+      if (!isGuideActive && currentMode === 'pdf') {
+        guideLine.style.display = 'none';
+        redDot.style.display = 'none';
+      }
+    }
+
+    function getLineIndexAtClientPoint(clientX, clientY) {
+      if (parsedTextLines.length === 0) return 0;
+      let closestIdx = 0, minDiff = Infinity;
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const line = parsedTextLines[i];
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const lineScreenY = canvasRect.top + (line.underLineY * scaleY);
+        const diff = Math.abs(lineScreenY - clientY);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = i;
+        }
+      }
+      return closestIdx;
+    }
+
+    function handleShutdownClick() {
+      saveCurrentAppState();
+      haltGuideRunnerImmediately();
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+      isUserRecording = false;
+      if (recordAudioElement) recordAudioElement.pause();
+      releaseMicrophoneResources();
+      
+      try { 
+        video.pause(); 
+        video.currentTime = 0;
+        video.removeAttribute('src'); 
+        video.load(); 
+      } catch (e) {}
+
+      showToast("已自動存檔，並釋放所有媒體資源", 3000);
+      updateModeButtonsStyle();
+    }
+
+    async function ensureMicrophoneActive() {
+      if (micStream) return true;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+        });
+
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.04;
+        source.connect(analyser);
+
+        isCalibrating = true;
+        calibrationSamples = [];
+        setTimeout(() => {
+          if (calibrationSamples.length > 0) {
+            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+            baseNoiseLevel = sum / calibrationSamples.length;
+            dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
+          }
+          isCalibrating = false;
+        }, 350);
+
+        lastVoiceTime = performance.now();
+        startSharedVadLoop();
+        return true;
+      } catch (err) {
+        showToast("⚠️ 無法取得麥克風權限，請確認瀏覽器設定", 4000);
+        return false;
+      }
+    }
+
+    let vadDataArray = null;
+    function startSharedVadLoop() {
+      if (vadCheckTimer) return;
+      vadDataArray = new Float32Array(analyser.frequencyBinCount);
+
+      function loop() {
+        if (currentMode !== 'pdf') {
+          vadCheckTimer = null;
+          return;
+        }
+
+        if (analyser) {
+          analyser.getFloatTimeDomainData(vadDataArray);
+          let sumSquares = 0.0;
+          for (let i = 0; i < vadDataArray.length; i++) {
+            const val = vadDataArray[i];
+            sumSquares += val * val;
+          }
+          const rms = Math.sqrt(sumSquares / vadDataArray.length);
+
+          if (isCalibrating) calibrationSamples.push(rms);
+
+          const deltaRms = rms - prevRms;
+          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
+
+          if (hasVoiceEnergy) {
+            lastVoiceTime = performance.now();
+            silentFrameCount = 0;
+            if (!isVoiceActive && isGuideActive) {
+              isVoiceActive = true;
+              updateModeButtonsStyle();
+            }
+          } else {
+            silentFrameCount++;
+            if (silentFrameCount >= 24) {
+              if (isVoiceActive) {
+                isVoiceActive = false;
+                updateModeButtonsStyle();
+              }
+            }
+          }
+
+          if (isGuideActive) {
+            const timeSinceLineStart = performance.now() - lineActivationTimestamp;
+            const isInsideCooldown = (timeSinceLineStart < 120);
+
+            if (isLineHeadLocked && !isInsideCooldown && (deltaRms > (dynamicThreshold * 0.25) || isTouchingDisplay)) {
+              isLineHeadLocked = false;
+            }
+
+            if (isTransitioningLine) {
+              const elapsed = performance.now() - lineEndTime;
+              if (elapsed > 40 && (deltaRms > (dynamicThreshold * 0.40) || isTouchingDisplay)) {
+                proceedToNextLineImmediately();
+              } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70) && !isTouchingDisplay) {
+                proceedToNextLineImmediately();
+              } else if (elapsed >= 200) {
+                proceedToNextLineImmediately();
+              }
+            }
+          }
+
+          prevRms = rms;
+        }
+        vadCheckTimer = requestAnimationFrame(loop);
+      }
+      vadCheckTimer = requestAnimationFrame(loop);
+    }
+
+    async function toggleReliableRecordAction() {
+      const ok = await ensureMicrophoneActive();
+      if (!ok) return;
+
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(micStream);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
+        const recordedBlob = new Blob(audioChunks, options);
+        recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
+        recordAudioElement.src = recordedAudioBlobUrl;
+        recordAudioElement.playbackRate = compareSpeed;
+        renderUI();
+      };
+      mediaRecorder.start(); 
+      isUserRecording = true;
+      renderUI();
+    }
+
+    function togglePlaybackAction() {
+      if (!recordedAudioBlobUrl) return;
+      if (isGuideActive) haltGuideRunnerImmediately();
+
+      if (recordAudioElement.paused) {
+        recordAudioElement.playbackRate = compareSpeed;
+        recordAudioElement.play().then(() => renderUI()).catch(() => {});
+      } else {
+        recordAudioElement.pause();
+        renderUI();
+      }
+    }
+
+    function handleOfferingClick() {
+      const displayCoinsCount = document.getElementById('display-coins-count');
+      const inputClassId = document.getElementById('input-class-id');
+      const inputUserName = document.getElementById('input-user-name');
+      const offeringOverlay = document.getElementById('offering-modal-overlay');
+
+      if (displayCoinsCount) displayCoinsCount.textContent = (localStorage.getItem('user_accumulated_coins') || '0') + ' 枚';
+      if (inputClassId) inputClassId.value = localStorage.getItem('user_class_id') || '';
+      if (inputUserName) inputUserName.value = localStorage.getItem('user_profile_name') || '';
+      if (offeringOverlay) offeringOverlay.style.display = 'flex';
+    }
+
+    function getStoredCoins() {
+      return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
+    }
+    function addCoins(amount) {
+      const total = getStoredCoins() + amount;
+      localStorage.setItem('user_accumulated_coins', total.toString());
+      saveCurrentAppState();
+      return total;
+    }
+    function resetCoins() {
+      localStorage.setItem('user_accumulated_coins', '0');
+      saveCurrentAppState();
+    }
+    function calculateSentenceCount() {
+      if (parsedTextLines.length === 0) return 1;
+      const start = (markA_Index !== -1) ? markA_Index : 0;
+      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
+      return Math.max(1, Math.abs(end - start) + 1);
+    }
+
+    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
+
+    btnConfirmOffering.addEventListener('click', () => {
+      const classId = inputClassId.value.trim();
+      const userName = inputUserName.value.trim();
+
+      if (!classId || !userName) {
+        alert("請輸入班號與姓名！");
+        return;
+      }
+
+      localStorage.setItem('user_class_id', classId);
+      localStorage.setItem('user_profile_name', userName);
+
+      const coinsToOffer = getStoredCoins();
+      if (coinsToOffer <= 0) {
+        alert("目前福慧幣為 0 枚，請先精進背誦！");
+        return;
+      }
+
+      btnConfirmOffering.disabled = true;
+      btnConfirmOffering.textContent = '連線供養中...';
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const startDateParam = urlParams.get('start') || '';
+      const groupParam = urlParams.get('group') || '';
+      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
+
+      let isDone = false;
+      let timeoutTimer = null;
+      let scriptTag = null;
+
+      function cleanup() {
+        if (timeoutTimer) clearTimeout(timeoutTimer);
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+      }
+
+      function handleFailure(message) {
+        if (isDone) return;
+        isDone = true;
+        cleanup();
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+        showToast(message, 5000);
+      }
+
+      function handleSuccess(data) {
+        if (isDone) return;
+        if (!data || !Array.isArray(data.todayTop3) || !Array.isArray(data.totalTop3)) {
+          handleFailure('未取得完整排行榜資料，請稍後重試');
+          return;
+        }
+        isDone = true;
+        cleanup();
+        resetCoins();
+        displayCoinsCount.textContent = '0 枚';
+        offeringOverlay.style.display = 'none';
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+        renderLeaderboards(data, classId, userName, coinsToOffer);
+        leaderboardOverlay.style.display = 'flex';
+        
+        triggerOfferingCoinRain();
+      }
+
+      timeoutTimer = setTimeout(() => { handleFailure('連線逾時，請稍後重試'); }, 20000);
+      window[callbackName] = (res) => handleSuccess(res);
+
+      scriptTag = document.createElement('script');
+      scriptTag.async = true;
+      scriptTag.crossOrigin = 'anonymous';
+      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&startDate=${encodeURIComponent(startDateParam)}&groupName=${encodeURIComponent(groupParam)}&callback=${callbackName}&t=${Date.now()}`;
+      scriptTag.onerror = () => { handleFailure('連線失敗，請檢查網路'); };
+      document.body.appendChild(scriptTag);
+    });
+
+    function renderLeaderboards(data, curClass, curName, curCoins) {
+      const medals = ['🥇', '🥈', '🥉'];
+      function buildListHtml(list) {
+        const fullList = (list && Array.isArray(list)) ? [...list] : [];
+        while (fullList.length < 3) fullList.push({ isPlaceholder: true });
+        return fullList.slice(0, 3).map((item, idx) => {
+          const medal = medals[idx] || `第${idx + 1}名`;
+          if (item.isPlaceholder) {
+            return `<div class="rank-item"><span>${medal} <i style="color:#94A3B8;">虛位以待</i></span><span class="rank-coins">--</span></div>`;
+          }
+          const displayName = item.maskName || item.name || curName;
+          const displayClass = item.classId ? `(${item.classId})` : '';
+          const coinsVal = (typeof item.coins === 'number') ? item.coins : curCoins;
+          return `<div class="rank-item"><span>${medal} ${displayName} <small style="color:#94A3B8;">${displayClass}</small></span><span class="rank-coins">${coinsVal} 枚</span></div>`;
+        }).join('');
+      }
+      todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
+      totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
+    }
+
+    btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
+
+    function haltGuideRunnerImmediately() {
+      isGuideActive = false;
+      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+      updateModeButtonsStyle();
+    }
+
+    function startGuideRunner() {
+      if (parsedTextLines.length === 0) return;
+      guideStage.style.height = Math.max(centerCore.scrollHeight, 2500) + 'px';
+      scrollToAlignTop(currentLineIndex);
+      setupActiveLine(currentLineIndex, currentCharIndexFloat);
+      lastAnimTimestamp = performance.now();
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function scrollToAlignTop(idx) {
+      if (isUserManualScrolling) return; 
+      const line = parsedTextLines[idx];
+      if (line) {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const displayTop = line.topGlobal * scaleY;
+        const targetTop = Math.max(0, displayTop - 18);
+
+        if (isAppleDevice) {
+          const viewportTop = centerCore.scrollTop;
+          const viewportBottom = viewportTop + centerCore.clientHeight;
+          if (displayTop < viewportTop || (line.bottomGlobal * scaleY) > viewportBottom) {
+            centerCore.scrollTo({ top: targetTop, behavior: 'smooth' });
+          }
+        } else {
+          centerCore.scrollTop = targetTop;
+        }
+      }
+    }
+
+    function getVisibleBottomLineIndex() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      let lastVisibleIdx = currentLineIndex;
+      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
+        if (parsedTextLines[i].underLineY <= viewportBottom - 16) lastVisibleIdx = i;
+        else break;
+      }
+      return lastVisibleIdx;
+    }
+
+    function checkAndTriggerPageFlip() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      if (markA_Index !== -1 && markB_Index !== -1) {
+        const lineA = parsedTextLines[markA_Index];
+        const lineB = parsedTextLines[markB_Index];
+        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) return;
+      }
+      const nextIndex = currentLineIndex + 1;
+      if (markB_Index !== -1 && nextIndex > markB_Index) return;
+
+      if (nextIndex < parsedTextLines.length) {
+        const nextLine = parsedTextLines[nextIndex];
+        if (nextLine.underLineY > (viewportBottom - 18)) scrollToAlignTop(nextIndex);
+      }
+    }
+
+    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
+      if (!line) return 0;
+      if (!line.charItems || line.charItems.length === 0) return line.x0;
+      const items = line.charItems;
+      const totalChars = items.length;
+      if (charProgressFloat <= 0) return items[0].x0;
+      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
+
+      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
+      const intraCharFraction = charProgressFloat - charIdx;
+      const item = items[charIdx];
+      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
+    }
+
+    function setupActiveLine(idx, initCurrent = 0.0) {
+      if (markB_Index !== -1 && idx > markB_Index) { handleCycleCompletion(); return; }
+      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+      const line = parsedTextLines[idx];
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      lineActivationTimestamp = performance.now();
+
+      if (isGuideActive) {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const scaleX = canvasRect.width / pdfCanvas.width;
+
+        guideLine.style.top = (line.underLineY * scaleY) + 'px';
+        guideLine.style.left = (line.x0 * scaleX) + 'px';
+        guideLine.style.width = ((line.x1 - line.x0) * scaleX) + 'px';
+        
+        const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+        redDot.style.top = (line.underLineY * scaleY) + 'px';
+        redDot.style.left = (rawX * scaleX) + 'px';
+
+        guideLine.style.display = 'block';
+        redDot.style.display = 'block';
+      }
+      isTransitioningLine = false;
+    }
+
+    function stepGuideMovement(now) {
+      if (!isGuideActive || isTransitioningLine) return;
+      let delta = now - lastAnimTimestamp;
+      if (delta <= 0 || delta > 120) delta = 16.6;
+      lastAnimTimestamp = now;
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const inertiaStartIndex = Math.max(1, totalChars - 2);
+      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
+
+      if (isVoiceActive || isTouchingDisplay || isInTailZone) {
+        const charPerMs = (2.8 * pdfSpeed) / 1000;
+        if (isLineHeadLocked) {
+          if (currentCharIndexFloat < 0.5) {
+            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
+          }
+        } else {
+          currentCharIndexFloat += charPerMs * delta;
+        }
+        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
+      }
+
+      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
+        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
+        if (!isCurrentLineAtTargetEnd) {
+          const visibleBottomIdx = getVisibleBottomLineIndex();
+          if (currentLineIndex === visibleBottomIdx) {
+            checkAndTriggerPageFlip();
+            hasPageFlipped = true;
+          }
+        }
+      }
+
+      if (currentCharIndexFloat >= totalChars) {
+        currentCharIndexFloat = totalChars;
+        if (curLine) {
+          const canvasRect = pdfCanvas.getBoundingClientRect();
+          const scaleY = canvasRect.height / pdfCanvas.height;
+          const scaleX = canvasRect.width / pdfCanvas.width;
+          const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+          redDot.style.left = (rawX * scaleX) + 'px';
+          redDot.style.top = (curLine.underLineY * scaleY) + 'px';
+        }
+
+        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
+        const nextIndex = currentLineIndex + 1;
+        if (markB_Index !== -1 && nextIndex > markB_Index) { handleCycleCompletion(); return; }
+        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+        isTransitioningLine = true;
+        lineEndTime = performance.now();
+        peakRmsAtLineEnd = prevRms;
+        guideLine.style.display = 'none';
+        return;
+      }
+
+      if (curLine) {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const scaleX = canvasRect.width / pdfCanvas.width;
+        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+        redDot.style.left = (rawX * scaleX) + 'px';
+        redDot.style.top = (curLine.underLineY * scaleY) + 'px';
+      }
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function proceedToNextLineImmediately() {
+      if (!isTransitioningLine || !isGuideActive) return;
+      const nextIndex = currentLineIndex + 1;
+      if (markB_Index !== -1 && nextIndex > markB_Index) {
+        handleCycleCompletion();
+        return;
+      }
+      hasPageFlipped = false;
+      currentLineIndex = nextIndex;
+      setupActiveLine(currentLineIndex, 0.0);
+      lastAnimTimestamp = performance.now();
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (/Line/i.test(navigator.userAgent)) {
+        const overlay = document.getElementById('line-browser-overlay');
+        overlay.classList.add('active');
+        return; 
+      }
+
+      checkDailyResetOnStartup();
+
+      const urlParams = new URLSearchParams(window.location.search);
+      let targetDay = 1;
+      
+      if (urlParams.get('start')) {
+        const startStr = urlParams.get('start');
+        const parts = startStr.split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const d = parseInt(parts[2], 10);
+          const userStartDate = new Date(y, m, d);
+          
+          const now = new Date();
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          
+          const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
+          targetDay = Math.max(1, diffDays);
+        }
+      } else if (urlParams.get('day')) {
+        targetDay = parseInt(urlParams.get('day'), 10) || 1;
+      } else {
+        targetDay = 1;
+      }
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V573', targetDay.toString());
+
+      let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
+      
+      const imgDisplay = document.getElementById('companion-img-display');
+      const compWrapper = document.querySelector('.companion-wrapper');
+
+      imgDisplay.onload = () => { compWrapper.classList.add('ready'); };
+      imgDisplay.onerror = () => { compWrapper.classList.add('ready'); };
+      imgDisplay.src = 'cards/' + cardFileName;
+      
+      const compOverlay = document.getElementById('companion-overlay');
+      compOverlay.style.display = 'flex';
+      compOverlay.classList.add('active');
+
+      handleOrientationCheck();
+    });
+  </script>
+</body>
+</html>
