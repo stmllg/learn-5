@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v573 (福慧金幣字樣與平滑掉落版)</title>
+  <title>歡喜背書橫式雙模播放器 v573.1 (長輩防呆引導版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -481,8 +481,8 @@
     </div>
   </div>
 
-  <!-- 🌟 v573 福慧金幣字樣與平滑掉落版 Log 診斷 Toast -->
-  <div id="schedule-toast">📦 【v573 載入中】...</div>
+  <!-- 🌟 v573.1 長輩防呆引導版 Log 診斷 Toast -->
+  <div id="schedule-toast">📦 【v573.1 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -619,6 +619,9 @@
     let currentMode = 'mp4';
     let pdfSubMode = 'guide'; 
 
+    // 🌟 V573.1 長輩嚴格防呆階段狀態機
+    let practicePhase = 'new_gendu'; // 'new_gendu' -> 'new_zidu' -> 'cumulative_gendu' -> 'cumulative_zidu' -> 'completed'
+
     let audioContext = null;
     let analyser = null;
     let micStream = null;
@@ -642,7 +645,6 @@
     let isManualSelected = false;
     let isScheduleRepeatLocked = true;
     let currentDayPlan = null; 
-    let practiceStage = 'new'; 
     let currentCycleCount = 0; 
     let videoPausedAt = -1;
 
@@ -748,14 +750,12 @@
       } catch (err) {}
 
       renderUI();
-      
-      // 🌟 V573 智慧比對載入引擎
       await loadAllAssetsSmartSync();
       setMode('mp4'); 
     }
 
     async function loadAllAssetsSmartSync() {
-      let logMsg = "📦 【v573 智慧版本比對載入】\n";
+      let logMsg = "📦 【v573.1 長輩防呆智慧載入】\n";
       const timestamp = Date.now();
 
       let schedParsed = null;
@@ -821,18 +821,6 @@
         }
       }
 
-      try {
-        const resCards = await fetch('./cards/cards_manifest.json?nocache=' + timestamp, { cache: 'no-store' });
-        if (resCards.ok) {
-          const manifest = await resCards.json();
-          logMsg += `- cards_manifest.json: 成功載入 (${manifest.version}) ✅\n`;
-        } else {
-          logMsg += `- cards_manifest.json: 讀取異常 ⚠️\n`;
-        }
-      } catch (e) {
-        logMsg += `- cards_manifest.json: 離線模式 (略過檢查) 📦\n`;
-      }
-
       const savedPdf = await getLocalFile('pdf_file_v573');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
@@ -890,7 +878,7 @@
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           currentDayPlan = { day: 1, start: 2, end: 5, repeat: 3, cStart: null, cEnd: null, cRepeat: 0 };
-          practiceStage = 'new';
+          practicePhase = 'new_gendu';
           currentCycleCount = 0;
           showToast(prefixMsg + `\n⚠️ 警告：排程資料解析失敗，預設退回第 1 天`, 14000);
           return false;
@@ -923,7 +911,7 @@
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        practiceStage = 'new';
+        practicePhase = 'new_gendu';
         currentCycleCount = 0;
 
         setupStageRange();
@@ -940,8 +928,8 @@
         }
 
         showToast(prefixMsg + 
-                  `\n📅 【排程解析成功 v573】\n` +
-                  `- 目標天數: 第 ${targetDay} 天 (JSON day: ${currentDayPlan.day})\n` +
+                  `\n📅 【排程解析成功 v573.1】\n` +
+                  `- 目標天數: 第 ${targetDay} 天\n` +
                   `- 新進度範圍: 第 ${sA} 句 ～ 第 ${sB} 句 (${currentDayPlan.repeat}遍)` +
                   cumulativeInfoStr, 16000);
 
@@ -956,10 +944,10 @@
       if (!currentDayPlan) return;
       const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : 100));
 
-      if (practiceStage === 'new') {
+      if (practicePhase === 'new_gendu' || practicePhase === 'new_zidu') {
         markA_Index = Math.max(0, (currentDayPlan.start || 1) - 1);
         markB_Index = Math.min(maxIdx, (currentDayPlan.end || 1) - 1);
-      } else if (practiceStage === 'cumulative') {
+      } else if (practicePhase === 'cumulative_gendu' || practicePhase === 'cumulative_zidu') {
         markA_Index = Math.max(0, (currentDayPlan.cStart || 1) - 1);
         markB_Index = Math.min(maxIdx, (currentDayPlan.cEnd || 1) - 1);
       }
@@ -1263,21 +1251,6 @@
       }
     }, { passive: true });
 
-    async function preWarmMediaRecorder() {
-      try {
-        if (!micStream) {
-          await ensureMicrophoneActive();
-        }
-        if (micStream && MediaRecorder.isTypeSupported('audio/webm')) {
-          const dummy = new MediaRecorder(micStream);
-          dummy.start();
-          setTimeout(() => {
-            if (dummy.state === 'recording') dummy.stop();
-          }, 150);
-        }
-      } catch(e) {}
-    }
-
     function setMode(mode, subMode = 'guide') {
       haltGuideRunnerImmediately();
 
@@ -1318,10 +1291,6 @@
 
         ensureMicrophoneActive();
 
-        if (subMode === 'compare') {
-          preWarmMediaRecorder();
-        }
-
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
@@ -1355,45 +1324,23 @@
 
     function renderUI() {
       slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
-      
-      if (currentMode === 'pdf' && pdfSubMode === 'compare') {
-          slotL2.innerHTML = '<button class="circle-btn btn-color-play" id="btn-play">播放</button>';
-          slotL3.innerHTML = '';
-      } else {
-          const textA = isSelectingMarkA ? '請點句' : '起句';
-          const textB = isSelectingMarkB ? '請點句' : '終句';
-          const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
-          const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
-
-          slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
-          slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
-      }
-      
+      slotL2.innerHTML = '<div style="font-size: 11px; font-weight: 900; color: #38BDF8; text-align: center; line-height: 1.2;">嚴格<br>防呆引導</div>';
+      slotL3.innerHTML = '';
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
 
       slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
       slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
-      slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
+      slotR3.innerHTML = '';
       slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
       const btnOffering = document.getElementById('btn-offering');
       if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
-
-      const btnPlay = document.getElementById('btn-play');
-      if (btnPlay) btnPlay.addEventListener('click', togglePlaybackAction);
-
-      const btnMarkA = document.getElementById('btn-mark-a');
-      if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
-
-      const btnMarkB = document.getElementById('btn-mark-b');
-      if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
 
       const btnSpeedDown = document.getElementById('btn-speed-down');
       if (btnSpeedDown) {
         btnSpeedDown.addEventListener('click', (e) => {
           e.stopPropagation();
           if (currentMode === 'mp4') triggerMp4SpeedChange(-0.1); 
-          else if (pdfSubMode === 'compare') triggerCompareSpeedChange(-0.1);
           else triggerPdfSpeedChange(-0.1);
         });
       }
@@ -1404,15 +1351,11 @@
       const btnZidu = document.getElementById('btn-zidu');
       if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
 
-      const btnRecord = document.getElementById('btn-record');
-      if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
-
       const btnSpeedUp = document.getElementById('btn-speed-up');
       if (btnSpeedUp) {
         btnSpeedUp.addEventListener('click', (e) => {
           e.stopPropagation();
           if (currentMode === 'mp4') triggerMp4SpeedChange(+0.1); 
-          else if (pdfSubMode === 'compare') triggerCompareSpeedChange(+0.1);
           else triggerPdfSpeedChange(+0.1);
         });
       }
@@ -1424,59 +1367,48 @@
     function updateModeButtonsStyle() {
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
-      const btnRecord = document.getElementById('btn-record');
 
       const colorBlack = '#000000';
       const colorGreen = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
       const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
 
-      [btnGendu, btnZidu, btnRecord].forEach(btn => {
+      [btnGendu, btnZidu].forEach(btn => {
           if (btn) {
               btn.style.background = colorBlack;
               btn.style.borderColor = '#BAE6FD';
               btn.style.color = '#FB923C';
               btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
-              btn.classList.remove('recording-flashing');
           }
       });
 
-      if (currentMode === 'mp4') {
+      if (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu') {
           if (btnGendu) {
               const isPlaying = video && !video.paused;
-              btnGendu.textContent = isPlaying ? '跟我唸' : '跟讀';
+              btnGendu.textContent = isPlaying ? '跟讀中' : '跟讀';
               btnGendu.style.background = isPlaying ? colorPurple : colorGreen;
               btnGendu.style.borderColor = isPlaying ? '#E9D5FF' : '#A7F3D0';
               btnGendu.style.color = '#FFFFFF';
               btnGendu.style.boxShadow = isPlaying ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
           }
-      } else if (currentMode === 'pdf') {
-          if (pdfSubMode === 'guide') {
-              if (btnZidu) {
-                  btnZidu.textContent = isGuideActive ? '唸出來' : '自讀';
-                  btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
-                  btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
-                  btnZidu.style.color = '#FFFFFF';
-                  btnZidu.style.boxShadow = isGuideActive ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
-              }
-          } else if (pdfSubMode === 'compare') {
-              if (btnRecord) {
-                  btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
-                  btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
-                  btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
-                  btnRecord.style.color = '#FFFFFF';
-                  btnRecord.style.boxShadow = isUserRecording ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
-                  if (isUserRecording) {
-                      btnRecord.classList.add('recording-flashing');
-                  } else {
-                      btnRecord.classList.remove('recording-flashing');
-                  }
-              }
+      } else if (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu') {
+          if (btnZidu) {
+              btnZidu.textContent = isGuideActive ? '自讀中' : '自讀';
+              btnZidu.style.background = isGuideActive ? colorPurple : colorGreen;
+              btnZidu.style.borderColor = isGuideActive ? '#E9D5FF' : '#A7F3D0';
+              btnZidu.style.color = '#FFFFFF';
+              btnZidu.style.boxShadow = isGuideActive ? '0 0 15px rgba(147, 51, 234, 0.8)' : '0 0 15px rgba(16, 185, 129, 0.8)';
           }
       }
     }
 
+    // 🔒 鎖定跟讀點擊（非跟讀階段不允許隨意切換）
     function handleGenduClick() {
       triggerAppFullscreen();
+      if (practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
+        showToast("⚠️ 目前為自讀階段，請依照語音與紅點引導唸誦", 3000);
+        return;
+      }
+      
       if (currentMode !== 'mp4') {
           setMode('mp4');
           return;
@@ -1507,8 +1439,14 @@
       }
     }
 
+    // 🔒 鎖定自讀點擊（未完成跟讀前不允許切換）
     function handleZiduClick() {
       triggerAppFullscreen();
+      if (practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
+        showToast("⚠️ 請先完成跟讀，系統將自動帶您進入自讀階段", 3000);
+        return;
+      }
+
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!audioContext) audioContext = new AudioContextClass();
@@ -1526,11 +1464,6 @@
           if (parsedTextLines.length === 0) {
               showToast("經文處理中，請稍候", 2000);
               return;
-          }
-          
-          if (markA_Index === -1 || markB_Index === -1) { 
-              setupStageRange();
-              showToast("已自動載入今日排程範圍", 2500);
           }
 
           isGuideActive = true;
@@ -1552,36 +1485,6 @@
       }
     }
 
-    function handleRecordModeClick() {
-      triggerAppFullscreen();
-      if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
-        setMode('pdf', 'compare');
-        preWarmMediaRecorder();
-        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2500);
-        return;
-      }
-
-      if (isUserRecording) {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-          mediaRecorder.stop();
-        }
-        isUserRecording = false;
-        renderUI();
-        setTimeout(() => {
-          if (recordedAudioBlobUrl) {
-            togglePlaybackAction();
-            showToast('▶️ 錄音完成，正在為您播放比對', 2500);
-          }
-        }, 200);
-      } else {
-        if (parsedTextLines.length === 0) {
-          showToast("經文處理中，請稍等片刻", 2000);
-          return;
-        }
-        toggleReliableRecordAction();
-      }
-    }
-
     let mp4PrecisionCheckAnimId = null;
     function startMp4PrecisionCheck() {
       if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
@@ -1600,6 +1503,7 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
+    // 🔄 階段自動推進與圓滿邏輯
     function handleCycleCompletion() {
       if (currentMode === 'mp4') {
         video.pause();
@@ -1607,60 +1511,93 @@
         haltGuideRunnerImmediately();
       }
 
-      const targetRepeat = (practiceStage === 'new') ? (currentDayPlan.repeat || 3) : (currentDayPlan.cRepeat || 1);
-      currentCycleCount++;
+      const newRepeat = currentDayPlan.repeat || 3;
+      const cRepeat = currentDayPlan.cRepeat || 1;
+      const hasCumulative = currentDayPlan.cRepeat && currentDayPlan.cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
 
+      currentCycleCount++;
       const earned = calculateSentenceCount();
       addCoins(earned);
 
-      if (currentCycleCount < targetRepeat) {
-        showToast(`✅ ${practiceStage === 'new' ? '新進度' : '串習複習'}完成第 ${currentCycleCount} 遍（共 ${targetRepeat} 遍）`, 2000);
-        setupStageRange();
-        if (currentMode === 'mp4') {
+      if (practicePhase === 'new_gendu') {
+        if (currentCycleCount < newRepeat) {
+          showToast(`✅ 新進度跟讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
+          setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
-        } else if (currentMode === 'pdf' && pdfSubMode === 'guide') {
-          setTimeout(() => { handleZiduClick(); }, 500);
+        } else {
+          // 🌟 新進度跟讀圓滿 -> 自動切換自讀並播報指定語音
+          practicePhase = 'new_zidu';
+          currentCycleCount = 0;
+          setupStageRange();
+
+          setMode('pdf', 'guide');
+          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。");
+          showToast("🎉 新進度跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
+
+          setTimeout(() => { 
+            handleZiduClick(); 
+          }, 1200);
         }
-      } else {
-        if (practiceStage === 'new') {
-          const hasCumulative = currentDayPlan.cRepeat && currentDayPlan.cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
-
+      } else if (practicePhase === 'new_zidu') {
+        if (currentCycleCount < newRepeat) {
+          showToast(`✅ 新進度自讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
+          setupStageRange();
+          setTimeout(() => { handleZiduClick(); }, 500);
+        } else {
           if (hasCumulative) {
-            triggerSevenColoredLotusFlowerRain();
-            speakPrompt('新進度圓滿，準備進入串習複習');
-            showToast('🎉 新進度圓滿！3秒後自動進入串習複習...', 4000);
+            practicePhase = 'cumulative_gendu';
+            currentCycleCount = 0;
+            setupStageRange();
 
-            setTimeout(() => {
-              practiceStage = 'cumulative';
-              currentCycleCount = 0;
-              
-              setupStageRange();
-              updateVisualDisplay();
-              scrollToAlignTop(markA_Index);
+            setMode('mp4');
+            speakPrompt("新進度圓滿，準備進入串習複習跟讀");
+            showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
 
-              showToast(`🔄 開始今日串習複習（第 1 / ${currentDayPlan.cRepeat} 遍）`, 3000);
-              
-              if (currentMode === 'mp4') {
-                const range = getActiveVideoRange();
-                if (range.valid) {
-                  video.currentTime = range.start;
-                }
-                handleGenduClick();
-              } else if (currentMode === 'pdf' && pdfSubMode === 'guide') {
-                handleZiduClick();
-              }
+            setTimeout(() => { 
+              const range = getActiveVideoRange();
+              if (range.valid) { video.currentTime = range.start; }
+              handleGenduClick(); 
             }, 3000);
           } else {
             triggerSevenColoredLotusFlowerRain();
-            speakPrompt('今日定課已圓滿');
-            showToast('🎉 今日定課已圓滿！', 5500);
+            speakPrompt("今日定課已圓滿");
+            showToast("🎉 今日定課已圓滿！", 5500);
+            practicePhase = 'completed';
           }
+        }
+      } else if (practicePhase === 'cumulative_gendu') {
+        if (currentCycleCount < cRepeat) {
+          showToast(`✅ 串習複習跟讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
+          setupStageRange();
+          const range = getActiveVideoRange();
+          if (range.valid) { video.currentTime = range.start; }
+          setTimeout(() => { handleGenduClick(); }, 500);
+        } else {
+          // 🌟 串習跟讀圓滿 -> 自動切換自讀並播報指定語音
+          practicePhase = 'cumulative_zidu';
+          currentCycleCount = 0;
+          setupStageRange();
+
+          setMode('pdf', 'guide');
+          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。");
+          showToast("🎉 串習複習跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
+
+          setTimeout(() => { 
+            handleZiduClick(); 
+          }, 1200);
+        }
+      } else if (practicePhase === 'cumulative_zidu') {
+        if (currentCycleCount < cRepeat) {
+          showToast(`✅ 串習複習自讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
+          setupStageRange();
+          setTimeout(() => { handleZiduClick(); }, 500);
         } else {
           triggerSevenColoredLotusFlowerRain();
-          speakPrompt('今日串習複習圓滿');
-          showToast('🎉 今日串習與定課全部圓滿！', 5500);
+          speakPrompt("今日串習與定課全部圓滿");
+          showToast("🎉 今日串習與定課全部圓滿！隨喜功德", 5500);
+          practicePhase = 'completed';
         }
       }
     }
@@ -1680,9 +1617,7 @@
       canvas.height = window.innerHeight;
 
       const flowers = [];
-      const lotusColors = [
-        '#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'
-      ];
+      const lotusColors = ['#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'];
       
       for (let i = 0; i < 70; i++) {
         flowers.push({
@@ -1750,7 +1685,6 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 嚴格依據要求：精緻的福慧金幣（寫有「福」、「慧」字樣，平滑落下絕不抖動）
     function triggerOfferingCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -1767,7 +1701,7 @@
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
           radius: Math.random() * 12 + 14,
-          speedY: Math.random() * 1.5 + 0.8, // 溫和穩定的下落速度，確保平順不抖動
+          speedY: Math.random() * 1.5 + 0.8,
           speedX: (Math.random() - 0.5) * 0.8,
           rotation: Math.random() * Math.PI * 2,
           rotationSpeed: (Math.random() - 0.5) * 0.04,
@@ -1793,7 +1727,6 @@
           ctx.rotate(c.rotation);
           ctx.globalAlpha = c.opacity;
 
-          // 金幣主體漸層色
           const grad = ctx.createRadialGradient(-2, -2, 2, 0, 0, c.radius);
           grad.addColorStop(0, '#FEF08A');
           grad.addColorStop(0.5, '#F59E0B');
@@ -1804,14 +1737,12 @@
           ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
           ctx.fill();
 
-          // 金幣精緻雙層外框
           ctx.strokeStyle = '#FEF3C7';
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(0, 0, c.radius * 0.82, 0, Math.PI * 2);
           ctx.stroke();
 
-          // 金幣上的「福」與「慧」字樣
           ctx.fillStyle = '#FFFFFF';
           ctx.font = `bold ${Math.floor(c.radius * 0.9)}px sans-serif`;
           ctx.textAlign = 'center';
@@ -1861,115 +1792,14 @@
     }
 
     function updateVisualDisplay() {
-      const btnMarkADom = document.getElementById('btn-mark-a');
-      const btnMarkBDom = document.getElementById('btn-mark-b');
-
-      if (currentMode === 'pdf') {
-        if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
-          if (btnMarkADom) btnMarkADom.classList.add('active-mark');
-          renderMarkerLine(markALine, parsedTextLines[markA_Index]);
-        } else {
-          if (btnMarkADom) btnMarkADom.classList.remove('active-mark');
-          markALine.style.display = 'none';
-        }
-
-        if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
-          if (btnMarkBDom) btnMarkBDom.classList.add('active-mark');
-          renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
-        } else {
-          if (btnMarkBDom) btnMarkBDom.classList.remove('active-mark');
-          markBLine.style.display = 'none';
-        }
-      }
-
       if (!isGuideActive && currentMode === 'pdf') {
         guideLine.style.display = 'none';
         redDot.style.display = 'none';
       }
     }
 
-    function getLineIndexAtClientPoint(clientX, clientY) {
-      if (parsedTextLines.length === 0) return 0;
-      let closestIdx = 0, minDiff = Infinity;
-
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-
-      for (let i = 0; i < parsedTextLines.length; i++) {
-        const line = parsedTextLines[i];
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const lineScreenY = canvasRect.top + (line.underLineY * scaleY);
-
-        const diff = Math.abs(lineScreenY - clientY);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = i;
-        }
-      }
-      return closestIdx;
-    }
-
-    function handleMarkAClck() {
-      if (currentMode !== 'pdf') {
-        setMode('pdf', 'guide');
-      }
-      isSelectingMarkA = true;
-      isSelectingMarkB = false;
-      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
-      renderUI();
-    }
-
-    function handleMarkBClick() {
-      if (currentMode !== 'pdf') {
-        setMode('pdf', 'guide');
-      }
-      isSelectingMarkB = true;
-      isSelectingMarkA = false;
-      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
-      renderUI();
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        const canvasEl = document.getElementById('pdf-canvas');
-        if (canvasEl) {
-          canvasEl.addEventListener('click', (e) => {
-            if (currentMode !== 'pdf') return;
-            if (!isSelectingMarkA && !isSelectingMarkB) return;
-
-            const clientX = e.clientX;
-            const clientY = e.clientY;
-            const targetIdx = getLineIndexAtClientPoint(clientX, clientY);
-
-            if (isSelectingMarkA) {
-              isManualSelected = true;
-              markA_Index = targetIdx;
-              if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
-              isSelectingMarkA = false;
-              updateVisualDisplay();
-              renderUI();
-              showToast("✅ 起句設定成功！", 2500);
-            } else if (isSelectingMarkB) {
-              if (markA_Index !== -1 && targetIdx < markA_Index) {
-                showToast("⚠️ 終點不能在起點之前", 2500);
-                return;
-              }
-              isManualSelected = true;
-              markB_Index = targetIdx;
-              isSelectingMarkB = false;
-              updateVisualDisplay();
-              renderUI();
-              showToast("✅ 終句設定成功！", 2500);
-            }
-          });
-        }
-      }, 1000);
-    });
-
     function handleShutdownClick() {
       haltGuideRunnerImmediately();
-      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
-      isUserRecording = false;
-      if (recordAudioElement) recordAudioElement.pause();
       releaseMicrophoneResources();
       try { video.pause(); } catch (e) {}
       showToast("已離開全螢幕，釋放所有媒體與麥克風資源", 3000);
@@ -2082,41 +1912,6 @@
       vadCheckTimer = requestAnimationFrame(loop);
     }
 
-    async function toggleReliableRecordAction() {
-      const ok = await ensureMicrophoneActive();
-      if (!ok) return;
-
-      audioChunks = [];
-      mediaRecorder = new MediaRecorder(micStream);
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.push(e.data);
-      };
-      mediaRecorder.onstop = () => {
-        const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
-        const recordedBlob = new Blob(audioChunks, options);
-        recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
-        recordAudioElement.src = recordedAudioBlobUrl;
-        recordAudioElement.playbackRate = compareSpeed;
-        renderUI();
-      };
-      mediaRecorder.start(); 
-      isUserRecording = true;
-      renderUI();
-    }
-
-    function togglePlaybackAction() {
-      if (!recordedAudioBlobUrl) return;
-      if (isGuideActive) haltGuideRunnerImmediately();
-
-      if (recordAudioElement.paused) {
-        recordAudioElement.playbackRate = compareSpeed;
-        recordAudioElement.play().then(() => renderUI()).catch(() => {});
-      } else {
-        recordAudioElement.pause();
-        renderUI();
-      }
-    }
-
     function handleOfferingClick() {
       const displayCoinsCount = document.getElementById('display-coins-count');
       const inputClassId = document.getElementById('input-class-id');
@@ -2210,7 +2005,6 @@
         renderLeaderboards(data, classId, userName, coinsToOffer);
         leaderboardOverlay.style.display = 'flex';
         
-        // 🌟 完美觸發寫有「福」、「慧」字樣且平滑不抖動的金幣落下特效
         triggerOfferingCoinRain();
       }
 
