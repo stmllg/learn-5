@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v550 (完整功能全集版)</title>
+  <title>歡喜背書橫式雙模播放器 v551 (完整功能全集版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,13 +11,13 @@
   <meta name="theme-color" content="#0B0F19">
 
   <!-- ========================================================================== -->
-  <!-- 📌【v550 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
+  <!-- 📌【v551 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
   <!-- ========================================================================== -->
   <script>
     const CURRENT_CLASSIC_ID = 'er_sheng'; // ⚠️ 1. 新經典英文代碼
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec'; // 2. 後端記錄網址
     
-    // 🌟【v550 萬用排程演算法預設參數】
+    // 🌟【v551 萬用排程演算法預設參數】
     const CLASSIC_TOTAL_SENTENCES = 37;       // 該經典的總句數（固定唯讀）
     const DEFAULT_DAILY_STEP = 4;             // 每日推進步幅預設 (1, 2, 4)
     const DEFAULT_REPEAT_NEW = 10;            // 今日定課預設遍數
@@ -260,7 +260,7 @@
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
     }
 
-    /* 🌟 v550 橫式排程設定彈窗：支援整體視窗順暢向上滑動 */
+    /* 🌟 v551 橫式排程設定彈窗：支援整體視窗順暢向上滑動 */
     #schedule-modal-overlay {
       display: none;
       position: fixed;
@@ -741,7 +741,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 v550 陪伴卡 -->
+  <!-- 🌟 v551 陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -752,17 +752,17 @@
     </div>
   </div>
 
-  <!-- 🌟 v550 橫式排程設定彈窗 -->
+  <!-- 🌟 v551 橫式排程設定彈窗（支援整體視窗順暢向上滑動） -->
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v550)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v551)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
           <span class="schedule-field-label">經典總句數 / 已學：</span>
           <div style="display: flex; gap: 4px; align-items: center;">
             <div id="display-total-sentences" class="schedule-field-readonly">37句</div>
-            <input type="number" id="input-completed-sentences" class="schedule-field-input" min="0" max="37" readonly style="width: 75px; background: #1E293B; color: #94A3B8; border-color: #475569;">
+            <input type="number" id="input-completed-sentences" class="schedule-field-input" min="0" max="37" oninput="previewScheduleChanges()" style="width: 75px;">
           </div>
         </div>
 
@@ -785,7 +785,7 @@
         </div>
       </div>
 
-      <!-- 滾雪球串習排程預覽框 -->
+      <!-- 滾雪球串習排程預覽框 (一行不折行，支援橫向滑動) -->
       <div class="schedule-preview-single">
         <div class="schedule-preview-title">✨ 滾雪球串習排程預覽 (今天起接續)</div>
         <div id="preview-new-list" class="schedule-preview-list">計算中...</div>
@@ -808,7 +808,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v550 載入中】...</div>
+  <div id="schedule-toast">📦 【v551 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1019,7 +1019,7 @@
     }
 
     function saveCurrentAppState() {
-      if (!hasEnteredReciting || isSpecialVideoPlaying) return;
+      if (!hasEnteredReciting) return;
       const state = {
         currentMode: currentMode,
         pdfSubMode: pdfSubMode,
@@ -1033,18 +1033,18 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      localStorage.setItem('APP_SAVED_STATE_V550', JSON.stringify(state));
+      localStorage.setItem('APP_SAVED_STATE_V539_6', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = localStorage.getItem('APP_SAVED_STATE_V550');
+      const savedStr = localStorage.getItem('APP_SAVED_STATE_V539_6');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          localStorage.removeItem('APP_SAVED_STATE_V550');
+          localStorage.removeItem('APP_SAVED_STATE_V539_6');
           return false;
         }
 
@@ -1055,7 +1055,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        localStorage.removeItem('APP_SAVED_STATE_V550');
+        localStorage.removeItem('APP_SAVED_STATE_V539_6');
         return false;
       }
     }
@@ -1091,6 +1091,7 @@
         setMode('pdf', pdfSubMode);
       }
 
+      // 🌟 v551 修正：確實將復原提示彈窗關閉隱藏，讓長輩能順利回到畫面繼續操作
       restoreModalOverlay.style.display = 'none';
       showToast('✨ 已回到上次進度，請按「跟讀」或「自讀」開始運行', 5000);
     }
@@ -1188,10 +1189,10 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V550');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V539_6');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V550', todayStr);
-        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V550');
+        localStorage.setItem('APP_ACTIVE_DATE_V539_6', todayStr);
+        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V539_6');
         isScheduleRepeatLocked = true;
       }
     }
@@ -1223,7 +1224,7 @@
 
     async function closeCompanionCard() {
       hasEnteredReciting = true;
-      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V550', 'true');
+      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V539_6', 'true');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
       companionOverlay.style.opacity = '0';
@@ -1255,7 +1256,7 @@
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V550');
+      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V539_6');
       if (saved !== null) return parseInt(saved, 10);
       return 0;
     }
@@ -1285,7 +1286,7 @@
     }
 
     function openScheduleModal() {
-      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V550') || '{}');
+      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V539_6') || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
@@ -1389,10 +1390,10 @@
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      localStorage.setItem('USER_CURRENT_PROGRESS_END_V550', testCompleted.toString());
+      localStorage.setItem('USER_CURRENT_PROGRESS_END_V539_6', testCompleted.toString());
 
       const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
-      localStorage.setItem('USER_SCHEDULE_SETTINGS_V550', JSON.stringify(settings));
+      localStorage.setItem('USER_SCHEDULE_SETTINGS_V539_6', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
@@ -1412,7 +1413,7 @@
 
       let buddhaUrl = './reciting_buddha_name.mp4';
       try {
-        const savedBuddha = await getLocalFile('reciting_buddha_file_v550');
+        const savedBuddha = await getLocalFile('reciting_buddha_file_v539_6');
         if (savedBuddha && savedBuddha.data) {
           buddhaUrl = URL.createObjectURL(new Blob([savedBuddha.data], { type: 'video/mp4' }));
         }
@@ -1420,7 +1421,6 @@
 
       video.src = buddhaUrl;
       video.currentTime = 0;
-      video.loop = false;
       video.playbackRate = 1.0;
       showToast('🙏【今日念佛清心】播放中...', 4000);
 
@@ -1449,11 +1449,10 @@
 
     function proceedAfterVideoSequence() {
       isSpecialVideoPlaying = false;
-      localStorage.removeItem('APP_SAVED_STATE_V550');
       document.getElementById('left-wing').style.display = 'flex';
       document.getElementById('right-wing').style.display = 'flex';
-
-      getLocalFile('video_file_v550').then(savedVid => {
+      localStorage.removeItem('APP_SAVED_STATE_V551');
+      getLocalFile('video_file_v551').then(savedVid => {
         if (savedVid && savedVid.data) {
           video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
         } else {
@@ -1479,7 +1478,7 @@
 
         let meritUrl = './merit_dedication.mp4';
         try {
-          const savedMerit = await getLocalFile('merit_dedication_file_v550');
+          const savedMerit = await getLocalFile('merit_dedication_file_v539_6');
           if (savedMerit && savedMerit.data) {
             meritUrl = URL.createObjectURL(new Blob([savedMerit.data], { type: 'video/mp4' }));
           }
@@ -1487,7 +1486,6 @@
 
         video.src = meritUrl;
         video.currentTime = 0;
-        video.loop = false;
         video.playbackRate = 1.0;
         showToast('🙏【背書功德迴向】播放中...', 4000);
 
@@ -1519,7 +1517,7 @@
       isSpecialVideoPlaying = false;
       document.getElementById('left-wing').style.display = 'flex';
       document.getElementById('right-wing').style.display = 'flex';
-      getLocalFile('video_file_v550').then(savedVid => {
+      getLocalFile('video_file_v551').then(savedVid => {
         if (savedVid && savedVid.data) {
           video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
         } else {
@@ -1533,27 +1531,27 @@
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
       const todayStr = getNormalizedDateStr();
-      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V550');
+      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V539_6');
       const isFirstCheckToday = (lastCheckDate !== todayStr);
 
       let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v550 系統更新檢查】\n";
+      let logMsg = "📦 【v551 系統更新檢查】\n";
 
-      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V550')) {
+      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V539_6')) {
         const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE, testCompleted: 0 };
         generateAlgorithmicSchedule(defaultSettings);
         hasAnyUpdateDetected = true;
         logMsg += "- 排程演算法: 初始化建立 ✅\n";
       }
 
-      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V550');
+      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V539_6');
       try {
         const res = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
           const freshSentStr = JSON.stringify(freshSent);
           if (freshSentStr !== localSentStr) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V550', freshSentStr);
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V539_6', freshSentStr);
             scriptureData = freshSent;
             hasAnyUpdateDetected = true;
           }
@@ -1567,14 +1565,14 @@
             const res = await fetch('./sentences.json?nocache=' + timestamp);
             if (res.ok) {
               scriptureData = await res.json();
-              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V550', JSON.stringify(scriptureData));
+              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V539_6', JSON.stringify(scriptureData));
               hasAnyUpdateDetected = true;
             }
           } catch (e) {}
         }
       }
 
-      const savedPdf = await getLocalFile('pdf_file_v550');
+      const savedPdf = await getLocalFile('pdf_file_v539_6');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
       } else {
@@ -1582,7 +1580,7 @@
           const res = await fetch('./scripture.pdf?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v550', buf, 'pdf_cached');
+            await saveLocalFile('pdf_file_v539_6', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
             hasAnyUpdateDetected = true;
           }
@@ -1592,7 +1590,7 @@
         await renderPdfOnValidDimensions();
       }
 
-      const savedVid = await getLocalFile('video_file_v550');
+      const savedVid = await getLocalFile('video_file_v539_6');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
       } else {
@@ -1600,37 +1598,37 @@
           const res = await fetch('./chant_video.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v550', buf, 'vid_cached');
+            await saveLocalFile('video_file_v539_6', buf, 'vid_cached');
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
             hasAnyUpdateDetected = true;
           }
         } catch (e) { video.src = './chant_video.mp4'; }
       }
 
-      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v550');
+      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v539_6');
       if (!savedBuddhaVid || !savedBuddhaVid.data) {
         try {
           const res = await fetch('./reciting_buddha_name.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('reciting_buddha_file_v550', buf, 'buddha_cached');
+            await saveLocalFile('reciting_buddha_file_v539_6', buf, 'buddha_cached');
           }
         } catch (e) {}
       }
 
-      const savedMeritVid = await getLocalFile('merit_dedication_file_v550');
+      const savedMeritVid = await getLocalFile('merit_dedication_file_v539_6');
       if (!savedMeritVid || !savedMeritVid.data) {
         try {
           const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('merit_dedication_file_v550', buf, 'merit_cached');
+            await saveLocalFile('merit_dedication_file_v539_6', buf, 'merit_cached');
           }
         } catch (e) {}
       }
 
       if (isFirstCheckToday) {
-        localStorage.setItem('LAST_ASSET_CHECK_DATE_V550', todayStr);
+        localStorage.setItem('LAST_ASSET_CHECK_DATE_V539_6', todayStr);
         if (hasAnyUpdateDetected) {
           showToast(logMsg + "\n✨ 資源已自動更新至最新版本", 6000);
         }
@@ -1681,7 +1679,7 @@
         simDay++;
       }
 
-      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V550', JSON.stringify(scheduleList));
+      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V539_6', JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1689,7 +1687,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V550');
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V539_6');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -1706,7 +1704,7 @@
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        localStorage.setItem('USER_CURRENT_PROGRESS_END_V550', currentDayPlan.end.toString());
+        localStorage.setItem('USER_CURRENT_PROGRESS_END_V539_6', currentDayPlan.end.toString());
 
         practicePhase = 'new_gendu';
         currentCycleCount = 0;
@@ -2029,6 +2027,1222 @@
       }
     }, { passive: true });
 
+    function setMode(mode, subMode = 'guide') {
+      haltGuideRunnerImmediately();
+
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+      isUserRecording = false;
+      if (recordAudioElement) recordAudioElement.pause();
+
+      currentMode = mode;
+      pdfSubMode = subMode;
+
+      if (currentMode === 'mp4') {
+        releaseMicrophoneResources();
+
+        pdfContainerWrap.style.display = 'none';
+        guideStage.style.display = 'none';
+        videoWrap.style.display = 'flex';
+
+        centerCore.scrollTop = 0;
+        video.playbackRate = mp4Speed;
+
+        const range = getActiveVideoRange();
+        videoPausedAt = -1;
+        if (range.valid) {
+          try { video.currentTime = range.start; } catch (e) {}
+        }
+
+      } else if (currentMode === 'pdf') {
+        video.pause();
+
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+        guideStage.style.display = 'block';
+
+        ensureMicrophoneActive();
+        if (subMode === 'compare') preWarmMediaRecorder();
+
+        setTimeout(async () => {
+          try {
+            if (!cachedPdfBuffer) {
+              const localPdf = await getLocalFile('pdf_file_v539_6');
+              if (localPdf && localPdf.data) {
+                cachedPdfBuffer = localPdf.data;
+              } else {
+                const response = await fetch('./scripture.pdf?nocache=' + Date.now());
+                if (!response.ok) throw new Error('找不到 scripture.pdf');
+                cachedPdfBuffer = await response.arrayBuffer();
+                await saveLocalFile('pdf_file_v539_6', cachedPdfBuffer, 'mode-load');
+              }
+            }
+
+            if (!window.pdfjsLib) throw new Error('PDF 閱讀元件尚未載入');
+
+            if (!pdfCanvas.width || !pdfCanvas.height || parsedTextLines.length === 0) {
+              await renderPdfOnValidDimensions();
+            } else {
+              scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+            }
+          } catch (err) {}
+        }, 120);
+      }
+
+      saveCurrentAppState();
+      renderUI();
+    }
+
+    function renderUI() {
+      if (practicePhase === 'completed') {
+        slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
+        const btnOffering = document.getElementById('btn-offering');
+        if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+
+        const textA = isSelectingMarkA ? '請點句' : '起句';
+        const textB = isSelectingMarkB ? '請點句' : '終句';
+        const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+        const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+
+        slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
+        slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
+        
+        slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
+        slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+      } else {
+        slotL1.innerHTML = '';
+        slotL2.innerHTML = '';
+        
+        if (currentMode === 'pdf' && pdfSubMode === 'guide') {
+          slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
+          slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+        } else {
+          slotL4.innerHTML = '';
+          slotR4.innerHTML = '';
+        }
+      }
+
+      slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
+      slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
+      
+      if (practicePhase === 'completed') {
+        slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
+      } else {
+        slotR3.innerHTML = '';
+      }
+
+      const btnMarkA = document.getElementById('btn-mark-a');
+      if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
+
+      const btnMarkB = document.getElementById('btn-mark-b');
+      if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
+
+      const btnSpeedDown = document.getElementById('btn-speed-down');
+      if (btnSpeedDown) {
+        btnSpeedDown.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentMode === 'mp4') triggerMp4SpeedChange(-0.1); 
+          else if (pdfSubMode === 'compare') triggerCompareSpeedChange(-0.1);
+          else triggerPdfSpeedChange(-0.1);
+        });
+      }
+
+      const btnGendu = document.getElementById('btn-gendu');
+      if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
+
+      const btnZidu = document.getElementById('btn-zidu');
+      if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
+
+      const btnRecord = document.getElementById('btn-record');
+      if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
+
+      const btnSpeedUp = document.getElementById('btn-speed-up');
+      if (btnSpeedUp) {
+        btnSpeedUp.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentMode === 'mp4') triggerMp4SpeedChange(+0.1); 
+          else if (pdfSubMode === 'compare') triggerCompareSpeedChange(+0.1);
+          else triggerPdfSpeedChange(+0.1);
+        });
+      }
+
+      updateModeButtonsStyle();
+      updateVisualDisplay();
+    }
+
+    function updateModeButtonsStyle() {
+      const btnGendu = document.getElementById('btn-gendu');
+      const btnZidu = document.getElementById('btn-zidu');
+      const btnRecord = document.getElementById('btn-record');
+
+      const colorBlack = '#000000';
+      const colorGreen = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+      const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
+
+      [btnGendu, btnZidu, btnRecord].forEach(btn => {
+          if (btn) {
+              btn.style.background = colorBlack;
+              btn.style.borderColor = '#BAE6FD';
+              btn.style.color = '#FB923C';
+              btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+              btn.classList.remove('recording-flashing');
+          }
+      });
+
+      if (btnGendu) {
+          const isGenduActivePhase = (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu' || practicePhase === 'completed');
+          const isGenduPlaying = (currentMode === 'mp4' && video && !video.paused);
+
+          if (isGenduPlaying) {
+              btnGendu.textContent = '跟著唸';
+              btnGendu.style.background = colorPurple;
+              btnGendu.style.borderColor = '#E9D5FF';
+              btnGendu.style.color = '#FFFFFF';
+              btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
+          } else if (isGenduActivePhase) {
+              btnGendu.textContent = '跟讀';
+              btnGendu.style.background = (currentMode === 'mp4') ? colorGreen : colorBlack;
+              btnGendu.style.borderColor = (currentMode === 'mp4') ? '#A7F3D0' : '#BAE6FD';
+              btnGendu.style.color = (currentMode === 'mp4') ? '#FFFFFF' : '#FB923C';
+          }
+      }
+
+      if (btnZidu) {
+          const isZiduActivePhase = (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu' || practicePhase === 'completed');
+          const isZiduRunning = (currentMode === 'pdf' && pdfSubMode === 'guide' && isGuideActive);
+
+          if (isZiduRunning) {
+              btnZidu.textContent = '唸出聲';
+              btnZidu.style.background = colorPurple;
+              btnZidu.style.borderColor = '#E9D5FF';
+              btnZidu.style.color = '#FFFFFF';
+              btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
+          } else if (isZiduActivePhase) {
+              btnZidu.textContent = '自讀';
+              btnZidu.style.background = (currentMode === 'pdf' && pdfSubMode === 'guide') ? colorGreen : colorBlack;
+              btnZidu.style.borderColor = (currentMode === 'pdf' && pdfSubMode === 'guide') ? '#A7F3D0' : '#BAE6FD';
+              btnZidu.style.color = (currentMode === 'pdf' && pdfSubMode === 'guide') ? '#FFFFFF' : '#FB923C';
+          }
+      }
+
+      if (btnRecord && practicePhase === 'completed') {
+          if (pdfSubMode === 'compare') {
+              btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
+              btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
+              btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
+              btnRecord.style.color = '#FFFFFF';
+              if (isUserRecording) btnRecord.classList.add('recording-flashing');
+          }
+      }
+    }
+
+    function handleGenduClick() {
+      triggerAppFullscreen();
+      if (practicePhase !== 'completed' && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
+        showToast("⚠️ 目前為自讀階段，請依照語音與紅點引導唸誦", 3000);
+        return;
+      }
+      
+      if (currentMode !== 'mp4') {
+          setMode('mp4');
+          return;
+      }
+      
+      if (video.paused) {
+          const range = getActiveVideoRange();
+          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 3000); return; }
+          
+          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
+              video.currentTime = videoPausedAt;
+          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
+              video.currentTime = range.start;
+          }
+
+          video.play().then(() => {
+              updateModeButtonsStyle();
+              startMp4PrecisionCheck();
+              saveCurrentAppState();
+          }).catch((err) => {
+              video.currentTime = range.start;
+              video.play().then(() => updateModeButtonsStyle()).catch(() => {});
+          });
+      } else {
+          video.pause();
+          videoPausedAt = video.currentTime;
+          updateModeButtonsStyle();
+          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
+          saveCurrentAppState();
+      }
+    }
+
+    function handleZiduClick() {
+      triggerAppFullscreen();
+      if (practicePhase !== 'completed' && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
+        showToast("⚠️ 請先完成跟讀，系統將自動帶您進入自讀階段", 3000);
+        return;
+      }
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') audioContext.resume();
+      } catch (e) {}
+
+      if (currentMode !== 'pdf' || pdfSubMode !== 'guide') {
+          setMode('pdf', 'guide');
+          return;
+      }
+
+      if (isGuideActive) {
+          haltGuideRunnerImmediately();
+          saveCurrentAppState();
+      } else {
+          if (parsedTextLines.length === 0) {
+              showToast("經文處理中，請稍候", 2000);
+              return;
+          }
+
+          isGuideActive = true;
+          if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+
+          isVoiceActive = false;
+          isTouchingDisplay = false;
+          isTransitioningLine = false;
+          hasPageFlipped = false;
+          isLineHeadLocked = true;
+          currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
+          currentCharIndexFloat = 0.0;
+          lastVoiceTime = performance.now();
+
+          ensureMicrophoneActive().then(() => {
+            startGuideRunner();
+            updateModeButtonsStyle();
+            saveCurrentAppState();
+          });
+      }
+    }
+
+    function handleRecordModeClick() {
+      triggerAppFullscreen();
+      if (practicePhase !== 'completed') {
+        showToast("⚠️ 請先完成今日定課與串習後方可解鎖比對功能", 3000);
+        return;
+      }
+
+      if (currentMode !== 'pdf' || pdfSubMode !== 'compare') {
+        setMode('pdf', 'compare');
+        preWarmMediaRecorder();
+        showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2500);
+        return;
+      }
+
+      if (isUserRecording) {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        isUserRecording = false;
+        renderUI();
+        setTimeout(() => {
+          if (recordedAudioBlobUrl) {
+            togglePlaybackAction();
+            showToast('▶️ 錄音完成，正在為您播放比對', 2500);
+          }
+        }, 200);
+      } else {
+        if (parsedTextLines.length === 0) {
+          showToast("經文處理中，請稍等片刻", 2000);
+          return;
+        }
+        toggleReliableRecordAction();
+      }
+    }
+
+    function handleMarkAClck() {
+      if (practicePhase !== 'completed') return;
+      if (currentMode !== 'pdf') setMode('pdf', 'guide');
+      isSelectingMarkA = true;
+      isSelectingMarkB = false;
+      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
+      renderUI();
+    }
+
+    function handleMarkBClick() {
+      if (practicePhase !== 'completed') return;
+      if (currentMode !== 'pdf') setMode('pdf', 'guide');
+      isSelectingMarkB = true;
+      isSelectingMarkA = false;
+      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
+      renderUI();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const canvasEl = document.getElementById('pdf-canvas');
+        if (canvasEl) {
+          canvasEl.addEventListener('click', (e) => {
+            if (currentMode !== 'pdf') return;
+            if (!isSelectingMarkA && !isSelectingMarkB) return;
+
+            const clientX = e.clientX;
+            const clientY = e.clientY;
+            const targetIdx = getLineIndexAtClientPoint(clientX, clientY);
+
+            if (isSelectingMarkA) {
+              isManualSelected = true;
+              markA_Index = targetIdx;
+              if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
+              isSelectingMarkA = false;
+              updateVisualDisplay();
+              renderUI();
+              saveCurrentAppState();
+              showToast("✅ 起句設定成功！", 2500);
+            } else if (isSelectingMarkB) {
+              if (markA_Index !== -1 && targetIdx < markA_Index) {
+                showToast("⚠️ 終點不能在起點之前", 2500);
+                return;
+              }
+              isManualSelected = true;
+              markB_Index = targetIdx;
+              isSelectingMarkB = false;
+              updateVisualDisplay();
+              renderUI();
+              saveCurrentAppState();
+              showToast("✅ 終句設定成功！", 2500);
+            }
+          });
+        }
+      }, 1000);
+    });
+
+    let mp4PrecisionCheckAnimId = null;
+    function startMp4PrecisionCheck() {
+      if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
+      function check() {
+        if (isSpecialVideoPlaying) {
+          mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+          return;
+        }
+
+        if (currentMode === 'mp4' && !video.paused && !video.ended) {
+          const range = getActiveVideoRange();
+          if (range.valid && video.currentTime >= range.end) {
+            video.pause();
+            video.currentTime = range.end;
+            handleMp4CycleEnd(range);
+            return;
+          }
+        }
+        mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+      }
+      mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+    }
+
+    function handleCycleCompletion() {
+      if (currentMode === 'mp4') {
+        video.pause();
+      } else if (currentMode === 'pdf' && pdfSubMode === 'guide') {
+        haltGuideRunnerImmediately();
+      }
+
+      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V539_6') || '{}');
+      const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
+      const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
+      const hasCumulative = cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
+
+      currentCycleCount++;
+      const earned = calculateSentenceCount();
+      addCoins(earned);
+
+      if (practicePhase === 'new_gendu') {
+        if (currentCycleCount < newRepeat) {
+          showToast(`✅ 新進度跟讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
+          setupStageRange();
+          const range = getActiveVideoRange();
+          if (range.valid) { video.currentTime = range.start; }
+          setTimeout(() => { handleGenduClick(); }, 500);
+        } else {
+          practicePhase = 'new_zidu';
+          currentCycleCount = 0;
+          setupStageRange();
+
+          setMode('pdf', 'guide');
+          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。");
+          showToast("🎉 新進度跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
+
+          setTimeout(() => { handleZiduClick(); }, 1200);
+        }
+      } else if (practicePhase === 'new_zidu') {
+        if (currentCycleCount < newRepeat) {
+          showToast(`✅ 新進度自讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
+          setupStageRange();
+          setTimeout(() => { handleZiduClick(); }, 500);
+        } else {
+          if (hasCumulative) {
+            practicePhase = 'cumulative_gendu';
+            currentCycleCount = 0;
+            setupStageRange();
+
+            setMode('mp4');
+            speakPrompt("新進度圓滿，準備進入串習複習跟讀");
+            showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
+
+            setTimeout(() => { 
+              const range = getActiveVideoRange();
+              if (range.valid) { video.currentTime = range.start; }
+              handleGenduClick(); 
+            }, 3000);
+          } else {
+            practicePhase = 'completed';
+            renderUI();
+            triggerSevenColoredLotusFlowerRain();
+            speakPrompt("今日定課已圓滿，功能已全部解鎖");
+            showToast("🎉 今日定課已圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
+          }
+        }
+      } else if (practicePhase === 'cumulative_gendu') {
+        if (currentCycleCount < cRepeat) {
+          showToast(`✅ 串習複習跟讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
+          setupStageRange();
+          const range = getActiveVideoRange();
+          if (range.valid) { video.currentTime = range.start; }
+          setTimeout(() => { handleGenduClick(); }, 500);
+        } else {
+          practicePhase = 'cumulative_zidu';
+          currentCycleCount = 0;
+          setupStageRange();
+
+          setMode('pdf', 'guide');
+          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。");
+          showToast("🎉 串習複習跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
+
+          setTimeout(() => { handleZiduClick(); }, 1200);
+        }
+      } else if (practicePhase === 'cumulative_zidu') {
+        if (currentCycleCount < cRepeat) {
+          showToast(`✅ 串習複習自讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
+          setupStageRange();
+          setTimeout(() => { handleZiduClick(); }, 500);
+        } else {
+          practicePhase = 'completed';
+          renderUI();
+          triggerSevenColoredLotusFlowerRain();
+          speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
+          showToast("🎉 今日串習與定課全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
+        }
+      }
+      saveCurrentAppState();
+    }
+
+    function handleMp4CycleEnd(range) {
+      videoPausedAt = -1;
+      video.currentTime = range.start;
+      handleCycleCompletion();
+    }
+
+    function triggerSevenColoredLotusFlowerRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const flowers = [];
+      const lotusColors = ['#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'];
+      
+      for (let i = 0; i < 70; i++) {
+        flowers.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 10 + 10,
+          speedY: Math.random() * 1.8 + 1.0,
+          speedX: (Math.random() - 0.5) * 1.2,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 2.5,
+          color: lotusColors[Math.floor(Math.random() * lotusColors.length)],
+          opacity: 0.94
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5800;
+
+      function animateLotusRain(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        flowers.forEach(f => {
+          f.y += f.speedY;
+          f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
+          f.rotation += f.rotationSpeed;
+
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate((f.rotation * Math.PI) / 180);
+          ctx.globalAlpha = f.opacity;
+
+          for (let j = 0; j < 5; j++) {
+            const angle = (j * 2 * Math.PI) / 5;
+            const dist = f.size * 0.40;
+            const cx = Math.cos(angle) * dist;
+            const cy = Math.sin(angle) * dist;
+            ctx.fillStyle = f.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, f.size * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.fillStyle = (f.color === '#F1F5F9') ? '#FEF08A' : '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+
+          if (f.y > canvas.height + 30) {
+            f.y = -30;
+            f.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateLotusRain);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateLotusRain);
+    }
+
+    function triggerOfferingCoinRain() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const coins = [];
+      const labels = ['福', '慧'];
+      
+      for (let i = 0; i < 55; i++) {
+        coins.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          radius: Math.random() * 12 + 14,
+          speedY: Math.random() * 1.5 + 0.8,
+          speedX: (Math.random() - 0.5) * 0.8,
+          rotation: Math.random() * Math.PI * 2,
+          rotationSpeed: (Math.random() - 0.5) * 0.04,
+          label: labels[i % labels.length],
+          opacity: 0.98
+        });
+      }
+
+      let startTime = performance.now();
+      const duration = 5500;
+
+      function animateCoinRain(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        coins.forEach(c => {
+          c.y += c.speedY;
+          c.x += c.speedX + Math.sin(c.y / 50) * 0.5;
+          c.rotation += c.rotationSpeed;
+
+          ctx.save();
+          ctx.translate(c.x, c.y);
+          ctx.rotate(c.rotation);
+          ctx.globalAlpha = c.opacity;
+
+          const grad = ctx.createRadialGradient(-2, -2, 2, 0, 0, c.radius);
+          grad.addColorStop(0, '#FEF08A');
+          grad.addColorStop(0.5, '#F59E0B');
+          grad.addColorStop(1, '#B45309');
+
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#FEF3C7';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, c.radius * 0.82, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = `bold ${Math.floor(c.radius * 0.9)}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(c.label, 0, 1);
+
+          ctx.restore();
+
+          if (c.y > canvas.height + 40) {
+            c.y = -40;
+            c.x = Math.random() * canvas.width;
+          }
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateCoinRain);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateCoinRain);
+    }
+
+    function renderMarkerLine(lineElement, lineObj) {
+      if (!lineObj) return;
+      if (!isAppleDevice) {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const localY = lineObj.underLineY * scaleY;
+
+        lineElement.style.top = localY + 'px';
+        lineElement.style.left = lineObj.x0 + 'px';
+        lineElement.style.width = (lineObj.x1 - lineObj.x0) + 'px';
+        lineElement.style.display = 'block';
+        return;
+      }
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      const scaleY = canvasRect.height / pdfCanvas.height;
+      const scaleX = canvasRect.width / pdfCanvas.width;
+
+      lineElement.style.top = (lineObj.underLineY * scaleY) + 'px';
+      lineElement.style.left = (lineObj.x0 * scaleX) + 'px';
+      lineElement.style.width = ((lineObj.x1 - lineObj.x0) * scaleX) + 'px';
+      lineElement.style.display = 'block';
+    }
+
+    function updateVisualDisplay() {
+      if (currentMode === 'pdf') {
+        if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
+          const btnMarkADom = document.getElementById('btn-mark-a');
+          if (btnMarkADom) btnMarkADom.classList.add('active-mark');
+          renderMarkerLine(markALine, parsedTextLines[markA_Index]);
+        } else {
+          markALine.style.display = 'none';
+        }
+
+        if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
+          const btnMarkBDom = document.getElementById('btn-mark-b');
+          if (btnMarkBDom) btnMarkBDom.classList.add('active-mark');
+          renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
+        } else {
+          markBLine.style.display = 'none';
+        }
+      }
+
+      if (!isGuideActive && currentMode === 'pdf') {
+        guideLine.style.display = 'none';
+        redDot.style.display = 'none';
+      }
+    }
+
+    function getLineIndexAtClientPoint(clientX, clientY) {
+      if (parsedTextLines.length === 0) return 0;
+      let closestIdx = 0, minDiff = Infinity;
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+
+      for (let i = 0; i < parsedTextLines.length; i++) {
+        const line = parsedTextLines[i];
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const lineScreenY = canvasRect.top + (line.underLineY * scaleY);
+        const diff = Math.abs(lineScreenY - clientY);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = i;
+        }
+      }
+      return closestIdx;
+    }
+
+    function handleShutdownClick() {
+      saveCurrentAppState();
+      haltGuideRunnerImmediately();
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+      isUserRecording = false;
+      if (recordAudioElement) recordAudioElement.pause();
+      releaseMicrophoneResources();
+      
+      try { 
+        video.pause(); 
+        video.currentTime = 0;
+        video.removeAttribute('src'); 
+        video.load(); 
+      } catch (e) {}
+
+      showToast("已自動存檔，並釋放所有媒體資源", 3000);
+      updateModeButtonsStyle();
+    }
+
+    async function ensureMicrophoneActive() {
+      if (micStream) return true;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+        });
+
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.04;
+        source.connect(analyser);
+
+        isCalibrating = true;
+        calibrationSamples = [];
+        setTimeout(() => {
+          if (calibrationSamples.length > 0) {
+            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+            baseNoiseLevel = sum / calibrationSamples.length;
+            dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
+          }
+          isCalibrating = false;
+        }, 350);
+
+        lastVoiceTime = performance.now();
+        startSharedVadLoop();
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    let vadDataArray = null;
+    function startSharedVadLoop() {
+      if (vadCheckTimer) return;
+      vadDataArray = new Float32Array(analyser.frequencyBinCount);
+
+      function loop() {
+        if (currentMode !== 'pdf') {
+          vadCheckTimer = null;
+          return;
+        }
+
+        if (analyser) {
+          analyser.getFloatTimeDomainData(vadDataArray);
+          let sumSquares = 0.0;
+          for (let i = 0; i < vadDataArray.length; i++) {
+            const val = vadDataArray[i];
+            sumSquares += val * val;
+          }
+          const rms = Math.sqrt(sumSquares / vadDataArray.length);
+
+          if (isCalibrating) calibrationSamples.push(rms);
+
+          const deltaRms = rms - prevRms;
+          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
+
+          if (hasVoiceEnergy) {
+            lastVoiceTime = performance.now();
+            silentFrameCount = 0;
+            if (!isVoiceActive && isGuideActive) {
+              isVoiceActive = true;
+              updateModeButtonsStyle();
+            }
+          } else {
+            silentFrameCount++;
+            if (silentFrameCount >= 24) {
+              if (isVoiceActive) {
+                isVoiceActive = false;
+                updateModeButtonsStyle();
+              }
+            }
+          }
+
+          if (isGuideActive) {
+            const timeSinceLineStart = performance.now() - lineActivationTimestamp;
+            const isInsideCooldown = (timeSinceLineStart < 120);
+
+            if (isLineHeadLocked && !isInsideCooldown && (deltaRms > (dynamicThreshold * 0.25) || isTouchingDisplay)) {
+              isLineHeadLocked = false;
+            }
+
+            if (isTransitioningLine) {
+              const elapsed = performance.now() - lineEndTime;
+              if (elapsed > 40 && (deltaRms > (dynamicThreshold * 0.40) || isTouchingDisplay)) {
+                proceedToNextLineImmediately();
+              } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70) && !isTouchingDisplay) {
+                proceedToNextLineImmediately();
+              } else if (elapsed >= 200) {
+                proceedToNextLineImmediately();
+              }
+            }
+          }
+
+          prevRms = rms;
+        }
+        vadCheckTimer = requestAnimationFrame(loop);
+      }
+      vadCheckTimer = requestAnimationFrame(loop);
+    }
+
+    async function toggleReliableRecordAction() {
+      const ok = await ensureMicrophoneActive();
+      if (!ok) return;
+
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(micStream);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
+        const recordedBlob = new Blob(audioChunks, options);
+        recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
+        recordAudioElement.src = recordedAudioBlobUrl;
+        recordAudioElement.playbackRate = compareSpeed;
+        renderUI();
+      };
+      mediaRecorder.start(); 
+      isUserRecording = true;
+      renderUI();
+    }
+
+    function togglePlaybackAction() {
+      if (!recordedAudioBlobUrl) return;
+      if (isGuideActive) haltGuideRunnerImmediately();
+
+      if (recordAudioElement.paused) {
+        recordAudioElement.playbackRate = compareSpeed;
+        recordAudioElement.play().then(() => renderUI()).catch(() => {});
+      } else {
+        recordAudioElement.pause();
+        renderUI();
+      }
+    }
+
+    function handleOfferingClick() {
+      const displayCoinsCount = document.getElementById('display-coins-count');
+      const inputClassId = document.getElementById('input-class-id');
+      const inputUserName = document.getElementById('input-user-name');
+      const offeringOverlay = document.getElementById('offering-modal-overlay');
+
+      if (displayCoinsCount) displayCoinsCount.textContent = (localStorage.getItem('user_accumulated_coins') || '0') + ' 枚';
+      if (inputClassId) inputClassId.value = localStorage.getItem('user_class_id') || '';
+      if (inputUserName) inputUserName.value = localStorage.getItem('user_profile_name') || '';
+      if (offeringOverlay) offeringOverlay.style.display = 'flex';
+    }
+
+    function getStoredCoins() {
+      return parseInt(localStorage.getItem('user_accumulated_coins') || '0', 10);
+    }
+    function addCoins(amount) {
+      const total = getStoredCoins() + amount;
+      localStorage.setItem('user_accumulated_coins', total.toString());
+      saveCurrentAppState();
+      return total;
+    }
+    function resetCoins() {
+      localStorage.setItem('user_accumulated_coins', '0');
+      saveCurrentAppState();
+    }
+    function calculateSentenceCount() {
+      if (parsedTextLines.length === 0) return 1;
+      const start = (markA_Index !== -1) ? markA_Index : 0;
+      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
+      return Math.max(1, Math.abs(end - start) + 1);
+    }
+
+    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
+
+    btnConfirmOffering.addEventListener('click', () => {
+      const classId = inputClassId.value.trim();
+      const userName = inputUserName.value.trim();
+
+      if (!classId || !userName) {
+        alert("請輸入班號與姓名！");
+        return;
+      }
+
+      localStorage.setItem('user_class_id', classId);
+      localStorage.setItem('user_profile_name', userName);
+
+      const coinsToOffer = getStoredCoins();
+      if (coinsToOffer <= 0) {
+        alert("目前福慧幣為 0 枚，請先精進背誦！");
+        return;
+      }
+
+      btnConfirmOffering.disabled = true;
+      btnConfirmOffering.textContent = '連線供養中...';
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const startDateParam = urlParams.get('start') || '';
+      const groupParam = urlParams.get('group') || '';
+      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
+
+      let isDone = false;
+      let timeoutTimer = null;
+      let scriptTag = null;
+
+      function cleanup() {
+        if (timeoutTimer) clearTimeout(timeoutTimer);
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+      }
+
+      function handleFailure(message) {
+        if (isDone) return;
+        isDone = true;
+        cleanup();
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+        showToast(message, 5000);
+      }
+
+      function handleSuccess(data) {
+        if (isDone) return;
+        if (!data || !Array.isArray(data.todayTop3) || !Array.isArray(data.totalTop3)) {
+          handleFailure('未取得完整排行榜資料，請稍後重試');
+          return;
+        }
+        isDone = true;
+        cleanup();
+        resetCoins();
+        displayCoinsCount.textContent = '0 枚';
+        offeringOverlay.style.display = 'none';
+        btnConfirmOffering.disabled = false;
+        btnConfirmOffering.textContent = '確認供養';
+        renderLeaderboards(data, classId, userName, coinsToOffer);
+        leaderboardOverlay.style.display = 'flex';
+        
+        triggerOfferingCoinRain();
+      }
+
+      timeoutTimer = setTimeout(() => { handleFailure('連線逾時，請稍後重試'); }, 20000);
+      window[callbackName] = (res) => handleSuccess(res);
+
+      scriptTag = document.createElement('script');
+      scriptTag.async = true;
+      scriptTag.crossOrigin = 'anonymous';
+      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&startDate=${encodeURIComponent(startDateParam)}&groupName=${encodeURIComponent(groupParam)}&callback=${callbackName}&t=${Date.now()}`;
+      scriptTag.onerror = () => { handleFailure('連線失敗，請檢查網路'); };
+      document.body.appendChild(scriptTag);
+    });
+
+    function renderLeaderboards(data, curClass, curName, curCoins) {
+      const medals = ['🥇', '🥈', '🥉'];
+      function buildListHtml(list) {
+        const fullList = (list && Array.isArray(list)) ? [...list] : [];
+        while (fullList.length < 3) fullList.push({ isPlaceholder: true });
+        return fullList.slice(0, 3).map((item, idx) => {
+          const medal = medals[idx] || `第${idx + 1}名`;
+          if (item.isPlaceholder) {
+            return `<div class="rank-item"><span>${medal} <i style="color:#94A3B8;">虛位以待</i></span><span class="rank-coins">--</span></div>`;
+          }
+          const displayName = item.maskName || item.name || curName;
+          const displayClass = item.classId ? `(${item.classId})` : '';
+          const coinsVal = (typeof item.coins === 'number') ? item.coins : curCoins;
+          return `<div class="rank-item"><span>${medal} ${displayName} <small style="color:#94A3B8;">${displayClass}</small></span><span class="rank-coins">${coinsVal} 枚</span></div>`;
+        }).join('');
+      }
+      todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
+      totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
+    }
+
+    btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
+
+    function haltGuideRunnerImmediately() {
+      isGuideActive = false;
+      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+      updateModeButtonsStyle();
+    }
+
+    function startGuideRunner() {
+      if (parsedTextLines.length === 0) return;
+      guideStage.style.height = Math.max(centerCore.scrollHeight, 2500) + 'px';
+      scrollToAlignTop(currentLineIndex);
+      setupActiveLine(currentLineIndex, currentCharIndexFloat);
+      lastAnimTimestamp = performance.now();
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function scrollToAlignTop(idx) {
+      if (isUserManualScrolling) return; 
+      const line = parsedTextLines[idx];
+      if (line) {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const displayTop = line.topGlobal * scaleY;
+        const targetTop = Math.max(0, displayTop - 18);
+
+        if (isAppleDevice) {
+          const viewportTop = centerCore.scrollTop;
+          const viewportBottom = viewportTop + centerCore.clientHeight;
+          if (displayTop < viewportTop || (line.bottomGlobal * scaleY) > viewportBottom) {
+            centerCore.scrollTo({ top: targetTop, behavior: 'smooth' });
+          }
+        } else {
+          centerCore.scrollTop = targetTop;
+        }
+      }
+    }
+
+    function getVisibleBottomLineIndex() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      let lastVisibleIdx = currentLineIndex;
+      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
+        if (parsedTextLines[i].underLineY <= viewportBottom - 16) lastVisibleIdx = i;
+        else break;
+      }
+      return lastVisibleIdx;
+    }
+
+    function checkAndTriggerPageFlip() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      if (markA_Index !== -1 && markB_Index !== -1) {
+        const lineA = parsedTextLines[markA_Index];
+        const lineB = parsedTextLines[markB_Index];
+        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) return;
+      }
+      const nextIndex = currentLineIndex + 1;
+      if (markB_Index !== -1 && nextIndex > markB_Index) return;
+
+      if (nextIndex < parsedTextLines.length) {
+        const nextLine = parsedTextLines[nextIndex];
+        if (nextLine.underLineY > (viewportBottom - 18)) scrollToAlignTop(nextIndex);
+      }
+    }
+
+    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
+      if (!line) return 0;
+      if (!line.charItems || line.charItems.length === 0) return line.x0;
+      const items = line.charItems;
+      const totalChars = items.length;
+      if (charProgressFloat <= 0) return items[0].x0;
+      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
+
+      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
+      const intraCharFraction = charProgressFloat - charIdx;
+      const item = items[charIdx];
+      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
+    }
+
+    function setupActiveLine(idx, initCurrent = 0.0) {
+      if (markB_Index !== -1 && idx > markB_Index) { handleCycleCompletion(); return; }
+      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+      const line = parsedTextLines[idx];
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      lineActivationTimestamp = performance.now();
+
+      if (isGuideActive) {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const scaleX = canvasRect.width / pdfCanvas.width;
+
+        guideLine.style.top = (line.underLineY * scaleY) + 'px';
+        guideLine.style.left = (line.x0 * scaleX) + 'px';
+        guideLine.style.width = ((line.x1 - line.x0) * scaleX) + 'px';
+        
+        const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+        redDot.style.top = (line.underLineY * scaleY) + 'px';
+        redDot.style.left = (rawX * scaleX) + 'px';
+
+        guideLine.style.display = 'block';
+        redDot.style.display = 'block';
+      }
+      isTransitioningLine = false;
+    }
+
+    function stepGuideMovement(now) {
+      if (!isGuideActive || isTransitioningLine) return;
+      let delta = now - lastAnimTimestamp;
+      if (delta <= 0 || delta > 120) delta = 16.6;
+      lastAnimTimestamp = now;
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const inertiaStartIndex = Math.max(1, totalChars - 2);
+      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
+
+      if (isVoiceActive || isTouchingDisplay || isInTailZone) {
+        const charPerMs = (2.8 * pdfSpeed) / 1000;
+        if (isLineHeadLocked) {
+          if (currentCharIndexFloat < 0.5) {
+            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
+          }
+        } else {
+          currentCharIndexFloat += charPerMs * delta;
+        }
+        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
+      }
+
+      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
+        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
+        if (!isCurrentLineAtTargetEnd) {
+          const visibleBottomIdx = getVisibleBottomLineIndex();
+          if (currentLineIndex === visibleBottomIdx) {
+            checkAndTriggerPageFlip();
+            hasPageFlipped = true;
+          }
+        }
+      }
+
+      if (currentCharIndexFloat >= totalChars) {
+        currentCharIndexFloat = totalChars;
+        if (curLine) {
+          const canvasRect = pdfCanvas.getBoundingClientRect();
+          const scaleY = canvasRect.height / pdfCanvas.height;
+          const scaleX = canvasRect.width / pdfCanvas.width;
+          const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+          redDot.style.left = (rawX * scaleX) + 'px';
+          redDot.style.top = (curLine.underLineY * scaleY) + 'px';
+        }
+
+        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
+        const nextIndex = currentLineIndex + 1;
+        if (markB_Index !== -1 && nextIndex > markB_Index) { handleCycleCompletion(); return; }
+        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+        isTransitioningLine = true;
+        lineEndTime = performance.now();
+        peakRmsAtLineEnd = prevRms;
+        guideLine.style.display = 'none';
+        return;
+      }
+
+      if (curLine) {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const scaleX = canvasRect.width / pdfCanvas.width;
+        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+        redDot.style.left = (rawX * scaleX) + 'px';
+        redDot.style.top = (curLine.underLineY * scaleY) + 'px';
+      }
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function proceedToNextLineImmediately() {
+      if (!isTransitioningLine || !isGuideActive) return;
+      const nextIndex = currentLineIndex + 1;
+      if (markB_Index !== -1 && nextIndex > markB_Index) {
+        handleCycleCompletion();
+        return;
+      }
+      hasPageFlipped = false;
+      currentLineIndex = nextIndex;
+      setupActiveLine(currentLineIndex, 0.0);
+      lastAnimTimestamp = performance.now();
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
@@ -2038,7 +3252,7 @@
 
       checkDailyResetOnStartup();
 
-      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V550');
+      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V539_6');
       if (!shownToday) {
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
       } else {
@@ -2068,7 +3282,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V550', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V539_6', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
