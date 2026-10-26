@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v538.5 (滾雪球串習與橫式介面重整版)</title>
+  <title>歡喜背書橫式雙模播放器 v538.6 (步幅按鈕與進度唯讀顯示版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,15 +11,15 @@
   <meta name="theme-color" content="#0B0F19">
 
   <!-- ========================================================================== -->
-  <!-- 📌【v538.5 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
+  <!-- 📌【v538.6 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
   <!-- ========================================================================== -->
   <script>
-    const CURRENT_CLASSIC_ID = 'er_sheng'; // ⚠️ 1. 新經典英文代碼：如 'er_sheng'、'bo_re'
+    const CURRENT_CLASSIC_ID = 'er_sheng'; // ⚠️ 1. 新經典英文代碼
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec'; // 2. 後端記錄網址
     
-    // 🌟【v538.5 萬用排程演算法預設參數】
+    // 🌟【v538.6 萬用排程演算法預設參數】
     const CLASSIC_TOTAL_SENTENCES = 37;       // 該經典的總句數（固定唯讀）
-    const DEFAULT_DAILY_STEP = 4;             // 每日推進步幅（預設每天 4 句）
+    const DEFAULT_DAILY_STEP = 4;             // 每日推進步幅預設 (1, 2, 4)
     const DEFAULT_REPEAT_NEW = 10;            // 今日定課預設遍數
     const DEFAULT_REPEAT_CUMULATIVE = 3;      // 今日串習預設遍數
   </script>
@@ -260,7 +260,7 @@
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
     }
 
-    /* 🌟 v538.5 橫式排程設定彈窗（完美整合理論佈局） */
+    /* 🌟 v538.6 橫式排程設定彈窗 */
     #schedule-modal-overlay {
       display: none;
       position: fixed;
@@ -335,6 +335,31 @@
       font-size: 14px;
       font-weight: 900;
       text-align: center;
+    }
+
+    /* 🌟 1, 2, 4 句步幅點選按鈕群組 */
+    .step-btn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .step-btn {
+      flex: 1;
+      padding: 4px 8px;
+      font-size: 14px;
+      font-weight: 900;
+      background: #0B0F19;
+      color: #94A3B8;
+      border: 2px solid #475569;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+    .step-btn.active {
+      background: linear-gradient(135deg, #34D399 0%, #059669 100%);
+      color: #064E3B;
+      border-color: #10B981;
+      box-shadow: 0 0 10px rgba(52, 211, 153, 0.4);
     }
     
     .schedule-preview-single {
@@ -713,7 +738,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 v538.5 陪伴卡 -->
+  <!-- 🌟 v538.6 陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -724,20 +749,31 @@
     </div>
   </div>
 
-  <!-- 🌟 v538.5 橫式排程設定視窗（總句數固定唯讀、步幅 1/2/4、滾雪球串習預覽） -->
+  <!-- 🌟 v538.6 橫式排程設定視窗 -->
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v538.5)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v538.6)</div>
       
       <div class="schedule-grid-layout">
+        <!-- 總句數與目前完成句數 (並排顯示，均為唯讀) -->
         <div class="schedule-field-row">
-          <span class="schedule-field-label">經典總句數 (固定)：</span>
-          <div id="display-total-sentences" class="schedule-field-readonly">37 句</div>
+          <span class="schedule-field-label">經典總句數：</span>
+          <div style="display: flex; gap: 6px;">
+            <div id="display-total-sentences" class="schedule-field-readonly">37 句</div>
+            <div id="display-completed-sentences" class="schedule-field-readonly" style="color: #38BDF8;" title="目前已完成到第幾句">已學:12句</div>
+          </div>
         </div>
+
+        <!-- 每日推進步幅選項按鈕 (1, 2, 4 句) -->
         <div class="schedule-field-row">
-          <span class="schedule-field-label">每日推進步幅 (1,2,4句)：</span>
-          <input type="number" id="input-daily-step" class="schedule-field-input" min="1" max="10" oninput="previewScheduleChanges()">
+          <span class="schedule-field-label">每日推進步幅：</span>
+          <div class="step-btn-group">
+            <button type="button" class="step-btn" data-step="1" onclick="selectDailyStep(1)">1句</button>
+            <button type="button" class="step-btn" data-step="2" onclick="selectDailyStep(2)">2句</button>
+            <button type="button" class="step-btn active" data-step="4" onclick="selectDailyStep(4)">4句</button>
+          </div>
         </div>
+
         <div class="schedule-field-row">
           <span class="schedule-field-label">定課預設遍數：</span>
           <input type="number" id="input-repeat-new" class="schedule-field-input" min="1" max="50" oninput="previewScheduleChanges()">
@@ -748,7 +784,7 @@
         </div>
       </div>
 
-      <!-- 變更後排程預覽框 (滾雪球串習：複習範圍從第1句包到當天) -->
+      <!-- 滾雪球串習排程預覽框 -->
       <div class="schedule-preview-single">
         <div class="schedule-preview-title">✨ 滾雪球串習排程預覽 (前5天)</div>
         <div id="preview-new-list" class="schedule-preview-list">計算中...</div>
@@ -771,7 +807,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v538.5 載入中】...</div>
+  <div id="schedule-toast">📦 【v538.6 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -916,6 +952,7 @@
     let practicePhase = 'new_gendu'; 
 
     let isSpecialVideoPlaying = false;
+    let selectedDailyStep = DEFAULT_DAILY_STEP; // 記錄目前選擇的步幅 (1, 2, 4)
 
     let audioContext = null;
     let analyser = null;
@@ -995,18 +1032,18 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      localStorage.setItem('APP_SAVED_STATE_V538_4', JSON.stringify(state));
+      localStorage.setItem('APP_SAVED_STATE_V538_6', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = localStorage.getItem('APP_SAVED_STATE_V538_4');
+      const savedStr = localStorage.getItem('APP_SAVED_STATE_V538_6');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          localStorage.removeItem('APP_SAVED_STATE_V538_4');
+          localStorage.removeItem('APP_SAVED_STATE_V538_6');
           return false;
         }
 
@@ -1017,7 +1054,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        localStorage.removeItem('APP_SAVED_STATE_V538_4');
+        localStorage.removeItem('APP_SAVED_STATE_V538_6');
         return false;
       }
     }
@@ -1150,10 +1187,10 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V538_4');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V538_6');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V538_4', todayStr);
-        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V538_4');
+        localStorage.setItem('APP_ACTIVE_DATE_V538_6', todayStr);
+        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V538_6');
         isScheduleRepeatLocked = true;
       }
     }
@@ -1185,7 +1222,7 @@
 
     async function closeCompanionCard() {
       hasEnteredReciting = true;
-      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V538_4', 'true');
+      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V538_6', 'true');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
       companionOverlay.style.opacity = '0';
@@ -1214,17 +1251,22 @@
     }
 
     function openScheduleModal() {
-      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V538_4') || '{}');
-      const step = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
+      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V538_6') || '{}');
+      selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
 
       document.getElementById('display-total-sentences').textContent = CLASSIC_TOTAL_SENTENCES + ' 句';
-      document.getElementById('input-daily-step').value = step;
+      
+      // 計算目前已完成到第幾句 (根據 currentDayPlan 或預設)
+      let completedCount = currentDayPlan ? currentDayPlan.end : selectedDailyStep;
+      document.getElementById('display-completed-sentences').textContent = `已學:${completedCount}句`;
+
+      updateStepButtonsUI(selectedDailyStep);
       document.getElementById('input-repeat-new').value = rNew;
       document.getElementById('input-repeat-cum').value = rCum;
 
-      renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: step, repeatNew: rNew, repeatCum: rCum }));
+      renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum }));
 
       scheduleModalOverlay.style.display = 'flex';
     }
@@ -1233,15 +1275,31 @@
       scheduleModalOverlay.style.display = 'none';
     }
 
+    function selectDailyStep(step) {
+      selectedDailyStep = step;
+      updateStepButtonsUI(step);
+      previewScheduleChanges();
+    }
+
+    function updateStepButtonsUI(activeStep) {
+      const buttons = document.querySelectorAll('.step-btn');
+      buttons.forEach(btn => {
+        const stepVal = parseInt(btn.getAttribute('data-step'), 10);
+        if (stepVal === activeStep) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
     function previewScheduleChanges() {
-      const step = parseInt(document.getElementById('input-daily-step').value, 10) || DEFAULT_DAILY_STEP;
       const rNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const rCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: step, repeatNew: rNew, repeatCum: rCum }));
+      renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum }));
     }
 
-    // 🌟 滾雪球串習演算法：複習範圍固定從第1句到當天結束句
     function generateTempScheduleList(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
       const step = settings.dailyStep;
@@ -1269,12 +1327,11 @@
     }
 
     function saveAndApplySchedule() {
-      const dailyStep = parseInt(document.getElementById('input-daily-step').value, 10) || DEFAULT_DAILY_STEP;
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep, repeatNew, repeatCum };
-      localStorage.setItem('USER_SCHEDULE_SETTINGS_V538_4', JSON.stringify(settings));
+      const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum };
+      localStorage.setItem('USER_SCHEDULE_SETTINGS_V538_6', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
@@ -1292,7 +1349,7 @@
 
       let buddhaUrl = './reciting_buddha_name.mp4';
       try {
-        const savedBuddha = await getLocalFile('reciting_buddha_file_v538_4');
+        const savedBuddha = await getLocalFile('reciting_buddha_file_v538_6');
         if (savedBuddha && savedBuddha.data) {
           buddhaUrl = URL.createObjectURL(new Blob([savedBuddha.data], { type: 'video/mp4' }));
         }
@@ -1328,7 +1385,7 @@
 
     function proceedAfterVideoSequence() {
       isSpecialVideoPlaying = false;
-      getLocalFile('video_file_v538_4').then(savedVid => {
+      getLocalFile('video_file_v538_6').then(savedVid => {
         if (savedVid && savedVid.data) {
           video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
         } else {
@@ -1356,7 +1413,7 @@
 
         let meritUrl = './merit_dedication.mp4';
         try {
-          const savedMerit = await getLocalFile('merit_dedication_file_v538_4');
+          const savedMerit = await getLocalFile('merit_dedication_file_v538_6');
           if (savedMerit && savedMerit.data) {
             meritUrl = URL.createObjectURL(new Blob([savedMerit.data], { type: 'video/mp4' }));
           }
@@ -1393,7 +1450,7 @@
 
     function finishDedicationVideo() {
       isSpecialVideoPlaying = false;
-      getLocalFile('video_file_v538_4').then(savedVid => {
+      getLocalFile('video_file_v538_6').then(savedVid => {
         if (savedVid && savedVid.data) {
           video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
         } else {
@@ -1407,27 +1464,27 @@
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
       const todayStr = getNormalizedDateStr();
-      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V538_4');
+      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V538_6');
       const isFirstCheckToday = (lastCheckDate !== todayStr);
 
       let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v538.5 系統更新檢查】\n";
+      let logMsg = "📦 【v538.6 系統更新檢查】\n";
 
-      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V538_4')) {
+      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V538_6')) {
         const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE };
         generateAlgorithmicSchedule(defaultSettings);
         hasAnyUpdateDetected = true;
         logMsg += "- 排程演算法: 初始化建立 ✅\n";
       }
 
-      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V538_4');
+      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V538_6');
       try {
         const res = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
           const freshSentStr = JSON.stringify(freshSent);
           if (freshSentStr !== localSentStr) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V538_4', freshSentStr);
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V538_6', freshSentStr);
             scriptureData = freshSent;
             hasAnyUpdateDetected = true;
           }
@@ -1441,14 +1498,14 @@
             const res = await fetch('./sentences.json?nocache=' + timestamp);
             if (res.ok) {
               scriptureData = await res.json();
-              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V538_4', JSON.stringify(scriptureData));
+              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V538_6', JSON.stringify(scriptureData));
               hasAnyUpdateDetected = true;
             }
           } catch (e) {}
         }
       }
 
-      const savedPdf = await getLocalFile('pdf_file_v538_4');
+      const savedPdf = await getLocalFile('pdf_file_v538_6');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
       } else {
@@ -1456,7 +1513,7 @@
           const res = await fetch('./scripture.pdf?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v538_4', buf, 'pdf_cached');
+            await saveLocalFile('pdf_file_v538_6', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
             hasAnyUpdateDetected = true;
           }
@@ -1466,7 +1523,7 @@
         await renderPdfOnValidDimensions();
       }
 
-      const savedVid = await getLocalFile('video_file_v538_4');
+      const savedVid = await getLocalFile('video_file_v538_6');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
       } else {
@@ -1474,37 +1531,37 @@
           const res = await fetch('./chant_video.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v538_4', buf, 'vid_cached');
+            await saveLocalFile('video_file_v538_6', buf, 'vid_cached');
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
             hasAnyUpdateDetected = true;
           }
         } catch (e) { video.src = './chant_video.mp4'; }
       }
 
-      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v538_4');
+      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v538_6');
       if (!savedBuddhaVid || !savedBuddhaVid.data) {
         try {
           const res = await fetch('./reciting_buddha_name.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('reciting_buddha_file_v538_4', buf, 'buddha_cached');
+            await saveLocalFile('reciting_buddha_file_v538_6', buf, 'buddha_cached');
           }
         } catch (e) {}
       }
 
-      const savedMeritVid = await getLocalFile('merit_dedication_file_v538_4');
+      const savedMeritVid = await getLocalFile('merit_dedication_file_v538_6');
       if (!savedMeritVid || !savedMeritVid.data) {
         try {
           const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('merit_dedication_file_v538_4', buf, 'merit_cached');
+            await saveLocalFile('merit_dedication_file_v538_6', buf, 'merit_cached');
           }
         } catch (e) {}
       }
 
       if (isFirstCheckToday) {
-        localStorage.setItem('LAST_ASSET_CHECK_DATE_V538_4', todayStr);
+        localStorage.setItem('LAST_ASSET_CHECK_DATE_V538_6', todayStr);
         if (hasAnyUpdateDetected) {
           showToast(logMsg + "\n✨ 資源已自動更新至最新版本", 6000);
         }
@@ -1547,7 +1604,7 @@
         currentStart = Math.min(total, currentEnd + 1);
       }
 
-      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V538_4', JSON.stringify(scheduleList));
+      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V538_6', JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1555,7 +1612,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V538_4');
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V538_6');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
