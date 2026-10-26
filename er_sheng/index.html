@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v538.4 (萬用智慧排程整合版)</title>
+  <title>歡喜背書橫式雙模播放器 v538.5 (滾雪球串習與橫式介面重整版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,13 +11,13 @@
   <meta name="theme-color" content="#0B0F19">
 
   <!-- ========================================================================== -->
-  <!-- 📌【v538.4 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
+  <!-- 📌【v538.5 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
   <!-- ========================================================================== -->
   <script>
     const CURRENT_CLASSIC_ID = 'er_sheng'; // ⚠️ 1. 新經典英文代碼：如 'er_sheng'、'bo_re'
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec'; // 2. 後端記錄網址
     
-    // 🌟【v538.4 萬用排程演算法預設參數】
+    // 🌟【v538.5 萬用排程演算法預設參數】
     const CLASSIC_TOTAL_SENTENCES = 37;       // 該經典的總句數（固定唯讀）
     const DEFAULT_DAILY_STEP = 4;             // 每日推進步幅（預設每天 4 句）
     const DEFAULT_REPEAT_NEW = 10;            // 今日定課預設遍數
@@ -260,6 +260,7 @@
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
     }
 
+    /* 🌟 v538.5 橫式排程設定彈窗（完美整合理論佈局） */
     #schedule-modal-overlay {
       display: none;
       position: fixed;
@@ -270,29 +271,34 @@
       backdrop-filter: blur(8px);
       justify-content: center;
       align-items: center;
-      padding: 16px;
+      padding: 12px;
       box-sizing: border-box;
     }
     .schedule-modal-card {
       background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
       border: 3px solid #38BDF8;
-      border-radius: 22px;
-      max-width: 540px;
-      width: 95%;
-      max-height: 90vh;
-      padding: 22px;
+      border-radius: 20px;
+      max-width: 680px;
+      width: 96%;
+      max-height: 92vh;
+      padding: 18px 22px;
       box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
       overflow-y: auto;
     }
     .schedule-modal-title {
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 900;
       color: #38BDF8;
       text-align: center;
       letter-spacing: 1px;
+    }
+    .schedule-grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
     .schedule-field-row {
       display: flex;
@@ -304,55 +310,48 @@
       border: 1px dashed rgba(56, 189, 248, 0.3);
     }
     .schedule-field-label {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       color: #E2E8F0;
     }
     .schedule-field-input {
-      width: 90px;
-      padding: 4px 8px;
+      width: 80px;
+      padding: 4px 6px;
       background: #0B0F19;
       color: #34D399;
       border: 2px solid #38BDF8;
       border-radius: 6px;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 900;
       text-align: center;
     }
     .schedule-field-readonly {
-      width: 90px;
-      padding: 4px 8px;
+      width: 80px;
+      padding: 4px 6px;
       background: #1E293B;
       color: #94A3B8;
       border: 2px solid #475569;
       border-radius: 6px;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 900;
       text-align: center;
     }
     
-    .schedule-preview-container {
-      display: flex;
-      gap: 10px;
-      width: 100%;
-      margin-top: 4px;
-    }
-    .schedule-preview-box {
-      flex: 1;
+    .schedule-preview-single {
       background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
       border-radius: 10px;
       padding: 10px;
       display: flex;
       flex-direction: column;
       gap: 6px;
-      max-height: 160px;
+      max-height: 130px;
       overflow-y: auto;
     }
     .schedule-preview-title {
       font-size: 13px;
       font-weight: 900;
-      color: #FBBF24;
+      color: #34D399;
       text-align: center;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 4px;
@@ -714,7 +713,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 v538.4 陪伴卡 -->
+  <!-- 🌟 v538.5 陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -725,42 +724,34 @@
     </div>
   </div>
 
-  <!-- 🌟 v538.4 排程參數互動調整與前後比對視窗 -->
+  <!-- 🌟 v538.5 橫式排程設定視窗（總句數固定唯讀、步幅 1/2/4、滾雪球串習預覽） -->
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程・前後對比校正</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v538.5)</div>
       
-      <!-- 總句數（固定唯讀顯示） -->
-      <div class="schedule-field-row">
-        <span class="schedule-field-label">經典總句數 (固定)：</span>
-        <div id="display-total-sentences" class="schedule-field-readonly">37 句</div>
-      </div>
-
-      <!-- 每日推進步幅 (1, 2, 4 句) -->
-      <div class="schedule-field-row">
-        <span class="schedule-field-label">每日推進步幅 (句數)：</span>
-        <input type="number" id="input-daily-step" class="schedule-field-input" min="1" max="20" oninput="previewScheduleChanges()">
-      </div>
-
-      <div class="schedule-field-row">
-        <span class="schedule-field-label">定課預設遍數：</span>
-        <input type="number" id="input-repeat-new" class="schedule-field-input" min="1" max="50" oninput="previewScheduleChanges()">
-      </div>
-      <div class="schedule-field-row">
-        <span class="schedule-field-label">串習預設遍數：</span>
-        <input type="number" id="input-repeat-cum" class="schedule-field-input" min="0" max="50" oninput="previewScheduleChanges()">
-      </div>
-
-      <!-- 排程前後對比預覽框 -->
-      <div class="schedule-preview-container">
-        <div class="schedule-preview-box">
-          <div class="schedule-preview-title">📜 變更前排程 (前5天)</div>
-          <div id="preview-old-list" class="schedule-preview-list">載入中...</div>
+      <div class="schedule-grid-layout">
+        <div class="schedule-field-row">
+          <span class="schedule-field-label">經典總句數 (固定)：</span>
+          <div id="display-total-sentences" class="schedule-field-readonly">37 句</div>
         </div>
-        <div class="schedule-preview-box">
-          <div class="schedule-preview-title" style="color: #34D399;">✨ 變更後排程 (前5天)</div>
-          <div id="preview-new-list" class="schedule-preview-list">計算中...</div>
+        <div class="schedule-field-row">
+          <span class="schedule-field-label">每日推進步幅 (1,2,4句)：</span>
+          <input type="number" id="input-daily-step" class="schedule-field-input" min="1" max="10" oninput="previewScheduleChanges()">
         </div>
+        <div class="schedule-field-row">
+          <span class="schedule-field-label">定課預設遍數：</span>
+          <input type="number" id="input-repeat-new" class="schedule-field-input" min="1" max="50" oninput="previewScheduleChanges()">
+        </div>
+        <div class="schedule-field-row">
+          <span class="schedule-field-label">串習預設遍數：</span>
+          <input type="number" id="input-repeat-cum" class="schedule-field-input" min="0" max="50" oninput="previewScheduleChanges()">
+        </div>
+      </div>
+
+      <!-- 變更後排程預覽框 (滾雪球串習：複習範圍從第1句包到當天) -->
+      <div class="schedule-preview-single">
+        <div class="schedule-preview-title">✨ 滾雪球串習排程預覽 (前5天)</div>
+        <div id="preview-new-list" class="schedule-preview-list">計算中...</div>
       </div>
 
       <div class="schedule-modal-actions">
@@ -780,7 +771,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v538.4 載入中】...</div>
+  <div id="schedule-toast">📦 【v538.5 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1233,9 +1224,6 @@
       document.getElementById('input-repeat-new').value = rNew;
       document.getElementById('input-repeat-cum').value = rCum;
 
-      // 產生變更前與變更後預覽文字
-      const currentStoredSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V538_4') || JSON.stringify({ dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE }));
-      renderPreviewList('preview-old-list', generateTempScheduleList(currentStoredSettings));
       renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: step, repeatNew: rNew, repeatCum: rCum }));
 
       scheduleModalOverlay.style.display = 'flex';
@@ -1253,6 +1241,7 @@
       renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: step, repeatNew: rNew, repeatCum: rCum }));
     }
 
+    // 🌟 滾雪球串習演算法：複習範圍固定從第1句到當天結束句
     function generateTempScheduleList(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
       const step = settings.dailyStep;
@@ -1264,7 +1253,7 @@
       for (let day = 1; day <= 5; day++) {
         let end = Math.min(total, start + step - 1);
         let cStart = (day > 1) ? 1 : '-';
-        let cEnd = (day > 1) ? Math.max(1, start - 1) : '-';
+        let cEnd = (day > 1) ? end : '-'; // 滾雪球：複習包含第1句到當天
         list.push(`第${day}天: 新[${start}~${end}](${rNew}遍) 複[${cStart}~${cEnd}](${rCum}遍)`);
         if (end >= total) break;
         start = Math.min(total, end + 1);
@@ -1422,7 +1411,7 @@
       const isFirstCheckToday = (lastCheckDate !== todayStr);
 
       let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v538.4 系統更新檢查】\n";
+      let logMsg = "📦 【v538.5 系統更新檢查】\n";
 
       if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V538_4')) {
         const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE };
@@ -1524,6 +1513,7 @@
       applyScheduleToState("");
     }
 
+    // 🌟 滾雪球演算法正式生成器：複習範圍固定從第1句到當天結束句
     function generateAlgorithmicSchedule(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
       const step = settings.dailyStep || DEFAULT_DAILY_STEP;
@@ -1539,7 +1529,7 @@
         let cStart = null, cEnd = null, cRepeat = 0;
         if (day > 1) {
           cStart = 1;
-          cEnd = Math.max(1, currentStart - 1);
+          cEnd = currentEnd; // 滾雪球：包含第1句到當天
           cRepeat = rCum;
         }
 
