@@ -285,7 +285,7 @@
       box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
       display: flex;
       flex-direction: column;
-      gap: 8px; /* 🌟 縮小所有內部元件的垂直間距 */
+      gap: 8px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
@@ -300,14 +300,14 @@
     .schedule-grid-layout {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px; /* 🌟 縮小方格間距 */
+      gap: 8px;
     }
     .schedule-field-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: rgba(15, 23, 42, 0.75);
-      padding: 8px 12px; /* 🌟 壓縮上下留白 */
+      padding: 8px 12px;
       border-radius: 10px;
       border: 1px dashed rgba(56, 189, 248, 0.3);
     }
@@ -339,7 +339,6 @@
       text-align: center;
     }
 
-    /* 🌟 1, 2, 4 句步幅點選按鈕群組 */
     .step-btn-group {
       display: flex;
       gap: 4px;
@@ -364,7 +363,6 @@
       box-shadow: 0 0 10px rgba(52, 211, 153, 0.4);
     }
     
-    /* 🌟 預覽區域：零間距、最大化呈現與放大字體 */
     .schedule-preview-single {
       background: rgba(15, 23, 42, 0.9);
       border: 1px solid rgba(56, 189, 248, 0.4);
@@ -385,10 +383,10 @@
       padding-bottom: 4px;
     }
     .schedule-preview-list {
-      font-size: 20px; /* 🌟 字體放大至 20px 確保清晰震撼 */
+      font-size: 20px;
       font-weight: 900;
       color: #F8FAFC;
-      line-height: 2.1; /* 🌟 確保行距寬鬆易讀 */
+      line-height: 2.1;
       font-family: monospace;
       white-space: nowrap;
     }
@@ -545,15 +543,6 @@
     }
     #left-wing { width: calc(68px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; }
     #right-wing { width: calc(68px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; }
-    
-    /* 🌟 v543 特殊影片播放時隱藏側翼控制按鈕 */
-    .side-wing.hidden-wing {
-      width: 0 !important;
-      opacity: 0 !important;
-      overflow: hidden !important;
-      padding: 0 !important;
-      pointer-events: none !important;
-    }
 
     .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
 
@@ -631,7 +620,6 @@
 
     .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
     .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
-    .btn-color-play { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; font-size: 16px !important; }
     .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
     .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
 
@@ -676,6 +664,23 @@
       z-index: 55;
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
+
+    /* 🌟 v543 獨立心靈與迴向影片播放專用圖層（與跟讀完全脫鉤） */
+    #standalone-video-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh; height: 100dvh;
+      background-color: #000000;
+      z-index: 999999;
+      justify-content: center;
+      align-items: center;
+    }
+    #standalone-video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
 
     #flowerCanvas {
       display: none;
@@ -738,6 +743,11 @@
   </style>
 </head>
 <body>
+
+  <!-- 🌟 獨立念佛與迴向影片播放器 (與跟讀徹底解耦分離) -->
+  <div id="standalone-video-overlay">
+    <video id="standalone-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
+  </div>
 
   <div id="line-browser-overlay">
     <div class="line-guide-card">
@@ -935,6 +945,10 @@
     const videoWrap = document.getElementById('video-container-wrap');
     const video = document.getElementById('my-chant-video');
 
+    // 🌟 獨立影片播放器元件參考
+    const standaloneOverlay = document.getElementById('standalone-video-overlay');
+    const standaloneVideo = document.getElementById('standalone-video');
+
     const scheduleToast = document.getElementById('schedule-toast');
     const speedToastBadge = document.getElementById('speed-toast-badge');
 
@@ -968,7 +982,6 @@
     let pdfSubMode = 'guide'; 
     let practicePhase = 'new_gendu'; 
 
-    let isSpecialVideoPlaying = false;
     let selectedDailyStep = DEFAULT_DAILY_STEP;
 
     let audioContext = null;
@@ -1092,7 +1105,6 @@
       markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
       isManualSelected = state.isManualSelected || false;
 
-      isSpecialVideoPlaying = false;
       renderUI();
 
       if (currentMode === 'mp4') {
@@ -1164,7 +1176,6 @@
         video.load(); 
       } catch(e) {}
 
-      isSpecialVideoPlaying = false;
       hasEnteredReciting = false;
       companionOverlay.style.display = 'flex';
       companionOverlay.style.opacity = '1';
@@ -1237,6 +1248,55 @@
       } catch (e) {}
     }
 
+    // 🌟 徹底解耦的獨立影片播放函式（念佛、迴共用）
+    async function playStandaloneVideo(videoType, onEndedCallback) {
+      haltGuideRunnerImmediately();
+      if (video && !video.paused) video.pause();
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
+      isUserRecording = false;
+
+      standaloneOverlay.style.display = 'flex';
+      
+      let fileKey = (videoType === 'buddha') ? 'reciting_buddha_file_v543' : 'merit_dedication_file_v543';
+      let defaultUrl = (videoType === 'buddha') ? './reciting_buddha_name.mp4' : './merit_dedication.mp4';
+      let toastText = (videoType === 'buddha') ? '🙏【今日念佛清心】播放中...' : '🙏【背書功德迴向】播放中...';
+
+      let mediaUrl = defaultUrl;
+      try {
+        const savedFile = await getLocalFile(fileKey);
+        if (savedFile && savedFile.data) {
+          mediaUrl = URL.createObjectURL(new Blob([savedFile.data], { type: 'video/mp4' }));
+        }
+      } catch(e) {}
+
+      standaloneVideo.src = mediaUrl;
+      standaloneVideo.currentTime = 0;
+      standaloneVideo.playbackRate = 1.0;
+      showToast(toastText, 4000);
+
+      const cleanupAndExit = () => {
+        standaloneVideo.onended = null;
+        standaloneVideo.onerror = null;
+        standaloneVideo.pause();
+        standaloneVideo.removeAttribute('src');
+        standaloneVideo.load();
+        standaloneOverlay.style.display = 'none';
+
+        if (typeof onEndedCallback === 'function') {
+          onEndedCallback();
+        }
+      };
+
+      standaloneVideo.onended = cleanupAndExit;
+      standaloneVideo.onerror = cleanupAndExit;
+
+      try {
+        await standaloneVideo.play();
+      } catch(e) {
+        cleanupAndExit();
+      }
+    }
+
     async function closeCompanionCard() {
       hasEnteredReciting = true;
       localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V543', 'true');
@@ -1249,7 +1309,6 @@
         companionOverlay.classList.remove('active');
         companionOverlay.style.display = 'none';
         
-        renderUI();
         await loadAllAssetsSmartSync();
 
         const todayStr = getNormalizedDateStr();
@@ -1257,7 +1316,15 @@
 
         if (!hasPlayedBuddha) {
           localStorage.setItem('buddha_played_' + todayStr, 'true');
-          await playDailyBuddhaVideoSequence();
+          
+          // 🌟 點擊開始定課後直接呼叫獨立念佛影片，播完後才載入主跟讀畫面
+          playStandaloneVideo('buddha', () => {
+            showToast('✨ 念佛圓滿，開始今日定課', 3000);
+            const hasRestore = checkAndPrepareRestoreState();
+            if (!hasRestore) {
+              setMode('mp4');
+            }
+          });
         } else {
           const hasRestore = checkAndPrepareRestoreState();
           if (!hasRestore) {
@@ -1422,139 +1489,15 @@
       applyScheduleToState('');
     }
 
-    async function playDailyBuddhaVideoSequence() {
-      currentMode = 'mp4';
-      isSpecialVideoPlaying = true;
-      pdfContainerWrap.style.display = 'none';
-      guideStage.style.display = 'none';
-      videoWrap.style.display = 'flex';
-      
-      if (leftWing) leftWing.classList.add('hidden-wing');
-      if (rightWing) rightWing.classList.add('hidden-wing');
-      
-      renderUI();
-
-      let buddhaUrl = './reciting_buddha_name.mp4';
-      try {
-        const savedBuddha = await getLocalFile('reciting_buddha_file_v543');
-        if (savedBuddha && savedBuddha.data) {
-          buddhaUrl = URL.createObjectURL(new Blob([savedBuddha.data], { type: 'video/mp4' }));
-        }
-      } catch(e) {}
-
-      video.src = buddhaUrl;
-      video.currentTime = 0;
-      video.playbackRate = 1.0;
-      showToast('🙏【今日念佛清心】播放中...', 4000);
-
-      video.onended = () => {
-        video.onended = null;
-        video.onerror = null;
-        isSpecialVideoPlaying = false;
-        proceedAfterVideoSequence();
-      };
-
-      video.onerror = () => {
-        video.onended = null;
-        video.onerror = null;
-        isSpecialVideoPlaying = false;
-        proceedAfterVideoSequence();
-      };
-
-      try {
-        await video.play();
-        startMp4PrecisionCheck();
-      } catch(e) {
-        isSpecialVideoPlaying = false;
-        proceedAfterVideoSequence();
-      }
-    }
-
-    function proceedAfterVideoSequence() {
-      isSpecialVideoPlaying = false;
-      if (leftWing) leftWing.classList.remove('hidden-wing');
-      if (rightWing) rightWing.classList.remove('hidden-wing');
-
-      getLocalFile('video_file_v543').then(savedVid => {
-        if (savedVid && savedVid.data) {
-          video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
-        } else {
-          video.src = './chant_video.mp4';
-        }
-        showToast('✨ 念佛圓滿，開始今日定課', 3000);
-        
-        const hasRestore = checkAndPrepareRestoreState();
-        if (!hasRestore) {
-          setMode('mp4');
-        }
-      });
-    }
-
     if (btnPlayDedication) {
       btnPlayDedication.addEventListener('click', async () => {
         offeringOverlay.style.display = 'none';
-        
-        currentMode = 'mp4';
-        isSpecialVideoPlaying = true;
-        pdfContainerWrap.style.display = 'none';
-        guideStage.style.display = 'none';
-        videoWrap.style.display = 'flex';
 
-        if (leftWing) leftWing.classList.add('hidden-wing');
-        if (rightWing) rightWing.classList.add('hidden-wing');
-
-        renderUI();
-
-        let meritUrl = './merit_dedication.mp4';
-        try {
-          const savedMerit = await getLocalFile('merit_dedication_file_v543');
-          if (savedMerit && savedMerit.data) {
-            meritUrl = URL.createObjectURL(new Blob([savedMerit.data], { type: 'video/mp4' }));
-          }
-        } catch(e) {}
-
-        video.src = meritUrl;
-        video.currentTime = 0;
-        video.playbackRate = 1.0;
-        showToast('🙏【背書功德迴向】播放中...', 4000);
-
-        video.onended = () => {
-          video.onended = null;
-          video.onerror = null;
-          isSpecialVideoPlaying = false;
-          finishDedicationVideo();
-        };
-
-        video.onerror = () => {
-          video.onended = null;
-          video.onerror = null;
-          isSpecialVideoPlaying = false;
-          finishDedicationVideo();
-        };
-
-        try {
-          await video.play();
-          startMp4PrecisionCheck();
-        } catch(e) {
-          isSpecialVideoPlaying = false;
-          finishDedicationVideo();
-        }
-      });
-    }
-
-    function finishDedicationVideo() {
-      isSpecialVideoPlaying = false;
-      if (leftWing) leftWing.classList.remove('hidden-wing');
-      if (rightWing) rightWing.classList.remove('hidden-wing');
-
-      getLocalFile('video_file_v543').then(savedVid => {
-        if (savedVid && savedVid.data) {
-          video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
-        } else {
-          video.src = './chant_video.mp4';
-        }
-        showToast('✨ 迴向圓滿，隨喜功德', 3000);
-        setMode('mp4');
+        // 🌟 點擊功德迴向按鈕後，呼叫獨立迴向影片，播完後恢復主畫面
+        playStandaloneVideo('merit', () => {
+          showToast('✨ 迴向圓滿，隨喜功德', 3000);
+          setMode('mp4');
+        });
       });
     }
 
@@ -2445,11 +2388,6 @@
     function startMp4PrecisionCheck() {
       if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
       function check() {
-        if (isSpecialVideoPlaying) {
-          mp4PrecisionCheckAnimId = requestAnimationFrame(check);
-          return;
-        }
-
         if (currentMode === 'mp4' && !video.paused && !video.ended) {
           const range = getActiveVideoRange();
           if (range.valid && video.currentTime >= range.end) {
@@ -2790,25 +2728,6 @@
         }
       }
       return closestIdx;
-    }
-
-    function handleShutdownClick() {
-      saveCurrentAppState();
-      haltGuideRunnerImmediately();
-      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
-      isUserRecording = false;
-      if (recordAudioElement) recordAudioElement.pause();
-      releaseMicrophoneResources();
-      
-      try { 
-        video.pause(); 
-        video.currentTime = 0;
-        video.removeAttribute('src'); 
-        video.load(); 
-      } catch (e) {}
-
-      showToast("已自動存檔，並釋放所有媒體資源", 3000);
-      updateModeButtonsStyle();
     }
 
     async function ensureMicrophoneActive() {
