@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v539.6 (穩定基準版)</title>
+  <title>歡喜背書橫式雙模播放器 v539.6 (完整功能全集版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,7 +11,7 @@
   <meta name="theme-color" content="#0B0F19">
 
   <!-- ========================================================================== -->
-  <!-- 📌【v539.6 穩定基準版 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
+  <!-- 📌【v539.6 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
   <!-- ========================================================================== -->
   <script>
     const CURRENT_CLASSIC_ID = 'er_sheng'; // ⚠️ 1. 新經典英文代碼
@@ -260,7 +260,7 @@
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
     }
 
-    /* 🌟 橫式排程設定彈窗：支援整體視窗順暢向上滑動 */
+    /* 🌟 v539.6 橫式排程設定彈窗：支援整體視窗順暢向上滑動 */
     #schedule-modal-overlay {
       display: none;
       position: fixed;
@@ -741,7 +741,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 陪伴卡 -->
+  <!-- 🌟 v539.6 陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -752,7 +752,7 @@
     </div>
   </div>
 
-  <!-- 🌟 橫式排程設定彈窗（支援整體視窗順暢向上滑動） -->
+  <!-- 🌟 v539.6 橫式排程設定彈窗（支援整體視窗順暢向上滑動） -->
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
       <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v539.6)</div>
@@ -1091,6 +1091,7 @@
         setMode('pdf', pdfSubMode);
       }
 
+      // 🌟 v539.6 修正：確實將復原提示彈窗關閉隱藏，讓長輩能順利回到畫面繼續操作
       restoreModalOverlay.style.display = 'none';
       showToast('✨ 已回到上次進度，請按「跟讀」或「自讀」開始運行', 5000);
     }
@@ -1260,6 +1261,30 @@
       return 0;
     }
 
+    function getCurrentActiveDayNumber() {
+      if (currentDayPlan && currentDayPlan.day) {
+        return currentDayPlan.day;
+      }
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('start')) {
+        const startStr = urlParams.get('start');
+        const parts = startStr.split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const d = parseInt(parts[2], 10);
+          const userStartDate = new Date(y, m, d);
+          const now = new Date();
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
+          return Math.max(1, diffDays);
+        }
+      } else if (urlParams.get('day')) {
+        return parseInt(urlParams.get('day'), 10) || 1;
+      }
+      return 1;
+    }
+
     function openScheduleModal() {
       const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V539_6') || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
@@ -1268,7 +1293,11 @@
 
       document.getElementById('display-total-sentences').textContent = CLASSIC_TOTAL_SENTENCES + '句';
       
-      const completedEnd = getCurrentProgressEnd();
+      const activeDay = getCurrentActiveDayNumber();
+      let completedEnd = getCurrentProgressEnd();
+      if (completedEnd === 0 && activeDay > 1) {
+        completedEnd = Math.min(CLASSIC_TOTAL_SENTENCES, 1 + (activeDay - 1) * selectedDailyStep);
+      }
       document.getElementById('input-completed-sentences').value = completedEnd;
 
       updateStepButtonsUI(selectedDailyStep);
@@ -1318,25 +1347,10 @@
       const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
       const list = [];
 
-      let currentDay = 1;
-      let currentStart = 1;
-
-      if (testCompleted === 0) {
-        currentDay = 1;
-        currentStart = 1;
-      } else {
-        currentDay = 2;
-        currentStart = 2;
-        if (testCompleted > 1) {
-          let passedDays = Math.ceil((testCompleted - 1) / step);
-          currentDay = 1 + passedDays;
-          currentStart = 2 + (passedDays - 1) * step;
-          if (currentStart > total) currentStart = total;
-        }
-      }
-
+      let currentDay = getCurrentActiveDayNumber();
       let simDay = currentDay;
-      let simStart = currentStart;
+      let simStart = Math.min(total, testCompleted + 1);
+      if (simDay === 1) simStart = 1;
 
       for (let i = 1; i <= 5; i++) {
         let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
@@ -1626,25 +1640,10 @@
       const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
       const scheduleList = [];
 
-      let currentDay = 1;
-      let currentStart = 1;
-
-      if (testCompleted === 0) {
-        currentDay = 1;
-        currentStart = 1;
-      } else {
-        currentDay = 2;
-        currentStart = 2;
-        if (testCompleted > 1) {
-          let passedDays = Math.ceil((testCompleted - 1) / step);
-          currentDay = 1 + passedDays;
-          currentStart = 2 + (passedDays - 1) * step;
-          if (currentStart > total) currentStart = total;
-        }
-      }
-
+      let currentDay = getCurrentActiveDayNumber();
       let simDay = currentDay;
-      let simStart = currentStart;
+      let simStart = Math.min(total, testCompleted + 1);
+      if (simDay === 1) simStart = 1;
 
       for (let dayIdx = 1; dayIdx <= 100; dayIdx++) {
         let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
@@ -1696,30 +1695,7 @@
           return false;
         }
         
-        let targetDay = 1;
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        if (urlParams.get('start')) {
-          const startStr = urlParams.get('start');
-          const parts = startStr.split('-');
-          if (parts.length === 3) {
-            const y = parseInt(parts[0], 10);
-            const m = parseInt(parts[1], 10) - 1;
-            const d = parseInt(parts[2], 10);
-            const userStartDate = new Date(y, m, d);
-            
-            const now = new Date();
-            const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            
-            const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
-            targetDay = Math.max(1, diffDays);
-          }
-        } else if (urlParams.get('day')) {
-          targetDay = parseInt(urlParams.get('day'), 10) || 1;
-        } else {
-          targetDay = 1;
-        }
-
+        let targetDay = getCurrentActiveDayNumber();
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
