@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v538 (內建演算法與排程調整視窗版)</title>
+  <title>歡喜背書橫式雙模播放器 v538.2 (排程前後對比預覽版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,14 +11,14 @@
   <meta name="theme-color" content="#0B0F19">
 
   <!-- ========================================================================== -->
-  <!-- 📌【v538 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！    -->
+  <!-- 📌【v538.2 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
   <!-- ========================================================================== -->
   <script>
     const CURRENT_CLASSIC_ID = 'er_sheng'; // ⚠️ 1. 新經典英文代碼：如 'er_sheng'、'bo_re'
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec'; // 2. 後端記錄網址
     
-    // 🌟【v538 萬用排程演算法預設參數】
-    const CLASSIC_TOTAL_SENTENCES = 37;       // 該經典的總句數（自動邊界夾擠防呆）
+    // 🌟【v538.2 萬用排程演算法預設參數】
+    const CLASSIC_TOTAL_SENTENCES = 37;       // 該經典的總句數（依照您的實測設定 37 句）
     const DEFAULT_REPEAT_NEW = 10;            // 今日定課預設遍數
     const DEFAULT_REPEAT_CUMULATIVE = 3;      // 今日串習預設遍數
   </script>
@@ -259,7 +259,6 @@
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
     }
 
-    /* 🌟 排程設定互動彈窗樣式 */
     #schedule-modal-overlay {
       display: none;
       position: fixed;
@@ -277,16 +276,18 @@
       background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
       border: 3px solid #38BDF8;
       border-radius: 22px;
-      max-width: 480px;
+      max-width: 540px;
       width: 95%;
-      padding: 24px 22px;
+      max-height: 90vh;
+      padding: 22px;
       box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
+      overflow-y: auto;
     }
     .schedule-modal-title {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 900;
       color: #38BDF8;
       text-align: center;
@@ -297,37 +298,72 @@
       justify-content: space-between;
       align-items: center;
       background: rgba(15, 23, 42, 0.75);
-      padding: 10px 14px;
-      border-radius: 12px;
+      padding: 8px 12px;
+      border-radius: 10px;
       border: 1px dashed rgba(56, 189, 248, 0.3);
     }
     .schedule-field-label {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       color: #E2E8F0;
     }
     .schedule-field-input {
-      width: 100px;
-      padding: 6px 10px;
+      width: 90px;
+      padding: 4px 8px;
       background: #0B0F19;
       color: #34D399;
       border: 2px solid #38BDF8;
-      border-radius: 8px;
-      font-size: 16px;
+      border-radius: 6px;
+      font-size: 15px;
       font-weight: 900;
       text-align: center;
     }
+    
+    /* 🌟 排程預覽比較區塊 */
+    .schedule-preview-container {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .schedule-preview-box {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .schedule-preview-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #FBBF24;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 4px;
+    }
+    .schedule-preview-list {
+      font-size: 12px;
+      color: #CBD5E1;
+      line-height: 1.5;
+      font-family: monospace;
+    }
+
     .schedule-modal-actions {
       display: flex;
       gap: 12px;
-      margin-top: 6px;
+      margin-top: 4px;
     }
     .btn-sched-action {
       flex: 1;
-      padding: 12px;
-      font-size: 17px;
+      padding: 10px;
+      font-size: 16px;
       font-weight: 900;
-      border-radius: 20px;
+      border-radius: 16px;
       cursor: pointer;
       letter-spacing: 1px;
       border: none;
@@ -667,33 +703,46 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 v538 陪伴卡（左側加入「⚙️ 排程設定」按鈕） -->
+  <!-- 🌟 v538.2 陪伴卡（動態控制排程按鈕：一天中僅首次開啟時顯示一次） -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
       <div class="companion-actions-row">
-        <button class="btn-card-setting" onclick="openScheduleModal()">⚙️ 排程設定</button>
+        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始定課</button>
       </div>
     </div>
   </div>
 
-  <!-- 🌟 v538 排程參數互動調整視窗 -->
+  <!-- 🌟 v538.2 排程參數互動調整與前後比對視窗 -->
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程參數設定</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程・前後對比校正</div>
       <div class="schedule-field-row">
         <span class="schedule-field-label">經典總句數：</span>
-        <input type="number" id="input-total-sentences" class="schedule-field-input" min="1" max="500">
+        <input type="number" id="input-total-sentences" class="schedule-field-input" min="1" max="500" oninput="previewScheduleChanges()">
       </div>
       <div class="schedule-field-row">
         <span class="schedule-field-label">定課預設遍數：</span>
-        <input type="number" id="input-repeat-new" class="schedule-field-input" min="1" max="50">
+        <input type="number" id="input-repeat-new" class="schedule-field-input" min="1" max="50" oninput="previewScheduleChanges()">
       </div>
       <div class="schedule-field-row">
         <span class="schedule-field-label">串習預設遍數：</span>
-        <input type="number" id="input-repeat-cum" class="schedule-field-input" min="0" max="50">
+        <input type="number" id="input-repeat-cum" class="schedule-field-input" min="0" max="50" oninput="previewScheduleChanges()">
       </div>
+
+      <!-- 🌟 排程前後對比預覽框 -->
+      <div class="schedule-preview-container">
+        <div class="schedule-preview-box">
+          <div class="schedule-preview-title">📜 變更前排程 (前5天)</div>
+          <div id="preview-old-list" class="schedule-preview-list">載入中...</div>
+        </div>
+        <div class="schedule-preview-box">
+          <div class="schedule-preview-title" style="color: #34D399;">✨ 變更後排程 (前5天)</div>
+          <div id="preview-new-list" class="schedule-preview-list">計算中...</div>
+        </div>
+      </div>
+
       <div class="schedule-modal-actions">
         <button id="btn-close-schedule" class="btn-sched-action" onclick="closeScheduleModal()">取消</button>
         <button id="btn-save-schedule" class="btn-sched-action" onclick="saveAndApplySchedule()">確認更新排程</button>
@@ -705,14 +754,14 @@
     <div class="restore-card">
       <div class="restore-title">🙏 隨喜回來・繼續精進</div>
       <div class="restore-desc" id="restore-desc-text">
-        偵測到您上次的背書進度。<br>請準備好後點擊下方按鈕，回到播放畫面。
+        偵測到您上次的背書進度。<br>請準備好後點擊下方按鈕，回到畫面。
       </div>
       <button class="btn-restore-confirm" onclick="confirmRestoreState()">🙏 隨喜回來，準備好了</button>
     </div>
   </div>
 
-  <!-- 🌟 v538 內建演算法版本 -->
-  <div id="schedule-toast">📦 【v538 載入中】...</div>
+  <!-- 🌟 v538.2 內建演算法版本 -->
+  <div id="schedule-toast">📦 【v538.2 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -812,6 +861,7 @@
     const restoreModalOverlay = document.getElementById('restore-modal-overlay');
     const restoreDescText = document.getElementById('restore-desc-text');
     const scheduleModalOverlay = document.getElementById('schedule-modal-overlay');
+    const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -935,18 +985,18 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      localStorage.setItem('APP_SAVED_STATE_V538', JSON.stringify(state));
+      localStorage.setItem('APP_SAVED_STATE_V538_2', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = localStorage.getItem('APP_SAVED_STATE_V538');
+      const savedStr = localStorage.getItem('APP_SAVED_STATE_V538_2');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          localStorage.removeItem('APP_SAVED_STATE_V538');
+          localStorage.removeItem('APP_SAVED_STATE_V538_2');
           return false;
         }
 
@@ -957,7 +1007,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        localStorage.removeItem('APP_SAVED_STATE_V538');
+        localStorage.removeItem('APP_SAVED_STATE_V538_2');
         return false;
       }
     }
@@ -1090,9 +1140,10 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V538');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V538_2');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V538', todayStr);
+        localStorage.setItem('APP_ACTIVE_DATE_V538_2', todayStr);
+        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V538_2');
         isScheduleRepeatLocked = true;
       }
     }
@@ -1124,6 +1175,9 @@
 
     async function closeCompanionCard() {
       hasEnteredReciting = true;
+      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V538_2', 'true');
+      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
       companionOverlay.style.opacity = '0';
       triggerAppFullscreen();
 
@@ -1149,17 +1203,62 @@
       }, 350);
     }
 
-    // 🌟 排程設定彈窗互動函式
+    // 🌟 排程設定彈窗互動與前後比對函式
     function openScheduleModal() {
-      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V538') || '{}');
-      document.getElementById('input-total-sentences').value = savedSettings.totalSentences || CLASSIC_TOTAL_SENTENCES;
-      document.getElementById('input-repeat-new').value = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
-      document.getElementById('input-repeat-cum').value = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
+      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V538_2') || '{}');
+      const total = savedSettings.totalSentences || CLASSIC_TOTAL_SENTENCES;
+      const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
+      const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
+
+      document.getElementById('input-total-sentences').value = total;
+      document.getElementById('input-repeat-new').value = rNew;
+      document.getElementById('input-repeat-cum').value = rCum;
+
+      // 產生變更前預覽文字
+      renderPreviewList('preview-old-list', generateTempScheduleList({ totalSentences: total, repeatNew: rNew, repeatCum: rCum }));
+      // 產生變更後預覽文字
+      renderPreviewList('preview-new-list', generateTempScheduleList({ totalSentences: total, repeatNew: rNew, repeatCum: rCum }));
+
       scheduleModalOverlay.style.display = 'flex';
     }
 
     function closeScheduleModal() {
       scheduleModalOverlay.style.display = 'none';
+    }
+
+    function previewScheduleChanges() {
+      const total = parseInt(document.getElementById('input-total-sentences').value, 10) || CLASSIC_TOTAL_SENTENCES;
+      const rNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
+      const rCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
+
+      // 即時計算變更後的預覽清單
+      renderPreviewList('preview-new-list', generateTempScheduleList({ totalSentences: total, repeatNew: rNew, repeatCum: rCum }));
+    }
+
+    function generateTempScheduleList(settings) {
+      const total = settings.totalSentences;
+      const rNew = settings.repeatNew;
+      const rCum = settings.repeatCum;
+      const list = [];
+      let start = 1;
+      const step = 4;
+
+      for (let day = 1; day <= 5; day++) {
+        let end = Math.min(total, start + step - 1);
+        let cStart = (day > 1) ? 1 : '-';
+        let cEnd = (day > 1) ? Math.max(1, start - 1) : '-';
+        list.push(`第${day}天: 新[${start}~${end}](${rNew}遍) 複[${cStart}~${cEnd}](${rCum}遍)`);
+        if (end >= total) break;
+        start = Math.min(total, end + 1);
+      }
+      return list;
+    }
+
+    function renderPreviewList(elementId, items) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.innerHTML = items.join('<br>');
+      }
     }
 
     function saveAndApplySchedule() {
@@ -1168,9 +1267,8 @@
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
       const settings = { totalSentences, repeatNew, repeatCum };
-      localStorage.setItem('USER_SCHEDULE_SETTINGS_V538', JSON.stringify(settings));
+      localStorage.setItem('USER_SCHEDULE_SETTINGS_V538_2', JSON.stringify(settings));
 
-      // 重新產生演算法排程
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
       showToast('✨ 排程參數已更新，並重新計算完成！', 4000);
@@ -1187,7 +1285,7 @@
 
       let buddhaUrl = './reciting_buddha_name.mp4';
       try {
-        const savedBuddha = await getLocalFile('reciting_buddha_file_v538');
+        const savedBuddha = await getLocalFile('reciting_buddha_file_v538_2');
         if (savedBuddha && savedBuddha.data) {
           buddhaUrl = URL.createObjectURL(new Blob([savedBuddha.data], { type: 'video/mp4' }));
         }
@@ -1223,7 +1321,7 @@
 
     function proceedAfterVideoSequence() {
       isSpecialVideoPlaying = false;
-      getLocalFile('video_file_v538').then(savedVid => {
+      getLocalFile('video_file_v538_2').then(savedVid => {
         if (savedVid && savedVid.data) {
           video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
         } else {
@@ -1251,7 +1349,7 @@
 
         let meritUrl = './merit_dedication.mp4';
         try {
-          const savedMerit = await getLocalFile('merit_dedication_file_v538');
+          const savedMerit = await getLocalFile('merit_dedication_file_v538_2');
           if (savedMerit && savedMerit.data) {
             meritUrl = URL.createObjectURL(new Blob([savedMerit.data], { type: 'video/mp4' }));
           }
@@ -1288,7 +1386,7 @@
 
     function finishDedicationVideo() {
       isSpecialVideoPlaying = false;
-      getLocalFile('video_file_v538').then(savedVid => {
+      getLocalFile('video_file_v538_2').then(savedVid => {
         if (savedVid && savedVid.data) {
           video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
         } else {
@@ -1302,28 +1400,27 @@
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
       const todayStr = getNormalizedDateStr();
-      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V538');
+      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V538_2');
       const isFirstCheckToday = (lastCheckDate !== todayStr);
 
       let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v538 系統更新檢查】\n";
+      let logMsg = "📦 【v538.2 系統更新檢查】\n";
 
-      // 🌟 v538 內建演算法排程初始化（若無快取或首次執行則自動生成）
-      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V538')) {
+      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V538_2')) {
         const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE };
         generateAlgorithmicSchedule(defaultSettings);
         hasAnyUpdateDetected = true;
         logMsg += "- 排程演算法: 初始化建立 ✅\n";
       }
 
-      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V538');
+      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V538_2');
       try {
         const res = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
           const freshSentStr = JSON.stringify(freshSent);
           if (freshSentStr !== localSentStr) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V538', freshSentStr);
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V538_2', freshSentStr);
             scriptureData = freshSent;
             hasAnyUpdateDetected = true;
           }
@@ -1337,14 +1434,14 @@
             const res = await fetch('./sentences.json?nocache=' + timestamp);
             if (res.ok) {
               scriptureData = await res.json();
-              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V538', JSON.stringify(scriptureData));
+              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V538_2', JSON.stringify(scriptureData));
               hasAnyUpdateDetected = true;
             }
           } catch (e) {}
         }
       }
 
-      const savedPdf = await getLocalFile('pdf_file_v538');
+      const savedPdf = await getLocalFile('pdf_file_v538_2');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
       } else {
@@ -1352,7 +1449,7 @@
           const res = await fetch('./scripture.pdf?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v538', buf, 'pdf_cached');
+            await saveLocalFile('pdf_file_v538_2', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
             hasAnyUpdateDetected = true;
           }
@@ -1362,7 +1459,7 @@
         await renderPdfOnValidDimensions();
       }
 
-      const savedVid = await getLocalFile('video_file_v538');
+      const savedVid = await getLocalFile('video_file_v538_2');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
       } else {
@@ -1370,37 +1467,37 @@
           const res = await fetch('./chant_video.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v538', buf, 'vid_cached');
+            await saveLocalFile('video_file_v538_2', buf, 'vid_cached');
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
             hasAnyUpdateDetected = true;
           }
         } catch (e) { video.src = './chant_video.mp4'; }
       }
 
-      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v538');
+      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v538_2');
       if (!savedBuddhaVid || !savedBuddhaVid.data) {
         try {
           const res = await fetch('./reciting_buddha_name.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('reciting_buddha_file_v538', buf, 'buddha_cached');
+            await saveLocalFile('reciting_buddha_file_v538_2', buf, 'buddha_cached');
           }
         } catch (e) {}
       }
 
-      const savedMeritVid = await getLocalFile('merit_dedication_file_v538');
+      const savedMeritVid = await getLocalFile('merit_dedication_file_v538_2');
       if (!savedMeritVid || !savedMeritVid.data) {
         try {
           const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('merit_dedication_file_v538', buf, 'merit_cached');
+            await saveLocalFile('merit_dedication_file_v538_2', buf, 'merit_cached');
           }
         } catch (e) {}
       }
 
       if (isFirstCheckToday) {
-        localStorage.setItem('LAST_ASSET_CHECK_DATE_V538', todayStr);
+        localStorage.setItem('LAST_ASSET_CHECK_DATE_V538_2', todayStr);
         if (hasAnyUpdateDetected) {
           showToast(logMsg + "\n✨ 資源已自動更新至最新版本", 6000);
         }
@@ -1409,7 +1506,6 @@
       applyScheduleToState("");
     }
 
-    // 🌟 v538 內建智慧排程演算法產生器（含總句數夾擠與動態接續）
     function generateAlgorithmicSchedule(settings) {
       const total = settings.totalSentences;
       const rNew = settings.repeatNew;
@@ -1417,12 +1513,11 @@
       const scheduleList = [];
 
       let currentStart = 1;
-      const step = 4; // 每日推進句數基準
+      const step = 4;
 
       for (let day = 1; day <= 50; day++) {
         let currentEnd = Math.min(total, currentStart + step - 1);
         
-        // 串習複習範圍（以前幾天為複習區段）
         let cStart = null, cEnd = null, cRepeat = 0;
         if (day > 1) {
           cStart = 1;
@@ -1444,7 +1539,7 @@
         currentStart = Math.min(total, currentEnd + 1);
       }
 
-      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V538', JSON.stringify(scheduleList));
+      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V538_2', JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1452,7 +1547,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V538');
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V538_2');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -1864,14 +1959,14 @@
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
-              const localPdf = await getLocalFile('pdf_file_v538');
+              const localPdf = await getLocalFile('pdf_file_v538_2');
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
                 const response = await fetch('./scripture.pdf?nocache=' + Date.now());
                 if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-                await saveLocalFile('pdf_file_v538', cachedPdfBuffer, 'mode-load');
+                await saveLocalFile('pdf_file_v538_2', cachedPdfBuffer, 'mode-load');
               }
             }
 
@@ -2239,7 +2334,7 @@
         haltGuideRunnerImmediately();
       }
 
-      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V538') || '{}');
+      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V538_2') || '{}');
       const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
       const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
       const hasCumulative = cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
@@ -3050,6 +3145,13 @@
 
       checkDailyResetOnStartup();
 
+      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V538_2');
+      if (!shownToday) {
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
+      } else {
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
       
@@ -3073,7 +3175,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V538', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V538_2', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
