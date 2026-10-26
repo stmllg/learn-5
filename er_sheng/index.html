@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v539.7 (完整功能全集版)</title>
+  <title>歡喜背書橫式雙模播放器 v539.6 (穩定基準版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,13 +11,13 @@
   <meta name="theme-color" content="#0B0F19">
 
   <!-- ========================================================================== -->
-  <!-- 📌【v539.7 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
+  <!-- 📌【v539.6 穩定基準版 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
   <!-- ========================================================================== -->
   <script>
     const CURRENT_CLASSIC_ID = 'er_sheng'; // ⚠️ 1. 新經典英文代碼
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec'; // 2. 後端記錄網址
     
-    // 🌟【v539.7 萬用排程演算法預設參數】
+    // 🌟【v539.6 萬用排程演算法預設參數】
     const CLASSIC_TOTAL_SENTENCES = 37;       // 該經典的總句數（固定唯讀）
     const DEFAULT_DAILY_STEP = 4;             // 每日推進步幅預設 (1, 2, 4)
     const DEFAULT_REPEAT_NEW = 10;            // 今日定課預設遍數
@@ -260,7 +260,7 @@
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
     }
 
-    /* 🌟 v539.7 橫式排程設定彈窗：支援整體視窗順暢向上滑動 */
+    /* 🌟 橫式排程設定彈窗：支援整體視窗順暢向上滑動 */
     #schedule-modal-overlay {
       display: none;
       position: fixed;
@@ -539,7 +539,6 @@
       padding-bottom: 4px;
       z-index: 60;
       box-sizing: border-box;
-      transition: opacity 0.3s ease;
     }
     #left-wing { width: calc(68px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; }
     #right-wing { width: calc(68px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; }
@@ -587,21 +586,6 @@
       touch-action: manipulation;
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
-
-    /* 🌟 v539.7 迴向時按鈕變身為莊嚴蓮花樣式 */
-    .lotus-btn-transform {
-      background: linear-gradient(135deg, #F472B6 0%, #DB2777 100%) !important;
-      border: 2.5px solid #FBCFE8 !important;
-      color: #FFFFFF !important;
-      font-size: 22px !important;
-      box-shadow: 0 0 16px rgba(244, 114, 182, 0.8) !important;
-      animation: lotusPulse 1.5s infinite ease-in-out;
-    }
-    @keyframes lotusPulse {
-      0%   { transform: scale(1); box-shadow: 0 0 10px rgba(244, 114, 182, 0.6); }
-      50%  { transform: scale(1.06); box-shadow: 0 0 22px rgba(244, 114, 182, 1); }
-      100% { transform: scale(1); box-shadow: 0 0 10px rgba(244, 114, 182, 0.6); }
-    }
 
     .btn-color-offering {
       width: 62px !important;
@@ -757,7 +741,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 v539.7 陪伴卡 -->
+  <!-- 🌟 陪伴卡 -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -768,10 +752,10 @@
     </div>
   </div>
 
-  <!-- 🌟 v539.7 橫式排程設定彈窗（支援整體視窗順暢向上滑動） -->
+  <!-- 🌟 橫式排程設定彈窗（支援整體視窗順暢向上滑動） -->
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v539.7)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v539.6)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -824,7 +808,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v539.7 載入中】...</div>
+  <div id="schedule-toast">📦 【v539.6 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -941,9 +925,6 @@
     const scheduleToast = document.getElementById('schedule-toast');
     const speedToastBadge = document.getElementById('speed-toast-badge');
 
-    const leftWing = document.getElementById('left-wing');
-    const rightWing = document.getElementById('right-wing');
-
     const slotL1 = document.getElementById('slot-l1');
     const slotL2 = document.getElementById('slot-l2');
     const slotL3 = document.getElementById('slot-l3');
@@ -972,7 +953,6 @@
     let practicePhase = 'new_gendu'; 
 
     let isSpecialVideoPlaying = false;
-    let isDedicationVideoPlaying = false; // 🌟 v539.7 追蹤是否正在播放迴向影片
     let selectedDailyStep = DEFAULT_DAILY_STEP;
 
     let audioContext = null;
@@ -1053,18 +1033,18 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      localStorage.setItem('APP_SAVED_STATE_V539_7', JSON.stringify(state));
+      localStorage.setItem('APP_SAVED_STATE_V539_6', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = localStorage.getItem('APP_SAVED_STATE_V539_7');
+      const savedStr = localStorage.getItem('APP_SAVED_STATE_V539_6');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          localStorage.removeItem('APP_SAVED_STATE_V539_7');
+          localStorage.removeItem('APP_SAVED_STATE_V539_6');
           return false;
         }
 
@@ -1075,7 +1055,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        localStorage.removeItem('APP_SAVED_STATE_V539_7');
+        localStorage.removeItem('APP_SAVED_STATE_V539_6');
         return false;
       }
     }
@@ -1097,7 +1077,6 @@
       isManualSelected = state.isManualSelected || false;
 
       isSpecialVideoPlaying = false;
-      isDedicationVideoPlaying = false;
       renderUI();
 
       if (currentMode === 'mp4') {
@@ -1170,7 +1149,6 @@
       } catch(e) {}
 
       isSpecialVideoPlaying = false;
-      isDedicationVideoPlaying = false;
       hasEnteredReciting = false;
       companionOverlay.style.display = 'flex';
       companionOverlay.style.opacity = '1';
@@ -1210,10 +1188,10 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V539_7');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V539_6');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V539_7', todayStr);
-        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V539_7');
+        localStorage.setItem('APP_ACTIVE_DATE_V539_6', todayStr);
+        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V539_6');
         isScheduleRepeatLocked = true;
       }
     }
@@ -1245,7 +1223,7 @@
 
     async function closeCompanionCard() {
       hasEnteredReciting = true;
-      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V539_7', 'true');
+      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V539_6', 'true');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
       companionOverlay.style.opacity = '0';
@@ -1277,48 +1255,20 @@
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V539_7');
+      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V539_6');
       if (saved !== null) return parseInt(saved, 10);
       return 0;
     }
 
-    function getCurrentActiveDayNumber() {
-      if (currentDayPlan && currentDayPlan.day) {
-        return currentDayPlan.day;
-      }
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('start')) {
-        const startStr = urlParams.get('start');
-        const parts = startStr.split('-');
-        if (parts.length === 3) {
-          const y = parseInt(parts[0], 10);
-          const m = parseInt(parts[1], 10) - 1;
-          const d = parseInt(parts[2], 10);
-          const userStartDate = new Date(y, m, d);
-          const now = new Date();
-          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
-          return Math.max(1, diffDays);
-        }
-      } else if (urlParams.get('day')) {
-        return parseInt(urlParams.get('day'), 10) || 1;
-      }
-      return 1;
-    }
-
     function openScheduleModal() {
-      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V539_7') || '{}');
+      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V539_6') || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
 
       document.getElementById('display-total-sentences').textContent = CLASSIC_TOTAL_SENTENCES + '句';
       
-      const activeDay = getCurrentActiveDayNumber();
-      let completedEnd = getCurrentProgressEnd();
-      if (completedEnd === 0 && activeDay > 1) {
-        completedEnd = Math.min(CLASSIC_TOTAL_SENTENCES, 1 + (activeDay - 1) * selectedDailyStep);
-      }
+      const completedEnd = getCurrentProgressEnd();
       document.getElementById('input-completed-sentences').value = completedEnd;
 
       updateStepButtonsUI(selectedDailyStep);
@@ -1368,10 +1318,25 @@
       const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
       const list = [];
 
-      let currentDay = getCurrentActiveDayNumber();
+      let currentDay = 1;
+      let currentStart = 1;
+
+      if (testCompleted === 0) {
+        currentDay = 1;
+        currentStart = 1;
+      } else {
+        currentDay = 2;
+        currentStart = 2;
+        if (testCompleted > 1) {
+          let passedDays = Math.ceil((testCompleted - 1) / step);
+          currentDay = 1 + passedDays;
+          currentStart = 2 + (passedDays - 1) * step;
+          if (currentStart > total) currentStart = total;
+        }
+      }
+
       let simDay = currentDay;
-      let simStart = Math.min(total, testCompleted + 1);
-      if (simDay === 1) simStart = 1;
+      let simStart = currentStart;
 
       for (let i = 1; i <= 5; i++) {
         let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
@@ -1411,10 +1376,10 @@
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      localStorage.setItem('USER_CURRENT_PROGRESS_END_V539_7', testCompleted.toString());
+      localStorage.setItem('USER_CURRENT_PROGRESS_END_V539_6', testCompleted.toString());
 
       const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
-      localStorage.setItem('USER_SCHEDULE_SETTINGS_V539_7', JSON.stringify(settings));
+      localStorage.setItem('USER_SCHEDULE_SETTINGS_V539_6', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
@@ -1422,15 +1387,9 @@
       applyScheduleToState('');
     }
 
-    // 🌟 v539.7 播放念佛清心影片（自動隱藏左右 8 個按鍵）
     async function playDailyBuddhaVideoSequence() {
       currentMode = 'mp4';
       isSpecialVideoPlaying = true;
-      isDedicationVideoPlaying = false;
-      
-      if (leftWing) leftWing.style.display = 'none';
-      if (rightWing) rightWing.style.display = 'none';
-
       pdfContainerWrap.style.display = 'none';
       guideStage.style.display = 'none';
       videoWrap.style.display = 'flex';
@@ -1438,7 +1397,7 @@
 
       let buddhaUrl = './reciting_buddha_name.mp4';
       try {
-        const savedBuddha = await getLocalFile('reciting_buddha_file_v539_7');
+        const savedBuddha = await getLocalFile('reciting_buddha_file_v539_6');
         if (savedBuddha && savedBuddha.data) {
           buddhaUrl = URL.createObjectURL(new Blob([savedBuddha.data], { type: 'video/mp4' }));
         }
@@ -1453,8 +1412,6 @@
         video.onended = null;
         video.onerror = null;
         isSpecialVideoPlaying = false;
-        if (leftWing) leftWing.style.display = 'flex';
-        if (rightWing) rightWing.style.display = 'flex';
         proceedAfterVideoSequence();
       };
 
@@ -1462,8 +1419,6 @@
         video.onended = null;
         video.onerror = null;
         isSpecialVideoPlaying = false;
-        if (leftWing) leftWing.style.display = 'flex';
-        if (rightWing) rightWing.style.display = 'flex';
         proceedAfterVideoSequence();
       };
 
@@ -1472,19 +1427,13 @@
         startMp4PrecisionCheck();
       } catch(e) {
         isSpecialVideoPlaying = false;
-        if (leftWing) leftWing.style.display = 'flex';
-        if (rightWing) rightWing.style.display = 'flex';
         proceedAfterVideoSequence();
       }
     }
 
     function proceedAfterVideoSequence() {
       isSpecialVideoPlaying = false;
-      isDedicationVideoPlaying = false;
-      if (leftWing) leftWing.style.display = 'flex';
-      if (rightWing) rightWing.style.display = 'flex';
-
-      getLocalFile('video_file_v539_7').then(savedVid => {
+      getLocalFile('video_file_v539_6').then(savedVid => {
         if (savedVid && savedVid.data) {
           video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
         } else {
@@ -1499,26 +1448,20 @@
       });
     }
 
-    // 🌟 v539.7 播放功德迴向影片（8個按鍵變身為蓮花）
     if (btnPlayDedication) {
       btnPlayDedication.addEventListener('click', async () => {
         offeringOverlay.style.display = 'none';
         
         currentMode = 'mp4';
         isSpecialVideoPlaying = true;
-        isDedicationVideoPlaying = true;
-
-        if (leftWing) leftWing.style.display = 'flex';
-        if (rightWing) rightWing.style.display = 'flex';
-        renderUI(); // 套用蓮花樣式
-
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
+        renderUI();
 
         let meritUrl = './merit_dedication.mp4';
         try {
-          const savedMerit = await getLocalFile('merit_dedication_file_v539_7');
+          const savedMerit = await getLocalFile('merit_dedication_file_v539_6');
           if (savedMerit && savedMerit.data) {
             meritUrl = URL.createObjectURL(new Blob([savedMerit.data], { type: 'video/mp4' }));
           }
@@ -1533,8 +1476,6 @@
           video.onended = null;
           video.onerror = null;
           isSpecialVideoPlaying = false;
-          isDedicationVideoPlaying = false;
-          renderUI();
           finishDedicationVideo();
         };
 
@@ -1542,8 +1483,6 @@
           video.onended = null;
           video.onerror = null;
           isSpecialVideoPlaying = false;
-          isDedicationVideoPlaying = false;
-          renderUI();
           finishDedicationVideo();
         };
 
@@ -1552,8 +1491,6 @@
           startMp4PrecisionCheck();
         } catch(e) {
           isSpecialVideoPlaying = false;
-          isDedicationVideoPlaying = false;
-          renderUI();
           finishDedicationVideo();
         }
       });
@@ -1561,9 +1498,7 @@
 
     function finishDedicationVideo() {
       isSpecialVideoPlaying = false;
-      isDedicationVideoPlaying = false;
-      renderUI();
-      getLocalFile('video_file_v539_7').then(savedVid => {
+      getLocalFile('video_file_v539_6').then(savedVid => {
         if (savedVid && savedVid.data) {
           video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
         } else {
@@ -1577,27 +1512,27 @@
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
       const todayStr = getNormalizedDateStr();
-      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V539_7');
+      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V539_6');
       const isFirstCheckToday = (lastCheckDate !== todayStr);
 
       let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v539.7 系統更新檢查】\n";
+      let logMsg = "📦 【v539.6 系統更新檢查】\n";
 
-      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V539_7')) {
+      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V539_6')) {
         const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE, testCompleted: 0 };
         generateAlgorithmicSchedule(defaultSettings);
         hasAnyUpdateDetected = true;
         logMsg += "- 排程演算法: 初始化建立 ✅\n";
       }
 
-      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V539_7');
+      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V539_6');
       try {
         const res = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
           const freshSentStr = JSON.stringify(freshSent);
           if (freshSentStr !== localSentStr) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V539_7', freshSentStr);
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V539_6', freshSentStr);
             scriptureData = freshSent;
             hasAnyUpdateDetected = true;
           }
@@ -1611,14 +1546,14 @@
             const res = await fetch('./sentences.json?nocache=' + timestamp);
             if (res.ok) {
               scriptureData = await res.json();
-              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V539_7', JSON.stringify(scriptureData));
+              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V539_6', JSON.stringify(scriptureData));
               hasAnyUpdateDetected = true;
             }
           } catch (e) {}
         }
       }
 
-      const savedPdf = await getLocalFile('pdf_file_v539_7');
+      const savedPdf = await getLocalFile('pdf_file_v539_6');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
       } else {
@@ -1626,7 +1561,7 @@
           const res = await fetch('./scripture.pdf?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v539_7', buf, 'pdf_cached');
+            await saveLocalFile('pdf_file_v539_6', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
             hasAnyUpdateDetected = true;
           }
@@ -1636,7 +1571,7 @@
         await renderPdfOnValidDimensions();
       }
 
-      const savedVid = await getLocalFile('video_file_v539_7');
+      const savedVid = await getLocalFile('video_file_v539_6');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
       } else {
@@ -1644,37 +1579,37 @@
           const res = await fetch('./chant_video.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v539_7', buf, 'vid_cached');
+            await saveLocalFile('video_file_v539_6', buf, 'vid_cached');
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
             hasAnyUpdateDetected = true;
           }
         } catch (e) { video.src = './chant_video.mp4'; }
       }
 
-      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v539_7');
+      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v539_6');
       if (!savedBuddhaVid || !savedBuddhaVid.data) {
         try {
           const res = await fetch('./reciting_buddha_name.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('reciting_buddha_file_v539_7', buf, 'buddha_cached');
+            await saveLocalFile('reciting_buddha_file_v539_6', buf, 'buddha_cached');
           }
         } catch (e) {}
       }
 
-      const savedMeritVid = await getLocalFile('merit_dedication_file_v539_7');
+      const savedMeritVid = await getLocalFile('merit_dedication_file_v539_6');
       if (!savedMeritVid || !savedMeritVid.data) {
         try {
           const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('merit_dedication_file_v539_7', buf, 'merit_cached');
+            await saveLocalFile('merit_dedication_file_v539_6', buf, 'merit_cached');
           }
         } catch (e) {}
       }
 
       if (isFirstCheckToday) {
-        localStorage.setItem('LAST_ASSET_CHECK_DATE_V539_7', todayStr);
+        localStorage.setItem('LAST_ASSET_CHECK_DATE_V539_6', todayStr);
         if (hasAnyUpdateDetected) {
           showToast(logMsg + "\n✨ 資源已自動更新至最新版本", 6000);
         }
@@ -1691,10 +1626,25 @@
       const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
       const scheduleList = [];
 
-      let currentDay = getCurrentActiveDayNumber();
+      let currentDay = 1;
+      let currentStart = 1;
+
+      if (testCompleted === 0) {
+        currentDay = 1;
+        currentStart = 1;
+      } else {
+        currentDay = 2;
+        currentStart = 2;
+        if (testCompleted > 1) {
+          let passedDays = Math.ceil((testCompleted - 1) / step);
+          currentDay = 1 + passedDays;
+          currentStart = 2 + (passedDays - 1) * step;
+          if (currentStart > total) currentStart = total;
+        }
+      }
+
       let simDay = currentDay;
-      let simStart = Math.min(total, testCompleted + 1);
-      if (simDay === 1) simStart = 1;
+      let simStart = currentStart;
 
       for (let dayIdx = 1; dayIdx <= 100; dayIdx++) {
         let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
@@ -1725,7 +1675,7 @@
         simDay++;
       }
 
-      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V539_7', JSON.stringify(scheduleList));
+      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V539_6', JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1733,7 +1683,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V539_7');
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V539_6');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -1746,11 +1696,34 @@
           return false;
         }
         
-        let targetDay = getCurrentActiveDayNumber();
+        let targetDay = 1;
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.get('start')) {
+          const startStr = urlParams.get('start');
+          const parts = startStr.split('-');
+          if (parts.length === 3) {
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1;
+            const d = parseInt(parts[2], 10);
+            const userStartDate = new Date(y, m, d);
+            
+            const now = new Date();
+            const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
+            targetDay = Math.max(1, diffDays);
+          }
+        } else if (urlParams.get('day')) {
+          targetDay = parseInt(urlParams.get('day'), 10) || 1;
+        } else {
+          targetDay = 1;
+        }
+
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        localStorage.setItem('USER_CURRENT_PROGRESS_END_V539_7', currentDayPlan.end.toString());
+        localStorage.setItem('USER_CURRENT_PROGRESS_END_V539_6', currentDayPlan.end.toString());
 
         practicePhase = 'new_gendu';
         currentCycleCount = 0;
@@ -2112,14 +2085,14 @@
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
-              const localPdf = await getLocalFile('pdf_file_v539_7');
+              const localPdf = await getLocalFile('pdf_file_v539_6');
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
                 const response = await fetch('./scripture.pdf?nocache=' + Date.now());
                 if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-                await saveLocalFile('pdf_file_v539_7', cachedPdfBuffer, 'mode-load');
+                await saveLocalFile('pdf_file_v539_6', cachedPdfBuffer, 'mode-load');
               }
             }
 
@@ -2139,15 +2112,6 @@
     }
 
     function renderUI() {
-      // 🌟 v539.7 如果正在播放迴向影片，將左右翼的所有按鈕變成莊嚴蓮花 (🪷)
-      if (isDedicationVideoPlaying) {
-        const lotusHtml = '<div style="font-size:26px; display:flex; align-items:center; justify-content:center; width:100%; height:100%;">🪷</div>';
-        [slotL1, slotL2, slotL3, slotL4, slotR1, slotR2, slotR3, slotR4].forEach(slot => {
-          slot.innerHTML = `<div class="circle-btn lotus-btn-transform">🪷</div>`;
-        });
-        return;
-      }
-
       if (practicePhase === 'completed') {
         slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
         const btnOffering = document.getElementById('btn-offering');
@@ -2496,7 +2460,7 @@
         haltGuideRunnerImmediately();
       }
 
-      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V539_7') || '{}');
+      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V539_6') || '{}');
       const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
       const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
       const hasCumulative = cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
@@ -2668,7 +2632,6 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    // 🌟 v539.7 福慧幣金幣雨：加強「福」與「慧」字的清晰度（白色描邊與清晰陰影）
     function triggerOfferingCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -2727,17 +2690,10 @@
           ctx.arc(0, 0, c.radius * 0.82, 0, Math.PI * 2);
           ctx.stroke();
 
-          // 🌟 v539.7 精準微調：加強描邊與陰影，讓「福」「慧」字體極度清晰
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-          ctx.shadowBlur = 4;
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = '#78350F';
+          ctx.fillStyle = '#FFFFFF';
           ctx.font = `bold ${Math.floor(c.radius * 0.9)}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.strokeText(c.label, 0, 1);
-
-          ctx.fillStyle = '#FEF3C7';
           ctx.fillText(c.label, 0, 1);
 
           ctx.restore();
@@ -3315,7 +3271,7 @@
 
       checkDailyResetOnStartup();
 
-      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V539_7');
+      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V539_6');
       if (!shownToday) {
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
       } else {
@@ -3345,7 +3301,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V539_7', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V539_6', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
