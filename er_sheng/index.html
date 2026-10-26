@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v601 (五模式統一架構版)</title>
+  <title>歡喜背書橫式雙模播放器 v602 (五模式全新編號架構版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,13 +11,13 @@
   <meta name="theme-color" content="#0B0F19">
 
   <!-- ========================================================================== -->
-  <!-- 📌【v601 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
+  <!-- 📌【v602 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
   <!-- ========================================================================== -->
   <script>
     const CURRENT_CLASSIC_ID = 'er_sheng'; // ⚠️ 1. 新經典英文代碼
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec'; // 2. 後端記錄網址
     
-    // 🌟【v601 萬用智慧排程演算法預設參數】
+    // 🌟【v602 萬用智慧排程演算法預設參數】
     const CLASSIC_TOTAL_SENTENCES = 37;        // 該經典的總句數（固定唯讀）
     const DEFAULT_DAILY_STEP = 4;              // 每日推進步幅預設 (1, 2, 4)
     const DEFAULT_REPEAT_NEW = 10;             // 今日定課預設遍數
@@ -260,7 +260,7 @@
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
     }
 
-    /* 🌟 v601 橫式排程設定彈窗：零間距、極致緊湊並最大化預覽顯示 */
+    /* 🌟 v602 橫式排程設定彈窗：零間距、極致緊湊並最大化預覽顯示 */
     #schedule-modal-overlay {
       display: none;
       position: fixed;
@@ -665,7 +665,7 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
-    /* 🌟 v601 第四、第五種核心模式專用容器（念佛、迴向獨立顯示層） */
+    /* 🌟 v602 模式1(念佛)與模式5(回向)的專屬獨立全螢幕播放層 */
     #standalone-video-overlay {
       display: none;
       position: fixed;
@@ -744,7 +744,7 @@
 </head>
 <body>
 
-  <!-- 🌟 第四、第五種模式專屬獨立播放器容器 -->
+  <!-- 🌟 模式1與模式5專屬獨立全螢幕播放層（支援左右滑動手勢返回） -->
   <div id="standalone-video-overlay">
     <video id="standalone-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
   </div>
@@ -778,7 +778,7 @@
   <!-- 🌟 橫式排程設定彈窗 -->
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v601)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v602)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -820,7 +820,7 @@
     </div>
   </div>
 
-  <!-- 🌟 隨喜回來對話框 (支援全五模式狀態精準恢復) -->
+  <!-- 🌟 隨喜回來對話框 (支援全五大模式狀態精準恢復) -->
   <div id="restore-modal-overlay">
     <div class="restore-card">
       <div class="restore-title">🙏 隨喜回來・繼續精進</div>
@@ -831,7 +831,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v601 載入中】...</div>
+  <div id="schedule-toast">📦 【v602 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -977,8 +977,13 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 🌟 核心狀態機變數：支援五大模式 ('mp4', 'pdf-guide', 'pdf-compare', 'buddha', 'merit')
-    let currentCoreMode = 'mp4'; 
+    // 🌟 全新五大核心模式架構編號：
+    // 'mode1' = 念佛清心模式
+    // 'mode2' = 跟讀模式
+    // 'mode3' = 自讀模式
+    // 'mode4' = 比對模式
+    // 'mode5' = 功德迴向模式
+    let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
 
     let selectedDailyStep = DEFAULT_DAILY_STEP;
@@ -1046,14 +1051,14 @@
       return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
     }
 
-    // 🌟 強化版狀態保存：支援五大模式與精準時間秒數
+    // 🌟 狀態保存：精準記錄五大模式與播放進度
     function saveCurrentAppState() {
       if (!hasEnteredReciting) return;
       const state = {
         coreMode: currentCoreMode,
         practicePhase: practicePhase,
         currentCycleCount: currentCycleCount,
-        videoCurrentTime: (currentCoreMode === 'mp4' ? video.currentTime : (currentCoreMode === 'buddha' || currentCoreMode === 'merit' ? standaloneVideo.currentTime : 0)),
+        videoCurrentTime: (currentCoreMode === 'mode2' ? video.currentTime : (currentCoreMode === 'mode1' || currentCoreMode === 'mode5' ? standaloneVideo.currentTime : 0)),
         currentLineIndex: currentLineIndex,
         markA_Index: markA_Index,
         markB_Index: markB_Index,
@@ -1061,34 +1066,34 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      localStorage.setItem('APP_SAVED_STATE_V601', JSON.stringify(state));
+      localStorage.setItem('APP_SAVED_STATE_V602', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = localStorage.getItem('APP_SAVED_STATE_V601');
+      const savedStr = localStorage.getItem('APP_SAVED_STATE_V602');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          localStorage.removeItem('APP_SAVED_STATE_V601');
+          localStorage.removeItem('APP_SAVED_STATE_V602');
           return false;
         }
 
         pendingRestoredState = state;
         const phaseName = getPhaseName(pendingRestoredState.practicePhase || 'new_gendu');
-        let modeDesc = '跟讀模式';
-        if (state.coreMode === 'pdf-guide') modeDesc = '自讀模式';
-        else if (state.coreMode === 'pdf-compare') modeDesc = '比對模式';
-        else if (state.coreMode === 'buddha') modeDesc = '念佛清心模式';
-        else if (state.coreMode === 'merit') modeDesc = '功德迴向模式';
+        let modeDesc = '跟讀模式 (模式2)';
+        if (state.coreMode === 'mode3') modeDesc = '自讀模式 (模式3)';
+        else if (state.coreMode === 'mode4') modeDesc = '比對模式 (模式4)';
+        else if (state.coreMode === 'mode1') modeDesc = '念佛清心 (模式1)';
+        else if (state.coreMode === 'mode5') modeDesc = '功德迴向 (模式5)';
 
         restoreDescText.innerHTML = `上次背書進度：<br><strong style="color: #34D399;">${phaseName} (${modeDesc})</strong><br>準備好後請按下方按鈕回到畫面。`;
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        localStorage.removeItem('APP_SAVED_STATE_V601');
+        localStorage.removeItem('APP_SAVED_STATE_V602');
         return false;
       }
     }
@@ -1101,7 +1106,7 @@
       }
 
       const state = pendingRestoredState;
-      currentCoreMode = state.coreMode || 'mp4';
+      currentCoreMode = state.coreMode || 'mode2';
       practicePhase = state.practicePhase || 'new_gendu';
       currentCycleCount = state.currentCycleCount || 0;
       currentLineIndex = state.currentLineIndex || 0;
@@ -1111,16 +1116,16 @@
 
       restoreModalOverlay.style.display = 'none';
 
-      if (currentCoreMode === 'mp4') {
-        setCoreMode('mp4');
+      if (currentCoreMode === 'mode2') {
+        setCoreMode('mode2');
         if (state.videoCurrentTime > 0) video.currentTime = state.videoCurrentTime;
-      } else if (currentCoreMode === 'pdf-guide') {
-        setCoreMode('pdf-guide');
-      } else if (currentCoreMode === 'pdf-compare') {
-        setCoreMode('pdf-compare');
-      } else if (currentCoreMode === 'buddha' || currentCoreMode === 'merit') {
+      } else if (currentCoreMode === 'mode3') {
+        setCoreMode('mode3');
+      } else if (currentCoreMode === 'mode4') {
+        setCoreMode('mode4');
+      } else if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') {
         playStandaloneVideo(currentCoreMode, state.videoCurrentTime, () => {
-          setCoreMode('mp4');
+          setCoreMode('mode2');
         });
         return;
       }
@@ -1147,6 +1152,7 @@
       }
     });
 
+    // 🌟 左右滑動手勢返回機制（全域與獨立影片層皆完美支援）
     let swipeStartX = 0;
     let swipeStartY = 0;
     window.addEventListener('touchstart', (e) => {
@@ -1161,6 +1167,27 @@
         const deltaX = e.changedTouches[0].clientX - swipeStartX;
         const deltaY = e.changedTouches[0].clientY - swipeStartY;
         if (Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+          handleReturnToCompanionCard();
+        }
+      }
+    }, { passive: true });
+
+    // 同時在獨立影片層（模式1與模式5）綁定滑動返回
+    standaloneOverlay.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    standaloneOverlay.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - swipeStartX;
+        const deltaY = e.changedTouches[0].clientY - swipeStartY;
+        if (Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+          // 獨立影片中滑動返回：終止影片並返回陪伴卡
+          standaloneVideo.pause();
+          standaloneOverlay.style.display = 'none';
           handleReturnToCompanionCard();
         }
       }
@@ -1199,19 +1226,19 @@
     }, { passive: true });
 
     centerCore.addEventListener('touchstart', (e) => {
-      if (currentCoreMode === 'pdf-guide' && isGuideActive) {
+      if (currentCoreMode === 'mode3' && isGuideActive) {
         isTouchingDisplay = true;
       }
     }, { passive: true });
 
     centerCore.addEventListener('touchend', (e) => {
-      if (currentCoreMode === 'pdf-guide' && isGuideActive) {
+      if (currentCoreMode === 'mode3' && isGuideActive) {
         isTouchingDisplay = false;
       }
     }, { passive: true });
 
     centerCore.addEventListener('touchcancel', (e) => {
-      if (currentCoreMode === 'pdf-guide' && isGuideActive) {
+      if (currentCoreMode === 'mode3' && isGuideActive) {
         isTouchingDisplay = false;
       }
     }, { passive: true });
@@ -1220,10 +1247,10 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V601');
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V602');
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V601', todayStr);
-        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V601');
+        localStorage.setItem('APP_ACTIVE_DATE_V602', todayStr);
+        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V602');
         isScheduleRepeatLocked = true;
       }
     }
@@ -1253,9 +1280,9 @@
       } catch (e) {}
     }
 
-    // 🌟 第四、第五種核心模式處理器 (念佛、迴向)
+    // 🌟 模式1(念佛)與模式5(回向)的獨立播放核心
     async function playStandaloneVideo(modeType, startSeekSec = 0, onEndedCallback) {
-      currentCoreMode = modeType; // 更新核心模式變數
+      currentCoreMode = modeType; // 正式設定為模式1或模式5
       haltGuideRunnerImmediately();
       if (video && !video.paused) video.pause();
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
@@ -1263,9 +1290,9 @@
 
       standaloneOverlay.style.display = 'flex';
       
-      let fileKey = (modeType === 'buddha') ? 'reciting_buddha_file_v601' : 'merit_dedication_file_v601';
-      let defaultUrl = (modeType === 'buddha') ? './reciting_buddha_name.mp4' : './merit_dedication.mp4';
-      let toastText = (modeType === 'buddha') ? '🙏【今日念佛清心模式】播放中...' : '🙏【功德迴向模式】播放中...';
+      let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_v602' : 'merit_dedication_file_v602';
+      let defaultUrl = (modeType === 'mode1') ? './reciting_buddha_name.mp4' : './merit_dedication.mp4';
+      let toastText = (modeType === 'mode1') ? '🙏【模式1：念佛清心】播放中...' : '🙏【模式5：功德迴向】播放中...';
 
       let mediaUrl = defaultUrl;
       try {
@@ -1308,7 +1335,7 @@
     function startStandalonePrecisionCheck() {
       if (standaloneCheckAnimId) cancelAnimationFrame(standaloneCheckAnimId);
       function check() {
-        if (currentCoreMode === 'buddha' || currentCoreMode === 'merit') {
+        if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') {
           saveCurrentAppState();
         }
         standaloneCheckAnimId = requestAnimationFrame(check);
@@ -1316,9 +1343,10 @@
       standaloneCheckAnimId = requestAnimationFrame(check);
     }
 
+    // 🌟 點擊開始定課：直接從模式1(念佛)開始，絕不預先閃現跟讀畫面
     async function closeCompanionCard() {
       hasEnteredReciting = true;
-      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V601', 'true');
+      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V602', 'true');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
       companionOverlay.style.opacity = '0';
@@ -1336,18 +1364,18 @@
         if (!hasPlayedBuddha) {
           localStorage.setItem('buddha_played_' + todayStr, 'true');
           
-          // 🌟 啟動第四種模式 (buddha)
-          playStandaloneVideo('buddha', 0, () => {
+          // 🌟 直接呼叫模式1 (念佛影片)，播完後才進入模式2 (跟讀)
+          playStandaloneVideo('mode1', 0, () => {
             showToast('✨ 念佛圓滿，開始今日定課', 3000);
             const hasRestore = checkAndPrepareRestoreState();
             if (!hasRestore) {
-              setCoreMode('mp4');
+              setCoreMode('mode2');
             }
           });
         } else {
           const hasRestore = checkAndPrepareRestoreState();
           if (!hasRestore) {
-            setCoreMode('mp4');
+            setCoreMode('mode2');
           }
         }
       }, 350);
@@ -1357,7 +1385,7 @@
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V601');
+      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V602');
       if (saved !== null) return parseInt(saved, 10);
       return 0;
     }
@@ -1387,7 +1415,7 @@
     }
 
     function openScheduleModal() {
-      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V601') || '{}');
+      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V602') || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
@@ -1497,10 +1525,10 @@
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      localStorage.setItem('USER_CURRENT_PROGRESS_END_V601', testCompleted.toString());
+      localStorage.setItem('USER_CURRENT_PROGRESS_END_V602', testCompleted.toString());
 
       const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
-      localStorage.setItem('USER_SCHEDULE_SETTINGS_V601', JSON.stringify(settings));
+      localStorage.setItem('USER_SCHEDULE_SETTINGS_V602', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
@@ -1512,10 +1540,10 @@
       btnPlayDedication.addEventListener('click', async () => {
         offeringOverlay.style.display = 'none';
 
-        // 🌟 啟動第五種模式 (merit)
-        playStandaloneVideo('merit', 0, () => {
+        // 🌟 點擊功德迴向：啟動模式5 (功德迴向)
+        playStandaloneVideo('mode5', 0, () => {
           showToast('✨ 迴向圓滿，隨喜功德', 3000);
-          setCoreMode('mp4');
+          setCoreMode('mode2');
         });
       });
     }
@@ -1523,27 +1551,27 @@
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
       const todayStr = getNormalizedDateStr();
-      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V601');
+      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V602');
       const isFirstCheckToday = (lastCheckDate !== todayStr);
 
       let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v601 系統更新檢查】\n";
+      let logMsg = "📦 【v602 系統更新檢查】\n";
 
-      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V601')) {
+      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V602')) {
         const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE, testCompleted: 0 };
         generateAlgorithmicSchedule(defaultSettings);
         hasAnyUpdateDetected = true;
         logMsg += "- 排程演算法: 初始化建立 ✅\n";
       }
 
-      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V601');
+      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V602');
       try {
         const res = await fetch('./sentences.json?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
           const freshSentStr = JSON.stringify(freshSent);
           if (freshSentStr !== localSentStr) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V601', freshSentStr);
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V602', freshSentStr);
             scriptureData = freshSent;
             hasAnyUpdateDetected = true;
           }
@@ -1557,14 +1585,14 @@
             const res = await fetch('./sentences.json?nocache=' + timestamp);
             if (res.ok) {
               scriptureData = await res.json();
-              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V601', JSON.stringify(scriptureData));
+              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V602', JSON.stringify(scriptureData));
               hasAnyUpdateDetected = true;
             }
           } catch (e) {}
         }
       }
 
-      const savedPdf = await getLocalFile('pdf_file_v601');
+      const savedPdf = await getLocalFile('pdf_file_v602');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
       } else {
@@ -1572,7 +1600,7 @@
           const res = await fetch('./scripture.pdf?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v601', buf, 'pdf_cached');
+            await saveLocalFile('pdf_file_v602', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
             hasAnyUpdateDetected = true;
           }
@@ -1582,7 +1610,7 @@
         await renderPdfOnValidDimensions();
       }
 
-      const savedVid = await getLocalFile('video_file_v601');
+      const savedVid = await getLocalFile('video_file_v602');
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
       } else {
@@ -1590,37 +1618,37 @@
           const res = await fetch('./chant_video.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v601', buf, 'vid_cached');
+            await saveLocalFile('video_file_v602', buf, 'vid_cached');
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
             hasAnyUpdateDetected = true;
           }
         } catch (e) { video.src = './chant_video.mp4'; }
       }
 
-      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v601');
+      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v602');
       if (!savedBuddhaVid || !savedBuddhaVid.data) {
         try {
           const res = await fetch('./reciting_buddha_name.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('reciting_buddha_file_v601', buf, 'buddha_cached');
+            await saveLocalFile('reciting_buddha_file_v602', buf, 'buddha_cached');
           }
         } catch (e) {}
       }
 
-      const savedMeritVid = await getLocalFile('merit_dedication_file_v601');
+      const savedMeritVid = await getLocalFile('merit_dedication_file_v602');
       if (!savedMeritVid || !savedMeritVid.data) {
         try {
           const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('merit_dedication_file_v601', buf, 'merit_cached');
+            await saveLocalFile('merit_dedication_file_v602', buf, 'merit_cached');
           }
         } catch (e) {}
       }
 
       if (isFirstCheckToday) {
-        localStorage.setItem('LAST_ASSET_CHECK_DATE_V601', todayStr);
+        localStorage.setItem('LAST_ASSET_CHECK_DATE_V602', todayStr);
         if (hasAnyUpdateDetected) {
           showToast(logMsg + "\n✨ 資源已自動更新至最新版本", 6000);
         }
@@ -1671,7 +1699,7 @@
         simDay++;
       }
 
-      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V601', JSON.stringify(scheduleList));
+      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V602', JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1679,7 +1707,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V601');
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V602');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -1696,7 +1724,7 @@
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        localStorage.setItem('USER_CURRENT_PROGRESS_END_V601', currentDayPlan.end.toString());
+        localStorage.setItem('USER_CURRENT_PROGRESS_END_V602', currentDayPlan.end.toString());
 
         practicePhase = 'new_gendu';
         currentCycleCount = 0;
@@ -2000,6 +2028,7 @@
     }
 
     // 🌟 五大核心模式切換路由器 (Single Source of Truth)
+    // 'mode1'=念佛, 'mode2'=跟讀, 'mode3'=自讀, 'mode4'=比對, 'mode5'=迴向
     function setCoreMode(mode) {
       haltGuideRunnerImmediately();
 
@@ -2009,10 +2038,10 @@
 
       currentCoreMode = mode;
 
-      // 關閉第四/五模式的燈箱
+      // 關閉模式1與模式5的獨立全螢幕燈箱
       standaloneOverlay.style.display = 'none';
 
-      if (mode === 'mp4') {
+      if (mode === 'mode2') {
         releaseMicrophoneResources();
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
@@ -2026,26 +2055,26 @@
         if (range.valid) {
           try { video.currentTime = range.start; } catch (e) {}
         }
-      } else if (mode === 'pdf-guide' || mode === 'pdf-compare') {
+      } else if (mode === 'mode3' || mode === 'mode4') {
         video.pause();
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
 
         ensureMicrophoneActive();
-        if (mode === 'pdf-compare') preWarmMediaRecorder();
+        if (mode === 'mode4') preWarmMediaRecorder();
 
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
-              const localPdf = await getLocalFile('pdf_file_v601');
+              const localPdf = await getLocalFile('pdf_file_v602');
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
                 const response = await fetch('./scripture.pdf?nocache=' + Date.now());
                 if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-                await saveLocalFile('pdf_file_v601', cachedPdfBuffer, 'mode-load');
+                await saveLocalFile('pdf_file_v602', cachedPdfBuffer, 'mode-load');
               }
             }
 
@@ -2084,7 +2113,7 @@
         slotL1.innerHTML = '';
         slotL2.innerHTML = '';
         
-        if (currentCoreMode === 'pdf-guide') {
+        if (currentCoreMode === 'mode3') {
           slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
           slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
         } else {
@@ -2112,8 +2141,8 @@
       if (btnSpeedDown) {
         btnSpeedDown.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (currentCoreMode === 'mp4') triggerMp4SpeedChange(-0.1); 
-          else if (currentCoreMode === 'pdf-compare') triggerCompareSpeedChange(-0.1);
+          if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
+          else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
           else triggerPdfSpeedChange(-0.1);
         });
       }
@@ -2131,8 +2160,8 @@
       if (btnSpeedUp) {
         btnSpeedUp.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (currentCoreMode === 'mp4') triggerMp4SpeedChange(+0.1); 
-          else if (currentCoreMode === 'pdf-compare') triggerCompareSpeedChange(+0.1);
+          if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
+          else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
           else triggerPdfSpeedChange(+0.1);
         });
       }
@@ -2162,7 +2191,7 @@
 
       if (btnGendu) {
           const isGenduActivePhase = (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu' || practicePhase === 'completed');
-          const isGenduPlaying = (currentCoreMode === 'mp4' && video && !video.paused);
+          const isGenduPlaying = (currentCoreMode === 'mode2' && video && !video.paused);
 
           if (isGenduPlaying) {
               btnGendu.textContent = '跟著唸';
@@ -2172,15 +2201,15 @@
               btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
           } else if (isGenduActivePhase) {
               btnGendu.textContent = '跟讀';
-              btnGendu.style.background = (currentCoreMode === 'mp4') ? colorGreen : colorBlack;
-              btnGendu.style.borderColor = (currentCoreMode === 'mp4') ? '#A7F3D0' : '#BAE6FD';
-              btnGendu.style.color = (currentCoreMode === 'mp4') ? '#FFFFFF' : '#FB923C';
+              btnGendu.style.background = (currentCoreMode === 'mode2') ? colorGreen : colorBlack;
+              btnGendu.style.borderColor = (currentCoreMode === 'mode2') ? '#A7F3D0' : '#BAE6FD';
+              btnGendu.style.color = (currentCoreMode === 'mode2') ? '#FFFFFF' : '#FB923C';
           }
       }
 
       if (btnZidu) {
           const isZiduActivePhase = (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu' || practicePhase === 'completed');
-          const isZiduRunning = (currentCoreMode === 'pdf-guide' && isGuideActive);
+          const isZiduRunning = (currentCoreMode === 'mode3' && isGuideActive);
 
           if (isZiduRunning) {
               btnZidu.textContent = '唸出聲';
@@ -2190,14 +2219,14 @@
               btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
           } else if (isZiduActivePhase) {
               btnZidu.textContent = '自讀';
-              btnZidu.style.background = (currentCoreMode === 'pdf-guide') ? colorGreen : colorBlack;
-              btnZidu.style.borderColor = (currentCoreMode === 'pdf-guide') ? '#A7F3D0' : '#BAE6FD';
-              btnZidu.style.color = (currentCoreMode === 'pdf-guide') ? '#FFFFFF' : '#FB923C';
+              btnZidu.style.background = (currentCoreMode === 'mode3') ? colorGreen : colorBlack;
+              btnZidu.style.borderColor = (currentCoreMode === 'mode3') ? '#A7F3D0' : '#BAE6FD';
+              btnZidu.style.color = (currentCoreMode === 'mode3') ? '#FFFFFF' : '#FB923C';
           }
       }
 
       if (btnRecord && practicePhase === 'completed') {
-          if (currentCoreMode === 'pdf-compare') {
+          if (currentCoreMode === 'mode4') {
               btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
               btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
               btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
@@ -2214,8 +2243,8 @@
         return;
       }
       
-      if (currentCoreMode !== 'mp4') {
-          setCoreMode('mp4');
+      if (currentCoreMode !== 'mode2') {
+          setCoreMode('mode2');
           return;
       }
       
@@ -2259,8 +2288,8 @@
         if (audioContext.state === 'suspended') audioContext.resume();
       } catch (e) {}
 
-      if (currentCoreMode !== 'pdf-guide') {
-          setCoreMode('pdf-guide');
+      if (currentCoreMode !== 'mode3') {
+          setCoreMode('mode3');
           return;
       }
 
@@ -2300,8 +2329,8 @@
         return;
       }
 
-      if (currentCoreMode !== 'pdf-compare') {
-        setCoreMode('pdf-compare');
+      if (currentCoreMode !== 'mode4') {
+        setCoreMode('mode4');
         preWarmMediaRecorder();
         showToast('🎙️ 已切換至比對模式，再按一下開始錄音', 2500);
         return;
@@ -2328,7 +2357,7 @@
 
     function handleMarkAClck() {
       if (practicePhase !== 'completed') return;
-      if (currentCoreMode !== 'pdf-guide') setCoreMode('pdf-guide');
+      if (currentCoreMode !== 'mode3') setCoreMode('mode3');
       isSelectingMarkA = true;
       isSelectingMarkB = false;
       showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
@@ -2337,7 +2366,7 @@
 
     function handleMarkBClick() {
       if (practicePhase !== 'completed') return;
-      if (currentCoreMode !== 'pdf-guide') setCoreMode('pdf-guide');
+      if (currentCoreMode !== 'mode3') setCoreMode('mode3');
       isSelectingMarkB = true;
       isSelectingMarkA = false;
       showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
@@ -2349,7 +2378,7 @@
         const canvasEl = document.getElementById('pdf-canvas');
         if (canvasEl) {
           canvasEl.addEventListener('click', (e) => {
-            if (currentCoreMode !== 'pdf-guide' && currentCoreMode !== 'pdf-compare') return;
+            if (currentCoreMode !== 'mode3' && currentCoreMode !== 'mode4') return;
             if (!isSelectingMarkA && !isSelectingMarkB) return;
 
             const clientX = e.clientX;
@@ -2387,7 +2416,7 @@
     function startMp4PrecisionCheck() {
       if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
       function check() {
-        if (currentCoreMode === 'mp4' && !video.paused && !video.ended) {
+        if (currentCoreMode === 'mode2' && !video.paused && !video.ended) {
           const range = getActiveVideoRange();
           if (range.valid && video.currentTime >= range.end) {
             video.pause();
@@ -2402,13 +2431,13 @@
     }
 
     function handleCycleCompletion() {
-      if (currentCoreMode === 'mp4') {
+      if (currentCoreMode === 'mode2') {
         video.pause();
-      } else if (currentCoreMode === 'pdf-guide') {
+      } else if (currentCoreMode === 'mode3') {
         haltGuideRunnerImmediately();
       }
 
-      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V601') || '{}');
+      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V602') || '{}');
       const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
       const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
       const hasCumulative = cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
@@ -2429,7 +2458,7 @@
           currentCycleCount = 0;
           setupStageRange();
 
-          setCoreMode('pdf-guide');
+          setCoreMode('mode3');
           speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。");
           showToast("🎉 新進度跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
 
@@ -2446,7 +2475,7 @@
             currentCycleCount = 0;
             setupStageRange();
 
-            setCoreMode('mp4');
+            setCoreMode('mode2');
             speakPrompt("新進度圓滿，準備進入串習複習跟讀");
             showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
 
@@ -2475,7 +2504,7 @@
           currentCycleCount = 0;
           setupStageRange();
 
-          setCoreMode('pdf-guide');
+          setCoreMode('mode3');
           speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。");
           showToast("🎉 串習複習跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
 
@@ -2687,7 +2716,7 @@
     }
 
     function updateVisualDisplay() {
-      if (currentCoreMode === 'pdf-guide' || currentCoreMode === 'pdf-compare') {
+      if (currentCoreMode === 'mode3' || currentCoreMode === 'mode4') {
         if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
           const btnMarkADom = document.getElementById('btn-mark-a');
           if (btnMarkADom) btnMarkADom.classList.add('active-mark');
@@ -2705,7 +2734,7 @@
         }
       }
 
-      if (!isGuideActive && currentCoreMode === 'pdf-guide') {
+      if (!isGuideActive && currentCoreMode === 'mode3') {
         guideLine.style.display = 'none';
         redDot.style.display = 'none';
       }
@@ -2771,7 +2800,7 @@
       vadDataArray = new Float32Array(analyser.frequencyBinCount);
 
       function loop() {
-        if (currentCoreMode !== 'pdf-guide' && currentCoreMode !== 'pdf-compare') {
+        if (currentCoreMode !== 'mode3' && currentCoreMode !== 'mode4') {
           vadCheckTimer = null;
           return;
         }
@@ -3200,7 +3229,7 @@
 
       checkDailyResetOnStartup();
 
-      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V601');
+      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V602');
       if (!shownToday) {
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
       } else {
@@ -3230,7 +3259,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V601', targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V602', targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
