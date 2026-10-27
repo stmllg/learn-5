@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 v677 (手機測試版)</title>
+  <title>歡喜背書 v688 (手機完整整合版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -26,14 +26,13 @@
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; user-select: none; }
     html, body { width: 100vw; height: 100vh; height: 100dvh; background-color: #0B0F19; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", serif; overflow: hidden; position: fixed; top: 0; left: 0; }
-    #line-browser-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; z-index: 100000; background: rgba(4, 7, 15, 0.94); backdrop-filter: blur(8px); justify-content: center; align-items: center; padding: 16px; box-sizing: border-box; opacity: 0; transition: opacity 0.3s ease; }
+    #line-browser-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; z-index: 100000; background: rgba(4, 7, 15, 0.94); backdrop-filter: blur(8px); justify-content: center; align-items: center; padding: 16px; opacity: 0; transition: opacity 0.3s ease; }
     #line-browser-overlay.active { display: flex; opacity: 1; }
     .line-guide-card { background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%); border: 2px solid #D97706; border-radius: 18px; max-width: 420px; width: 90%; padding: 24px 22px; box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9); text-align: center; display: flex; flex-direction: column; gap: 16px; }
     .line-guide-title { font-size: 20px; font-weight: 900; color: #FBBF24; letter-spacing: 2px; }
     .line-guide-content { font-size: 16px; line-height: 1.8; color: #E2E8F0; text-align: left; background: rgba(15, 23, 42, 0.7); padding: 16px 18px; border-radius: 12px; border: 1px dashed rgba(245, 158, 11, 0.45); }
-    .line-guide-content strong { color: #38BDF8; }
-    #portrait-blocker-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; background: radial-gradient(circle at center, #1E293B 0%, #080D1A 100%); z-index: 99999; flex-direction: column; justify-content: center; align-items: center; padding: 24px; text-align: center; pointer-events: all; gap: 16px; }
-    .rotate-phone-icon { width: 62px; height: 100px; border: 3px solid #F59E0B; border-radius: 12px; position: relative; margin-bottom: 8px; animation: rotatePhoneAnim 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite; box-shadow: 0 0 20px rgba(245, 158, 11, 0.35); flex-shrink: 0; }
+    #portrait-blocker-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; background: radial-gradient(circle at center, #1E293B 0%, #080D1A 100%); z-index: 99999; flex-direction: column; justify-content: center; align-items: center; padding: 24px; text-align: center; gap: 16px; }
+    .rotate-phone-icon { width: 62px; height: 100px; border: 3px solid #F59E0B; border-radius: 12px; position: relative; margin-bottom: 8px; animation: rotatePhoneAnim 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite; box-shadow: 0 0 20px rgba(245, 158, 11, 0.35); }
     .rotate-phone-icon::after { content: ''; position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 9px; height: 9px; border-radius: 50%; background: #F59E0B; }
     @keyframes rotatePhoneAnim { 0% { transform: rotate(0deg); } 35% { transform: rotate(-90deg); } 70% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
     .rotate-hint-title { font-size: 25px; font-weight: 900; color: #FBBF24; letter-spacing: 2px; }
@@ -143,7 +142,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v677)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v688)</div>
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
           <span class="schedule-field-label">經典總句數 / 已學：</span>
@@ -188,7 +187,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v677 啟動中】...</div>
+  <div id="schedule-toast">📦 【v688 代理載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
   <canvas id="flowerCanvas"></canvas>
 
@@ -317,16 +316,16 @@
         currentLineIndex: currentLineIndex, markA_Index: markA_Index, markB_Index: markB_Index, isManualSelected: isManualSelected,
         savedDateStr: getNormalizedDateStr(), timestamp: Date.now()
       };
-      localStorage.setItem('APP_SAVED_STATE_V677_' + CURRENT_CLASSIC_ID, JSON.stringify(state));
+      localStorage.setItem('APP_SAVED_STATE_V688_' + CURRENT_CLASSIC_ID, JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = localStorage.getItem('APP_SAVED_STATE_V677_' + CURRENT_CLASSIC_ID);
+      const savedStr = localStorage.getItem('APP_SAVED_STATE_V688_' + CURRENT_CLASSIC_ID);
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         if (state.savedDateStr !== getNormalizedDateStr()) {
-          localStorage.removeItem('APP_SAVED_STATE_V677_' + CURRENT_CLASSIC_ID);
+          localStorage.removeItem('APP_SAVED_STATE_V688_' + CURRENT_CLASSIC_ID);
           return false;
         }
         pendingRestoredState = state;
@@ -354,7 +353,7 @@
       });
     }
 
-    // 🌟 GAS 代理下載輔助
+    // 🌟 GAS 代理下載輔助（避開 CORS 限制）
     function fetchFileViaGASProxy(fileUrl) {
       return new Promise((resolve, reject) => {
         if (!fileUrl) { reject('無效的檔案網址'); return; }
@@ -397,7 +396,7 @@
     }
 
     async function loadAllAssetsSmartSync() {
-      let statusLog = `📦 【v677 雲端代理載入中】<br>`;
+      let statusLog = `📦 【v688 雲端代理載入中】<br>`;
       showToast(statusLog, 12000);
 
       let catalogInfo = { pdfUrl: '', videoUrl: '', sentencesUrl: '' };
@@ -411,7 +410,7 @@
       showToast(statusLog, 12000);
 
       // 1. sentences.json
-      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V677_' + CURRENT_CLASSIC_ID);
+      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V688_' + CURRENT_CLASSIC_ID);
       let sentencesFetchUrl = catalogInfo.sentencesUrl || './sentences.json';
       if (localSentStr) {
         try { scriptureData = JSON.parse(localSentStr); } catch (e) {}
@@ -420,14 +419,14 @@
         try {
           const proxyRes = await fetchFileViaGASProxy(sentencesFetchUrl);
           scriptureData = JSON.parse(proxyRes.text);
-          localStorage.setItem('OFFLINE_SENTENCES_CACHE_V677_' + CURRENT_CLASSIC_ID, JSON.stringify(scriptureData));
+          localStorage.setItem('OFFLINE_SENTENCES_CACHE_V688_' + CURRENT_CLASSIC_ID, JSON.stringify(scriptureData));
           statusLog += `✅ sentences.json [下載並快取成功]<br>`;
         } catch (e) { statusLog += `❌ sentences.json 錯誤<br>`; }
       }
       if (scriptureData.length > 0) CLASSIC_TOTAL_SENTENCES = scriptureData.length;
 
       // 2. PDF
-      const savedPdf = await getLocalFile('pdf_file_v677');
+      const savedPdf = await getLocalFile('pdf_file_v688');
       let pdfFetchUrl = catalogInfo.pdfUrl || './scripture.pdf';
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
@@ -435,7 +434,7 @@
         try {
           const proxyRes = await fetchFileViaGASProxy(pdfFetchUrl);
           cachedPdfBuffer = proxyRes.arrayBuffer;
-          await saveLocalFile('pdf_file_v677', cachedPdfBuffer, 'pdf_cached');
+          await saveLocalFile('pdf_file_v688', cachedPdfBuffer, 'pdf_cached');
           statusLog += `✅ PDF經文 [下載並快取成功]<br>`;
         } catch (e) { statusLog += `❌ PDF 錯誤<br>`; }
       }
@@ -444,7 +443,7 @@
       // 3. 影片
       video.src = catalogInfo.videoUrl || './chant_video.mp4';
       showToast('✨ 資源載入就緒！', 4000);
-      generateAlgorithmicSchedule(JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V677_' + CURRENT_CLASSIC_ID) || '{}'));
+      generateAlgorithmicSchedule(JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V688_' + CURRENT_CLASSIC_ID) || '{}'));
       applyScheduleToState("");
     }
 
@@ -462,12 +461,12 @@
     }
 
     function getCurrentProgressEnd() {
-      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V677_' + CURRENT_CLASSIC_ID);
+      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V688_' + CURRENT_CLASSIC_ID);
       return saved !== null ? parseInt(saved, 10) : 0;
     }
 
     function openScheduleModal() {
-      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V677_' + CURRENT_CLASSIC_ID) || '{}');
+      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V688_' + CURRENT_CLASSIC_ID) || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
@@ -511,8 +510,8 @@
       const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
-      localStorage.setItem('USER_CURRENT_PROGRESS_END_V677_' + CURRENT_CLASSIC_ID, testCompleted.toString());
-      localStorage.setItem('USER_SCHEDULE_SETTINGS_V677_' + CURRENT_CLASSIC_ID, JSON.stringify({ dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted }));
+      localStorage.setItem('USER_CURRENT_PROGRESS_END_V688_' + CURRENT_CLASSIC_ID, testCompleted.toString());
+      localStorage.setItem('USER_SCHEDULE_SETTINGS_V688_' + CURRENT_CLASSIC_ID, JSON.stringify({ dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted }));
       generateAlgorithmicSchedule({ dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted });
       closeScheduleModal();
       showToast('✨ 排程參數已更新！', 3000);
@@ -534,12 +533,12 @@
         if (end >= total) break;
         simStart = end + 1;
       }
-      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V677_' + CURRENT_CLASSIC_ID, JSON.stringify(list));
+      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V688_' + CURRENT_CLASSIC_ID, JSON.stringify(list));
     }
 
     function applyScheduleToState() {
       try {
-        const cache = JSON.parse(localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V677_' + CURRENT_CLASSIC_ID));
+        const cache = JSON.parse(localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V688_' + CURRENT_CLASSIC_ID));
         if (cache && cache.length > 0) {
           currentDayPlan = cache[0];
           setupStageRange();
@@ -571,7 +570,7 @@
     }
 
     // 資料庫與初始化
-    const DB_NAME = 'HappyReciteDB_V677_' + CURRENT_CLASSIC_ID;
+    const DB_NAME = 'HappyReciteDB_V688_' + CURRENT_CLASSIC_ID;
     const STORE_NAME = 'app_offline_files';
     function openDatabase() {
       return new Promise((resolve, reject) => {
