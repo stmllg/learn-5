@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 v610 (手機測試版)</title>
+  <title>歡喜背書 v666 (手機測試版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -770,7 +770,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v610)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v666)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -822,7 +822,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v610 手機測試載入中】...</div>
+  <div id="schedule-toast">📦 【v666 雲端代理載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1050,18 +1050,18 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      localStorage.setItem('APP_SAVED_STATE_V610_' + CURRENT_CLASSIC_ID, JSON.stringify(state));
+      localStorage.setItem('APP_SAVED_STATE_V666_' + CURRENT_CLASSIC_ID, JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = localStorage.getItem('APP_SAVED_STATE_V610_' + CURRENT_CLASSIC_ID);
+      const savedStr = localStorage.getItem('APP_SAVED_STATE_V666_' + CURRENT_CLASSIC_ID);
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          localStorage.removeItem('APP_SAVED_STATE_V610_' + CURRENT_CLASSIC_ID);
+          localStorage.removeItem('APP_SAVED_STATE_V666_' + CURRENT_CLASSIC_ID);
           return false;
         }
 
@@ -1077,7 +1077,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        localStorage.removeItem('APP_SAVED_STATE_V610_' + CURRENT_CLASSIC_ID);
+        localStorage.removeItem('APP_SAVED_STATE_V666_' + CURRENT_CLASSIC_ID);
         return false;
       }
     }
@@ -1134,14 +1134,8 @@
       }
     }
 
-    window.addEventListener('beforeunload', () => { 
-      saveCurrentAppState(); 
-      releaseMicrophoneResources();
-    });
-    window.addEventListener('pagehide', () => { 
-      saveCurrentAppState(); 
-      releaseMicrophoneResources();
-    });
+    window.addEventListener('beforeunload', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
+    window.addEventListener('pagehide', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         saveCurrentAppState();
@@ -1241,10 +1235,10 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V610_' + CURRENT_CLASSIC_ID);
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V666_' + CURRENT_CLASSIC_ID);
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V610_' + CURRENT_CLASSIC_ID, todayStr);
-        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V610_' + CURRENT_CLASSIC_ID);
+        localStorage.setItem('APP_ACTIVE_DATE_V666_' + CURRENT_CLASSIC_ID, todayStr);
+        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V666_' + CURRENT_CLASSIC_ID);
         isScheduleRepeatLocked = true;
       }
     }
@@ -1329,7 +1323,7 @@
 
     async function closeCompanionCard() {
       hasEnteredReciting = true;
-      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V610_' + CURRENT_CLASSIC_ID, 'true');
+      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V666_' + CURRENT_CLASSIC_ID, 'true');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
       companionOverlay.style.opacity = '0';
@@ -1368,7 +1362,7 @@
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V610_' + CURRENT_CLASSIC_ID);
+      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V666_' + CURRENT_CLASSIC_ID);
       if (saved !== null) return parseInt(saved, 10);
       return 0;
     }
@@ -1397,7 +1391,7 @@
     }
 
     function openScheduleModal() {
-      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V610_' + CURRENT_CLASSIC_ID) || '{}');
+      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V666_' + CURRENT_CLASSIC_ID) || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
@@ -1507,10 +1501,10 @@
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      localStorage.setItem('USER_CURRENT_PROGRESS_END_V610_' + CURRENT_CLASSIC_ID, testCompleted.toString());
+      localStorage.setItem('USER_CURRENT_PROGRESS_END_V666_' + CURRENT_CLASSIC_ID, testCompleted.toString());
 
       const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
-      localStorage.setItem('USER_SCHEDULE_SETTINGS_V610_' + CURRENT_CLASSIC_ID, JSON.stringify(settings));
+      localStorage.setItem('USER_SCHEDULE_SETTINGS_V666_' + CURRENT_CLASSIC_ID, JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
@@ -1528,6 +1522,51 @@
           setCoreMode('mode3');         
           renderUI();
         });
+      });
+    }
+
+    // 🌟 透過 Google Apps Script 代理下載檔案（完全避開 CORS 限制）
+    function fetchFileViaGASProxy(fileUrl) {
+      return new Promise((resolve, reject) => {
+        if (!fileUrl) {
+          reject('無效的檔案網址');
+          return;
+        }
+        
+        const callbackName = 'proxyCallback_' + Math.floor(Math.random() * 1000000);
+        let timeout = setTimeout(() => {
+          delete window[callbackName];
+          reject('代理下載逾時');
+        }, 30000);
+
+        window[callbackName] = (res) => {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          if (res && res.success && res.base64) {
+            const binaryString = atob(res.base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            resolve({
+              contentType: res.contentType,
+              arrayBuffer: bytes.buffer,
+              text: new TextDecoder('utf-8').decode(bytes)
+            });
+          } else {
+            reject(res ? res.error : '代理下載失敗');
+          }
+        };
+
+        const script = document.createElement('script');
+        script.src = `${APPS_SCRIPT_URL}?action=proxyFile&url=${encodeURIComponent(fileUrl)}&callback=${callbackName}&t=${Date.now()}`;
+        script.onerror = () => {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          reject('網路連線失敗');
+        };
+        document.body.appendChild(script);
       });
     }
 
@@ -1550,7 +1589,7 @@
         };
 
         const script = document.createElement('script');
-        script.src = `${GAS_BACKEND_URL}?classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&callback=${callbackName}&t=${Date.now()}`;
+        script.src = `${APPS_SCRIPT_URL}?classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&callback=${callbackName}&t=${Date.now()}`;
         script.onerror = () => {
           clearTimeout(timeout);
           delete window[callbackName];
@@ -1560,10 +1599,9 @@
       });
     }
 
-    // 🌟 強化版：明確顯示「下載完成並存入手機」的結果回報
+    // 🌟 完整整合版：使用 GAS 代理下載 sentences.json 與 PDF 經文
     async function loadAllAssetsSmartSync() {
-      const timestamp = Date.now();
-      let statusLog = `📦 【v610 手機快取狀態檢查】<br>`;
+      let statusLog = `📦 【v666 雲端代理載入中】<br>`;
       showToast(statusLog, 12000);
 
       let catalogInfo = {
@@ -1586,7 +1624,7 @@
       showToast(statusLog, 12000);
 
       // 1. 檢查 sentences.json 是否已下載到手機
-      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V610_' + CURRENT_CLASSIC_ID);
+      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V666_' + CURRENT_CLASSIC_ID);
       let sentencesFetchUrl = catalogInfo.sentencesUrl || './sentences.json';
       
       if (localSentStr) {
@@ -1594,24 +1632,20 @@
           scriptureData = JSON.parse(localSentStr);
           statusLog += `📱 sentences.json: <strong style="color:#34D399;">[已從手機快取讀取]</strong><br>`;
         } catch (e) {
-          localStorage.removeItem('OFFLINE_SENTENCES_CACHE_V610_' + CURRENT_CLASSIC_ID);
+          localStorage.removeItem('OFFLINE_SENTENCES_CACHE_V666_' + CURRENT_CLASSIC_ID);
         }
       } 
       
       if (!scriptureData || scriptureData.length === 0) {
         try {
-          statusLog += `📥 正在下載 sentences.json 到手機...<br>`;
+          statusLog += `📥 透過代理下載 sentences.json...<br>`;
           showToast(statusLog, 12000);
-          const res = await fetch(sentencesFetchUrl + (sentencesFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp);
-          if (res.ok) {
-            scriptureData = await res.json();
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V610_' + CURRENT_CLASSIC_ID, JSON.stringify(scriptureData));
-            statusLog += `✅ sentences.json: <strong style="color:#34D399;">[下載完成並存入手機！]</strong><br>`;
-          } else {
-            statusLog += `❌ sentences.json 回應失敗 (${res.status})<br>`;
-          }
+          const proxyRes = await fetchFileViaGASProxy(sentencesFetchUrl);
+          scriptureData = JSON.parse(proxyRes.text);
+          localStorage.setItem('OFFLINE_SENTENCES_CACHE_V666_' + CURRENT_CLASSIC_ID, JSON.stringify(scriptureData));
+          statusLog += `✅ sentences.json: <strong style="color:#34D399;">[下載完成並存入手機！]</strong><br>`;
         } catch (e) {
-          statusLog += `❌ sentences.json 下載錯誤<br>`;
+          statusLog += `❌ sentences.json 下載錯誤: ${e}<br>`;
         }
       }
       showToast(statusLog, 12000);
@@ -1625,26 +1659,22 @@
       showToast(statusLog, 12000);
 
       // 2. 檢查 PDF 是否已存入手機 IndexedDB
-      const savedPdf = await getLocalFile('pdf_file_v610');
+      const savedPdf = await getLocalFile('pdf_file_v666');
       let pdfFetchUrl = catalogInfo.pdfUrl || './scripture.pdf';
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
         statusLog += `📱 PDF 經文檔: <strong style="color:#34D399;">[已從手機資料庫讀取]</strong><br>`;
       } else {
         try {
-          statusLog += `📥 正在下載 PDF 經文檔到手機...<br>`;
+          statusLog += `📥 透過代理下載 PDF 經文檔...<br>`;
           showToast(statusLog, 12000);
-          const res = await fetch(pdfFetchUrl + (pdfFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v610', buf, 'pdf_cached');
-            cachedPdfBuffer = buf;
-            statusLog += `✅ PDF 經文檔: <strong style="color:#34D399;">[下載完成並存入手機！]</strong><br>`;
-          } else {
-            statusLog += `❌ PDF 回應失敗 (${res.status})<br>`;
-          }
+          const proxyRes = await fetchFileViaGASProxy(pdfFetchUrl);
+          const buf = proxyRes.arrayBuffer;
+          await saveLocalFile('pdf_file_v666', buf, 'pdf_cached');
+          cachedPdfBuffer = buf;
+          statusLog += `✅ PDF 經文檔: <strong style="color:#34D399;">[下載完成並存入手機！]</strong><br>`;
         } catch (e) {
-          statusLog += `❌ PDF 下載錯誤<br>`;
+          statusLog += `❌ PDF 下載錯誤: ${e}<br>`;
         }
       }
       showToast(statusLog, 12000);
@@ -1653,34 +1683,12 @@
         await renderPdfOnValidDimensions();
       }
 
-      // 3. 檢查跟讀影片是否已存入手機 IndexedDB
-      const savedVid = await getLocalFile('video_file_v610');
+      // 3. 影片直接使用直連網址播放與瀏覽器快取
       let videoFetchUrl = catalogInfo.videoUrl || './chant_video.mp4';
-      if (savedVid && savedVid.data) {
-        video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
-        statusLog += `📱 跟讀影片檔: <strong style="color:#34D399;">[已從手機資料庫讀取]</strong><br>`;
-      } else {
-        try {
-          statusLog += `📥 正在下載跟讀影片到手機(較大請稍候)...<br>`;
-          showToast(statusLog, 12000);
-          const res = await fetch(videoFetchUrl + (videoFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v610', buf, 'vid_cached');
-            video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
-            statusLog += `✅ 跟讀影片檔: <strong style="color:#34D399;">[下載完成並存入手機！]</strong><br>`;
-          } else {
-            statusLog += `⚠️ 影片採用串流播放 (${res.status})<br>`;
-            video.src = videoFetchUrl;
-          }
-        } catch (e) {
-          video.src = videoFetchUrl;
-          statusLog += `⚠️ 影片串流播放<br>`;
-        }
-      }
+      video.src = videoFetchUrl;
+      statusLog += `✅ 影片串流與快取就緒<br>`;
 
-      // 🌟 最終結果宣告（停留 15 秒讓手機畫面清楚呈現）
-      statusLog += `<br><strong style="color:#FBBF24; font-size:15px;">✨ 【最終結果】所有資源已 100% 下載並準備就緒！</strong>`;
+      statusLog += `<br><strong style="color:#FBBF24; font-size:15px;">✨ 【最終結果】所有資源載入完成！</strong>`;
       showToast(statusLog, 15000);
 
       applyScheduleToState("");
@@ -1688,7 +1696,7 @@
 
     function generateAlgorithmicSchedule(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
-      const step = settings.dailyStep || DEFAULT_DAILY_STEP;
+      const step = settings.dailyStep;
       const rNew = settings.repeatNew;
       const rCum = settings.repeatCum;
       const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
@@ -1728,7 +1736,7 @@
         simDay++;
       }
 
-      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V610_' + CURRENT_CLASSIC_ID, JSON.stringify(scheduleList));
+      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V666_' + CURRENT_CLASSIC_ID, JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1736,7 +1744,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V610_' + CURRENT_CLASSIC_ID);
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V666_' + CURRENT_CLASSIC_ID);
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -1753,7 +1761,7 @@
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        localStorage.setItem('USER_CURRENT_PROGRESS_END_V610_' + CURRENT_CLASSIC_ID, currentDayPlan.end.toString());
+        localStorage.setItem('USER_CURRENT_PROGRESS_END_V666_' + CURRENT_CLASSIC_ID, currentDayPlan.end.toString());
 
         practicePhase = 'new_gendu';
         currentCycleCount = 0;
@@ -1906,7 +1914,7 @@
       } catch(e) {}
     }
 
-    const DB_NAME = 'HappyReciteDB_' + CURRENT_CLASSIC_ID;
+    const DB_NAME = 'HappyReciteDB_V666_' + CURRENT_CLASSIC_ID;
     const STORE_NAME = 'app_offline_files';
 
     function openDatabase() {
@@ -1941,18 +1949,6 @@
         const tx = db.transaction(STORE_NAME, 'readwrite');
         tx.objectStore(STORE_NAME).put({ data: data, tag: tag }, key);
       } catch (e) {}
-    }
-
-    function showToast(msg, duration = 6000) {
-      if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
-      scheduleToast.style.display = 'block';
-      scheduleToast.style.opacity = '1';
-      clearTimeout(scheduleToast._timer);
-      scheduleToast._timer = setTimeout(() => {
-        scheduleToast.style.opacity = '0';
-        setTimeout(() => { scheduleToast.style.display = 'none'; }, 300);
-      }, duration);
     }
 
     function setMp4Speed(val) {
@@ -2091,14 +2087,14 @@
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
-              const localPdf = await getLocalFile('pdf_file_v610');
+              const localPdf = await getLocalFile('pdf_file_v666');
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
                 const response = await fetch('./scripture.pdf?nocache=' + Date.now());
                 if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-                await saveLocalFile('pdf_file_v610', cachedPdfBuffer, 'mode-load');
+                await saveLocalFile('pdf_file_v666', cachedPdfBuffer, 'mode-load');
               }
             }
 
@@ -2125,8 +2121,8 @@
 
         const textA = isSelectingMarkA ? '請點句' : '起句';
         const textB = isSelectingMarkB ? '請點句' : '終句';
-        const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
-        const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+        const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important;' : '';
+        const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important;' : '';
 
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
@@ -2255,7 +2251,6 @@
               btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
               btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
               btnRecord.style.color = '#FFFFFF';
-              if (isUserRecording) btnRecord.classList.add('recording-flashing');
           }
       }
     }
@@ -2470,7 +2465,7 @@
         haltGuideRunnerImmediately();
       }
 
-      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V610_' + CURRENT_CLASSIC_ID) || '{}');
+      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V666_' + CURRENT_CLASSIC_ID) || '{}');
       const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
       const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
       const hasCumulative = cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
@@ -2727,17 +2722,6 @@
 
     function renderMarkerLine(lineElement, lineObj) {
       if (!lineObj) return;
-      if (!isAppleDevice) {
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const localY = lineObj.underLineY * scaleY;
-
-        lineElement.style.top = localY + 'px';
-        lineElement.style.left = lineObj.x0 + 'px';
-        lineElement.style.width = (lineObj.x1 - lineObj.x0) + 'px';
-        lineElement.style.display = 'block';
-        return;
-      }
       const canvasRect = pdfCanvas.getBoundingClientRect();
       const scaleY = canvasRect.height / pdfCanvas.height;
       const scaleX = canvasRect.width / pdfCanvas.width;
@@ -2917,6 +2901,8 @@
       isUserRecording = true;
       renderUI();
     }
+
+    function preWarmMediaRecorder() {}
 
     function togglePlaybackAction() {
       if (!recordedAudioBlobUrl) return;
@@ -3256,7 +3242,7 @@
 
       checkDailyResetOnStartup();
 
-      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V610_' + CURRENT_CLASSIC_ID);
+      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V666_' + CURRENT_CLASSIC_ID);
       if (!shownToday) {
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
       } else {
@@ -3282,7 +3268,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V610_' + CURRENT_CLASSIC_ID, targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V666_' + CURRENT_CLASSIC_ID, targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
