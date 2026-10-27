@@ -3,22 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 v608 (總句數雲端聯動版)</title>
+  <title>歡喜背書 v610 (測試版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
   <meta name="theme-color" content="#0B0F19">
 
-  <!-- ========================================================================== -->
-  <!-- 📌【v608 雲端聯動核心設定】透過網址 ?classic=代碼 自動向 Google 試算表請求檔案與總句數 -->
-  <!-- ========================================================================== -->
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const CURRENT_CLASSIC_ID = urlParams.get('classic') || 'er_sheng'; // 預設經典代碼
-    const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbw2WPy6my9EAt6o_90i-2VbJT18XR3Kunf-Rjzox5Hu3Vk5V-TkilU7uNdk5vUZg7o7MA/exec'; // 您的後端網址
+    const CURRENT_CLASSIC_ID = urlParams.get('classic') || 'er_sheng'; 
+    // 🌟 請確認這裡填寫的是您部署成功後的「網頁應用程式」網址 (.../exec)
+    const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbw2WPy6my9EAt6o_90i-2VbJT18XR3Kunf-Rjzox5Hu3Vk5V-TkilU7uNdk5vUZg7o7MA/exec'; 
     
-    // 🌟 總句數由雲端試算表與 sentences.json 動態決定，預設設為 0
     let CLASSIC_TOTAL_SENTENCES = 0;        
     const DEFAULT_DAILY_STEP = 4;              
     const DEFAULT_REPEAT_NEW = 10;             
@@ -774,7 +771,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v608)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v610)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -826,7 +823,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v608 載入中】...</div>
+  <div id="schedule-toast">📦 【v610 測試載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1054,18 +1051,18 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      localStorage.setItem('APP_SAVED_STATE_V608_' + CURRENT_CLASSIC_ID, JSON.stringify(state));
+      localStorage.setItem('APP_SAVED_STATE_V610_' + CURRENT_CLASSIC_ID, JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = localStorage.getItem('APP_SAVED_STATE_V608_' + CURRENT_CLASSIC_ID);
+      const savedStr = localStorage.getItem('APP_SAVED_STATE_V610_' + CURRENT_CLASSIC_ID);
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          localStorage.removeItem('APP_SAVED_STATE_V608_' + CURRENT_CLASSIC_ID);
+          localStorage.removeItem('APP_SAVED_STATE_V610_' + CURRENT_CLASSIC_ID);
           return false;
         }
 
@@ -1081,7 +1078,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        localStorage.removeItem('APP_SAVED_STATE_V608_' + CURRENT_CLASSIC_ID);
+        localStorage.removeItem('APP_SAVED_STATE_V610_' + CURRENT_CLASSIC_ID);
         return false;
       }
     }
@@ -1245,10 +1242,10 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V608_' + CURRENT_CLASSIC_ID);
+      const lastActiveDate = localStorage.getItem('APP_ACTIVE_DATE_V610_' + CURRENT_CLASSIC_ID);
       if (lastActiveDate !== todayStr) {
-        localStorage.setItem('APP_ACTIVE_DATE_V608_' + CURRENT_CLASSIC_ID, todayStr);
-        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V608_' + CURRENT_CLASSIC_ID);
+        localStorage.setItem('APP_ACTIVE_DATE_V610_' + CURRENT_CLASSIC_ID, todayStr);
+        localStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V610_' + CURRENT_CLASSIC_ID);
         isScheduleRepeatLocked = true;
       }
     }
@@ -1287,17 +1284,8 @@
 
       standaloneOverlay.style.display = 'flex';
       
-      let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_v608' : 'merit_dedication_file_v608';
-      let defaultUrl = (modeType === 'mode1') ? './reciting_buddha_name.mp4' : './merit_dedication.mp4';
+      let mediaUrl = (modeType === 'mode1') ? './reciting_buddha_name.mp4' : './merit_dedication.mp4';
       let toastText = (modeType === 'mode1') ? '🙏【模式1：念佛清心】播放中...' : '🙏【模式5：功德迴向】播放中...';
-
-      let mediaUrl = defaultUrl;
-      try {
-        const savedFile = await getLocalFile(fileKey);
-        if (savedFile && savedFile.data) {
-          mediaUrl = URL.createObjectURL(new Blob([savedFile.data], { type: 'video/mp4' }));
-        }
-      } catch(e) {}
 
       standaloneVideo.src = mediaUrl;
       standaloneVideo.currentTime = startSeekSec;
@@ -1342,7 +1330,7 @@
 
     async function closeCompanionCard() {
       hasEnteredReciting = true;
-      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V608_' + CURRENT_CLASSIC_ID, 'true');
+      localStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V610_' + CURRENT_CLASSIC_ID, 'true');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
       companionOverlay.style.opacity = '0';
@@ -1381,7 +1369,7 @@
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V608_' + CURRENT_CLASSIC_ID);
+      const saved = localStorage.getItem('USER_CURRENT_PROGRESS_END_V610_' + CURRENT_CLASSIC_ID);
       if (saved !== null) return parseInt(saved, 10);
       return 0;
     }
@@ -1410,7 +1398,7 @@
     }
 
     function openScheduleModal() {
-      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V608_' + CURRENT_CLASSIC_ID) || '{}');
+      const savedSettings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V610_' + CURRENT_CLASSIC_ID) || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
@@ -1520,10 +1508,10 @@
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      localStorage.setItem('USER_CURRENT_PROGRESS_END_V608_' + CURRENT_CLASSIC_ID, testCompleted.toString());
+      localStorage.setItem('USER_CURRENT_PROGRESS_END_V610_' + CURRENT_CLASSIC_ID, testCompleted.toString());
 
       const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
-      localStorage.setItem('USER_SCHEDULE_SETTINGS_V608_' + CURRENT_CLASSIC_ID, JSON.stringify(settings));
+      localStorage.setItem('USER_SCHEDULE_SETTINGS_V610_' + CURRENT_CLASSIC_ID, JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
@@ -1544,7 +1532,6 @@
       });
     }
 
-    // 🌟 向 Google 試算表（GAS）查詢 Catalog 雲端連結與總句數
     function fetchClassicCatalogFromGAS() {
       return new Promise((resolve) => {
         const callbackName = 'onCatalogLoaded_' + Math.floor(Math.random() * 1000000);
@@ -1574,18 +1561,12 @@
       });
     }
 
+    // 🌟 升級版：具備詳細手機下載與快取狀態回報的載入函式
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
-      const todayStr = getNormalizedDateStr();
-      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V608_' + CURRENT_CLASSIC_ID);
-      const isFirstCheckToday = (lastCheckDate !== todayStr);
+      let statusLog = `📦 【v610 測試階段：手機快取狀態】<br>`;
 
-      let hasAnyUpdateDetected = false;
-      let logMsg = `📦 【v608 雲端聯動載入：${CURRENT_CLASSIC_ID}】\n`;
-
-      // 1. 向 GAS 請求該經典的雲端下載清單與總句數
       let catalogInfo = {
-        totalSentences: 0,
         pdfUrl: '',
         videoUrl: '',
         sentencesUrl: ''
@@ -1595,125 +1576,91 @@
         const fetchedCatalog = await fetchClassicCatalogFromGAS();
         if (fetchedCatalog) {
           catalogInfo = fetchedCatalog;
-          if (catalogInfo.totalSentences && catalogInfo.totalSentences > 0) {
-            CLASSIC_TOTAL_SENTENCES = catalogInfo.totalSentences;
-          }
-          logMsg += `- 成功從試算表取得經典: ${catalogInfo.name || CURRENT_CLASSIC_ID} (共 ${CLASSIC_TOTAL_SENTENCES} 句)\n`;
+          statusLog += `✅ 成功取得雲端目錄: ${catalogInfo.name || CURRENT_CLASSIC_ID}<br>`;
         } else {
-          logMsg += `- ⚠️ 未取得雲端目錄，將嘗試從 sentences.json 讀取\n`;
+          statusLog += `⚠️ 未取得雲端目錄，使用預設路徑<br>`;
         }
       } catch (e) {
-        logMsg += `- ⚠️ 聯網查詢失敗，使用離線快取\n`;
+        statusLog += `⚠️ 雲端查詢失敗，檢查離線快取<br>`;
       }
 
-      // 2. 載入 sentences.json
-      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V608_' + CURRENT_CLASSIC_ID);
+      // 1. 檢查 sentences.json 是否已下載到手機
+      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V610_' + CURRENT_CLASSIC_ID);
       let sentencesFetchUrl = catalogInfo.sentencesUrl || './sentences.json';
-      try {
-        const res = await fetch(sentencesFetchUrl + (sentencesFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp, { cache: 'no-store' });
-        if (res.ok) {
-          const freshSent = await res.json();
-          const freshSentStr = JSON.stringify(freshSent);
-          if (freshSentStr !== localSentStr) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V608_' + CURRENT_CLASSIC_ID, freshSentStr);
-            scriptureData = freshSent;
-            hasAnyUpdateDetected = true;
+      
+      if (localSentStr) {
+        scriptureData = JSON.parse(localSentStr);
+        statusLog += `📱 sentences.json: <strong style="color:#34D399;">[已從手機快取載入]</strong><br>`;
+      } else {
+        try {
+          statusLog += `📥 正在從雲端下載 sentences.json...<br>`;
+          showToast(statusLog, 8000);
+          const res = await fetch(sentencesFetchUrl + (sentencesFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp);
+          if (res.ok) {
+            scriptureData = await res.json();
+            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V610_' + CURRENT_CLASSIC_ID, JSON.stringify(scriptureData));
+            statusLog += `✅ sentences.json: <strong style="color:#34D399;">[下載並存入手機成功]</strong><br>`;
           }
-        }
-      } catch (e) {}
-
-      if (scriptureData.length === 0) {
-        if (localSentStr) {
-          try { scriptureData = JSON.parse(localSentStr); } catch(e){}
-        } else {
-          try {
-            const res = await fetch(sentencesFetchUrl + (sentencesFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp);
-            if (res.ok) {
-              scriptureData = await res.json();
-              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V608_' + CURRENT_CLASSIC_ID, JSON.stringify(scriptureData));
-              hasAnyUpdateDetected = true;
-            }
-          } catch (e) {}
+        } catch (e) {
+          statusLog += `❌ sentences.json 下載失敗<br>`;
         }
       }
 
-      // 🌟 核心保證：如果試算表沒填總句數，直接以實際下載回來的 sentences.json 陣列長度作為總句數！
-      if (scriptureData.length > 0 && (CLASSIC_TOTAL_SENTENCES <= 0 || CLASSIC_TOTAL_SENTENCES !== scriptureData.length)) {
+      if (scriptureData.length > 0) {
         CLASSIC_TOTAL_SENTENCES = scriptureData.length;
+        statusLog += `- 自動計算總句數: <strong>${CLASSIC_TOTAL_SENTENCES} 句</strong><br>`;
       }
 
-      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608_' + CURRENT_CLASSIC_ID)) {
-        const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE, testCompleted: 0 };
-        generateAlgorithmicSchedule(defaultSettings);
-        hasAnyUpdateDetected = true;
-      }
-
-      // 3. 載入 PDF
-      const savedPdf = await getLocalFile('pdf_file_v608');
+      // 2. 檢查 PDF 是否已存入手機 IndexedDB
+      const savedPdf = await getLocalFile('pdf_file_v610');
       let pdfFetchUrl = catalogInfo.pdfUrl || './scripture.pdf';
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
+        statusLog += `📱 PDF 經文檔: <strong style="color:#34D399;">[已從手機資料庫載入]</strong><br>`;
       } else {
         try {
+          statusLog += `📥 正在下載 PDF 經文檔到手機...<br>`;
+          showToast(statusLog, 8000);
           const res = await fetch(pdfFetchUrl + (pdfFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v608', buf, 'pdf_cached');
+            await saveLocalFile('pdf_file_v610', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
-            hasAnyUpdateDetected = true;
+            statusLog += `✅ PDF 經文檔: <strong style="color:#34D399;">[下載並存入手機成功]</strong><br>`;
           }
-        } catch (e) {}
+        } catch (e) {
+          statusLog += `❌ PDF 下載失敗<br>`;
+        }
       }
       if (cachedPdfBuffer && parsedTextLines.length === 0) {
         await renderPdfOnValidDimensions();
       }
 
-      // 4. 載入跟讀影片
-      const savedVid = await getLocalFile('video_file_v608');
+      // 3. 檢查跟讀影片是否已存入手機 IndexedDB
+      const savedVid = await getLocalFile('video_file_v610');
       let videoFetchUrl = catalogInfo.videoUrl || './chant_video.mp4';
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
+        statusLog += `📱 跟讀影片檔: <strong style="color:#34D399;">[已從手機資料庫載入]</strong><br>`;
       } else {
         try {
+          statusLog += `📥 正在下載跟讀影片到手機(較大請稍候)...<br>`;
+          showToast(statusLog, 8000);
           const res = await fetch(videoFetchUrl + (videoFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v608', buf, 'vid_cached');
+            await saveLocalFile('video_file_v610', buf, 'vid_cached');
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
-            hasAnyUpdateDetected = true;
+            statusLog += `✅ 跟讀影片檔: <strong style="color:#34D399;">[下載並存入手機成功]</strong><br>`;
           }
-        } catch (e) { video.src = videoFetchUrl; }
-      }
-
-      // 5. 載入共用念佛與迴向影片
-      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v608');
-      if (!savedBuddhaVid || !savedBuddhaVid.data) {
-        try {
-          const res = await fetch('./reciting_buddha_name.mp4?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('reciting_buddha_file_v608', buf, 'buddha_cached');
-          }
-        } catch (e) {}
-      }
-
-      const savedMeritVid = await getLocalFile('merit_dedication_file_v608');
-      if (!savedMeritVid || !savedMeritVid.data) {
-        try {
-          const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('merit_dedication_file_v608', buf, 'merit_cached');
-          }
-        } catch (e) {}
-      }
-
-      if (isFirstCheckToday) {
-        localStorage.setItem('LAST_ASSET_CHECK_DATE_V608_' + CURRENT_CLASSIC_ID, todayStr);
-        if (hasAnyUpdateDetected) {
-          showToast(logMsg + "\n✨ 資源已自動更新至最新版本", 6000);
+        } catch (e) {
+          video.src = videoFetchUrl;
+          statusLog += `⚠️ 影片採用串流播放<br>`;
         }
       }
+
+      statusLog += `<br><strong style="color:#FBBF24;">✨ 所有資源準備就緒！</strong>`;
+      showToast(statusLog, 7000);
 
       applyScheduleToState("");
     }
@@ -1760,7 +1707,7 @@
         simDay++;
       }
 
-      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V608_' + CURRENT_CLASSIC_ID, JSON.stringify(scheduleList));
+      localStorage.setItem('OFFLINE_SCHEDULE_CACHE_V610_' + CURRENT_CLASSIC_ID, JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1768,7 +1715,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608_' + CURRENT_CLASSIC_ID);
+        const localSched = localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V610_' + CURRENT_CLASSIC_ID);
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -1785,7 +1732,7 @@
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        localStorage.setItem('USER_CURRENT_PROGRESS_END_V608_' + CURRENT_CLASSIC_ID, currentDayPlan.end.toString());
+        localStorage.setItem('USER_CURRENT_PROGRESS_END_V610_' + CURRENT_CLASSIC_ID, currentDayPlan.end.toString());
 
         practicePhase = 'new_gendu';
         currentCycleCount = 0;
@@ -2123,14 +2070,14 @@
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
-              const localPdf = await getLocalFile('pdf_file_v608');
+              const localPdf = await getLocalFile('pdf_file_v610');
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
                 const response = await fetch('./scripture.pdf?nocache=' + Date.now());
                 if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-                await saveLocalFile('pdf_file_v608', cachedPdfBuffer, 'mode-load');
+                await saveLocalFile('pdf_file_v610', cachedPdfBuffer, 'mode-load');
               }
             }
 
@@ -2502,7 +2449,7 @@
         haltGuideRunnerImmediately();
       }
 
-      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V608_' + CURRENT_CLASSIC_ID) || '{}');
+      const settings = JSON.parse(localStorage.getItem('USER_SCHEDULE_SETTINGS_V610_' + CURRENT_CLASSIC_ID) || '{}');
       const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
       const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
       const hasCumulative = cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
@@ -3288,7 +3235,7 @@
 
       checkDailyResetOnStartup();
 
-      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V608_' + CURRENT_CLASSIC_ID);
+      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V610_' + CURRENT_CLASSIC_ID);
       if (!shownToday) {
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
       } else {
@@ -3314,7 +3261,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V608_' + CURRENT_CLASSIC_ID, targetDay.toString());
+      localStorage.setItem('CURRENT_SCHEDULE_DAY_V610_' + CURRENT_CLASSIC_ID, targetDay.toString());
 
       let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
