@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 v610 (測試版)</title>
+  <title>歡喜背書 v610 (手機測試版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,7 +13,6 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const CURRENT_CLASSIC_ID = urlParams.get('classic') || 'er_sheng'; 
-    // 🌟 請確認這裡填寫的是您部署成功後的「網頁應用程式」網址 (.../exec)
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbw2WPy6my9EAt6o_90i-2VbJT18XR3Kunf-Rjzox5Hu3Vk5V-TkilU7uNdk5vUZg7o7MA/exec'; 
     
     let CLASSIC_TOTAL_SENTENCES = 0;        
@@ -823,7 +822,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v610 測試載入中】...</div>
+  <div id="schedule-toast">📦 【v610 手機測試載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1561,10 +1560,11 @@
       });
     }
 
-    // 🌟 升級版：具備詳細手機下載與快取狀態回報的載入函式
+    // 🌟 強化版：明確顯示「下載完成並存入手機」的結果回報
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
-      let statusLog = `📦 【v610 測試階段：手機快取狀態】<br>`;
+      let statusLog = `📦 【v610 手機快取狀態檢查】<br>`;
+      showToast(statusLog, 12000);
 
       let catalogInfo = {
         pdfUrl: '',
@@ -1583,55 +1583,72 @@
       } catch (e) {
         statusLog += `⚠️ 雲端查詢失敗，檢查離線快取<br>`;
       }
+      showToast(statusLog, 12000);
 
       // 1. 檢查 sentences.json 是否已下載到手機
       let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_V610_' + CURRENT_CLASSIC_ID);
       let sentencesFetchUrl = catalogInfo.sentencesUrl || './sentences.json';
       
       if (localSentStr) {
-        scriptureData = JSON.parse(localSentStr);
-        statusLog += `📱 sentences.json: <strong style="color:#34D399;">[已從手機快取載入]</strong><br>`;
-      } else {
         try {
-          statusLog += `📥 正在從雲端下載 sentences.json...<br>`;
-          showToast(statusLog, 8000);
+          scriptureData = JSON.parse(localSentStr);
+          statusLog += `📱 sentences.json: <strong style="color:#34D399;">[已從手機快取讀取]</strong><br>`;
+        } catch (e) {
+          localStorage.removeItem('OFFLINE_SENTENCES_CACHE_V610_' + CURRENT_CLASSIC_ID);
+        }
+      } 
+      
+      if (!scriptureData || scriptureData.length === 0) {
+        try {
+          statusLog += `📥 正在下載 sentences.json 到手機...<br>`;
+          showToast(statusLog, 12000);
           const res = await fetch(sentencesFetchUrl + (sentencesFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp);
           if (res.ok) {
             scriptureData = await res.json();
             localStorage.setItem('OFFLINE_SENTENCES_CACHE_V610_' + CURRENT_CLASSIC_ID, JSON.stringify(scriptureData));
-            statusLog += `✅ sentences.json: <strong style="color:#34D399;">[下載並存入手機成功]</strong><br>`;
+            statusLog += `✅ sentences.json: <strong style="color:#34D399;">[下載完成並存入手機！]</strong><br>`;
+          } else {
+            statusLog += `❌ sentences.json 回應失敗 (${res.status})<br>`;
           }
         } catch (e) {
-          statusLog += `❌ sentences.json 下載失敗<br>`;
+          statusLog += `❌ sentences.json 下載錯誤<br>`;
         }
       }
+      showToast(statusLog, 12000);
 
       if (scriptureData.length > 0) {
         CLASSIC_TOTAL_SENTENCES = scriptureData.length;
-        statusLog += `- 自動計算總句數: <strong>${CLASSIC_TOTAL_SENTENCES} 句</strong><br>`;
+        statusLog += `- 總句數計算完成: <strong>${CLASSIC_TOTAL_SENTENCES} 句</strong><br>`;
+      } else {
+        statusLog += `- <strong style="color:#F87171;">⚠️ 總句數為 0，請檢查 sentences.json！</strong><br>`;
       }
+      showToast(statusLog, 12000);
 
       // 2. 檢查 PDF 是否已存入手機 IndexedDB
       const savedPdf = await getLocalFile('pdf_file_v610');
       let pdfFetchUrl = catalogInfo.pdfUrl || './scripture.pdf';
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
-        statusLog += `📱 PDF 經文檔: <strong style="color:#34D399;">[已從手機資料庫載入]</strong><br>`;
+        statusLog += `📱 PDF 經文檔: <strong style="color:#34D399;">[已從手機資料庫讀取]</strong><br>`;
       } else {
         try {
           statusLog += `📥 正在下載 PDF 經文檔到手機...<br>`;
-          showToast(statusLog, 8000);
+          showToast(statusLog, 12000);
           const res = await fetch(pdfFetchUrl + (pdfFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
             await saveLocalFile('pdf_file_v610', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
-            statusLog += `✅ PDF 經文檔: <strong style="color:#34D399;">[下載並存入手機成功]</strong><br>`;
+            statusLog += `✅ PDF 經文檔: <strong style="color:#34D399;">[下載完成並存入手機！]</strong><br>`;
+          } else {
+            statusLog += `❌ PDF 回應失敗 (${res.status})<br>`;
           }
         } catch (e) {
-          statusLog += `❌ PDF 下載失敗<br>`;
+          statusLog += `❌ PDF 下載錯誤<br>`;
         }
       }
+      showToast(statusLog, 12000);
+
       if (cachedPdfBuffer && parsedTextLines.length === 0) {
         await renderPdfOnValidDimensions();
       }
@@ -1641,26 +1658,30 @@
       let videoFetchUrl = catalogInfo.videoUrl || './chant_video.mp4';
       if (savedVid && savedVid.data) {
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
-        statusLog += `📱 跟讀影片檔: <strong style="color:#34D399;">[已從手機資料庫載入]</strong><br>`;
+        statusLog += `📱 跟讀影片檔: <strong style="color:#34D399;">[已從手機資料庫讀取]</strong><br>`;
       } else {
         try {
           statusLog += `📥 正在下載跟讀影片到手機(較大請稍候)...<br>`;
-          showToast(statusLog, 8000);
+          showToast(statusLog, 12000);
           const res = await fetch(videoFetchUrl + (videoFetchUrl.includes('?') ? '&' : '?') + 'nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
             await saveLocalFile('video_file_v610', buf, 'vid_cached');
             video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
-            statusLog += `✅ 跟讀影片檔: <strong style="color:#34D399;">[下載並存入手機成功]</strong><br>`;
+            statusLog += `✅ 跟讀影片檔: <strong style="color:#34D399;">[下載完成並存入手機！]</strong><br>`;
+          } else {
+            statusLog += `⚠️ 影片採用串流播放 (${res.status})<br>`;
+            video.src = videoFetchUrl;
           }
         } catch (e) {
           video.src = videoFetchUrl;
-          statusLog += `⚠️ 影片採用串流播放<br>`;
+          statusLog += `⚠️ 影片串流播放<br>`;
         }
       }
 
-      statusLog += `<br><strong style="color:#FBBF24;">✨ 所有資源準備就緒！</strong>`;
-      showToast(statusLog, 7000);
+      // 🌟 最終結果宣告（停留 15 秒讓手機畫面清楚呈現）
+      statusLog += `<br><strong style="color:#FBBF24; font-size:15px;">✨ 【最終結果】所有資源已 100% 下載並準備就緒！</strong>`;
+      showToast(statusLog, 15000);
 
       applyScheduleToState("");
     }
