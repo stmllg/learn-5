@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 萬用版1 (黃金核心版)</title>
+  <title>歡喜背書橫式雙模播放器 萬用版 (黃金核心版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1092,7 +1092,7 @@
       }
     }
 
-    function confirmRestoreState() {
+   function confirmRestoreState() {
       if (!pendingRestoredState) {
         restoreModalOverlay.style.display = 'none';
         return;
@@ -1109,7 +1109,7 @@
 
       restoreModalOverlay.style.display = 'none';
 
-     loadAllAssetsSmartSync().then(() => {
+      loadAllAssetsSmartSync().then(() => {
         // 🌟 確保影片來源正確載入並強制重載
         if (!video.src || video.src === window.location.href) {
           video.src = VIDEO_FILE_PATH;
@@ -1136,7 +1136,11 @@
           return;
         }
         showToast('✨ 已回到上次進度，請開始精進', 4000);
-      });    function getPhaseName(phase) {
+      }); 
+    } // 👈 這裡補上原本漏掉的閉合大括號！
+
+    // 🌟 獨立的 getPhaseName 函式
+    function getPhaseName(phase) {
       switch(phase) {
         case 'new_gendu': return '新進度跟讀';
         case 'new_zidu': return '新進度自讀';
@@ -1145,9 +1149,7 @@
         case 'completed': return '已圓滿解鎖';
         default: return '定課中';
       }
-    }
-
-    window.addEventListener('beforeunload', () => { 
+    }    window.addEventListener('beforeunload', () => { 
       saveCurrentAppState(); 
       releaseMicrophoneResources();
     });
@@ -3246,7 +3248,7 @@
 
       checkDailyResetOnStartup();
 
-      const shownToday = localStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V608');
+     const shownToday = localStorage.getItem(`SCHEDULE_BTN_SHOWN_TODAY_V608_${CURRENT_CLASSIC_ID}`);
       if (!shownToday) {
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
       } else {
@@ -3276,9 +3278,7 @@
       } else {
         targetDay = 1;
       }
-      localStorage.setItem('CURRENT_SCHEDULE_DAY_V608', targetDay.toString());
-
-      let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
+   localStorage.setItem(`CURRENT_SCHEDULE_DAY_V608_${CURRENT_CLASSIC_ID}`, targetDay.toString());      let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
       
       const imgDisplay = document.getElementById('companion-img-display');
       const compWrapper = document.querySelector('.companion-wrapper');
