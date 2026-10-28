@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書</title>
+  <title>歡喜</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -629,6 +629,7 @@
       standaloneVideo.src = defaultUrl;
       standaloneVideo.currentTime = startSeekSec;
       standaloneVideo.playbackRate = 1.0;
+      standaloneVideo.load(); // 🌟 確保獨立播放層影片強制載入
       showToast(toastText, 4000);
 
       const cleanupAndExit = () => {
@@ -657,7 +658,6 @@
       standaloneCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 關鍵補回：點擊開始定課按鈕
     async function closeCompanionCard() {
       hasEnteredReciting = true;
       localStorage.setItem(`SCHEDULE_BTN_SHOWN_TODAY_V608_${CURRENT_CLASSIC_ID}`, 'true');
@@ -1635,7 +1635,7 @@
       lastAnimTimestamp = performance.now(); guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
-   window.addEventListener('DOMContentLoaded', async () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
         overlay.classList.add('active');
@@ -1681,7 +1681,6 @@
       const imgDisplay = document.getElementById('companion-img-display');
       const compWrapper = document.querySelector('.companion-wrapper');
 
-      // 🌟 確保圖片載入成功後才顯示動畫卡片，避免破圖或空白
       imgDisplay.onload = () => { compWrapper.classList.add('ready'); };
       imgDisplay.onerror = () => { compWrapper.classList.add('ready'); };
       imgDisplay.src = 'cards/' + cardFileName;
@@ -1695,4 +1694,3 @@
   </script>
 </body>
 </html>
-
