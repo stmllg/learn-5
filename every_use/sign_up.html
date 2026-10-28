@@ -112,7 +112,7 @@
             <option value="zhen_bao">無上三珍寶讚</option>
             <option value="shi_hao">佛說十號經</option>
             <option value="er_sheng">二勝六莊嚴讚</option>
-            <option value="wen_shuo">文殊讚</option>
+            <option value="wen_shu">文殊讚</option>
             <option value="guang_lun">廣論祈願文</option>
             <option value="ba_da">佛說八大人覺經</option>
             <option value="pu_men">普門品</option>
@@ -135,17 +135,15 @@
     <button onclick="submitSelection()">確認登記並同步雲端與產生文案</button>
 
     <div id="result-box">
-        <strong>✅ 登記成功並已寫入雲端！請複製以下文案貼到 LINE：</strong>
+        <strong>✅ 登記成功並已寫入雲端總表！請複製以下文案貼到 LINE：</strong>
         <div class="link-text" id="generated-text"></div>
         <button class="btn-copy" onclick="copyToLine()">📋 一鍵複製 LINE 專用文案</button>
     </div>
 </div>
 
 <script>
-    // 已整合您的 Google Apps Script 後端部署網址
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec";
 
-    // 產生隨機三個英文字母作為群組備用
     function getRandomLetters() {
         const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         let result = "";
@@ -155,7 +153,6 @@
         return result;
     }
 
-    // 取得當天日期格式 yyyy-mm-dd
     function getTodayString() {
         const now = new Date();
         const y = now.getFullYear();
@@ -164,17 +161,14 @@
         return `${y}-${m}-${d}`;
     }
 
-    // 解析網址參數
     const urlParams = new URLSearchParams(window.location.search);
     const group = urlParams.get('group') || getRandomLetters();
     const start = urlParams.get('start') || getTodayString();
     const preClassic = urlParams.get('classic');
 
-    // 畫面顯示起跑日與群組
     document.getElementById("display-group").innerText = group;
     document.getElementById("display-start").innerText = start;
 
-    // 若網址帶有預設經典代碼，自動對應選取
     if (preClassic) {
         const selectElem = document.getElementById("classicSelect");
         for (let opt of selectElem.options) {
@@ -200,13 +194,11 @@
             return;
         }
 
-        // 組合完整姓名顯示（若有共同發起人則用與連接）
         let fullName = initiator;
         if (coInitiator) {
             fullName += ` & ${coInitiator}`;
         }
 
-        // 強制鎖定指向 index.html 與兩字英文代碼
         const origin = window.location.origin;
         const pathArr = window.location.pathname.split('/');
         pathArr.pop(); 
@@ -215,15 +207,14 @@
         
         let teamHeader = teamName ? `【${teamName}】` : "";
 
-        // 組合 LINE 傳送文案
         finalShareText = `${teamHeader} ${fullName} 的經典背誦登記\n📚 經典：《${classicText}》\n👥 群組：${group}\n📅 起跑日：${start}\n🔗 專屬網頁連結：\n${personalLink}`;
 
         document.getElementById("generated-text").innerText = finalShareText;
         document.getElementById("result-box").style.display = "block";
 
-        // 自動回傳資料至雲端 Google 試算表後端
-        if (GAS_URL !== "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL") {
-            const targetUrl = `${GAS_URL}?classId=${encodeURIComponent(group)}&userName=${encodeURIComponent(fullName)}&coins=0&classicId=${encodeURIComponent(classicCode)}&startDate=${encodeURIComponent(start)}&groupName=${encodeURIComponent(group)}`;
+        // 傳送資料至後端總表
+        if (GAS_URL) {
+            const targetUrl = `${GAS_URL}?teamName=${encodeURIComponent(teamName)}&groupName=${encodeURIComponent(group)}&classicId=${encodeURIComponent(classicCode)}&startDate=${encodeURIComponent(start)}&userName=${encodeURIComponent(fullName)}`;
             
             const script = document.createElement('script');
             script.src = targetUrl + '&callback=handleCloudResponse';
@@ -232,7 +223,7 @@
     }
 
     function handleCloudResponse(res) {
-        console.log("雲端同步結果: ", res);
+        console.log("總表同步結果: ", res);
     }
 
     function copyToLine() {
