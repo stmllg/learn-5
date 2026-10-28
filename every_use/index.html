@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書萬用播放器 v608</title>
+  <title>歡喜背書萬用播放器 v666</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1683,23 +1683,25 @@
         await renderPdfOnValidDimensions();
       }
 
+      // 跟讀影片優先從目前 classic 對應的正式檔名重新確認，避免沿用舊的錯誤快取。
+      // 例如 classic=er_sheng 時，正式路徑必須是 ./er_sheng_video.mp4。
       const savedVid = await getLocalFile('video_file_v608');
-      if (savedVid && savedVid.data) {
-        video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
-      } else {
-        try {
-          const res = await fetch(CLASSIC_ASSETS.video + '?nocache=' + timestamp, { cache: 'no-store' });
-          if (!res.ok) throw new Error('HTTP ' + res.status + '：' + CLASSIC_ASSETS.video);
-          const buf = await res.arrayBuffer();
-          if (!buf || buf.byteLength === 0) throw new Error('跟讀影片檔案是空的');
-          await saveLocalFile('video_file_v608', buf, 'vid_cached');
-          video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
-          hasAnyUpdateDetected = true;
-        } catch (e) {
-          // 即使下載快取失敗，也直接使用 GitHub Pages 上的原始影片網址。
+      try {
+        const res = await fetch(CLASSIC_ASSETS.video + '?nocache=' + timestamp, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status + '：' + CLASSIC_ASSETS.video);
+        const buf = await res.arrayBuffer();
+        if (!buf || buf.byteLength === 0) throw new Error('跟讀影片檔案是空的');
+        await saveLocalFile('video_file_v608', buf, 'vid_cached_' + CURRENT_CLASSIC_ID);
+        video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
+        hasAnyUpdateDetected = true;
+      } catch (e) {
+        // 網路下載失敗時，才退回本經典的離線快取；沒有快取則使用正式網址。
+        if (savedVid && savedVid.data) {
+          video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
+        } else {
           video.src = CLASSIC_ASSETS.video;
-          console.warn('跟讀影片載入快取失敗，改用線上檔案：', e);
         }
+        console.warn('跟讀影片下載失敗，改用離線快取或正式網址：', e);
       }
       video.load();
 
