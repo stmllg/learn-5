@@ -63,6 +63,12 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.15);
         }
+        .end-date-tip {
+            font-size: 13px;
+            color: #2e7d32;
+            margin-top: 6px;
+            font-weight: 500;
+        }
         button {
             width: 100%;
             padding: 15px;
@@ -149,15 +155,22 @@
         <input type="text" id="teamName" placeholder="例如：精進勇猛隊">
     </div>
 
-    <!-- 3. 選擇已上線經典 -->
+    <!-- 3. 選擇已上線經典 + 自動計算預計結束日 -->
     <div class="form-group">
         <label for="classicSelect">📚 選擇欲背誦的經典：</label>
-        <select id="classicSelect">
+        <select id="classicSelect" onchange="updateEndDate()">
             <option value="">正在從雲端載入已上線經典...</option>
         </select>
+        <div class="end-date-tip" id="endDateTip">⏳ 預計結束日計算中...</div>
+    </div>
+
+    <!-- 4. E-mail 欄位（不顯示在 LINE 公告中） -->
+    <div class="form-group">
+        <label for="userEmail">✉️ 電子信箱 E-mail（選填）：</label>
+        <input type="email" id="userEmail" placeholder="如需寄發電子獎狀請填寫此處">
+        <div style="font-size: 12px; color: #78909c; margin-top: 4px;">※ 此信箱僅供雲端後台發放獎狀使用，不會顯示在 LINE 公告中。</div>
     </div>
     
-    <!-- 加上 id="submitBtn" 方便控制隱藏 -->
     <button id="submitBtn" onclick="submitSelection()">✨ 隨喜發心 確認報名</button>
 
     <div id="result-box">
@@ -197,6 +210,8 @@
     document.getElementById("display-group").innerText = group;
     document.getElementById("display-start").innerText = start;
 
+    let classicDataMap = {}; // 儲存各經典的天數
+
     function loadActiveClassics() {
         const targetUrl = `${GAS_URL}?action=getActives&callback=handleActiveClassics`;
         const script = document.createElement('script');
@@ -207,9 +222,11 @@
     function handleActiveClassics(res) {
         const selectElem = document.getElementById("classicSelect");
         selectElem.innerHTML = "";
+        classicDataMap = {};
 
         if (res && res.success && res.actives && res.actives.length > 0) {
             res.actives.forEach(item => {
+                classicDataMap[item.id] = { name: item.name, days: item.days };
                 const opt = document.createElement('option');
                 opt.value = item.id;
                 opt.text = item.name;
@@ -224,9 +241,31 @@
                     }
                 }
             }
+            updateEndDate(); // 載入後立即計算一次結束日
         } else {
             selectElem.innerHTML = '<option value="">目前尚無已上線的經典</option>';
+            document.getElementById("endDateTip").innerText = "";
         }
+    }
+
+    // 根據選擇的經典與天數，動態計算預計結束日
+    function updateEndDate() {
+        const selectElem = document.getElementById("classicSelect");
+        const classicCode = selectElem.value;
+        if (!classicCode || !classicDataMap[classicCode]) return;
+
+        const days = classicDataMap[classicCode].days;
+        
+        // 用起跑日計算結束日 (起跑日 + 總天數 - 1)
+        let startDateObj = new Date(start);
+        startDateObj.setDate(startDateObj.getDate() + days - 1);
+
+        const y = startDateObj.getFullYear();
+        const m = String(startDateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(startDateObj.getDate()).padStart(2, '0');
+        const endDateStr = `${y}-${m}-${d}`;
+
+        document.getElementById("endDateTip").innerText = `📅 預計結束日：${endDateStr} （共 ${days} 天）`;
     }
 
     window.onload = function() {
@@ -239,6 +278,7 @@
         const initiator = document.getElementById("initiator").value.trim();
         const coInitiator = document.getElementById("coInitiator").value.trim();
         const teamName = document.getElementById("teamName").value.trim();
+        const userEmail = document.getElementById("userEmail").value.trim();
         const selectElem = document.getElementById("classicSelect");
         const classicCode = selectElem.value;
         const classicText = selectElem.options[selectElem.selectedIndex].text;
@@ -248,7 +288,6 @@
             return;
         }
 
-        // 點擊後立即隱藏確認按鈕，避免重複報名
         document.getElementById("submitBtn").style.display = "none";
 
         let fullName = initiator;
@@ -264,14 +303,15 @@
         
         let teamHeader = teamName ? `【${teamName}】發起人` : "發起人";
 
+        // LINE 文案維持簡潔，不包含 Email
         finalShareText = `${teamHeader} ${fullName}\n📚《${classicText}》 📅 ${start}\n👉 點擊連結背誦：${personalLink}`;
 
         document.getElementById("generated-text").innerText = finalShareText;
         document.getElementById("result-box").style.display = "block";
 
-        // 非同步背景寫入總表
+        // 同步寫入雲端總表（帶入 email 參數）
         if (GAS_URL) {
-            const targetUrl = `${GAS_URL}?teamName=${encodeURIComponent(teamName)}&groupName=${encodeURIComponent(group)}&classicId=${encodeURIComponent(classicCode)}&startDate=${encodeURIComponent(start)}&userName=${encodeURIComponent(fullName)}`;
+            const targetUrl = `${GAS_URL}?teamName=${encodeURIComponent(teamName)}&groupName=${encodeURIComponent(group)}&classicId=${encodeURIComponent(classicCode)}&startDate=${encodeURIComponent(start)}&userName=${encodeURIComponent(fullName)}&email=${encodeURIComponent(userEmail)}`;
             const script = document.createElement('script');
             script.src = targetUrl + '&callback=handleCloudResponse';
             document.body.appendChild(script);
