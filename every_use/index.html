@@ -2061,10 +2061,23 @@
         centerCore.scrollTop = 0;
         video.playbackRate = mp4Speed;
 
+        // 🌟 確保跟讀影片來源正確並強制重新載入
+        if (!video.src || video.src === window.location.href) {
+          video.src = VIDEO_FILE_PATH;
+        }
+        video.load();
+
         const range = getActiveVideoRange();
         videoPausedAt = -1;
         if (range.valid) {
-          try { video.currentTime = range.start; } catch (e) {}
+          try { 
+            video.currentTime = range.start; 
+            // 🌟 自動開始播放跟讀影片，避免停在黑畫面
+            video.play().then(() => {
+              updateModeButtonsStyle();
+              startMp4PrecisionCheck();
+            }).catch(() => {});
+          } catch (e) {}
         }
       } else if (mode === 'mode3' || mode === 'mode4') {
         video.pause();
@@ -2102,7 +2115,6 @@
       saveCurrentAppState();
       renderUI();
     }
-
     function renderUI() {
       if (practicePhase === 'completed') {
         slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
