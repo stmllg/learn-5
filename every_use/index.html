@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 萬用版 (黃金核心版)</title>
+  <title>歡喜背書</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1635,28 +1635,61 @@
       lastAnimTimestamp = performance.now(); guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
-    window.addEventListener('DOMContentLoaded', async () => {
-      if (/Line/i.test(navigator.userAgent)) { document.getElementById('line-browser-overlay').classList.add('active'); return; }
+   window.addEventListener('DOMContentLoaded', async () => {
+      if (/Line/i.test(navigator.userAgent)) {
+        const overlay = document.getElementById('line-browser-overlay');
+        overlay.classList.add('active');
+        return; 
+      }
+
       checkDailyResetOnStartup();
 
       const shownToday = localStorage.getItem(`SCHEDULE_BTN_SHOWN_TODAY_V608_${CURRENT_CLASSIC_ID}`);
-      if (!shownToday && btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
-      else if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+      if (!shownToday) {
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
+      } else {
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+      }
 
+      const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
+      
       if (urlParams.get('start')) {
-        const parts = urlParams.get('start').split('-');
+        const startStr = urlParams.get('start');
+        const parts = startStr.split('-');
         if (parts.length === 3) {
-          const userStartDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const d = parseInt(parts[2], 10);
+          const userStartDate = new Date(y, m, d);
+          
           const now = new Date();
-          targetDay = Math.max(1, Math.floor((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - userStartDate) / (1000 * 60 * 60 * 24)) + 1);
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          
+          const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
+          targetDay = Math.max(1, diffDays);
         }
-      } else if (urlParams.get('day')) { targetDay = parseInt(urlParams.get('day'), 10) || 1; }
+      } else if (urlParams.get('day')) {
+        targetDay = parseInt(urlParams.get('day'), 10) || 1;
+      } else {
+        targetDay = 1;
+      }
       localStorage.setItem(`CURRENT_SCHEDULE_DAY_V608_${CURRENT_CLASSIC_ID}`, targetDay.toString());
 
-      document.getElementById('companion-img-display').src = 'cards/' + ((targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp'));
-      document.getElementById('companion-overlay').style.display = 'flex';
-      document.getElementById('companion-overlay').classList.add('active');
+      let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
+      
+      const imgDisplay = document.getElementById('companion-img-display');
+      const compWrapper = document.querySelector('.companion-wrapper');
+
+      // 🌟 確保圖片載入成功後才顯示動畫卡片，避免破圖或空白
+      imgDisplay.onload = () => { compWrapper.classList.add('ready'); };
+      imgDisplay.onerror = () => { compWrapper.classList.add('ready'); };
+      imgDisplay.src = 'cards/' + cardFileName;
+      
+      const compOverlay = document.getElementById('companion-overlay');
+      compOverlay.style.display = 'flex';
+      compOverlay.classList.add('active');
+
       handleOrientationCheck();
     });
   </script>
