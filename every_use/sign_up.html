@@ -149,7 +149,7 @@
         <input type="text" id="teamName" placeholder="例如：精進勇猛隊">
     </div>
 
-    <!-- 3. 動態載入已上線的經典下拉選單 -->
+    <!-- 3. 選擇已上線經典 -->
     <div class="form-group">
         <label for="classicSelect">📚 選擇欲背誦的經典：</label>
         <select id="classicSelect">
@@ -196,7 +196,6 @@
     document.getElementById("display-group").innerText = group;
     document.getElementById("display-start").innerText = start;
 
-    // 動態向雲端讀取「經典上線」分頁中狀態為「已上線」的項目
     function loadActiveClassics() {
         const targetUrl = `${GAS_URL}?action=getActives&callback=handleActiveClassics`;
         const script = document.createElement('script');
@@ -216,7 +215,6 @@
                 selectElem.appendChild(opt);
             });
 
-            // 若網址帶有預設經典代碼，自動對應選取
             if (preClassic) {
                 for (let opt of selectElem.options) {
                     if (opt.value === preClassic) {
@@ -230,7 +228,6 @@
         }
     }
 
-    // 頁面載入時自動取得已上線清單
     window.onload = function() {
         loadActiveClassics();
     };
@@ -250,11 +247,6 @@
             return;
         }
 
-        const submitBtn = document.querySelector("button[onclick='submitSelection()']");
-        submitBtn.disabled = true;
-        submitBtn.style.background = "#b0bec5";
-        submitBtn.innerText = "⏳ 正在寫入雲端並產生文案...";
-
         let fullName = initiator;
         if (coInitiator) {
             fullName += ` & ${coInitiator}`;
@@ -273,6 +265,7 @@
         document.getElementById("generated-text").innerText = finalShareText;
         document.getElementById("result-box").style.display = "block";
 
+        // 非同步背景寫入總表，按鈕保持原樣不變灰色與不改變文字
         if (GAS_URL) {
             const targetUrl = `${GAS_URL}?teamName=${encodeURIComponent(teamName)}&groupName=${encodeURIComponent(group)}&classicId=${encodeURIComponent(classicCode)}&startDate=${encodeURIComponent(start)}&userName=${encodeURIComponent(fullName)}`;
             const script = document.createElement('script');
