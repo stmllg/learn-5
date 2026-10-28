@@ -1688,15 +1688,20 @@
         video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
       } else {
         try {
-          const res = await fetch(CLASSIC_ASSETS.video + '?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v608', buf, 'vid_cached');
-            video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
-            hasAnyUpdateDetected = true;
-          }
-        } catch (e) { video.src = CLASSIC_ASSETS.video; }
+          const res = await fetch(CLASSIC_ASSETS.video + '?nocache=' + timestamp, { cache: 'no-store' });
+          if (!res.ok) throw new Error('HTTP ' + res.status + '：' + CLASSIC_ASSETS.video);
+          const buf = await res.arrayBuffer();
+          if (!buf || buf.byteLength === 0) throw new Error('跟讀影片檔案是空的');
+          await saveLocalFile('video_file_v608', buf, 'vid_cached');
+          video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
+          hasAnyUpdateDetected = true;
+        } catch (e) {
+          // 即使下載快取失敗，也直接使用 GitHub Pages 上的原始影片網址。
+          video.src = CLASSIC_ASSETS.video;
+          console.warn('跟讀影片載入快取失敗，改用線上檔案：', e);
+        }
       }
+      video.load();
 
       const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v608');
       if (!savedBuddhaVid || !savedBuddhaVid.data) {
@@ -2314,8 +2319,8 @@
       }
       
       if (currentCoreMode !== 'mode2') {
+          // 先切換到跟讀模式；同一次點擊繼續執行播放，避免按一次只切模式、還要再按一次。
           setCoreMode('mode2');
-          return;
       }
       
       if (video.paused) {
@@ -2334,7 +2339,14 @@
               saveCurrentAppState();
           }).catch((err) => {
               video.currentTime = range.start;
-              video.play().then(() => updateModeButtonsStyle()).catch(() => {});
+              video.play().then(() => {
+                  updateModeButtonsStyle();
+                  startMp4PrecisionCheck();
+              }).catch((retryErr) => {
+                  updateModeButtonsStyle();
+                  showToast('⚠️ 跟讀影片無法播放：' + (retryErr && retryErr.message ? retryErr.message : '請檢查影片檔案或網路'), 6000);
+                  console.error('跟讀影片播放失敗：', err, retryErr);
+              });
           });
       } else {
           video.pause();
