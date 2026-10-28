@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式雙模播放器 萬用版 (黃金核心版)</title>
+  <title>歡喜背書橫式雙模播放器 萬用版1 (黃金核心版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1109,7 +1109,13 @@
 
       restoreModalOverlay.style.display = 'none';
 
-      loadAllAssetsSmartSync().then(() => {
+     loadAllAssetsSmartSync().then(() => {
+        // 🌟 確保影片來源正確載入並強制重載
+        if (!video.src || video.src === window.location.href) {
+          video.src = VIDEO_FILE_PATH;
+        }
+        video.load();
+
         if (currentCoreMode === 'mode2') {
           setCoreMode('mode2');
           if (state.videoCurrentTime > 0) video.currentTime = state.videoCurrentTime;
@@ -1130,10 +1136,7 @@
           return;
         }
         showToast('✨ 已回到上次進度，請開始精進', 4000);
-      });
-    }
-
-    function getPhaseName(phase) {
+      });    function getPhaseName(phase) {
       switch(phase) {
         case 'new_gendu': return '新進度跟讀';
         case 'new_zidu': return '新進度自讀';
