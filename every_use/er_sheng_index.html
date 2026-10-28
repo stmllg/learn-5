@@ -1117,6 +1117,7 @@
       restoreModalOverlay.style.display = 'none';
 
       loadAllAssetsSmartSync().then(() => {
+
         if (currentCoreMode === 'mode2') {
           setCoreMode('mode2');
           if (state.videoCurrentTime > 0) video.currentTime = state.videoCurrentTime;
@@ -1294,7 +1295,7 @@
     }
 
     // 🌟 模式1與模式5獨立播放核心
-    async function playStandaloneVideo(modeType, startSeekSec = 0, onEndedCallback) {
+   async function playStandaloneVideo(modeType, startSeekSec = 0, onEndedCallback) {
       currentCoreMode = modeType; 
       haltGuideRunnerImmediately();
       if (video && !video.paused) video.pause();
@@ -1303,29 +1304,27 @@
 
       standaloneOverlay.style.display = 'flex';
       
-      let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_v608' : 'merit_dedication_file_v608';
       let defaultUrl = (modeType === 'mode1') ? './reciting_buddha_name.mp4' : './merit_dedication.mp4';
       let toastText = (modeType === 'mode1') ? '🙏【模式1：念佛清心】播放中...' : '🙏【模式5：功德迴向】播放中...';
 
-      let mediaUrl = defaultUrl;
-      try {
-        const savedFile = await getLocalFile(fileKey);
-        if (savedFile && savedFile.data) {
-          mediaUrl = URL.createObjectURL(new Blob([savedFile.data], { type: 'video/mp4' }));
-        }
-      } catch(e) {}
-
-      standaloneVideo.src = mediaUrl;
+      standaloneVideo.src = defaultUrl;
       standaloneVideo.currentTime = startSeekSec;
       standaloneVideo.playbackRate = 1.0;
       showToast(toastText, 4000);
 
+      let hasExited = false;
       const cleanupAndExit = () => {
+        if (hasExited) return;
+        hasExited = true;
+
         standaloneVideo.onended = null;
         standaloneVideo.onerror = null;
-        standaloneVideo.pause();
+        standaloneVideo.onloadedmetadata = null;
+        try { standaloneVideo.pause(); } catch(e) {}
         standaloneVideo.removeAttribute('src');
         standaloneVideo.load();
+        
+        // 強制關閉全螢幕遮罩，確保一定能回到操作介面
         standaloneOverlay.style.display = 'none';
 
         if (typeof onEndedCallback === 'function') {
@@ -1336,15 +1335,20 @@
       standaloneVideo.onended = cleanupAndExit;
       standaloneVideo.onerror = cleanupAndExit;
 
+      // 安全機制：防卡死超時保護
+      setTimeout(() => {
+        if (standaloneOverlay.style.display === 'flex' && standaloneVideo.paused) {
+          cleanupAndExit();
+        }
+      }, 3000);
+
       try {
         await standaloneVideo.play();
         startStandalonePrecisionCheck();
       } catch(e) {
         cleanupAndExit();
       }
-    }
-
-    let standaloneCheckAnimId = null;
+    }    let standaloneCheckAnimId = null;
     function startStandalonePrecisionCheck() {
       if (standaloneCheckAnimId) cancelAnimationFrame(standaloneCheckAnimId);
       function check() {
@@ -1565,111 +1569,51 @@
 
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
-      const todayStr = getNormalizedDateStr();
-      const lastCheckDate = localStorage.getItem('LAST_ASSET_CHECK_DATE_V608');
-      const isFirstCheckToday = (lastCheckDate !== todayStr);
 
-      let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v608 系統更新檢查】\n";
-
-      if (!localStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608')) {
-        const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE, testCompleted: 0 };
-        generateAlgorithmicSchedule(defaultSettings);
-        hasAnyUpdateDetected = true;
-        logMsg += "- 排程演算法: 初始化建立 ✅\n";
-      }
-
-     let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_' + CURRENT_CLASSIC_ID);      try {
-        const res = await fetch('./' + CURRENT_CLASSIC_ID + '_sentences.json?nocache=' + timestamp, { cache: 'no-store' });        if (res.ok) {
+      // 自動動態抓取對應的 JSON 檔 (例如 er_sheng_sentences.json)
+      let localSentStr = localStorage.getItem('OFFLINE_SENTENCES_CACHE_' + CURRENT_CLASSIC_ID);
+      try {
+        const res = await fetch('./' + CURRENT_CLASSIC_ID + '_sentences.json?nocache=' + timestamp, { cache: 'no-store' });
+        if (res.ok) {
           const freshSent = await res.json();
-          const freshSentStr = JSON.stringify(freshSent);
-          if (freshSentStr !== localSentStr) {
-            localStorage.setItem('OFFLINE_SENTENCES_CACHE_V608', freshSentStr);
-            scriptureData = freshSent;
-            hasAnyUpdateDetected = true;
-          }
+          scriptureData = freshSent;
+          localStorage.setItem('OFFLINE_SENTENCES_CACHE_' + CURRENT_CLASSIC_ID, JSON.stringify(freshSent));
         }
       } catch (e) {}
-      if (scriptureData.length === 0) {
-        if (localSentStr) {
-          try { scriptureData = JSON.parse(localSentStr); } catch(e){}
-        } else {
-          try {
-            const res = await fetch('./sentences.json?nocache=' + timestamp);
-            if (res.ok) {
-              scriptureData = await res.json();
-              localStorage.setItem('OFFLINE_SENTENCES_CACHE_V608', JSON.stringify(scriptureData));
-              hasAnyUpdateDetected = true;
-            }
-          } catch (e) {}
+
+      if (scriptureData.length === 0 && localSentStr) {
+        try { scriptureData = JSON.parse(localSentStr); } catch(e){}
+      }
+
+      // 自動以 JSON 陣列長度計算總句數
+      if (scriptureData.length > 0) {
+        CLASSIC_TOTAL_SENTENCES = scriptureData.length;
+        const totalEl = document.getElementById('display-total-sentences');
+        if (totalEl) totalEl.textContent = CLASSIC_TOTAL_SENTENCES + '句';
+      }
+
+      // 自動動態抓取對應的 PDF 檔 (例如 er_sheng_pdf.pdf)
+      try {
+        const resPdf = await fetch('./' + CURRENT_CLASSIC_ID + '_pdf.pdf?nocache=' + timestamp);
+        if (resPdf.ok) {
+          cachedPdfBuffer = await resPdf.arrayBuffer();
+          await renderPdfOnValidDimensions();
         }
-      }
+      } catch (e) {}
 
-      const savedPdf = await getLocalFile('pdf_file_v608');
-      if (savedPdf && savedPdf.data) {
-        cachedPdfBuffer = savedPdf.data;
-      } else {
-        try {
-          const res = await fetch('./scripture.pdf?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v608', buf, 'pdf_cached');
-            cachedPdfBuffer = buf;
-            hasAnyUpdateDetected = true;
-          }
-        } catch (e) {}
-      }
-      if (cachedPdfBuffer && parsedTextLines.length === 0) {
-        await renderPdfOnValidDimensions();
-      }
-
-      const savedVid = await getLocalFile('video_file_v608');
-      if (savedVid && savedVid.data) {
-        video.src = URL.createObjectURL(new Blob([savedVid.data], { type: 'video/mp4' }));
-      } else {
-        try {
-          const res = await fetch('./chant_video.mp4?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('video_file_v608', buf, 'vid_cached');
-            video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
-            hasAnyUpdateDetected = true;
-          }
-        } catch (e) { video.src = './chant_video.mp4'; }
-      }
-
-      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v608');
-      if (!savedBuddhaVid || !savedBuddhaVid.data) {
-        try {
-          const res = await fetch('./reciting_buddha_name.mp4?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('reciting_buddha_file_v608', buf, 'buddha_cached');
-          }
-        } catch (e) {}
-      }
-
-      const savedMeritVid = await getLocalFile('merit_dedication_file_v608');
-      if (!savedMeritVid || !savedMeritVid.data) {
-        try {
-          const res = await fetch('./merit_dedication.mp4?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('merit_dedication_file_v608', buf, 'merit_cached');
-          }
-        } catch (e) {}
-      }
-
-      if (isFirstCheckToday) {
-        localStorage.setItem('LAST_ASSET_CHECK_DATE_V608', todayStr);
-        if (hasAnyUpdateDetected) {
-          showToast(logMsg + "\n✨ 資源已自動更新至最新版本", 6000);
+      // 自動動態抓取對應的影片檔 (例如 er_sheng_video.mp4)
+      try {
+        const resVid = await fetch('./' + CURRENT_CLASSIC_ID + '_video.mp4?nocache=' + timestamp);
+        if (resVid.ok) {
+          const buf = await resVid.arrayBuffer();
+          video.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
         }
+      } catch (e) {
+        video.src = './' + CURRENT_CLASSIC_ID + '_video.mp4';
       }
 
-      applyScheduleToState("");
+      applyScheduleToState();
     }
-
     function generateAlgorithmicSchedule(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
       const step = settings.dailyStep || DEFAULT_DAILY_STEP;
