@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 v666</title>
+  <title>歡喜v666</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1078,10 +1078,21 @@
     }
 
 
-    // 今日定課一旦解鎖，記錄到當日；離開頁面或錄音返回時仍保留自主功能。
+    // 只有今日定課與串習真正圓滿後才解鎖自主功能。
+    // 單靠當日解鎖日期不判定解鎖，避免定課進行中也提前顯示全部按鍵。
+    // 離開頁面後，只有當日保存狀態也確實是 completed，才恢復完整按鍵。
     function isIndependentModeUnlocked() {
-      return practicePhase === 'completed' ||
-        classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V608') === getNormalizedDateStr();
+      if (practicePhase === 'completed') return true;
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
+      if (!savedStr) return false;
+      try {
+        const savedState = JSON.parse(savedStr);
+        return savedState.savedDateStr === getNormalizedDateStr() &&
+          savedState.practicePhase === 'completed' &&
+          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V608') === getNormalizedDateStr();
+      } catch (e) {
+        return false;
+      }
     }
 
     // 🌟 狀態保存：精準記錄五大模式與播放進度
