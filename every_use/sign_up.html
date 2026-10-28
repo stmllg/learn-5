@@ -157,7 +157,8 @@
         </select>
     </div>
     
-    <button onclick="submitSelection()">✨ 隨喜發心 確認報名</button>
+    <!-- 加上 id="submitBtn" 方便控制隱藏 -->
+    <button id="submitBtn" onclick="submitSelection()">✨ 隨喜發心 確認報名</button>
 
     <div id="result-box">
         <strong>🎉 登記成功並已寫入雲端總表！請點擊下方按鈕複製 LINE 文案分享：</strong>
@@ -247,6 +248,9 @@
             return;
         }
 
+        // 點擊後立即隱藏確認按鈕，避免重複報名
+        document.getElementById("submitBtn").style.display = "none";
+
         let fullName = initiator;
         if (coInitiator) {
             fullName += ` & ${coInitiator}`;
@@ -265,7 +269,7 @@
         document.getElementById("generated-text").innerText = finalShareText;
         document.getElementById("result-box").style.display = "block";
 
-        // 非同步背景寫入總表，按鈕保持原樣不變灰色與不改變文字
+        // 非同步背景寫入總表
         if (GAS_URL) {
             const targetUrl = `${GAS_URL}?teamName=${encodeURIComponent(teamName)}&groupName=${encodeURIComponent(group)}&classicId=${encodeURIComponent(classicCode)}&startDate=${encodeURIComponent(start)}&userName=${encodeURIComponent(fullName)}`;
             const script = document.createElement('script');
