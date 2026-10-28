@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書萬用播放器 v666</title>
+  <title>歡喜背書 v666</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1077,9 +1077,19 @@
       return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
     }
 
+
+    // 今日定課一旦解鎖，記錄到當日；離開頁面或錄音返回時仍保留自主功能。
+    function isIndependentModeUnlocked() {
+      return practicePhase === 'completed' ||
+        classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V608') === getNormalizedDateStr();
+    }
+
     // 🌟 狀態保存：精準記錄五大模式與播放進度
     function saveCurrentAppState() {
       if (!hasEnteredReciting) return;
+      if (practicePhase === 'completed') {
+        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V608', getNormalizedDateStr());
+      }
       const state = {
         coreMode: currentCoreMode,
         practicePhase: practicePhase,
@@ -1190,6 +1200,10 @@
       if (document.visibilityState === 'hidden') {
         saveCurrentAppState();
         releaseMicrophoneResources();
+      } else if (isIndependentModeUnlocked()) {
+        // 回到頁面時重新繪製已解鎖的八個按鍵，避免錄音中離開後按鍵消失。
+        practicePhase = 'completed';
+        renderUI();
       }
     });
 
@@ -2169,7 +2183,7 @@
     }
 
     function renderUI() {
-      if (practicePhase === 'completed') {
+      if (isIndependentModeUnlocked()) {
         slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
         const btnOffering = document.getElementById('btn-offering');
         if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
@@ -2200,7 +2214,7 @@
       slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
       slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
       
-      if (practicePhase === 'completed') {
+      if (isIndependentModeUnlocked()) {
         slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
       } else {
         slotR3.innerHTML = '';
@@ -2265,7 +2279,7 @@
       });
 
       if (btnGendu) {
-          const isGenduActivePhase = (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu' || practicePhase === 'completed');
+          const isGenduActivePhase = (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu' || isIndependentModeUnlocked());
           const isGenduPlaying = (currentCoreMode === 'mode2' && video && !video.paused);
 
           if (isGenduPlaying) {
@@ -2283,7 +2297,7 @@
       }
 
       if (btnZidu) {
-          const isZiduActivePhase = (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu' || practicePhase === 'completed');
+          const isZiduActivePhase = (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu' || isIndependentModeUnlocked());
           const isZiduRunning = (currentCoreMode === 'mode3' && isGuideActive);
 
           if (isZiduRunning) {
@@ -2300,7 +2314,7 @@
           }
       }
 
-      if (btnRecord && practicePhase === 'completed') {
+      if (btnRecord && isIndependentModeUnlocked()) {
           if (currentCoreMode === 'mode4') {
               btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
               btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
@@ -2313,7 +2327,7 @@
 
     function handleGenduClick() {
       triggerAppFullscreen();
-      if (practicePhase !== 'completed' && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
+      if (!isIndependentModeUnlocked() && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
         showToast("⚠️ 目前為自讀階段，請依照語音與紅點引導唸誦", 3000);
         return;
       }
@@ -2360,7 +2374,7 @@
     // 🌟 關鍵修復：在切換到自讀模式前，優先取得麥克風授權，避免授權對話框被經文 Canvas 遮擋
     async function handleZiduClick() {
       triggerAppFullscreen();
-      if (practicePhase !== 'completed' && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
+      if (!isIndependentModeUnlocked() && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
         showToast("⚠️ 請先完成跟讀，系統將自動帶您進入自讀階段", 3000);
         return;
       }
@@ -2412,7 +2426,7 @@
 
     async function handleRecordModeClick() {
       triggerAppFullscreen();
-      if (practicePhase !== 'completed') {
+      if (!isIndependentModeUnlocked()) {
         showToast("⚠️ 請先完成今日定課與串習後方可解鎖比對功能", 3000);
         return;
       }
@@ -2450,7 +2464,7 @@
     }
 
     function handleMarkAClck() {
-      if (practicePhase !== 'completed') return;
+      if (!isIndependentModeUnlocked()) return;
       if (currentCoreMode !== 'mode3') setCoreMode('mode3');
       isSelectingMarkA = true;
       isSelectingMarkB = false;
@@ -2459,7 +2473,7 @@
     }
 
     function handleMarkBClick() {
-      if (practicePhase !== 'completed') return;
+      if (!isIndependentModeUnlocked()) return;
       if (currentCoreMode !== 'mode3') setCoreMode('mode3');
       isSelectingMarkB = true;
       isSelectingMarkA = false;
