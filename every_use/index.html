@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書橫式 萬 (黃金核心版)</title>
+  <title>歡喜背書橫式雙模播放器 萬用版 (黃金核心版)</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -284,6 +284,7 @@
       <button class="btn-rejoice" id="btn-rejoice-close">🙏 隨喜讚嘆</button>
     </div>
   </div>
+
 <script>
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
@@ -656,6 +657,7 @@
       standaloneCheckAnimId = requestAnimationFrame(check);
     }
 
+    // 🌟 關鍵補回：點擊開始定課按鈕
     async function closeCompanionCard() {
       hasEnteredReciting = true;
       localStorage.setItem(`SCHEDULE_BTN_SHOWN_TODAY_V608_${CURRENT_CLASSIC_ID}`, 'true');
@@ -715,6 +717,100 @@
       return 1;
     }
 
+    function openScheduleModal() {
+      const savedSettings = JSON.parse(localStorage.getItem(`USER_SCHEDULE_SETTINGS_V608_${CURRENT_CLASSIC_ID}`) || '{}');
+      selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
+      const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
+      const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
+
+      document.getElementById('display-total-sentences').textContent = classicTotalSentences + '句';
+      
+      const activeDay = getCurrentActiveDayNumber();
+      let completedEnd = getCurrentProgressEnd();
+
+      if (activeDay === 2) {
+        completedEnd = 1;
+      } else if (completedEnd === 0 && activeDay > 2) {
+        completedEnd = Math.min(classicTotalSentences, 1 + (activeDay - 2) * selectedDailyStep);
+      } else if (activeDay === 1) {
+        completedEnd = 0;
+      }
+
+      document.getElementById('input-completed-sentences').value = completedEnd;
+      updateStepButtonsUI(selectedDailyStep);
+      document.getElementById('input-repeat-new').value = rNew;
+      document.getElementById('input-repeat-cum').value = rCum;
+
+      renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum, testCompleted: completedEnd }));
+      scheduleModalOverlay.style.display = 'flex';
+    }
+
+    function closeScheduleModal() { scheduleModalOverlay.style.display = 'none'; }
+    function selectDailyStep(step) { selectedDailyStep = step; updateStepButtonsUI(step); previewScheduleChanges(); }
+
+    function updateStepButtonsUI(activeStep) {
+      document.querySelectorAll('.step-btn').forEach(btn => {
+        if (parseInt(btn.getAttribute('data-step'), 10) === activeStep) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+    }
+
+    function previewScheduleChanges() {
+      const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
+      const rNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
+      const rCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
+      renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum, testCompleted: testCompleted }));
+    }
+
+    function generateTempScheduleList(settings) {
+      const total = classicTotalSentences, step = settings.dailyStep, rNew = settings.repeatNew, rCum = settings.repeatCum;
+      const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
+      const list = [];
+      let simDay = getCurrentActiveDayNumber();
+      let simStart = Math.min(total, testCompleted + 1);
+      if (simDay === 1) simStart = 1;
+
+      for (let i = 1; i <= 5; i++) {
+        let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
+        let cStart = (simDay > 1) ? 1 : null, cEnd = (simDay > 1) ? end : null;
+        let dayLabel = (i === 1) ? '今天' : (i === 2 ? '明天' : `第${simDay}天`);
+        let reviewStr = (simDay === 1) ? `複[---](1遍)` : `複[${cStart}~${cEnd}](${rCum}遍)`;
+        list.push(`${dayLabel} (第${simDay}天): 新[${simStart}~${end}](${rNew}遍) ${reviewStr}`);
+        if (end >= total) break;
+        simStart = (simDay === 1) ? 2 : Math.min(total, end + 1);
+        simDay++;
+      }
+      return list;
+    }
+
+    function renderPreviewList(elementId, items) {
+      const el = document.getElementById(elementId);
+      if (el) el.innerHTML = items.join('<br>');
+    }
+
+    function saveAndApplySchedule() {
+      const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
+      const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
+      const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
+      localStorage.setItem(`USER_CURRENT_PROGRESS_END_V608_${CURRENT_CLASSIC_ID}`, testCompleted.toString());
+      const settings = { totalSentences: classicTotalSentences, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
+      localStorage.setItem(`USER_SCHEDULE_SETTINGS_V608_${CURRENT_CLASSIC_ID}`, JSON.stringify(settings));
+      generateAlgorithmicSchedule(settings);
+      closeScheduleModal();
+      showToast('✨ 排程參數已更新！', 4000);
+      applyScheduleToState('');
+    }
+
+    if (btnPlayDedication) {
+      btnPlayDedication.addEventListener('click', async () => {
+        offeringOverlay.style.display = 'none';
+        playStandaloneVideo('mode5', 0, () => {
+          showToast('✨ 迴向圓滿，隨喜功德', 3000);
+          practicePhase = 'completed'; setCoreMode('mode3'); renderUI();
+        });
+      });
+    }
+
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
       const todayStr = getNormalizedDateStr();
@@ -725,10 +821,8 @@
       let logMsg = "📦 【萬用版系統更新檢查】\n";
 
       if (!localStorage.getItem(`OFFLINE_SCHEDULE_CACHE_V608_${CURRENT_CLASSIC_ID}`)) {
-        const defaultSettings = { totalSentences: classicTotalSentences, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE, testCompleted: 0 };
-        generateAlgorithmicSchedule(defaultSettings);
+        generateAlgorithmicSchedule({ totalSentences: classicTotalSentences, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE, testCompleted: 0 });
         hasAnyUpdateDetected = true;
-        logMsg += "- 排程演算法: 初始化建立 ✅\n";
       }
 
       let localSentStr = localStorage.getItem(`OFFLINE_SENTENCES_CACHE_V608_${CURRENT_CLASSIC_ID}`);
@@ -739,9 +833,7 @@
           const freshSentStr = JSON.stringify(freshSent);
           if (freshSentStr !== localSentStr) {
             localStorage.setItem(`OFFLINE_SENTENCES_CACHE_V608_${CURRENT_CLASSIC_ID}`, freshSentStr);
-            scriptureData = freshSent;
-            classicTotalSentences = scriptureData.length;
-            hasAnyUpdateDetected = true;
+            scriptureData = freshSent; classicTotalSentences = scriptureData.length; hasAnyUpdateDetected = true;
           }
         }
       } catch (e) {}
@@ -753,70 +845,51 @@
           try {
             const res = await fetch(SENTENCES_FILE_PATH + '?nocache=' + timestamp);
             if (res.ok) {
-              scriptureData = await res.json();
-              classicTotalSentences = scriptureData.length;
+              scriptureData = await res.json(); classicTotalSentences = scriptureData.length;
               localStorage.setItem(`OFFLINE_SENTENCES_CACHE_V608_${CURRENT_CLASSIC_ID}`, JSON.stringify(scriptureData));
               hasAnyUpdateDetected = true;
             }
           } catch (e) {}
         }
-      } else {
-        classicTotalSentences = scriptureData.length;
-      }
+      } else { classicTotalSentences = scriptureData.length; }
 
-      // 直接指定動態路徑載入影片跟 PDF，完美穩定
-      video.src = VIDEO_FILE_PATH;
-      video.load();
+      video.src = VIDEO_FILE_PATH; video.load();
 
       const savedPdf = await getLocalFile(`pdf_file_v608_${CURRENT_CLASSIC_ID}`);
-      if (savedPdf && savedPdf.data) {
-        cachedPdfBuffer = savedPdf.data;
-      } else {
+      if (savedPdf && savedPdf.data) { cachedPdfBuffer = savedPdf.data; }
+      else {
         try {
           const res = await fetch(PDF_FILE_PATH + '?nocache=' + timestamp);
           if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile(`pdf_file_v608_${CURRENT_CLASSIC_ID}`, buf, 'pdf_cached');
-            cachedPdfBuffer = buf;
+            cachedPdfBuffer = await res.arrayBuffer();
+            await saveLocalFile(`pdf_file_v608_${CURRENT_CLASSIC_ID}`, cachedPdfBuffer, 'pdf_cached');
             hasAnyUpdateDetected = true;
           }
         } catch (e) {}
       }
-      if (cachedPdfBuffer && parsedTextLines.length === 0) {
-        await renderPdfOnValidDimensions();
-      }
+      if (cachedPdfBuffer && parsedTextLines.length === 0) { await renderPdfOnValidDimensions(); }
 
       if (isFirstCheckToday) {
         localStorage.setItem(`LAST_ASSET_CHECK_DATE_V608_${CURRENT_CLASSIC_ID}`, todayStr);
-        if (hasAnyUpdateDetected) { showToast(logMsg + "\n✨ 資源已自動更新至最新版本", 6000); }
+        if (hasAnyUpdateDetected) { showToast(logMsg + "\n✨ 資源已自動更新", 6000); }
       }
-
       applyScheduleToState("");
     }
 
     function generateAlgorithmicSchedule(settings) {
-      const total = classicTotalSentences;
-      const step = settings.dailyStep || DEFAULT_DAILY_STEP;
-      const rNew = settings.repeatNew;
-      const rCum = settings.repeatCum;
+      const total = classicTotalSentences, step = settings.dailyStep || DEFAULT_DAILY_STEP, rNew = settings.repeatNew, rCum = settings.repeatCum;
       const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
       const scheduleList = [];
-
-      let currentDay = getCurrentActiveDayNumber();
-      let simDay = currentDay;
+      let simDay = getCurrentActiveDayNumber();
       let simStart = Math.min(total, testCompleted + 1);
       if (simDay === 1) simStart = 1;
 
       for (let dayIdx = 1; dayIdx <= 100; dayIdx++) {
         let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
-        let cStart = null, cEnd = null, cRepeat = 0;
-
-        if (simDay > 1) { cStart = 1; cEnd = end; cRepeat = rCum; }
-
-        scheduleList.push({ day: simDay, start: simStart, end: end, repeat: rNew, cStart: cStart, cEnd: cEnd, cRepeat: cRepeat });
-
+        let cStart = (simDay > 1) ? 1 : null, cEnd = (simDay > 1) ? end : null;
+        scheduleList.push({ day: simDay, start: simStart, end: end, repeat: rNew, cStart: cStart, cEnd: cEnd, cRepeat: rCum });
         if (end >= total) break;
-        if (simDay === 1) { simStart = 2; } else { simStart = Math.min(total, end + 1); }
+        simStart = (simDay === 1) ? 2 : Math.min(total, end + 1);
         simDay++;
       }
       localStorage.setItem(`OFFLINE_SCHEDULE_CACHE_V608_${CURRENT_CLASSIC_ID}`, JSON.stringify(scheduleList));
@@ -831,8 +904,7 @@
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          practicePhase = 'new_gendu'; currentCycleCount = 0;
-          return false;
+          practicePhase = 'new_gendu'; currentCycleCount = 0; return false;
         }
         
         let targetDay = getCurrentActiveDayNumber();
@@ -841,9 +913,7 @@
 
         localStorage.setItem(`USER_CURRENT_PROGRESS_END_V608_${CURRENT_CLASSIC_ID}`, currentDayPlan.end.toString());
         practicePhase = 'new_gendu'; currentCycleCount = 0;
-        setupStageRange();
-        isScheduleRepeatLocked = false;
-        return true;
+        setupStageRange(); isScheduleRepeatLocked = false; return true;
       } catch (err) {}
       return false;
     }
@@ -851,7 +921,6 @@
     function setupStageRange() {
       if (!currentDayPlan) return;
       const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : classicTotalSentences - 1));
-
       if (practicePhase === 'new_gendu' || practicePhase === 'new_zidu') {
         markA_Index = Math.max(0, (currentDayPlan.start || 1) - 1);
         markB_Index = Math.min(maxIdx, (currentDayPlan.end || 1) - 1);
@@ -859,7 +928,6 @@
         markA_Index = Math.max(0, (currentDayPlan.cStart || 1) - 1);
         markB_Index = Math.min(maxIdx, (currentDayPlan.cEnd || 1) - 1);
       }
-
       currentLineIndex = markA_Index; currentCharIndexFloat = 0.0; isLineHeadLocked = true; videoPausedAt = -1;
       updateVisualDisplay(); scrollToAlignTop(markA_Index);
     }
@@ -872,7 +940,6 @@
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
           cMapPacked: true
         });
-
         currentPdfDoc = await loadingTask.promise;
         const page = await currentPdfDoc.getPage(1);
         pdfCanvas.width = 0; pdfCanvas.height = 0;
@@ -888,29 +955,23 @@
         await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
         const textContent = await page.getTextContent();
-        const items = textContent.items;
         const validSpans = [];
         const chineseCharRegex = /[\u4e00-\u9fa5]/;
 
-        items.forEach(it => {
+        textContent.items.forEach(it => {
           const str = it.str || '';
           if (!str.trim()) return;
           const tx = it.transform;
-          const pdfX = tx[4], pdfY = tx[5];
           const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
           const fontWidth = it.width * pageScale;
-          const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
-          const screenX0 = p0[0];
+          const p0 = pdfjsLib.Util.applyTransform([tx[4], tx[5]], viewport.transform);
           const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
-          const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+          const pTop = pdfjsLib.Util.applyTransform([tx[4], tx[5] + pdfFontH], viewport.transform);
           const realTop = Math.min(p0[1], pTop[1]), realBottom = Math.max(p0[1], pTop[1]);
           const charWidth = fontWidth / Math.max(1, str.length);
           for (let c = 0; c < str.length; c++) {
-            const char = str[c];
-            if (chineseCharRegex.test(char)) {
-              const charX0 = screenX0 + (c * charWidth);
-              const charX1 = charX0 + charWidth;
-              validSpans.push({ x0: charX0, x1: charX1, topY: realTop, bottomY: realBottom, fs: fontScale, char: char });
+            if (chineseCharRegex.test(str[c])) {
+              validSpans.push({ x0: p0[0] + (c * charWidth), x1: p0[0] + ((c + 1) * charWidth), topY: realTop, bottomY: realBottom, fs: fontScale, char: str[c] });
             }
           }
         });
@@ -927,24 +988,17 @@
 
         const analyzedRows = rowGroups.map(g => {
           g.spans.sort((a, b) => a.x0 - b.x0);
-          const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
-          const minTop = Math.min(...g.spans.map(s => s.topY));
-          return { spans: g.spans, chineseCount: g.spans.length, avgFs: avgFs, minTop: minTop, lineX0: g.spans[0].x0, lineX1: g.spans[g.spans.length - 1].x1 };
+          return { spans: g.spans, chineseCount: g.spans.length, avgFs: g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length, minTop: Math.min(...g.spans.map(s => s.topY)), lineX0: g.spans[0].x0, lineX1: g.spans[g.spans.length - 1].x1 };
         });
 
         analyzedRows.forEach(r => { r.maxBottom = Math.max(...r.spans.map(s => s.bottomY)); r.underLineY = r.maxBottom + 7; });
         const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
-        let mainTextFontSize = 0;
-        if (candidateLargeRows.length > 0) {
-          const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
-          mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
-        }
+        let mainTextFontSize = candidateLargeRows.length > 0 ? candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a)[Math.min(2, candidateLargeRows.length - 1)] : 0;
 
         parsedTextLines = [];
         let internalIndex = 0;
         analyzedRows.forEach(r => {
-          const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
-          if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
+          if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && r.avgFs >= mainTextFontSize * 0.80) {
             parsedTextLines.push({ lineIndex: internalIndex++, x0: r.lineX0, x1: r.lineX1, topGlobal: r.minTop, bottomGlobal: r.maxBottom, underLineY: r.underLineY, charItems: r.spans });
           }
         });
@@ -1608,3 +1662,4 @@
   </script>
 </body>
 </html>
+
