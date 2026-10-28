@@ -6,7 +6,7 @@
     <title>經典背誦自主選擇登記</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #f4f6f9;
             color: #333;
             max-width: 500px;
@@ -19,11 +19,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
-        h2 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 24px;
-        }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
         .info-box {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -33,42 +29,31 @@
             font-size: 14px;
             color: #475569;
         }
-        .info-box p {
-            margin: 4px 0;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-        input {
+        .info-box p { margin: 4px 0; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; }
+        input, select {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #ccd1d9;
             border-radius: 6px;
-            font-size: 16px;
+            font-size: 15px;
             box-sizing: border-box;
         }
         button {
             width: 100%;
             padding: 14px;
-            background-color: #00b900; /* LINE 綠 */
+            background-color: #00b900;
             color: white;
             border: none;
             border-radius: 6px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
         }
-        button:hover {
-            background-color: #009900;
-        }
+        button:hover { background-color: #009900; }
         #result-box {
-            margin-top: 24px;
+            margin-top: 20px;
             padding: 16px;
             background: #eef9ee;
             border: 1px solid #c8e6c9;
@@ -82,15 +67,10 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             margin: 10px 0;
-            font-size: 14px;
+            font-size: 13px;
         }
-        .btn-copy {
-            background-color: #007bff;
-            margin-top: 8px;
-        }
-        .btn-copy:hover {
-            background-color: #0056b3;
-        }
+        .btn-copy { background-color: #007bff; margin-top: 8px; }
+        .btn-copy:hover { background-color: #0056b3; }
     </style>
 </head>
 <body>
@@ -98,38 +78,58 @@
 <div class="card">
     <h2>📖 經典背誦自主登記</h2>
     
-    <!-- 自動顯示從網址帶入的資訊 -->
     <div class="info-box">
-        <p><strong>📚 經典代碼：</strong> <span id="display-classic">讀取中...</span></p>
-        <p><strong>👥 所屬群組：</strong> <span id="display-group">讀取中...</span></p>
+        <p><strong>📚 選擇經典：</strong> <span id="display-classic">讀取中...</span></p>
+        <p><strong>👥 群組代號：</strong> <span id="display-group">讀取中...</span></p>
         <p><strong>📅 起跑日期：</strong> <span id="display-start">讀取中...</span></p>
     </div>
 
     <div class="form-group">
-        <label for="name">請輸入您的姓名：</label>
-        <input type="text" id="name" placeholder="例如：謝昌明" required>
+        <label for="name">您的姓名：</label>
+        <input type="text" id="name" placeholder="請輸入姓名" required>
+    </div>
+
+    <div class="form-group">
+        <label for="teamName">隊名（選填，將在 LINE 傳送時顯示）：</label>
+        <input type="text" id="teamName" placeholder="例如：精進勇猛隊">
     </div>
     
-    <button onclick="submitSelection()">確認登記並產生專屬網址</button>
+    <button onclick="submitSelection()">確認登記並產生 LINE 分享文案</button>
 
     <div id="result-box">
-        <strong>✅ 登記成功！您的專屬分享文案已產生：</strong>
+        <strong>✅ 登記成功！請複製以下文案貼到 LINE：</strong>
         <div class="link-text" id="generated-text"></div>
         <button class="btn-copy" onclick="copyToLine()">📋 一鍵複製 LINE 專用文案</button>
     </div>
 </div>
 
 <script>
-    // 您的 Google Apps Script 後端部署網址（請替換為您的 Web App 部署網址）
-    const GAS_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
+    // 產生隨機三個英文字母作為群組備用
+    function getRandomLetters() {
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let result = "";
+        for (let i = 0; i < 3; i++) {
+            result += letters.charAt(Math.floor(Math.random() * letters.length));
+        }
+        return result;
+    }
+
+    // 取得當天日期格式 yyyy-mm-dd
+    function getTodayString() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
 
     // 解析網址參數
     const urlParams = new URLSearchParams(window.location.search);
-    const classic = urlParams.get('classic') || '未指定';
-    const start = urlParams.get('start') || '未指定';
-    const group = urlParams.get('group') || '未指定';
+    const classic = urlParams.get('classic') || '01_san_shi_wu_fo_忏';
+    const group = urlParams.get('group') || getRandomLetters();
+    const start = urlParams.get('start') || getTodayString();
 
-    // 畫面初始化顯示
+    // 畫面顯示
     document.getElementById("display-classic").innerText = classic;
     document.getElementById("display-group").innerText = group;
     document.getElementById("display-start").innerText = start;
@@ -138,41 +138,28 @@
 
     function submitSelection() {
         const name = document.getElementById("name").value.trim();
+        const teamName = document.getElementById("teamName").value.trim();
 
         if (!name) {
             alert("請先輸入您的姓名！");
             return;
         }
 
-        // 組合當前頁面的完整專屬網址
         const personalLink = window.location.href;
+        let teamHeader = teamName ? `【${teamName}】` : "";
 
-        // 產生要貼到 LINE 的精美文案
-        finalShareText = `【${name} 的經典背誦登記】\n📚 經典代碼：${classic}\n👥 群組：${group}\n📅 起跑日：${start}\n🔗 專屬網頁連結：\n${personalLink}`;
+        // 組合 LINE 傳送文案（包含隊名，但不影響網址本身）
+        finalShareText = `${teamHeader} ${name} 的經典背誦登記\n📚 經典：${classic}\n👥 群組：${group}\n📅 起跑日：${start}\n🔗 專屬網頁連結：\n${personalLink}`;
 
-        // 顯示在畫面上
         document.getElementById("generated-text").innerText = finalShareText;
         document.getElementById("result-box").style.display = "block";
-
-        // 非同步送到 Google 試算表後端記錄（若已填入 GAS_URL）
-        if (GAS_URL !== "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL") {
-            const targetUrl = `${GAS_URL}?classId=${encodeURIComponent(group)}&userName=${encodeURIComponent(name)}&coins=0&classicId=${encodeURIComponent(classic)}&startDate=${encodeURIComponent(start)}&groupName=${encodeURIComponent(group)}`;
-            
-            const script = document.createElement('script');
-            script.src = targetUrl + '&callback=handleDummy';
-            document.body.appendChild(script);
-        }
-    }
-
-    function handleDummy(res) {
-        console.log("後端寫入狀態: ", res);
     }
 
     function copyToLine() {
         navigator.clipboard.writeText(finalShareText).then(() => {
-            alert("已成功複製 LINE 文案！您可以直接貼到 LINE 記事本或群組中囉！");
+            alert("已成功複製 LINE 文案！");
         }).catch(err => {
-            alert("複製失敗，請手動複製文字框內容。");
+            alert("複製失敗，請手動複製。");
         });
     }
 </script>
