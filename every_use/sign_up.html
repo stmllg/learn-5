@@ -83,7 +83,24 @@
         <p><strong>📅 起跑日期：</strong> <span id="display-start">讀取中...</span></p>
     </div>
 
-    <!-- 中文經名下拉選單 -->
+    <!-- 1. 最上面：發起人與共同發起人姓名 -->
+    <div class="form-group">
+        <label for="initiator">發起人姓名：</label>
+        <input type="text" id="initiator" placeholder="請輸入發起人姓名" required>
+    </div>
+
+    <div class="form-group">
+        <label for="coInitiator">共同發起人姓名（選填）：</label>
+        <input type="text" id="coInitiator" placeholder="請輸入共同發起人姓名">
+    </div>
+
+    <!-- 2. 第二個：隊名 -->
+    <div class="form-group">
+        <label for="teamName">隊名（選填）：</label>
+        <input type="text" id="teamName" placeholder="例如：精進勇猛隊">
+    </div>
+
+    <!-- 3. 第三個：選擇經典下拉選單 -->
     <div class="form-group">
         <label for="classicSelect">選擇欲背誦的經典：</label>
         <select id="classicSelect">
@@ -114,16 +131,6 @@
             <option value="jiu_zhu">廣論奢摩他 九住心</option>
         </select>
     </div>
-
-    <div class="form-group">
-        <label for="name">您的姓名：</label>
-        <input type="text" id="name" placeholder="請輸入姓名" required>
-    </div>
-
-    <div class="form-group">
-        <label for="teamName">隊名（選填，將在 LINE 傳送時顯示）：</label>
-        <input type="text" id="teamName" placeholder="例如：精進勇猛隊">
-    </div>
     
     <button onclick="submitSelection()">確認登記並同步雲端與產生文案</button>
 
@@ -135,7 +142,7 @@
 </div>
 
 <script>
-    // 您的 Google Apps Script 後端部署網址（請填入您的 Web App 部署網址）
+    // 您的 Google Apps Script 後端部署網址
     const GAS_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
 
     // 產生隨機三個英文字母作為群組備用
@@ -181,15 +188,22 @@
     let finalShareText = "";
 
     function submitSelection() {
-        const name = document.getElementById("name").value.trim();
+        const initiator = document.getElementById("initiator").value.trim();
+        const coInitiator = document.getElementById("coInitiator").value.trim();
         const teamName = document.getElementById("teamName").value.trim();
         const selectElem = document.getElementById("classicSelect");
         const classicCode = selectElem.value;
         const classicText = selectElem.options[selectElem.selectedIndex].text;
 
-        if (!name) {
-            alert("請先輸入您的姓名！");
+        if (!initiator) {
+            alert("請先輸入「發起人姓名」！");
             return;
+        }
+
+        // 組合完整姓名顯示（若有共同發起人則用與連接）
+        let fullName = initiator;
+        if (coInitiator) {
+            fullName += ` & ${coInitiator}`;
         }
 
         // 強制鎖定指向 index.html 與兩字英文代碼
@@ -202,14 +216,14 @@
         let teamHeader = teamName ? `【${teamName}】` : "";
 
         // 組合 LINE 傳送文案
-        finalShareText = `${teamHeader} ${name} 的經典背誦登記\n📚 經典：《${classicText}》\n👥 群組：${group}\n📅 起跑日：${start}\n🔗 專屬網頁連結：\n${personalLink}`;
+        finalShareText = `${teamHeader} ${fullName} 的經典背誦登記\n📚 經典：《${classicText}》\n👥 群組：${group}\n📅 起跑日：${start}\n🔗 專屬網頁連結：\n${personalLink}`;
 
         document.getElementById("generated-text").innerText = finalShareText;
         document.getElementById("result-box").style.display = "block";
 
-        // 自動回傳資料至雲端 Google 試算表後端
+        // 自動回傳資料至雲端 Google 試算表後端（以發起人姓名為主）
         if (GAS_URL !== "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL") {
-            const targetUrl = `${GAS_URL}?classId=${encodeURIComponent(group)}&userName=${encodeURIComponent(name)}&coins=0&classicId=${encodeURIComponent(classicCode)}&startDate=${encodeURIComponent(start)}&groupName=${encodeURIComponent(group)}`;
+            const targetUrl = `${GAS_URL}?classId=${encodeURIComponent(group)}&userName=${encodeURIComponent(fullName)}&coins=0&classicId=${encodeURIComponent(classicCode)}&startDate=${encodeURIComponent(start)}&groupName=${encodeURIComponent(group)}`;
             
             const script = document.createElement('script');
             script.src = targetUrl + '&callback=handleCloudResponse';
