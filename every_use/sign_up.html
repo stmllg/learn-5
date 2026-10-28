@@ -164,7 +164,7 @@
         <div class="end-date-tip" id="endDateTip">⏳ 預計結束日計算中...</div>
     </div>
 
-    <!-- 4. E-mail 欄位（不顯示在 LINE 公告中） -->
+    <!-- 4. E-mail 欄位 -->
     <div class="form-group">
         <label for="userEmail">✉️ 電子信箱 E-mail（選填）：</label>
         <input type="email" id="userEmail" placeholder="如需寄發電子獎狀請填寫此處">
@@ -174,9 +174,10 @@
     <button id="submitBtn" onclick="submitSelection()">✨ 隨喜發心 確認報名</button>
 
     <div id="result-box">
-        <strong>🎉 登記成功並已寫入雲端總表！請點擊下方按鈕複製 LINE 文案分享：</strong>
+        <strong>🎉 登記成功並已寫入雲端總表！請點擊下方按鈕複製後貼給同修：</strong>
         <div class="link-text" id="generated-text"></div>
-        <button class="btn-copy" onclick="copyToLine()">📋 一鍵複製 LINE 專用文案</button>
+        <!-- 按鈕文字已更新 -->
+        <button class="btn-copy" onclick="copyToLine()">📋 一鍵複製 LINE 貼給同修</button>
     </div>
 
     <div class="footer-note">願以此功德，普及於一切，我等與眾生，皆共成佛道。</div>
@@ -210,7 +211,7 @@
     document.getElementById("display-group").innerText = group;
     document.getElementById("display-start").innerText = start;
 
-    let classicDataMap = {}; // 儲存各經典的天數
+    let classicDataMap = {};
 
     function loadActiveClassics() {
         const targetUrl = `${GAS_URL}?action=getActives&callback=handleActiveClassics`;
@@ -241,14 +242,13 @@
                     }
                 }
             }
-            updateEndDate(); // 載入後立即計算一次結束日
+            updateEndDate();
         } else {
             selectElem.innerHTML = '<option value="">目前尚無已上線的經典</option>';
             document.getElementById("endDateTip").innerText = "";
         }
     }
 
-    // 根據選擇的經典與天數，動態計算預計結束日
     function updateEndDate() {
         const selectElem = document.getElementById("classicSelect");
         const classicCode = selectElem.value;
@@ -256,7 +256,6 @@
 
         const days = classicDataMap[classicCode].days;
         
-        // 用起跑日計算結束日 (起跑日 + 總天數 - 1)
         let startDateObj = new Date(start);
         startDateObj.setDate(startDateObj.getDate() + days - 1);
 
@@ -303,13 +302,11 @@
         
         let teamHeader = teamName ? `【${teamName}】發起人` : "發起人";
 
-        // LINE 文案維持簡潔，不包含 Email
         finalShareText = `${teamHeader} ${fullName}\n📚《${classicText}》 📅 ${start}\n👉 點擊連結背誦：${personalLink}`;
 
         document.getElementById("generated-text").innerText = finalShareText;
         document.getElementById("result-box").style.display = "block";
 
-        // 同步寫入雲端總表（帶入 email 參數）
         if (GAS_URL) {
             const targetUrl = `${GAS_URL}?teamName=${encodeURIComponent(teamName)}&groupName=${encodeURIComponent(group)}&classicId=${encodeURIComponent(classicCode)}&startDate=${encodeURIComponent(start)}&userName=${encodeURIComponent(fullName)}&email=${encodeURIComponent(userEmail)}`;
             const script = document.createElement('script');
@@ -324,7 +321,7 @@
 
     function copyToLine() {
         navigator.clipboard.writeText(finalShareText).then(() => {
-            alert("✨ 已成功複製 LINE 文案！快去貼給同修們吧！");
+            alert("✨ 已成功複製，快去貼給同修們吧！");
         }).catch(err => {
             alert("複製失敗，請手動複製。");
         });
