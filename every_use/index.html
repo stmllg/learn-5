@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡6</title>
+  <title>播放器 v666</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -767,7 +767,6 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 陪伴卡：按鈕 (改為「開始背誦」並支援一天中第一次開啟才顯示排程設定) -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
@@ -1147,6 +1146,7 @@
         } else if (currentCoreMode === 'mode4') {
           setCoreMode('mode4');
         }
+        renderUI();
         showToast('✨ 已回到上次進度，請開始精進', 4000);
       });
     }
@@ -1164,13 +1164,19 @@
 
     window.addEventListener('beforeunload', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
     window.addEventListener('pagehide', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
+    
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         saveCurrentAppState();
         releaseMicrophoneResources();
-      } else if (isIndependentModeUnlocked()) {
-        practicePhase = 'completed';
-        renderUI();
+      } else if (document.visibilityState === 'visible') {
+        setTimeout(() => {
+          handleOrientationCheck();
+          renderUI();
+          if (currentCoreMode === 'mode3' || currentCoreMode === 'mode4') {
+            renderPdfOnValidDimensions();
+          }
+        }, 150);
       }
     });
 
@@ -1347,9 +1353,9 @@
       }
     }
 
+    // 🌟 老師帶前行：播畢後直接載入並恢復上次位置，不跳出隨喜對話框
     async function playTeacherGuideAndRecite() {
       hasEnteredReciting = true;
-      // 標記今日此會話已開始，後續返回陪伴卡時隱藏排程設定按鈕
       sessionStorage.setItem('session_started_v608', 'true');
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
@@ -1362,18 +1368,26 @@
         companionOverlay.style.display = 'none';
 
         playStandaloneVideo('mode1', 0, async () => {
-          showToast('✨ 前行圓滿，進入今日定課...', 3000);
+          showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
           await loadAllAssetsSmartSync();
 
-          const hasRestore = checkAndPrepareRestoreState();
-          if (!hasRestore) {
-            setCoreMode('mode2');
+          const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
+          if (savedStr) {
+            try {
+              const state = JSON.parse(savedStr);
+              if (state.savedDateStr === getNormalizedDateStr()) {
+                pendingRestoredState = state;
+                confirmRestoreState();
+                return;
+              }
+            } catch(e) {}
           }
+
+          setCoreMode('mode2');
         });
       }, 350);
     }
 
-    // 🌟 3. 點擊「開始背誦」時，直接回復上一次離開的位置與所有資訊
     async function closeCompanionCard() {
       hasEnteredReciting = true;
       sessionStorage.setItem('session_started_v608', 'true');
@@ -1389,7 +1403,6 @@
 
         await loadAllAssetsSmartSync();
 
-        // 偵測上次離開的進度並直接回復
         const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
         if (savedStr) {
           try {
@@ -3242,7 +3255,6 @@
 
       checkDailyResetOnStartup();
 
-      // 🌟 2. 排程設定：一天中第一次開啟網頁時才出現，離開再回來後隱藏
       const isFirstSessionToday = !sessionStorage.getItem('session_started_v608');
       if (isFirstSessionToday) {
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
