@@ -223,27 +223,36 @@
       border-radius: 14px;
     }
 
+    /* 🌟 三個按鈕平列等間距佈局 */
     .companion-actions-row {
       position: absolute;
       bottom: 14px;
+      left: 14px;
       right: 14px;
       display: flex;
+      justify-content: space-between;
+      align-items: center;
       gap: 10px;
       z-index: 10;
     }
 
-    .btn-card-orange {
-      padding: 8px clamp(20px, 4vw, 36px);
-      font-size: clamp(15px, 2.2vh, 20px);
+    .companion-actions-row button {
+      flex: 1;
+      text-align: center;
+      white-space: nowrap;
+      padding: 8px 12px;
+      font-size: clamp(14px, 2vh, 18px);
       font-weight: 900;
-      letter-spacing: 2px;
+      border-radius: 26px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .btn-card-orange {
       color: #431407;
       background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%);
       border: 1.5px solid #F97316;
-      border-radius: 26px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-      cursor: pointer;
-      user-select: none;
       transition: transform 0.15s ease-out;
     }
     .btn-card-orange:active {
@@ -252,17 +261,10 @@
     }
 
     .btn-card-setting {
-      padding: 8px clamp(14px, 3vw, 24px);
-      font-size: clamp(14px, 2vh, 18px);
-      font-weight: 900;
-      letter-spacing: 1px;
       color: #1E293B;
       background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%);
       border: 1.5px solid #94A3B8;
-      border-radius: 26px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-      cursor: pointer;
-      user-select: none;
       transition: transform 0.15s ease-out;
     }
     .btn-card-setting:active {
@@ -675,7 +677,6 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
-    /* 🌟 v608 模式1與模式5專屬獨立全螢幕播放層 */
     #standalone-video-overlay {
       display: none;
       position: fixed;
@@ -774,12 +775,13 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 陪伴卡 -->
+  <!-- 🌟 陪伴卡：已更新三個平列等間距按鈕 (排程設定、老師帶前行、開始定課) -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
       <div class="companion-actions-row">
         <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
+        <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始定課</button>
       </div>
     </div>
@@ -927,7 +929,6 @@
     const classicStorage = {
       getItem(key) {
         const namespaced = localStorage.getItem(CURRENT_CLASSIC_ID + '::' + key);
-        // 舊版 er_sheng 的既有進度可沿用；其他經典不讀取舊的共用資料。
         return namespaced !== null ? namespaced : (CURRENT_CLASSIC_ID === 'er_sheng' ? localStorage.getItem(key) : null);
       },
       setItem(key, value) { localStorage.setItem(CURRENT_CLASSIC_ID + '::' + key, value); },
@@ -936,7 +937,6 @@
         if (CURRENT_CLASSIC_ID === 'er_sheng') localStorage.removeItem(key);
       }
     };
-
 
     let mp4Speed = parseFloat(classicStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
@@ -948,7 +948,6 @@
     if (isNaN(compareSpeed) || compareSpeed < 0.5 || compareSpeed > 2.5) compareSpeed = 1.0;
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
-
 
     const lineBrowserOverlay = document.getElementById('line-browser-overlay');
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
@@ -1003,12 +1002,6 @@
     const totalRankList = document.getElementById('total-rank-list');
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
-    // 🌟 五大核心模式架構編號：
-    // 'mode1' = 念佛清心模式
-    // 'mode2' = 跟讀模式
-    // 'mode3' = 自讀模式
-    // 'mode4' = 比對模式
-    // 'mode5' = 功德迴向模式
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
 
@@ -1077,10 +1070,6 @@
       return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
     }
 
-
-    // 只有今日定課與串習真正圓滿後才解鎖自主功能。
-    // 單靠當日解鎖日期不判定解鎖，避免定課進行中也提前顯示全部按鍵。
-    // 離開頁面後，只有當日保存狀態也確實是 completed，才恢復完整按鍵。
     function isIndependentModeUnlocked() {
       if (practicePhase === 'completed') return true;
       const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
@@ -1095,7 +1084,6 @@
       }
     }
 
-    // 🌟 狀態保存：精準記錄五大模式與播放進度
     function saveCurrentAppState() {
       if (!hasEnteredReciting) return;
       if (practicePhase === 'completed') {
@@ -1145,7 +1133,6 @@
       }
     }
 
-    // 🌟 五大模式狀態恢復分發器
     function confirmRestoreState() {
       if (!pendingRestoredState) {
         restoreModalOverlay.style.display = 'none';
@@ -1172,15 +1159,6 @@
         } else if (currentCoreMode === 'mode4') {
           setCoreMode('mode4');
         } else if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') {
-          // 今日念佛影片已播放過時，返回程式不再重新播放，直接回到背書畫面。
-          const buddhaPlayedToday = classicStorage.getItem('buddha_played_' + getNormalizedDateStr()) === 'true';
-          if (currentCoreMode === 'mode1' && buddhaPlayedToday) {
-            setCoreMode('mode2');
-            renderUI();
-            showToast('✨ 已回到背書畫面，今日念佛不需重播', 4000);
-            saveCurrentAppState();
-            return;
-          }
           playStandaloneVideo(currentCoreMode, state.videoCurrentTime, () => {
             if (currentCoreMode === 'mode5') {
               practicePhase = 'completed';
@@ -1208,7 +1186,6 @@
       }
     }
 
-    // 🌟 離開網頁、關閉螢幕、切換至背景時自動釋放麥克風，確保 LINE 語音通話正常
     window.addEventListener('beforeunload', () => { 
       saveCurrentAppState(); 
       releaseMicrophoneResources();
@@ -1222,13 +1199,11 @@
         saveCurrentAppState();
         releaseMicrophoneResources();
       } else if (isIndependentModeUnlocked()) {
-        // 回到頁面時重新繪製已解鎖的八個按鍵，避免錄音中離開後按鍵消失。
         practicePhase = 'completed';
         renderUI();
       }
     });
 
-    // 🌟 左右滑動手勢返回機制
     let swipeStartX = 0;
     let swipeStartY = 0;
     window.addEventListener('touchstart', (e) => {
@@ -1354,7 +1329,6 @@
       } catch (e) {}
     }
 
-    // 🌟 模式1與模式5獨立播放核心
     async function playStandaloneVideo(modeType, startSeekSec = 0, onEndedCallback) {
       currentCoreMode = modeType; 
       haltGuideRunnerImmediately();
@@ -1417,7 +1391,32 @@
       standaloneCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 🌟 點擊開始定課
+    // 🌟 點擊「老師帶前行」：播放念佛影片，播畢後進入跟讀
+    async function playTeacherGuideAndRecite() {
+      hasEnteredReciting = true;
+      classicStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V608', 'true');
+      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
+      companionOverlay.style.opacity = '0';
+      triggerAppFullscreen();
+
+      setTimeout(async () => {
+        companionOverlay.classList.remove('active');
+        companionOverlay.style.display = 'none';
+
+        playStandaloneVideo('mode1', 0, async () => {
+          showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
+          await loadAllAssetsSmartSync();
+
+          const hasRestore = checkAndPrepareRestoreState();
+          if (!hasRestore) {
+            setCoreMode('mode2');
+          }
+        });
+      }, 350);
+    }
+
+    // 🌟 點擊「開始定課」：直接載入並進入跟讀，不播佛號
     async function closeCompanionCard() {
       hasEnteredReciting = true;
       classicStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V608', 'true');
@@ -1429,28 +1428,11 @@
       setTimeout(async () => {
         companionOverlay.classList.remove('active');
         companionOverlay.style.display = 'none';
-        
-        const todayStr = getNormalizedDateStr();
-        const hasPlayedBuddha = classicStorage.getItem('buddha_played_' + todayStr);
 
-        if (!hasPlayedBuddha) {
-          classicStorage.setItem('buddha_played_' + todayStr, 'true');
-          
-          playStandaloneVideo('mode1', 0, async () => {
-            showToast('✨ 念佛圓滿，正在準備今日定課...', 3000);
-            await loadAllAssetsSmartSync();
-
-            const hasRestore = checkAndPrepareRestoreState();
-            if (!hasRestore) {
-              setCoreMode('mode2');
-            }
-          });
-        } else {
-          await loadAllAssetsSmartSync();
-          const hasRestore = checkAndPrepareRestoreState();
-          if (!hasRestore) {
-            setCoreMode('mode2');
-          }
+        await loadAllAssetsSmartSync();
+        const hasRestore = checkAndPrepareRestoreState();
+        if (!hasRestore) {
+          setCoreMode('mode2');
         }
       }, 350);
     }
@@ -1614,11 +1596,10 @@
       btnPlayDedication.addEventListener('click', async () => {
         offeringOverlay.style.display = 'none';
 
-        // 🌟 點擊功德迴向：啟動模式5 (迴向)。播畢後全面解鎖並精準停留在「模式3 (自讀模式)」
         playStandaloneVideo('mode5', 0, () => {
           showToast('✨ 迴向圓滿，隨喜功德', 3000);
-          practicePhase = 'completed'; // 保持圓滿解鎖狀態
-          setCoreMode('mode3');        // 停留在自讀模式
+          practicePhase = 'completed'; 
+          setCoreMode('mode3');        
           renderUI();
         });
       });
@@ -1668,7 +1649,6 @@
         }
       }
 
-      // 句數以該經典 JSON 的實際資料為準，不再寫死 37 句。
       if (Array.isArray(scriptureData) && scriptureData.length > 0) {
         CLASSIC_TOTAL_SENTENCES = scriptureData.length;
         const totalDisplay = document.getElementById('display-total-sentences');
@@ -1679,7 +1659,6 @@
         showToast('⚠️ 找不到經典句子資料：' + CLASSIC_ASSETS.sentences, 8000);
       }
 
-      // 若既有排程仍是其他句數，按本經典實際句數重建，保留已設定的遍數與步幅。
       if (CLASSIC_TOTAL_SENTENCES > 0) {
         let savedSchedule = null;
         try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608') || 'null'); } catch (e) {}
@@ -1718,14 +1697,11 @@
         await renderPdfOnValidDimensions();
       }
 
-      // 跟讀影片直接使用正式網址播放；同一天已檢查且已有離線快取時，不重複下載整支 MP4。
       const savedVid = await getLocalFile('video_file_v608');
       video.src = CLASSIC_ASSETS.video;
       video.load();
 
-      // 首次檢查當天或沒有快取時才更新離線備援；只有內容真的不同才標記為更新。
       if (isFirstCheckToday || !savedVid || !savedVid.data) {
-        // 不等待影片快取下載完成，讓使用者先進入背書畫面。
         (async () => {
         try {
           const res = await fetch(CLASSIC_ASSETS.video + '?nocache=' + timestamp, { cache: 'no-store' });
@@ -1753,7 +1729,6 @@
             showToast('📦 跟讀影片已在背景更新完成', 4000);
           }
         } catch (e) {
-          // 網路播放網址仍是正式檔名；快取只作離線備援資料。
           console.warn('跟讀影片離線快取更新失敗，正式網址仍為：', CLASSIC_ASSETS.video, e);
         }
         })();
@@ -2149,7 +2124,6 @@
       };
     }
 
-    // 🌟 確保離開或切換背景時，主動釋放麥克風給 LINE 等 App 使用
     function releaseMicrophoneResources() {
       if (micStream) {
         try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
@@ -2162,7 +2136,6 @@
       isTouchingDisplay = false;
     }
 
-    // 🌟 五大核心模式切換路由器
     function setCoreMode(mode) {
       haltGuideRunnerImmediately();
 
@@ -2375,7 +2348,6 @@
       }
       
       if (currentCoreMode !== 'mode2') {
-          // 先切換到跟讀模式；同一次點擊繼續執行播放，避免按一次只切模式、還要再按一次。
           setCoreMode('mode2');
       }
       
@@ -2413,7 +2385,6 @@
       }
     }
 
-    // 🌟 關鍵修復：在切換到自讀模式前，優先取得麥克風授權，避免授權對話框被經文 Canvas 遮擋
     async function handleZiduClick() {
       triggerAppFullscreen();
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
@@ -2427,7 +2398,6 @@
         if (audioContext.state === 'suspended') await audioContext.resume();
       } catch (e) {}
 
-      // 優先請求麥克風，讓瀏覽器原生對話框能正確浮在最上層
       const micOk = await ensureMicrophoneActive();
       if (!micOk) {
         showToast("⚠️ 無法取得麥克風授權，請檢查瀏覽器設定", 3000);
@@ -2474,7 +2444,6 @@
       }
 
       if (currentCoreMode !== 'mode4') {
-        // 先取得麥克風授權再切換比對模式
         const micOk = await ensureMicrophoneActive();
         if (!micOk) {
           showToast("⚠️ 無法取得麥克風授權", 3000);
