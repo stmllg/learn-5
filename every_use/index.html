@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書萬用播放器 v666</title>
+  <title>歡喜 v666</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,10 +14,8 @@
   <!-- 📌【v608 核心唯一設定】複製此資料夾為新經典時，打開檔案只改以下代碼即可！ -->
   <!-- ========================================================================== -->
   <script>
-    // 從網址 classic 參數取得經典代碼；未提供時沿用二聖因果。
     const CLASSIC_PARAM = new URLSearchParams(window.location.search).get('classic');
     const CURRENT_CLASSIC_ID = /^[a-zA-Z0-9_-]+$/.test(CLASSIC_PARAM || '') ? CLASSIC_PARAM : 'er_sheng';
-    // every_use 資料夾採用「經典代碼_用途.副檔名」命名。
     const CLASSIC_ASSETS = {
       sentences: `./${CURRENT_CLASSIC_ID}_sentences.json`,
       pdf: `./${CURRENT_CLASSIC_ID}_pdf.pdf`,
@@ -25,13 +23,12 @@
       buddha: './reciting_buddha_name.mp4',
       dedication: './merit_dedication.mp4'
     };
-    const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec'; // 2. 後端記錄網址
+    const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
     
-    // 🌟【v608 萬用智慧排程演算法預設參數】
-    let CLASSIC_TOTAL_SENTENCES = 37;           // 載入 JSON 後依實際句數自動更新
-    const DEFAULT_DAILY_STEP = 4;              // 每日推進步幅預設 (1, 2, 4)
-    const DEFAULT_REPEAT_NEW = 10;             // 今日定課預設遍數
-    const DEFAULT_REPEAT_CUMULATIVE = 3;       // 今日串習預設遍數
+    let CLASSIC_TOTAL_SENTENCES = 37;
+    const DEFAULT_DAILY_STEP = 4;
+    const DEFAULT_REPEAT_NEW = 10;
+    const DEFAULT_REPEAT_CUMULATIVE = 3;
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
@@ -223,7 +220,6 @@
       border-radius: 14px;
     }
 
-    /* 🌟 三個按鈕平列等間距排版 */
     .companion-actions-row {
       position: absolute;
       bottom: 14px;
@@ -270,7 +266,6 @@
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
     }
 
-    /* 🌟 v608 橫式排程設定彈窗：零間距、極致緊湊並最大化預覽顯示 */
     #schedule-modal-overlay {
       display: none;
       position: fixed;
@@ -675,7 +670,6 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
-    /* 🌟 v608 模式1與模式5專屬獨立全螢幕播放層 */
     #standalone-video-overlay {
       display: none;
       position: fixed;
@@ -754,7 +748,6 @@
 </head>
 <body>
 
-  <!-- 🌟 模式1與模式5專屬獨立全螢幕播放層（支援左右滑動手勢返回） -->
   <div id="standalone-video-overlay">
     <video id="standalone-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
   </div>
@@ -786,7 +779,6 @@
     </div>
   </div>
 
-  <!-- 🌟 橫式排程設定彈窗 -->
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
       <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v608)</div>
@@ -831,7 +823,6 @@
     </div>
   </div>
 
-  <!-- 🌟 隨喜回來對話框 (支援全五大模式狀態精準恢復) -->
   <div id="restore-modal-overlay">
     <div class="restore-card">
       <div class="restore-title">🙏 隨喜回來・繼續精進</div>
@@ -936,6 +927,7 @@
       }
     };
 
+    // 🌟 4. 跟讀與自讀的快慢速度分開獨立儲存變數與偏好
     let mp4Speed = parseFloat(classicStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -1926,6 +1918,7 @@
       }, duration);
     }
 
+    // 🌟 4. 跟讀與自讀的快慢速度分開獨立儲存與更新
     function setMp4Speed(val) {
       mp4Speed = val;
       classicStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
@@ -2089,7 +2082,9 @@
     }
 
     function renderUI() {
+      // 🌟 2 & 3. 定課/串習中 vs 自主解鎖時的 8 個按鍵邏輯
       if (isIndependentModeUnlocked()) {
+        // 自主解鎖：8個按鍵全部顯現 (左側: 供養, 起句, 終句, 慢-; 右側: 跟讀, 自讀, 比對, 快+)
         slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
         const btnOffering = document.getElementById('btn-offering');
         if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
@@ -2101,30 +2096,21 @@
 
         slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
         slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
-        
-        slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
-        slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+        slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
       } else {
+        // 今日定課與串習階段：只能出現跟讀、自讀、快、慢
         slotL1.innerHTML = '';
         slotL2.innerHTML = '';
-        
-        if (currentCoreMode === 'mode3') {
-          slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
-          slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
-        } else {
-          slotL4.innerHTML = '';
-          slotR4.innerHTML = '';
-        }
+        slotL3.innerHTML = '';
+        slotR3.innerHTML = '';
       }
+
+      // 永遠顯示：跟讀、自讀、慢-(L4)、快+(R4)
+      slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
+      slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
       slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
       slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
-      
-      if (isIndependentModeUnlocked()) {
-        slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
-      } else {
-        slotR3.innerHTML = '';
-      }
 
       const btnMarkA = document.getElementById('btn-mark-a');
       if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
@@ -2132,6 +2118,7 @@
       const btnMarkB = document.getElementById('btn-mark-b');
       if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
 
+      // 🌟 4. 快慢按鍵根據當前模式（跟讀/自讀）對應調整專屬速度變數
       const btnSpeedDown = document.getElementById('btn-speed-down');
       if (btnSpeedDown) {
         btnSpeedDown.addEventListener('click', (e) => {
