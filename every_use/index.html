@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜 v666</title>
+  <title>歡6</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -767,14 +767,14 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 陪伴卡：三個按鈕平列等間距 (排程設定、老師帶前行、開始定課) -->
+  <!-- 🌟 陪伴卡：按鈕 (改為「開始背誦」並支援一天中第一次開啟才顯示排程設定) -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
       <div class="companion-actions-row">
-        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()">⚙️ 排程設定</button>
+        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
-        <button class="btn-card-orange" onclick="closeCompanionCard()">開始定課</button>
+        <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
       </div>
     </div>
   </div>
@@ -927,7 +927,6 @@
       }
     };
 
-    // 🌟 4. 跟讀與自讀的快慢速度分開獨立儲存變數與偏好
     let mp4Speed = parseFloat(classicStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
@@ -1350,6 +1349,11 @@
 
     async function playTeacherGuideAndRecite() {
       hasEnteredReciting = true;
+      // 標記今日此會話已開始，後續返回陪伴卡時隱藏排程設定按鈕
+      sessionStorage.setItem('session_started_v608', 'true');
+      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
       triggerAppFullscreen();
 
       companionOverlay.style.opacity = '0';
@@ -1369,8 +1373,13 @@
       }, 350);
     }
 
+    // 🌟 3. 點擊「開始背誦」時，直接回復上一次離開的位置與所有資訊
     async function closeCompanionCard() {
       hasEnteredReciting = true;
+      sessionStorage.setItem('session_started_v608', 'true');
+      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
       triggerAppFullscreen();
 
       companionOverlay.style.opacity = '0';
@@ -1379,6 +1388,20 @@
         companionOverlay.style.display = 'none';
 
         await loadAllAssetsSmartSync();
+
+        // 偵測上次離開的進度並直接回復
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
+        if (savedStr) {
+          try {
+            const state = JSON.parse(savedStr);
+            if (state.savedDateStr === getNormalizedDateStr()) {
+              pendingRestoredState = state;
+              confirmRestoreState();
+              return;
+            }
+          } catch(e) {}
+        }
+
         const hasRestore = checkAndPrepareRestoreState();
         if (!hasRestore) {
           setCoreMode('mode2');
@@ -1918,7 +1941,6 @@
       }, duration);
     }
 
-    // 🌟 4. 跟讀與自讀的快慢速度分開獨立儲存與更新
     function setMp4Speed(val) {
       mp4Speed = val;
       classicStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
@@ -2082,9 +2104,7 @@
     }
 
     function renderUI() {
-      // 🌟 2 & 3. 定課/串習中 vs 自主解鎖時的 8 個按鍵邏輯
       if (isIndependentModeUnlocked()) {
-        // 自主解鎖：8個按鍵全部顯現 (左側: 供養, 起句, 終句, 慢-; 右側: 跟讀, 自讀, 比對, 快+)
         slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
         const btnOffering = document.getElementById('btn-offering');
         if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
@@ -2098,14 +2118,12 @@
         slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
         slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
       } else {
-        // 今日定課與串習階段：只能出現跟讀、自讀、快、慢
         slotL1.innerHTML = '';
         slotL2.innerHTML = '';
         slotL3.innerHTML = '';
         slotR3.innerHTML = '';
       }
 
-      // 永遠顯示：跟讀、自讀、慢-(L4)、快+(R4)
       slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
       slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
@@ -2118,7 +2136,6 @@
       const btnMarkB = document.getElementById('btn-mark-b');
       if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
 
-      // 🌟 4. 快慢按鍵根據當前模式（跟讀/自讀）對應調整專屬速度變數
       const btnSpeedDown = document.getElementById('btn-speed-down');
       if (btnSpeedDown) {
         btnSpeedDown.addEventListener('click', (e) => {
@@ -3224,6 +3241,13 @@
       }
 
       checkDailyResetOnStartup();
+
+      // 🌟 2. 排程設定：一天中第一次開啟網頁時才出現，離開再回來後隱藏
+      const isFirstSessionToday = !sessionStorage.getItem('session_started_v608');
+      if (isFirstSessionToday) {
+        const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
+      }
 
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
