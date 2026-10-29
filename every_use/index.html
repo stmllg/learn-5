@@ -223,7 +223,7 @@
       border-radius: 14px;
     }
 
-    /* 🌟 三個按鈕平列等間距佈局 */
+    /* 🌟 三個按鈕平列等間距排版 */
     .companion-actions-row {
       position: absolute;
       bottom: 14px;
@@ -241,19 +241,19 @@
       text-align: center;
       white-space: nowrap;
       padding: 8px 12px;
-      font-size: clamp(14px, 2vh, 18px);
+      font-size: clamp(13px, 2vh, 17px);
       font-weight: 900;
       border-radius: 26px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
       cursor: pointer;
       user-select: none;
+      transition: transform 0.15s ease-out;
     }
 
     .btn-card-orange {
       color: #431407;
       background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%);
       border: 1.5px solid #F97316;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-      transition: transform 0.15s ease-out;
     }
     .btn-card-orange:active {
       transform: scale(0.95);
@@ -264,8 +264,6 @@
       color: #1E293B;
       background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%);
       border: 1.5px solid #94A3B8;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-      transition: transform 0.15s ease-out;
     }
     .btn-card-setting:active {
       transform: scale(0.95);
@@ -677,6 +675,7 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
+    /* 🌟 v608 模式1與模式5專屬獨立全螢幕播放層 */
     #standalone-video-overlay {
       display: none;
       position: fixed;
@@ -775,12 +774,12 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 🌟 陪伴卡：已更新三個平列等間距按鈕 (排程設定、老師帶前行、開始定課) -->
+  <!-- 🌟 陪伴卡：三個按鈕平列等間距 (排程設定、老師帶前行、開始定課) -->
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
       <div class="companion-actions-row">
-        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
+        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始定課</button>
       </div>
@@ -925,7 +924,6 @@
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    // 各經典的進度、設定與速度偏好分開保存，切換 classic 不會互相覆蓋。
     const classicStorage = {
       getItem(key) {
         const namespaced = localStorage.getItem(CURRENT_CLASSIC_ID + '::' + key);
@@ -956,7 +954,6 @@
     const restoreModalOverlay = document.getElementById('restore-modal-overlay');
     const restoreDescText = document.getElementById('restore-desc-text');
     const scheduleModalOverlay = document.getElementById('schedule-modal-overlay');
-    const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
 
     const centerCore = document.getElementById('center-core');
     const guideStage = document.getElementById('guide-stage');
@@ -1086,6 +1083,8 @@
 
     function saveCurrentAppState() {
       if (!hasEnteredReciting) return;
+      if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') return;
+
       if (practicePhase === 'completed') {
         classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V608', getNormalizedDateStr());
       }
@@ -1093,7 +1092,7 @@
         coreMode: currentCoreMode,
         practicePhase: practicePhase,
         currentCycleCount: currentCycleCount,
-        videoCurrentTime: (currentCoreMode === 'mode2' ? video.currentTime : (currentCoreMode === 'mode1' || currentCoreMode === 'mode5' ? standaloneVideo.currentTime : 0)),
+        videoCurrentTime: (currentCoreMode === 'mode2' ? video.currentTime : 0),
         currentLineIndex: currentLineIndex,
         markA_Index: markA_Index,
         markB_Index: markB_Index,
@@ -1121,8 +1120,6 @@
         let modeDesc = '跟讀模式 (模式2)';
         if (state.coreMode === 'mode3') modeDesc = '自讀模式 (模式3)';
         else if (state.coreMode === 'mode4') modeDesc = '比對模式 (模式4)';
-        else if (state.coreMode === 'mode1') modeDesc = '念佛清心 (模式1)';
-        else if (state.coreMode === 'mode5') modeDesc = '功德迴向 (模式5)';
 
         restoreDescText.innerHTML = `上次背書進度：<br><strong style="color: #34D399;">${phaseName} (${modeDesc})</strong><br>準備好後請按下方按鈕回到畫面。`;
         restoreModalOverlay.style.display = 'flex';
@@ -1158,18 +1155,6 @@
           setCoreMode('mode3');
         } else if (currentCoreMode === 'mode4') {
           setCoreMode('mode4');
-        } else if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') {
-          playStandaloneVideo(currentCoreMode, state.videoCurrentTime, () => {
-            if (currentCoreMode === 'mode5') {
-              practicePhase = 'completed';
-              setCoreMode('mode3');
-              renderUI();
-            } else {
-              setCoreMode('mode2');
-              saveCurrentAppState();
-            }
-          });
-          return;
         }
         showToast('✨ 已回到上次進度，請開始精進', 4000);
       });
@@ -1186,14 +1171,8 @@
       }
     }
 
-    window.addEventListener('beforeunload', () => { 
-      saveCurrentAppState(); 
-      releaseMicrophoneResources();
-    });
-    window.addEventListener('pagehide', () => { 
-      saveCurrentAppState(); 
-      releaseMicrophoneResources();
-    });
+    window.addEventListener('beforeunload', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
+    window.addEventListener('pagehide', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         saveCurrentAppState();
@@ -1299,7 +1278,6 @@
       const lastActiveDate = classicStorage.getItem('APP_ACTIVE_DATE_V608');
       if (lastActiveDate !== todayStr) {
         classicStorage.setItem('APP_ACTIVE_DATE_V608', todayStr);
-        classicStorage.removeItem('SCHEDULE_BTN_SHOWN_TODAY_V608');
         isScheduleRepeatLocked = true;
       }
     }
@@ -1338,12 +1316,12 @@
 
       standaloneOverlay.style.display = 'flex';
       
-      let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_v608' : 'merit_dedication_file_v608';
       let defaultUrl = (modeType === 'mode1') ? CLASSIC_ASSETS.buddha : CLASSIC_ASSETS.dedication;
-      let toastText = (modeType === 'mode1') ? '🙏【模式1：念佛清心】播放中...' : '🙏【模式5：功德迴向】播放中...';
+      let toastText = (modeType === 'mode1') ? '🙏【老師帶前行：念佛清心】播放中...' : '🙏【模式5：功德迴向】播放中...';
 
       let mediaUrl = defaultUrl;
       try {
+        let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_v608' : 'merit_dedication_file_v608';
         const savedFile = await getLocalFile(fileKey);
         if (savedFile && savedFile.data) {
           mediaUrl = URL.createObjectURL(new Blob([savedFile.data], { type: 'video/mp4' }));
@@ -1373,39 +1351,22 @@
 
       try {
         await standaloneVideo.play();
-        startStandalonePrecisionCheck();
       } catch(e) {
         cleanupAndExit();
       }
     }
 
-    let standaloneCheckAnimId = null;
-    function startStandalonePrecisionCheck() {
-      if (standaloneCheckAnimId) cancelAnimationFrame(standaloneCheckAnimId);
-      function check() {
-        if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') {
-          saveCurrentAppState();
-        }
-        standaloneCheckAnimId = requestAnimationFrame(check);
-      }
-      standaloneCheckAnimId = requestAnimationFrame(check);
-    }
-
-    // 🌟 點擊「老師帶前行」：播放念佛影片，播畢後進入跟讀
     async function playTeacherGuideAndRecite() {
       hasEnteredReciting = true;
-      classicStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V608', 'true');
-      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
-
-      companionOverlay.style.opacity = '0';
       triggerAppFullscreen();
 
+      companionOverlay.style.opacity = '0';
       setTimeout(async () => {
         companionOverlay.classList.remove('active');
         companionOverlay.style.display = 'none';
 
         playStandaloneVideo('mode1', 0, async () => {
-          showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
+          showToast('✨ 前行圓滿，進入今日定課...', 3000);
           await loadAllAssetsSmartSync();
 
           const hasRestore = checkAndPrepareRestoreState();
@@ -1416,15 +1377,11 @@
       }, 350);
     }
 
-    // 🌟 點擊「開始定課」：直接載入並進入跟讀，不播佛號
     async function closeCompanionCard() {
       hasEnteredReciting = true;
-      classicStorage.setItem('SCHEDULE_BTN_SHOWN_TODAY_V608', 'true');
-      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
-
-      companionOverlay.style.opacity = '0';
       triggerAppFullscreen();
 
+      companionOverlay.style.opacity = '0';
       setTimeout(async () => {
         companionOverlay.classList.remove('active');
         companionOverlay.style.display = 'none';
@@ -1595,11 +1552,10 @@
     if (btnPlayDedication) {
       btnPlayDedication.addEventListener('click', async () => {
         offeringOverlay.style.display = 'none';
-
         playStandaloneVideo('mode5', 0, () => {
           showToast('✨ 迴向圓滿，隨喜功德', 3000);
-          practicePhase = 'completed'; 
-          setCoreMode('mode3');        
+          practicePhase = 'completed';
+          setCoreMode('mode3');
           renderUI();
         });
       });
@@ -1618,7 +1574,6 @@
         const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE, testCompleted: 0 };
         generateAlgorithmicSchedule(defaultSettings);
         hasAnyUpdateDetected = true;
-        logMsg += "- 排程演算法: 初始化建立 ✅\n";
       }
 
       let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V608');
@@ -1634,6 +1589,7 @@
           }
         }
       } catch (e) {}
+
       if (scriptureData.length === 0) {
         if (localSentStr) {
           try { scriptureData = JSON.parse(localSentStr); } catch(e){}
@@ -1655,8 +1611,6 @@
         const completedInput = document.getElementById('input-completed-sentences');
         if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
         if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
-      } else {
-        showToast('⚠️ 找不到經典句子資料：' + CLASSIC_ASSETS.sentences, 8000);
       }
 
       if (CLASSIC_TOTAL_SENTENCES > 0) {
@@ -1697,71 +1651,8 @@
         await renderPdfOnValidDimensions();
       }
 
-      const savedVid = await getLocalFile('video_file_v608');
       video.src = CLASSIC_ASSETS.video;
       video.load();
-
-      if (isFirstCheckToday || !savedVid || !savedVid.data) {
-        (async () => {
-        try {
-          const res = await fetch(CLASSIC_ASSETS.video + '?nocache=' + timestamp, { cache: 'no-store' });
-          if (!res.ok) throw new Error('HTTP ' + res.status + '：' + CLASSIC_ASSETS.video);
-          const buf = await res.arrayBuffer();
-          if (!buf || buf.byteLength === 0) throw new Error('跟讀影片檔案是空的');
-
-          let videoContentChanged = !savedVid || !savedVid.data;
-          if (savedVid && savedVid.data) {
-            const oldData = savedVid.data instanceof ArrayBuffer
-              ? new Uint8Array(savedVid.data)
-              : (ArrayBuffer.isView(savedVid.data) ? new Uint8Array(savedVid.data.buffer, savedVid.data.byteOffset, savedVid.data.byteLength) : null);
-            const newData = new Uint8Array(buf);
-            videoContentChanged = !oldData || oldData.length !== newData.length;
-            if (!videoContentChanged) {
-              for (let i = 0; i < newData.length; i++) {
-                if (newData[i] !== oldData[i]) { videoContentChanged = true; break; }
-              }
-            }
-          }
-          if (videoContentChanged) {
-            await saveLocalFile('video_file_v608', buf, 'vid_cached_' + CURRENT_CLASSIC_ID);
-            hasAnyUpdateDetected = true;
-            logMsg += '- 跟讀影片：內容已更新 ✅\n';
-            showToast('📦 跟讀影片已在背景更新完成', 4000);
-          }
-        } catch (e) {
-          console.warn('跟讀影片離線快取更新失敗，正式網址仍為：', CLASSIC_ASSETS.video, e);
-        }
-        })();
-      }
-
-      const savedBuddhaVid = await getLocalFile('reciting_buddha_file_v608');
-      if (!savedBuddhaVid || !savedBuddhaVid.data) {
-        try {
-          const res = await fetch(CLASSIC_ASSETS.buddha + '?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('reciting_buddha_file_v608', buf, 'buddha_cached');
-          }
-        } catch (e) {}
-      }
-
-      const savedMeritVid = await getLocalFile('merit_dedication_file_v608');
-      if (!savedMeritVid || !savedMeritVid.data) {
-        try {
-          const res = await fetch(CLASSIC_ASSETS.dedication + '?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('merit_dedication_file_v608', buf, 'merit_cached');
-          }
-        } catch (e) {}
-      }
-
-      if (isFirstCheckToday) {
-        classicStorage.setItem('LAST_ASSET_CHECK_DATE_V608', todayStr);
-        if (hasAnyUpdateDetected) {
-          showToast(logMsg + "\n✨ 資源已自動更新至最新版本", 6000);
-        }
-      }
 
       applyScheduleToState("");
     }
@@ -2372,8 +2263,7 @@
                   startMp4PrecisionCheck();
               }).catch((retryErr) => {
                   updateModeButtonsStyle();
-                  showToast('⚠️ 跟讀影片無法播放：' + (retryErr && retryErr.message ? retryErr.message : '請檢查影片檔案或網路'), 6000);
-                  console.error('跟讀影片播放失敗：', err, retryErr);
+                  showToast('⚠️ 跟讀影片無法播放', 6000);
               });
           });
       } else {
@@ -3347,13 +3237,6 @@
       }
 
       checkDailyResetOnStartup();
-
-      const shownToday = classicStorage.getItem('SCHEDULE_BTN_SHOWN_TODAY_V608');
-      if (!shownToday) {
-        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
-      } else {
-        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
-      }
 
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
