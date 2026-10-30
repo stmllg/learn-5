@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>喜背書萬6</title>
+  <title>歡喜萬6</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,7 +31,7 @@
     };
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
     
-    let CLASSIC_TOTAL_SENTENCES = 37;
+    let CLASSIC_TOTAL_SENTENCES = 42;
     const DEFAULT_DAILY_STEP = 4;
     const DEFAULT_REPEAT_NEW = 10;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
@@ -1594,81 +1594,57 @@
       });
     }
 
-    // 🌟 【已修正部分】優先載入並解析 sentence.json，確保正確設定總句數後，才初始化排程
+    // 🌟【關鍵修復】優先強制讀取 sentence.json 並設定總句數，解決 GitHub 執行時抓到預設 37 的問題
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
-      const todayStr = getNormalizedDateStr();
-      const lastCheckDate = classicStorage.getItem('LAST_ASSET_CHECK_DATE_V608');
-      const isFirstCheckToday = (lastCheckDate !== todayStr);
 
-      let hasAnyUpdateDetected = false;
-      let logMsg = "📦 【v608 系統更新檢查】\n";
-
-      // 1. 先從遠端或快取讀取句子資料，計算真正的總句數
-      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V608');
+      // 1. 優先抓取 sentence.json 確保取得正確的總句數
+      scriptureData = [];
       try {
         const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
-          const freshSent = await res.json();
-          const freshSentStr = JSON.stringify(freshSent);
-          if (freshSentStr !== localSentStr) {
-            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V608', freshSentStr);
-            scriptureData = freshSent;
-            hasAnyUpdateDetected = true;
-          }
+          scriptureData = await res.json();
+          classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V608', JSON.stringify(scriptureData));
         }
-      } catch (e) {}
-
-      if (scriptureData.length === 0) {
+      } catch (e) {
+        const localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V608');
         if (localSentStr) {
           try { scriptureData = JSON.parse(localSentStr); } catch(e){}
-        } else {
-          try {
-            const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp);
-            if (res.ok) {
-              scriptureData = await res.json();
-              classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V608', JSON.stringify(scriptureData));
-              hasAnyUpdateDetected = true;
-            }
-          } catch (e) {}
         }
       }
 
       if (Array.isArray(scriptureData) && scriptureData.length > 0) {
         CLASSIC_TOTAL_SENTENCES = scriptureData.length;
-        const totalDisplay = document.getElementById('display-total-sentences');
-        const completedInput = document.getElementById('input-completed-sentences');
-        if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
-        if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
       }
 
-      // 2. 句數確定後，再檢查或依正確總句數產生排程快取
-      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608')) {
-        const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE, testCompleted: 0 };
-        generateAlgorithmicSchedule(defaultSettings);
-        hasAnyUpdateDetected = true;
+      const totalDisplay = document.getElementById('display-total-sentences');
+      const completedInput = document.getElementById('input-completed-sentences');
+      if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
+      if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
+
+      // 2. 句數確定後，檢查並自動依照真實總句數產生或調整排程快取
+      let savedSchedule = null;
+      try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608') || 'null'); } catch (e) {}
+
+      const scheduleNeedsResize = !Array.isArray(savedSchedule) ||
+        savedSchedule.length === 0 ||
+        savedSchedule.some(item => Number(item.end) > CLASSIC_TOTAL_SENTENCES) ||
+        Number(savedSchedule[savedSchedule.length - 1]?.end) !== CLASSIC_TOTAL_SENTENCES ||
+        !classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608');
+
+      if (scheduleNeedsResize) {
+        let savedSettings = {};
+        try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V608') || '{}'); } catch (e) {}
+        generateAlgorithmicSchedule({
+          totalSentences: CLASSIC_TOTAL_SENTENCES,
+          dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
+          repeatNew: savedSettings.repeatNew || DEFAULT_REPEAT_NEW,
+          repeatCum: savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE,
+          testCompleted: Math.min(CLASSIC_TOTAL_SENTENCES, getCurrentProgressEnd())
+        });
       }
 
-      if (CLASSIC_TOTAL_SENTENCES > 0) {
-        let savedSchedule = null;
-        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608') || 'null'); } catch (e) {}
-        const scheduleNeedsResize = !Array.isArray(savedSchedule) ||
-          savedSchedule.length === 0 ||
-          savedSchedule.some(item => Number(item.end) > CLASSIC_TOTAL_SENTENCES) ||
-          Number(savedSchedule[savedSchedule.length - 1]?.end) !== CLASSIC_TOTAL_SENTENCES;
-        if (scheduleNeedsResize) {
-          let savedSettings = {};
-          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V608') || '{}'); } catch (e) {}
-          generateAlgorithmicSchedule({
-            totalSentences: CLASSIC_TOTAL_SENTENCES,
-            dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
-            repeatNew: savedSettings.repeatNew || DEFAULT_REPEAT_NEW,
-            repeatCum: savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE,
-            testCompleted: Math.min(CLASSIC_TOTAL_SENTENCES, getCurrentProgressEnd())
-          });
-        }
-      }
-
+      // 3. 載入 PDF 與影片資源
       const savedPdf = await getLocalFile('pdf_file_v608');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
@@ -1676,10 +1652,8 @@
         try {
           const res = await fetch(CLASSIC_ASSETS.pdf + '?nocache=' + timestamp);
           if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v608', buf, 'pdf_cached');
-            cachedPdfBuffer = buf;
-            hasAnyUpdateDetected = true;
+            cachedPdfBuffer = await res.arrayBuffer();
+            await saveLocalFile('pdf_file_v608', cachedPdfBuffer, 'pdf_cached');
           }
         } catch (e) {}
       }
