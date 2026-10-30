@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜</title>
+  <title>歡</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,7 +31,7 @@
     };
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
     
-    let CLASSIC_TOTAL_SENTENCES = 46;
+    let CLASSIC_TOTAL_SENTENCES = 37;
     const DEFAULT_DAILY_STEP = 4;
     const DEFAULT_REPEAT_NEW = 10;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
@@ -1594,46 +1594,25 @@
       });
     }
 
-    // 🌟【精準修正】優先抓取 sentence.json 並強制更新 CLASSIC_TOTAL_SENTENCES 與排程，絕不動到其他核心
-    async function loadAllAssetsSmartSync() {
+    // 🌟【精準核心修復】開機第一時間預先載入 sentence.json 取得真實句數，確保排程與模態視窗抓到正確總數
+    async function prefetchSentenceCountOnStartup() {
       const timestamp = Date.now();
-      const todayStr = getNormalizedDateStr();
-      const lastCheckDate = classicStorage.getItem('LAST_ASSET_CHECK_DATE_V608');
-      const isFirstCheckToday = (lastCheckDate !== todayStr);
-
-      let hasAnyUpdateDetected = false;
-
-      // 1. 優先從本地快取或遠端 fetch 讀取 sentence.json
       let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V608');
       try {
         const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
-          const freshSentStr = JSON.stringify(freshSent);
-          if (freshSentStr !== localSentStr) {
-            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V608', freshSentStr);
+          if (Array.isArray(freshSent) && freshSent.length > 0) {
             scriptureData = freshSent;
-            hasAnyUpdateDetected = true;
+            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V608', JSON.stringify(freshSent));
           }
         }
       } catch (e) {}
 
-      if (scriptureData.length === 0) {
-        if (localSentStr) {
-          try { scriptureData = JSON.parse(localSentStr); } catch(e){}
-        } else {
-          try {
-            const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp);
-            if (res.ok) {
-              scriptureData = await res.json();
-              classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V608', JSON.stringify(scriptureData));
-              hasAnyUpdateDetected = true;
-            }
-          } catch (e) {}
-        }
+      if (scriptureData.length === 0 && localSentStr) {
+        try { scriptureData = JSON.parse(localSentStr); } catch(e){}
       }
 
-      // 2. 確實將 CLASSIC_TOTAL_SENTENCES 更新為 JSON 實際的陣列長度
       if (Array.isArray(scriptureData) && scriptureData.length > 0) {
         CLASSIC_TOTAL_SENTENCES = scriptureData.length;
       }
@@ -1643,20 +1622,14 @@
       if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
       if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
 
-      // 3. 確保排程依照正確的 CLASSIC_TOTAL_SENTENCES 建立或調整大小
-      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608')) {
-        const defaultSettings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: DEFAULT_DAILY_STEP, repeatNew: DEFAULT_REPEAT_NEW, repeatCum: DEFAULT_REPEAT_CUMULATIVE, testCompleted: 0 };
-        generateAlgorithmicSchedule(defaultSettings);
-        hasAnyUpdateDetected = true;
-      }
-
-      if (CLASSIC_TOTAL_SENTENCES > 0) {
+      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608') || CLASSIC_TOTAL_SENTENCES > 0) {
         let savedSchedule = null;
         try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608') || 'null'); } catch (e) {}
         const scheduleNeedsResize = !Array.isArray(savedSchedule) ||
           savedSchedule.length === 0 ||
           savedSchedule.some(item => Number(item.end) > CLASSIC_TOTAL_SENTENCES) ||
           Number(savedSchedule[savedSchedule.length - 1]?.end) !== CLASSIC_TOTAL_SENTENCES;
+        
         if (scheduleNeedsResize) {
           let savedSettings = {};
           try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V608') || '{}'); } catch (e) {}
@@ -1669,6 +1642,11 @@
           });
         }
       }
+    }
+
+    async function loadAllAssetsSmartSync() {
+      const timestamp = Date.now();
+      await prefetchSentenceCountOnStartup();
 
       const savedPdf = await getLocalFile('pdf_file_v608');
       if (savedPdf && savedPdf.data) {
@@ -1680,7 +1658,6 @@
             const buf = await res.arrayBuffer();
             await saveLocalFile('pdf_file_v608', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
-            hasAnyUpdateDetected = true;
           }
         } catch (e) {}
       }
@@ -3261,6 +3238,9 @@
         overlay.classList.add('active');
         return; 
       }
+
+      // 🌟 開機時立即預先載入真實 sentence 總句數，確保排程設定與全域正確
+      await prefetchSentenceCountOnStartup();
 
       checkDailyResetOnStartup();
 
