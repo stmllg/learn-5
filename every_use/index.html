@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜萬6</title>
+  <title>萬6</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,7 +31,7 @@
     };
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
     
-    let CLASSIC_TOTAL_SENTENCES = 42;
+    let CLASSIC_TOTAL_SENTENCES = 37;
     const DEFAULT_DAILY_STEP = 4;
     const DEFAULT_REPEAT_NEW = 10;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
@@ -1594,25 +1594,29 @@
       });
     }
 
-    // 🌟【關鍵修復】優先強制讀取 sentence.json 並設定總句數，解決 GitHub 執行時抓到預設 37 的問題
+    // 🌟【關鍵修復】具備完整容錯機制的 sentence.json 讀取與總句數強制對齊
     async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
 
-      // 1. 優先抓取 sentence.json 確保取得正確的總句數
+      // 1. 優先強制讀取 sentence.json
       scriptureData = [];
       try {
         const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           scriptureData = await res.json();
           classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V608', JSON.stringify(scriptureData));
+        } else {
+          throw new Error('HTTP error ' + res.status);
         }
       } catch (e) {
+        // 若遠端 fetch 失敗，讀取離線快取
         const localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V608');
         if (localSentStr) {
           try { scriptureData = JSON.parse(localSentStr); } catch(e){}
         }
       }
 
+      // 2. 嚴格對齊總句數：無論從遠端或快取讀到幾句，直接覆寫變數與 UI
       if (Array.isArray(scriptureData) && scriptureData.length > 0) {
         CLASSIC_TOTAL_SENTENCES = scriptureData.length;
       }
@@ -1622,9 +1626,9 @@
       if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
       if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
 
-      // 2. 句數確定後，檢查並自動依照真實總句數產生或調整排程快取
+      // 3. 確保排程依照真實總句數重新產生
       let savedSchedule = null;
-      try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608') || 'null'); } catch (e) {}
+      try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608) || 'null'); } catch (e) {}
 
       const scheduleNeedsResize = !Array.isArray(savedSchedule) ||
         savedSchedule.length === 0 ||
@@ -1644,7 +1648,7 @@
         });
       }
 
-      // 3. 載入 PDF 與影片資源
+      // 4. 載入 PDF 與影片資源
       const savedPdf = await getLocalFile('pdf_file_v608');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
