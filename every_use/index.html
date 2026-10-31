@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書萬6</title>
+  <title>歡書萬6</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,8 +31,8 @@
     };
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
     
-    let CLASSIC_TOTAL_SENTENCES = 66;
-    const DEFAULT_DAILY_STEP = 1;
+    let CLASSIC_TOTAL_SENTENCES = 37;
+    const DEFAULT_DAILY_STEP = 4;
     const DEFAULT_REPEAT_NEW = 10;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
   </script>
@@ -1178,6 +1178,9 @@
       } else if (document.visibilityState === 'visible') {
         setTimeout(() => {
           handleOrientationCheck();
+          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V608') === getNormalizedDateStr()) {
+            practicePhase = 'completed';
+          }
           renderUI();
           if (currentCoreMode === 'mode3' || currentCoreMode === 'mode4') {
             renderPdfOnValidDimensions();
@@ -2190,7 +2193,6 @@
           }
       });
 
-      // 模式 2 (跟讀)
       if (btnGendu) {
           const isGenduPlaying = (currentCoreMode === 'mode2' && video && !video.paused);
           if (currentCoreMode === 'mode2') {
@@ -2202,7 +2204,6 @@
           }
       }
 
-      // 模式 3 (自讀)
       if (btnZidu) {
           const isZiduRunning = (currentCoreMode === 'mode3' && isGuideActive);
           if (currentCoreMode === 'mode3') {
@@ -2214,7 +2215,6 @@
           }
       }
 
-      // 模式 4 (比對)
       if (btnRecord && isIndependentModeUnlocked()) {
           if (currentCoreMode === 'mode4') {
               btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
