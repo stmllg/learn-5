@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書萬6・長青自動變速簡化版</title>
+  <title>歡喜背書速與流暢接續版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -208,38 +208,6 @@
     }
     .btn-card-orange:active { transform: scale(0.95); }
 
-    #restore-modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh; height: 100dvh;
-      z-index: 30000;
-      background: rgba(4, 7, 15, 0.94);
-      backdrop-filter: blur(8px);
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    .restore-card {
-      background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
-      border: 3px solid #10B981;
-      border-radius: 22px;
-      max-width: 440px; width: 92%;
-      padding: 28px 24px;
-      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
-      text-align: center;
-      display: flex; flex-direction: column; gap: 18px;
-    }
-    .restore-title { font-size: 24px; font-weight: 900; color: #34D399; letter-spacing: 2px; }
-    .restore-desc { font-size: 17px; line-height: 1.6; color: #E2E8F0; background: rgba(15, 23, 42, 0.75); padding: 16px; border-radius: 12px; border: 1px dashed rgba(52, 211, 153, 0.4); }
-    .btn-restore-confirm {
-      padding: 14px 24px; font-size: 19px; font-weight: 900;
-      color: #064E3B; background: linear-gradient(135deg, #A7F3D0 0%, #34D399 100%);
-      border: 2px solid #10B981; border-radius: 26px; cursor: pointer; letter-spacing: 2px;
-    }
-
     #landscape-container {
       width: 100vw; height: 100vh; height: 100dvh;
       display: flex; flex-direction: row; align-items: stretch;
@@ -425,16 +393,6 @@
     </div>
   </div>
 
-  <div id="restore-modal-overlay">
-    <div class="restore-card">
-      <div class="restore-title">🙏 隨喜回來・繼續精進</div>
-      <div class="restore-desc" id="restore-desc-text">
-        偵測到您上次的背書進度。<br>請準備好後點擊下方按鈕，回到畫面。
-      </div>
-      <button class="btn-restore-confirm" onclick="confirmRestoreState()">🙏 隨喜回來，準備好了</button>
-    </div>
-  </div>
-
   <div id="schedule-toast">📦 【載入中】...</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -511,8 +469,6 @@
 
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
     const companionOverlay = document.getElementById('companion-overlay');
-    const restoreModalOverlay = document.getElementById('restore-modal-overlay');
-    const restoreDescText = document.getElementById('restore-desc-text');
 
     const videoWrap = document.getElementById('video-container-wrap');
     const video = document.getElementById('my-chant-video');
@@ -522,10 +478,8 @@
     const scheduleToast = document.getElementById('schedule-toast');
 
     const slotL1 = document.getElementById('slot-l1');
-    const slotL4 = document.getElementById('slot-l4');
     const slotR1 = document.getElementById('slot-r1');
     const slotR3 = document.getElementById('slot-r3');
-    const slotR4 = document.getElementById('slot-r4');
 
     const offeringOverlay = document.getElementById('offering-modal-overlay');
     const inputClassId = document.getElementById('input-class-id');
@@ -556,7 +510,6 @@
     let currentCycleCount = 0; 
     let videoPausedAt = -1;
     let hasEnteredReciting = false;
-    let pendingRestoredState = null;
     let activeDayNumber = 1;
 
     function getNormalizedDateStr() {
@@ -584,12 +537,10 @@
 
     function updateAutomaticSpeed() {
       if (practicePhase === 'new_gendu') {
-        // 定課 10 遍：由 0.8x 遞增 10 階至 1.2x
         const step = Math.min(9, Math.max(0, currentCycleCount));
         const speed = 0.8 + step * (0.4 / 9);
         video.playbackRate = speed;
       } else if (practicePhase === 'cumulative_gendu') {
-        // 串習 3 遍：由 0.9x 遞增 3 階至 1.1x
         const step = Math.min(2, Math.max(0, currentCycleCount));
         const speed = 0.9 + step * (0.2 / 2);
         video.playbackRate = speed;
@@ -610,7 +561,7 @@
       classicStorage.setItem('APP_SAVED_STATE_SENIOR_AUTO_V1', JSON.stringify(state));
     }
 
-    function checkAndPrepareRestoreState() {
+    function tryAutoResumeOnStartup() {
       const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
       if (!savedStr) return false;
       try {
@@ -619,37 +570,35 @@
           classicStorage.removeItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
           return false;
         }
-        pendingRestoredState = state;
+        currentCoreMode = state.coreMode || 'mode2';
+        practicePhase = state.practicePhase || 'new_gendu';
+        currentCycleCount = state.currentCycleCount || 0;
         showRepeatAgainButton = state.showRepeatAgainButton || false;
-        restoreDescText.innerHTML = `上次背書進度：<br><strong style="color: #34D399;">${state.practicePhase}</strong><br>準備好後請按下方按鈕回到畫面。`;
-        restoreModalOverlay.style.display = 'flex';
+
+        loadAllAssetsSmartSync().then(() => {
+          setCoreMode(currentCoreMode);
+          if (currentCoreMode === 'mode2') {
+            updateAutomaticSpeed();
+            const range = getActiveVideoRange();
+            if (state.videoCurrentTime > range.start && state.videoCurrentTime < range.end) {
+              video.currentTime = state.videoCurrentTime;
+            } else {
+              video.currentTime = range.start;
+            }
+            video.play().then(() => {
+              startMp4PrecisionCheck();
+              showToast('✨ 已自動無縫接續上次進度播放', 3000);
+            }).catch(() => {
+              showToast('✨ 進度已恢復，請點擊畫面開始播放', 3000);
+            });
+          }
+          renderUI();
+        });
         return true;
       } catch(e) {
         classicStorage.removeItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
         return false;
       }
-    }
-
-    function confirmRestoreState() {
-      if (!pendingRestoredState) {
-        restoreModalOverlay.style.display = 'none';
-        return;
-      }
-
-      const state = pendingRestoredState;
-      currentCoreMode = state.coreMode || 'mode2';
-      practicePhase = state.practicePhase || 'new_gendu';
-      currentCycleCount = state.currentCycleCount || 0;
-      showRepeatAgainButton = state.showRepeatAgainButton || false;
-
-      restoreModalOverlay.style.display = 'none';
-
-      loadAllAssetsSmartSync().then(() => {
-        setCoreMode(currentCoreMode);
-        if (currentCoreMode === 'mode2' && state.videoCurrentTime > 0) video.currentTime = state.videoCurrentTime;
-        renderUI();
-        showToast('✨ 已回到上次進度', 3000);
-      });
     }
 
     window.addEventListener('beforeunload', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
@@ -775,17 +724,7 @@
           showToast('✨ 前行圓滿，3秒後自動進入今日定課...', 3000);
           await loadAllAssetsSmartSync();
 
-          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
-          if (savedStr) {
-            try {
-              const state = JSON.parse(savedStr);
-              if (state.savedDateStr === getNormalizedDateStr()) {
-                pendingRestoredState = state;
-                confirmRestoreState();
-                return;
-              }
-            } catch(e) {}
-          }
+          if (tryAutoResumeOnStartup()) return;
 
           setCoreMode('mode2');
           setTimeout(() => { autoPlayCurrentSchedule(); }, 3000);
@@ -803,24 +742,11 @@
 
         await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
-        if (savedStr) {
-          try {
-            const state = JSON.parse(savedStr);
-            if (state.savedDateStr === getNormalizedDateStr()) {
-              pendingRestoredState = state;
-              confirmRestoreState();
-              return;
-            }
-          } catch(e) {}
-        }
+        if (tryAutoResumeOnStartup()) return;
 
-        const hasRestore = checkAndPrepareRestoreState();
-        if (!hasRestore) {
-          setCoreMode('mode2');
-          showToast('✨ 3秒後自動進入今日定課...', 2500);
-          setTimeout(() => { autoPlayCurrentSchedule(); }, 3000);
-        }
+        setCoreMode('mode2');
+        showToast('✨ 3秒後自動進入今日定課...', 2500);
+        setTimeout(() => { autoPlayCurrentSchedule(); }, 3000);
       }, 350);
     }
 
@@ -965,21 +891,16 @@
     function renderUI() {
       try {
         slotL1.innerHTML = '';
-        slotL4.innerHTML = '';
         slotR1.innerHTML = '';
         slotR3.innerHTML = '';
-        slotR4.innerHTML = '';
 
         if (showRepeatAgainButton) {
-          // 左1: 巧克力金幣供養 (🪙)
           slotL1.innerHTML = '<button class="square-btn chocolate-coin-btn" id="btn-offering"><span class="max-icon">🪙</span></button>';
           const btnOffering = document.getElementById('btn-offering');
           if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
-          // 右1: 再學一次
           slotR1.innerHTML = '<button class="btn-repeat-again" id="btn-repeat-again" onclick="handleRepeatAgainClick()">再學一次</button>';
 
-          // 右3: 比對按鍵 (收音機 📻)
           slotR3.innerHTML = '<button class="square-btn" id="btn-record"><span class="max-icon" id="record-icon">📻</span></button>';
           const btnRecord = document.getElementById('btn-record');
           if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
@@ -1139,8 +1060,8 @@
       currentCycleCount++;
       addCoins(1);
 
-      const repeatNew = DEFAULT_REPEAT_NEW; // 10遍
-      const cRepeat = DEFAULT_REPEAT_CUMULATIVE; // 3遍
+      const repeatNew = DEFAULT_REPEAT_NEW; 
+      const cRepeat = DEFAULT_REPEAT_CUMULATIVE; 
 
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < repeatNew) {
@@ -1257,7 +1178,9 @@
       canvas.height = window.innerHeight;
 
       const coins = [];
-      for (let i = 0; i < 50; i++) {
+      const labels = ['福', '慧'];
+      
+      for (let i = 0; i < 55; i++) {
         coins.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height - canvas.height,
@@ -1266,38 +1189,66 @@
           speedX: (Math.random() - 0.5) * 0.8,
           rotation: Math.random() * Math.PI * 2,
           rotationSpeed: (Math.random() - 0.5) * 0.04,
-          label: i % 2 === 0 ? '福' : '慧'
+          label: labels[i % labels.length],
+          opacity: 0.98
         });
       }
 
       let startTime = performance.now();
+      const duration = 5500;
+
       function animateCoinRain(now) {
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         coins.forEach(c => {
           c.y += c.speedY;
-          c.x += c.speedX;
+          c.x += c.speedX + Math.sin(c.y / 50) * 0.5;
+          c.rotation += c.rotationSpeed;
+
           ctx.save();
           ctx.translate(c.x, c.y);
           ctx.rotate(c.rotation);
-          ctx.fillStyle = '#CA8A04';
+          ctx.globalAlpha = c.opacity;
+
+          const grad = ctx.createRadialGradient(-2, -2, 2, 0, 0, c.radius);
+          grad.addColorStop(0, '#FEF08A');
+          grad.addColorStop(0.5, '#F59E0B');
+          grad.addColorStop(1, '#B45309');
+
+          ctx.fillStyle = grad;
           ctx.beginPath();
           ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = '#FEF08A';
+
+          ctx.strokeStyle = '#FEF3C7';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, c.radius * 0.82, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = '#FFFFFF';
           ctx.font = `bold ${Math.floor(c.radius * 0.9)}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(c.label, 0, 1);
+
           ctx.restore();
+
+          if (c.y > canvas.height + 40) {
+            c.y = -40;
+            c.x = Math.random() * canvas.width;
+          }
         });
-        if (elapsed < 5000) {
+
+        if (elapsed < duration) {
           requestAnimationFrame(animateCoinRain);
         } else {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           canvas.style.display = 'none';
         }
       }
+
       requestAnimationFrame(animateCoinRain);
     }
 
