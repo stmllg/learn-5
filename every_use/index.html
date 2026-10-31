@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜6</title>
+  <title>歡喜背書</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,8 +31,8 @@
     };
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
     
-    let CLASSIC_TOTAL_SENTENCES = 37;
-    const DEFAULT_DAILY_STEP = 4;
+    let CLASSIC_TOTAL_SENTENCES = 66;
+    const DEFAULT_DAILY_STEP = 1;
     const DEFAULT_REPEAT_NEW = 10;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
   </script>
@@ -1188,9 +1188,9 @@
           if (currentCoreMode === 'mode3' || currentCoreMode === 'mode4') {
             setTimeout(() => {
               renderPdfOnValidDimensions();
-            }, 400);
+            }, 500);
           }
-        }, 200);
+        }, 300);
       }
     });
 
@@ -2190,84 +2190,54 @@
     }
 
     function updateModeButtonsStyle() {
-  const btnFollow = document.getElementById('btnFollow');
-  const btnZidu = document.getElementById('btnZidu');
-  const btnRecord = document.getElementById('btnRecord');
+      const btnGendu = document.getElementById('btn-gendu');
+      const btnZidu = document.getElementById('btn-zidu');
+      const btnRecord = document.getElementById('btn-record');
 
-  // 輔助函式：設定按鈕顏色樣式
-  // isSelected: 是否為當前作用中的模式 (顯示綠色)
-  // isRunning: 是否正在執行/錄音中 (顯示紫色)
-  function applyStyle(btn, isSelected, isRunning) {
-    if (!btn) return;
-    if (!isSelected) {
-      // 未選中 -> 黑色
-      btn.style.background = 'linear-gradient(135deg, #222222, #000000)';
-      btn.style.borderColor = '#444';
-      btn.style.color = '#fff';
-    } else {
-      if (isRunning) {
-        // 已選中且正在執行/錄音中 -> 紫色
-        btn.style.background = 'linear-gradient(135deg, #8b008b, #4b0082)';
-        btn.style.borderColor = '#da70d6';
-        btn.style.color = '#fff';
-      } else {
-        // 已選中但處於待命/暫停狀態（或切換過來的第一時間） -> 綠色
-        btn.style.background = 'linear-gradient(135deg, #2e8b57, #1e5631)';
-        btn.style.borderColor = '#3cb371';
-        btn.style.color = '#fff';
-      }
-    }
-  }
+      const colorBlack = '#000000';
+      const colorGreen = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+      const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
 
-  // 判斷各模式是否為當前核心模式
-  const isMode2 = (currentCoreMode === 'mode2');
-  const isMode3 = (currentCoreMode === 'mode3');
-  const isMode4 = (currentCoreMode === 'mode4');
-
-  // 各模式對應的運行中狀態 (例如播放中、自讀中、錄音中)
-  // 請根據您的變數名稱調整 (例如 isUserFollowing, isUserZiduRunning, isUserRecording)
-  const isMode2Running = isMode2 && (typeof isUserFollowing !== 'undefined' ? isUserFollowing : false);
-  const isMode3Running = isMode3 && (typeof isUserZiduRunning !== 'undefined' ? isUserZiduRunning : false);
-  const isMode4Running = isMode4 && (typeof isUserRecording !== 'undefined' ? isUserRecording : false);
-
-  // 套用樣式
-  applyStyle(btnFollow, isMode2, isMode2Running);
-  applyStyle(btnZidu, isMode3, isMode3Running);
-  applyStyle(btnRecord, isMode4, isMode4Running);
-}
+      [btnGendu, btnZidu, btnRecord].forEach(btn => {
+          if (btn) {
+              btn.style.background = colorBlack;
+              btn.style.borderColor = '#BAE6FD';
+              btn.style.color = '#FB923C';
+              btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+              btn.classList.remove('recording-flashing');
+          }
+      });
 
       if (btnGendu) {
-          const isGenduPlaying = (currentCoreMode === 'mode2' && video && !video.paused);
-          if (currentCoreMode === 'mode2') {
-              btnGendu.textContent = isGenduPlaying ? '跟著唸' : '跟讀';
-              btnGendu.style.background = isGenduPlaying ? colorPurple : colorGreen;
-              btnGendu.style.borderColor = isGenduPlaying ? '#E9D5FF' : '#A7F3D0';
-              btnGendu.style.color = '#FFFFFF';
-              if (isGenduPlaying) btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
-          }
+          const isGenduActive = (currentCoreMode === 'mode2');
+          const isGenduPlaying = isGenduActive && (video && !video.paused);
+          btnGendu.textContent = isGenduPlaying ? '跟著唸' : '跟讀';
+          btnGendu.style.background = isGenduPlaying ? colorPurple : (isGenduActive ? colorGreen : colorBlack);
+          btnGendu.style.borderColor = isGenduActive ? (isGenduPlaying ? '#E9D5FF' : '#A7F3D0') : '#BAE6FD';
+          btnGendu.style.color = isGenduActive ? '#FFFFFF' : '#FB923C';
+          if (isGenduPlaying) btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
       }
 
       if (btnZidu) {
-          const isZiduRunning = (currentCoreMode === 'mode3' && isGuideActive);
-          if (currentCoreMode === 'mode3') {
-              btnZidu.textContent = isZiduRunning ? '唸出聲' : '自讀';
-              btnZidu.style.background = isZiduRunning ? colorPurple : colorGreen;
-              btnZidu.style.borderColor = isZiduRunning ? '#E9D5FF' : '#A7F3D0';
-              btnZidu.style.color = '#FFFFFF';
-              if (isZiduRunning) btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
-          }
+          const isZiduActive = (currentCoreMode === 'mode3');
+          const isZiduRunning = isZiduActive && isGuideActive;
+          btnZidu.textContent = isZiduRunning ? '唸出聲' : '自讀';
+          btnZidu.style.background = isZiduRunning ? colorPurple : (isZiduActive ? colorGreen : colorBlack);
+          btnZidu.style.borderColor = isZiduActive ? (isZiduRunning ? '#E9D5FF' : '#A7F3D0') : '#BAE6FD';
+          btnZidu.style.color = isZiduActive ? '#FFFFFF' : '#FB923C';
+          if (isZiduRunning) btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
       }
 
       if (btnRecord && isIndependentModeUnlocked()) {
-          if (currentCoreMode === 'mode4') {
-              btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
-              btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
-              btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
-              btnRecord.style.color = '#FFFFFF';
-              if (isUserRecording) {
-                  btnRecord.classList.add('recording-flashing');
-                  btnRecord.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
-              }
+          const isRecordActive = (currentCoreMode === 'mode4');
+          const isRecordRunning = isRecordActive && isUserRecording;
+          btnRecord.textContent = isRecordRunning ? '錄音中' : '比對';
+          btnRecord.style.background = isRecordRunning ? colorPurple : (isRecordActive ? colorGreen : colorBlack);
+          btnRecord.style.borderColor = isRecordActive ? (isRecordRunning ? '#E9D5FF' : '#A7F3D0') : '#BAE6FD';
+          btnRecord.style.color = isRecordActive ? '#FFFFFF' : '#FB923C';
+          if (isRecordRunning) {
+              btnRecord.classList.add('recording-flashing');
+              btnRecord.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
           }
       }
     }
