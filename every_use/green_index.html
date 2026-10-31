@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜・長青簡化版</title>
+  <title>歡喜簡化版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -284,20 +284,6 @@
       text-align: center; line-height: 1.6; max-width: 95vw;
     }
 
-    #speed-toast-badge {
-      display: none;
-      position: absolute;
-      top: 14px; right: calc(76px + env(safe-area-inset-right, 0px));
-      background: rgba(15, 23, 42, 0.96);
-      color: #34D399;
-      border: 2px solid #10B981;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 16px; font-weight: 900;
-      z-index: 120; pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-
     .side-wing {
       flex-shrink: 0; height: 100%;
       background-color: #000000;
@@ -309,7 +295,6 @@
 
     .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
 
-    /* 按鍵統一：純黑底、無文字、圖示放到最大 */
     .square-btn {
       width: 72px !important; height: 72px !important;
       border-radius: 18px !important;
@@ -323,7 +308,6 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 垂直文字按鈕：「再學一次」 (跨右1與右2) */
     .btn-repeat-again {
       position: absolute;
       top: 0;
@@ -352,7 +336,6 @@
       100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.6); }
     }
 
-    /* 各按鍵最大化圖示 */
     .max-icon {
       font-size: 38px !important;
       line-height: 1;
@@ -387,8 +370,6 @@
     }
 
     #guide-stage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: block; }
-    #guide-line { position: absolute; height: 6px; background-color: #00E676; border-radius: 3px; box-shadow: 0 0 10px rgba(0, 230, 118, 0.9); display: none; }
-    #red-dot { position: absolute; width: min(22px, 6vh); height: min(22px, 6vh); background: radial-gradient(circle, #FF5252 20%, #FF1744 100%); border: 2.5px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 12px rgba(255, 23, 68, 0.8); transform: translate(-50%, -50%); display: none; }
 
     #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; display: none; justify-content: center; }
     #pdf-canvas { display: block; width: 100% !important; height: auto !important; cursor: pointer; }
@@ -467,7 +448,7 @@
   <div id="portrait-blocker-overlay">
     <div class="rotate-phone-icon"></div>
     <div class="rotate-hint-title">請將手機橫放</div>
-    <div class="rotate-hint-subtitle">長青歡喜背書 ｜ 自動定課與比對</div>
+    <div class="rotate-hint-subtitle">長青歡喜背書 ｜ 定課與比對</div>
   </div>
 
   <div id="companion-overlay">
@@ -491,7 +472,6 @@
   </div>
 
   <div id="schedule-toast">📦 【載入中】...</div>
-  <div id="speed-toast-badge">【語速 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
 
@@ -504,10 +484,7 @@
     </div>
 
     <div id="center-core">
-      <div id="guide-stage">
-        <div id="guide-line"></div>
-        <div id="red-dot"></div>
-      </div>
+      <div id="guide-stage"></div>
 
       <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
@@ -528,14 +505,14 @@
 
   <div id="offering-modal-overlay">
     <div class="offering-card">
-      <div class="offering-header"><span>🪙</span> 福慧幣功德供養</div>
+      <div class="offering-header"><span>🪙</span> 黃金幣功德供養</div>
       <button id="btn-play-dedication" class="btn-dedication-long">🙏 今日背書功德迴向</button>
       <div class="offering-row">
         <div class="offering-field"><label>班號：</label><input type="text" id="input-class-id" class="offering-input" placeholder="例: 22宗009"></div>
         <div class="offering-field"><label>姓名：</label><input type="text" id="input-user-name" class="offering-input" placeholder="請輸入姓名"></div>
       </div>
       <div class="coins-display-box">
-        <div class="coins-label">今日累計福慧幣</div>
+        <div class="coins-label">今日累計黃金幣</div>
         <div class="coins-value" id="display-coins-count">0 枚</div>
       </div>
       <div class="offering-actions">
@@ -547,7 +524,7 @@
 
   <div id="leaderboard-modal-overlay">
     <div class="leaderboard-card">
-      <div class="leaderboard-header"><span>🏆</span> 供養福慧幣 功德圓滿 隨喜大家</div>
+      <div class="leaderboard-header"><span>🏆</span> 供養黃金幣 功德圓滿 隨喜大家</div>
       <div class="rank-wrap">
         <div class="rank-section">
           <div class="rank-section-title">📅 今日精進榜</div>
@@ -566,9 +543,6 @@
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
     }
-
-    const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     const classicStorage = {
       getItem(key) { return localStorage.getItem(NAMESPACE_KEY + '::' + key); },
@@ -590,10 +564,6 @@
     const restoreDescText = document.getElementById('restore-desc-text');
 
     const centerCore = document.getElementById('center-core');
-    const guideStage = document.getElementById('guide-stage');
-    const guideLine = document.getElementById('guide-line');
-    const redDot = document.getElementById('red-dot');
-
     const pdfContainerWrap = document.getElementById('pdf-container-wrap');
     const pdfCanvas = document.getElementById('pdf-canvas');
     const videoWrap = document.getElementById('video-container-wrap');
@@ -601,9 +571,7 @@
 
     const standaloneOverlay = document.getElementById('standalone-video-overlay');
     const standaloneVideo = document.getElementById('standalone-video');
-
     const scheduleToast = document.getElementById('schedule-toast');
-    const speedToastBadge = document.getElementById('speed-toast-badge');
 
     const slotL1 = document.getElementById('slot-l1');
     const slotL4 = document.getElementById('slot-l4');
@@ -630,9 +598,7 @@
     let showRepeatAgainButton = false;
 
     let audioContext = null;
-    let analyser = null;
     let micStream = null;
-
     let mediaRecorder = null;
     let audioChunks = [];
     let isUserRecording = false;
@@ -644,18 +610,10 @@
     let parsedTextLines = [];
     let cachedPdfBuffer = null;
 
-    let markA_Index = -1;
-    let markB_Index = -1;
-
-    let currentDayPlan = null; 
+    let markA_Index = 0;
+    let markB_Index = 0;
     let currentCycleCount = 0; 
     let videoPausedAt = -1;
-
-    let guideAnimId = null;
-    let cycleWaitTimer = null;
-    let isGuideActive = false;
-    let currentLineIndex = 0;
-
     let hasEnteredReciting = false;
     let pendingRestoredState = null;
 
@@ -671,23 +629,22 @@
         practicePhase: practicePhase,
         currentCycleCount: currentCycleCount,
         videoCurrentTime: (currentCoreMode === 'mode2' ? video.currentTime : 0),
-        currentLineIndex: currentLineIndex,
         markA_Index: markA_Index,
         markB_Index: markB_Index,
         showRepeatAgainButton: showRepeatAgainButton,
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V5', JSON.stringify(state));
+      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V6', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V5');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V6');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         if (state.savedDateStr !== getNormalizedDateStr()) {
-          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V5');
+          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V6');
           return false;
         }
         pendingRestoredState = state;
@@ -696,7 +653,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V5');
+        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V6');
         return false;
       }
     }
@@ -711,9 +668,8 @@
       currentCoreMode = state.coreMode || 'mode2';
       practicePhase = state.practicePhase || 'new_gendu';
       currentCycleCount = state.currentCycleCount || 0;
-      currentLineIndex = state.currentLineIndex || 0;
-      markA_Index = state.markA_Index !== undefined ? state.markA_Index : -1;
-      markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
+      markA_Index = state.markA_Index || 0;
+      markB_Index = state.markB_Index || 0;
       showRepeatAgainButton = state.showRepeatAgainButton || false;
 
       restoreModalOverlay.style.display = 'none';
@@ -722,7 +678,7 @@
         setCoreMode(currentCoreMode);
         if (currentCoreMode === 'mode2' && state.videoCurrentTime > 0) video.currentTime = state.videoCurrentTime;
         renderUI();
-        showToast('✨ 已回到上次進度，請繼續精進', 3000);
+        showToast('✨ 已回到上次進度', 3000);
       });
     }
 
@@ -750,7 +706,6 @@
 
     function handleReturnToCompanionCard() {
       saveCurrentAppState();
-      haltGuideRunnerImmediately();
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
@@ -795,7 +750,6 @@
 
     async function playStandaloneVideo(modeType, startSeekSec = 0, onEndedCallback) {
       currentCoreMode = modeType; 
-      haltGuideRunnerImmediately();
       if (video && !video.paused) video.pause();
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
@@ -848,10 +802,10 @@
         companionOverlay.style.display = 'none';
 
         playStandaloneVideo('mode1', 0, async () => {
-          showToast('✨ 前行圓滿，3秒後自動進入今日定課...', 3000);
+          showToast('✨ 前行圓滿，3秒後自動進入今日定課第一句...', 3000);
           await loadAllAssetsSmartSync();
 
-          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V5');
+          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V6');
           if (savedStr) {
             try {
               const state = JSON.parse(savedStr);
@@ -879,7 +833,7 @@
 
         await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V5');
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V6');
         if (savedStr) {
           try {
             const state = JSON.parse(savedStr);
@@ -898,22 +852,6 @@
           setTimeout(() => { autoPlayCurrentSchedule(); }, 3000);
         }
       }, 350);
-    }
-
-    function getCurrentActiveDayNumber() {
-      if (currentDayPlan && currentDayPlan.day) return currentDayPlan.day;
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('start')) {
-        const startStr = urlParams.get('start');
-        const parts = startStr.split('-');
-        if (parts.length === 3) {
-          const userStartDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-          const now = new Date();
-          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          return Math.max(1, Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1);
-        }
-      }
-      return 1;
     }
 
     if (btnPlayDedication) {
@@ -949,13 +887,6 @@
       if (Array.isArray(scriptureData) && scriptureData.length > 0) {
         CLASSIC_TOTAL_SENTENCES = scriptureData.length;
       }
-
-      generateAlgorithmicSchedule({
-        totalSentences: CLASSIC_TOTAL_SENTENCES,
-        dailyStep: DEFAULT_DAILY_STEP,
-        repeatNew: DEFAULT_REPEAT_NEW,
-        repeatCum: DEFAULT_REPEAT_CUMULATIVE
-      });
     }
 
     async function loadAllAssetsSmartSync() {
@@ -985,88 +916,11 @@
       applyScheduleToState();
     }
 
-    function generateAlgorithmicSchedule(settings) {
-      const total = CLASSIC_TOTAL_SENTENCES;
-      const step = settings.dailyStep || DEFAULT_DAILY_STEP;
-      const rNew = settings.repeatNew;
-      const rCum = settings.repeatCum;
-      const scheduleList = [];
-
-      let simDay = 1;
-      let simStart = 1;
-
-      for (let dayIdx = 1; dayIdx <= 100; dayIdx++) {
-        let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
-        let cStart = null, cEnd = null, cRepeat = 0;
-
-        if (simDay > 1) {
-          cStart = 1;
-          cEnd = end;
-          cRepeat = rCum;
-        }
-
-        scheduleList.push({
-          day: simDay,
-          start: simStart,
-          end: end,
-          repeat: rNew,
-          cStart: cStart,
-          cEnd: cEnd,
-          cRepeat: cRepeat
-        });
-
-        if (end >= total) break;
-        simStart = (simDay === 1) ? 2 : Math.min(total, end + 1);
-        simDay++;
-      }
-
-      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_SENIOR', JSON.stringify(scheduleList));
-    }
-
     function applyScheduleToState() {
-      try {
-        let scheduleData = null;
-        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_SENIOR');
-        if (localSched) {
-          try { scheduleData = JSON.parse(localSched); } catch(e){}
-        }
-
-        if (!scheduleData || !Array.isArray(scheduleData)) {
-          currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          return false;
-        }
-        
-        let targetDay = getCurrentActiveDayNumber();
-        currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
-        if (!currentDayPlan) currentDayPlan = scheduleData[0];
-
-        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_SENIOR') === getNormalizedDateStr()) {
-          practicePhase = 'completed';
-        } else {
-          practicePhase = 'new_gendu';
-        }
-        currentCycleCount = 0;
-
-        setupStageRange();
-        return true;
-      } catch (err) {}
-      return false;
-    }
-
-    function setupStageRange() {
-      if (!currentDayPlan) return;
-      const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : CLASSIC_TOTAL_SENTENCES - 1));
-
-      if (practicePhase === 'new_gendu' || practicePhase === 'new_compare') {
-        markA_Index = Math.max(0, (currentDayPlan.start || 1) - 1);
-        markB_Index = Math.min(maxIdx, (currentDayPlan.end || 1) - 1);
-      } else if (practicePhase === 'cumulative_gendu' || practicePhase === 'cumulative_compare') {
-        markA_Index = Math.max(0, (currentDayPlan.cStart || 1) - 1);
-        markB_Index = Math.min(maxIdx, (currentDayPlan.cEnd || 1) - 1);
-      }
-
-      currentLineIndex = markA_Index;
-      videoPausedAt = -1;
+      markA_Index = 0;
+      markB_Index = 0;
+      practicePhase = 'new_gendu';
+      currentCycleCount = 0;
     }
 
     async function renderPdfOnValidDimensions() {
@@ -1077,111 +931,13 @@
             cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
             cMapPacked: true
           });
-
           currentPdfDoc = await loadingTask.promise;
           const page = await currentPdfDoc.getPage(1);
-
-          pdfCanvas.width = 0;
-          pdfCanvas.height = 0;
-
+          pdfCanvas.width = 0; pdfCanvas.height = 0;
           const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 150);
-          const pageRotation = page.rotate || 0;
-          const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
-          const pageScale = availableWidth / unscaledViewport.width;
-          const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
-
-          pdfCanvas.width = viewport.width;
-          pdfCanvas.height = viewport.height;
-          const ctx = pdfCanvas.getContext('2d');
-
-          await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-
-          const textContent = await page.getTextContent();
-          const items = textContent.items;
-          const validSpans = [];
-          const chineseCharRegex = /[\u4e00-\u9fa5]/;
-
-          items.forEach(it => {
-            const str = it.str || '';
-            if (!str.trim()) return;
-
-            const tx = it.transform;
-            const pdfX = tx[4];
-            const pdfY = tx[5];
-
-            const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
-            const fontWidth = it.width * pageScale;
-
-            const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
-            const screenX0 = p0[0];
-
-            const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
-            const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
-
-            const realTop = Math.min(p0[1], pTop[1]);
-            const realBottom = Math.max(p0[1], pTop[1]);
-
-            const charWidth = fontWidth / Math.max(1, str.length);
-            for (let c = 0; c < str.length; c++) {
-              const char = str[c];
-              if (chineseCharRegex.test(char)) {
-                const charX0 = screenX0 + (c * charWidth);
-                const charX1 = charX0 + charWidth;
-                validSpans.push({ x0: charX0, x1: charX1, topY: realTop, bottomY: realBottom, fs: fontScale, char: char });
-              }
-            }
-          });
-
-          validSpans.sort((a, b) => a.topY - b.topY);
-          const rowGroups = [];
-
-          validSpans.forEach(span => {
-            let matched = false;
-            for (let g of rowGroups) {
-              if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
-                g.spans.push(span);
-                matched = true;
-                break;
-              }
-            }
-            if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
-          });
-
-          const analyzedRows = rowGroups.map(g => {
-            g.spans.sort((a, b) => a.x0 - b.x0);
-            const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
-            const minTop = Math.min(...g.spans.map(s => s.topY));
-            const lineX0 = g.spans[0].x0;
-            const lineX1 = g.spans[g.spans.length - 1].x1;
-            return { spans: g.spans, chineseCount: g.spans.length, avgFs: avgFs, minTop: minTop, lineX0: lineX0, lineX1: lineX1 };
-          });
-
-          analyzedRows.forEach(r => {
-            r.maxBottom = Math.max(...r.spans.map(s => s.bottomY));
-            r.underLineY = r.maxBottom + 7;
-          });
-
-          const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30);
-          let mainTextFontSize = 0;
-          if (candidateLargeRows.length > 0) {
-            const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
-            mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
-          }
-
-          parsedTextLines = [];
-          let internalIndex = 0;
-
-          analyzedRows.forEach(r => {
-            const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.70);
-            if (r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30 && isNormalOrLarge) {
-              parsedTextLines.push({
-                lineIndex: internalIndex++, x0: r.lineX0, x1: r.lineX1, topGlobal: r.minTop, bottomGlobal: r.maxBottom, underLineY: r.underLineY, charItems: r.spans
-              });
-            }
-          });
-
-          parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
-          guideStage.style.height = viewport.height + 'px';
+          const viewport = page.getViewport({ scale: availableWidth / page.getViewport({ scale: 1.0 }).width });
+          pdfCanvas.width = viewport.width; pdfCanvas.height = viewport.height;
+          await page.render({ canvasContext: pdfCanvas.getContext('2d'), viewport: viewport }).promise;
       } catch(e) {}
     }
 
@@ -1238,27 +994,7 @@
       mp4Speed = val;
       classicStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
       video.playbackRate = mp4Speed;
-      flashSpeedToast('快');
       saveCurrentAppState();
-    }
-
-    function setMp4Slow(val) {
-      mp4Speed = val;
-      classicStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
-      video.playbackRate = mp4Speed;
-      flashSpeedToast('慢');
-      saveCurrentAppState();
-    }
-
-    function flashSpeedToast(text) {
-      speedToastBadge.textContent = text;
-      speedToastBadge.style.display = 'block';
-      speedToastBadge.style.opacity = '1';
-      clearTimeout(speedToastBadge._t);
-      speedToastBadge._t = setTimeout(() => {
-        speedToastBadge.style.opacity = '0';
-        setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
-      }, 1500);
     }
 
     function releaseMicrophoneResources() {
@@ -1272,7 +1008,6 @@
     }
 
     function setCoreMode(mode) {
-      haltGuideRunnerImmediately();
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
@@ -1283,7 +1018,6 @@
       if (mode === 'mode2') {
         releaseMicrophoneResources();
         pdfContainerWrap.style.display = 'none';
-        guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
         video.playbackRate = mp4Speed;
 
@@ -1296,13 +1030,6 @@
         video.pause();
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
-        guideStage.style.display = 'block';
-
-        setTimeout(async () => {
-          if (!cachedPdfBuffer || parsedTextLines.length === 0) {
-            await renderPdfOnValidDimensions();
-          }
-        }, 120);
       }
 
       saveCurrentAppState();
@@ -1311,23 +1038,24 @@
 
     function renderUI() {
       try {
-        // 左1: 背書供養 (美金金幣 💵 或 🪙)
-        slotL1.innerHTML = '<button class="square-btn" id="btn-offering"><span class="max-icon">💵</span></button>';
+        // 左1: 背書供養 (黃金金幣 🪙)
+        slotL1.innerHTML = '<button class="square-btn" id="btn-offering"><span class="max-icon">🪙</span></button>';
         const btnOffering = document.getElementById('btn-offering');
         if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
-        // 左4: 慢鍵 (小綠人 -> 點擊後顯示慢)
-        slotL4.innerHTML = '<button class="square-btn" id="btn-speed-down"><span class="max-icon anim-walker">🚶‍♂️</span></button>';
+        // 左4: 慢鍵 (小綠人 + 顯示「慢」)
+        slotL4.innerHTML = '<button class="square-btn" id="btn-speed-down"><div style="display:flex; flex-direction:column; align-items:center; line-height:1;"><span style="font-size:24px;" class="anim-walker">🚶‍♂️</span><span style="font-size:12px; font-weight:900; color:#38BDF8; margin-top:2px;">慢</span></div></button>';
         const btnSpeedDown = document.getElementById('btn-speed-down');
         if (btnSpeedDown) {
           btnSpeedDown.addEventListener('click', (e) => {
             e.stopPropagation();
             let newSpeed = Math.max(0.5, Math.round((mp4Speed - 0.1) * 10) / 10);
-            setMp4Slow(newSpeed);
+            setMp4Speed(newSpeed);
+            showToast('已設為慢速 ' + newSpeed.toFixed(1) + 'x', 1500);
           });
         }
 
-        // 右1 & 右2 區域 (如果圓滿完成，顯示「再學一次」)
+        // 右1 & 右2 區域 (如果定課串習全部完成，顯示「再學一次」)
         if (showRepeatAgainButton) {
           slotR1.innerHTML = '<button class="btn-repeat-again" id="btn-repeat-again" onclick="handleRepeatAgainClick()">再學一次</button>';
           slotR2.innerHTML = '';
@@ -1336,19 +1064,20 @@
           slotR2.innerHTML = '';
         }
 
-        // 右3: 比對 (收音機/說話 🗣️)
+        // 右3: 獨立比對 (收音機/說話 📻 / 🗣️)
         slotR3.innerHTML = '<button class="square-btn" id="btn-record"><span class="max-icon" id="record-icon">📻</span></button>';
         const btnRecord = document.getElementById('btn-record');
         if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
 
-        // 右4: 快鍵 (飛機 -> 點擊後顯示快)
-        slotR4.innerHTML = '<button class="square-btn" id="btn-speed-up"><span class="max-icon anim-plane">✈️</span></button>';
+        // 右4: 快鍵 (飛機 + 顯示「快」)
+        slotR4.innerHTML = '<button class="square-btn" id="btn-speed-up"><div style="display:flex; flex-direction:column; align-items:center; line-height:1;"><span style="font-size:24px;" class="anim-plane">✈️</span><span style="font-size:12px; font-weight:900; color:#34D399; margin-top:2px;">快</span></div></button>';
         const btnSpeedUp = document.getElementById('btn-speed-up');
         if (btnSpeedUp) {
           btnSpeedUp.addEventListener('click', (e) => {
             e.stopPropagation();
             let newSpeed = Math.min(2.5, Math.round((mp4Speed + 0.1) * 10) / 10);
             setMp4Speed(newSpeed);
+            showToast('已設為快速 ' + newSpeed.toFixed(1) + 'x', 1500);
           });
         }
 
@@ -1360,7 +1089,6 @@
       const recordIcon = document.getElementById('record-icon');
       const isMode4 = (currentCoreMode === 'mode4');
       const isRecordRunning = isMode4 && isUserRecording;
-
       if (recordIcon) {
         recordIcon.textContent = isRecordRunning ? '🗣️' : '📻';
       }
@@ -1370,10 +1098,11 @@
       showRepeatAgainButton = false;
       practicePhase = 'new_gendu';
       currentCycleCount = 0;
-      setupStageRange();
+      markA_Index = 0;
+      markB_Index = 0;
       setCoreMode('mode2');
       autoPlayCurrentSchedule();
-      showToast('✨ 重新開始定課複習', 2500);
+      showToast('✨ 重新開始定課', 2500);
       saveCurrentAppState();
     }
 
@@ -1386,7 +1115,7 @@
         updateModeButtonsStyle();
         startMp4PrecisionCheck();
         saveCurrentAppState();
-        showToast('▶️ 開始今日定課跟讀', 2500);
+        showToast('▶️ 開始第一句定課跟讀 (共10遍)', 2500);
       }).catch(() => {
         showToast('⚠️ 請點擊畫面或按鈕開始播放', 3000);
       });
@@ -1396,7 +1125,7 @@
       triggerAppFullscreen();
       if (currentCoreMode !== 'mode4') {
         setCoreMode('mode4');
-        showToast('🎙️ 已進入比對畫面，點擊按鈕即可開始錄音與說話回放', 3000);
+        showToast('🎙️ 已進入比對畫面，點擊收音機按鈕即可錄音', 3000);
         return;
       }
 
@@ -1427,7 +1156,7 @@
         mediaRecorder.start();
         isUserRecording = true;
         renderUI();
-        showToast('🔴 正在錄音中(說話)... 唸完後再按一次停止並播放', 3000);
+        showToast('🔴 正在錄音中... 唸完後再按一次停止並比對播放', 3000);
       }
     }
 
@@ -1480,77 +1209,48 @@
 
     function getActiveVideoRange() {
       if (!scriptureData || scriptureData.length === 0) {
-        return { start: 0, end: 0, valid: false };
+        return { start: 0, end: 0, valid: true }; // 預設安全範圍
       }
-      let aIdx = markA_Index >= 0 ? markA_Index : 0;
-      let bIdx = markB_Index >= 0 ? markB_Index : (scriptureData.length - 1);
-      if (bIdx < aIdx) bIdx = aIdx;
-      
+      let aIdx = Math.min(markA_Index, scriptureData.length - 1);
+      let bIdx = Math.min(markB_Index, scriptureData.length - 1);
       const startObj = scriptureData[aIdx];
       const endObj = scriptureData[bIdx];
-      if (!startObj || !endObj) return { start: 0, end: 0, valid: false };
-
+      if (!startObj || !endObj) return { start: 0, end: 5, valid: true };
       return { start: startObj.start, end: endObj.end, valid: true };
     }
 
     function handleCycleCompletion() {
       video.pause();
       currentCycleCount++;
-      addCoins(calculateSentenceCount());
+      addCoins(1);
 
-      const repeatNew = currentDayPlan.repeat || DEFAULT_REPEAT_NEW;
-      const cRepeat = currentDayPlan.cRepeat || DEFAULT_REPEAT_CUMULATIVE;
-      const hasCumulative = currentDayPlan.cStart && currentDayPlan.cEnd;
+      const repeatNew = DEFAULT_REPEAT_NEW; // 10遍
+      const cRepeat = DEFAULT_REPEAT_CUMULATIVE; // 3遍
 
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < repeatNew) {
-          showToast(`✅ 今日定課跟讀完成第 ${currentCycleCount} 遍`, 2500);
-          setupStageRange();
+          showToast(`✅ 今日定課跟讀完成第 ${currentCycleCount} 遍`, 2000);
           video.currentTime = getActiveVideoRange().start;
-          setTimeout(() => autoPlayCurrentSchedule(), 500);
+          setTimeout(() => autoPlayCurrentSchedule(), 400);
         } else {
-          practicePhase = 'new_compare';
-          currentCycleCount = 0;
-          setupStageRange();
-          setCoreMode('mode4');
-          showToast(`🎉 今日跟讀圓滿！\n請點擊右側「收音機/說話」按鈕進行錄音比對。`, 5000);
-        }
-      } else if (practicePhase === 'new_compare') {
-        if (hasCumulative) {
           practicePhase = 'cumulative_gendu';
           currentCycleCount = 0;
-          setupStageRange();
-          setCoreMode('mode2');
-          showToast(`🎉 準備進入串習複習跟讀...`, 3000);
-          setTimeout(() => autoPlayCurrentSchedule(), 1000);
+          showToast(`🎉 今日定課圓滿！\n準備進入串習複習跟讀（3遍）...`, 4000);
+          setTimeout(() => autoPlayCurrentSchedule(), 1200);
+        }
+      } else if (practicePhase === 'cumulative_gendu') {
+        if (currentCycleCount < cRepeat) {
+          showToast(`✅ 串習複習跟讀完成第 ${currentCycleCount} 遍`, 2000);
+          video.currentTime = getActiveVideoRange().start;
+          setTimeout(() => autoPlayCurrentSchedule(), 400);
         } else {
           practicePhase = 'completed';
           showRepeatAgainButton = true;
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_SENIOR', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
-          showToast(`🎉 今日定課全部圓滿！隨喜功德`, 5000);
+          showToast(`🎉 今日定課與串習全部圓滿！隨喜功德`, 6000);
         }
-      } else if (practicePhase === 'cumulative_gendu') {
-        if (currentCycleCount < cRepeat) {
-          showToast(`✅ 串習複習跟讀完成第 ${currentCycleCount} 遍`, 2500);
-          setupStageRange();
-          video.currentTime = getActiveVideoRange().start;
-          setTimeout(() => autoPlayCurrentSchedule(), 500);
-        } else {
-          practicePhase = 'cumulative_compare';
-          currentCycleCount = 0;
-          setupStageRange();
-          setCoreMode('mode4');
-          showToast(`🎉 串習跟讀圓滿！\n請點擊右側「收音機/說話」進行錄音比對。`, 5000);
-        }
-      } else if (practicePhase === 'cumulative_compare') {
-        practicePhase = 'completed';
-        showRepeatAgainButton = true;
-        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_SENIOR', getNormalizedDateStr());
-        renderUI();
-        triggerSevenColoredLotusFlowerRain();
-        showToast(`🎉 今日定課與串習全部圓滿！隨喜功德`, 6000);
       }
       saveCurrentAppState();
     }
@@ -1702,10 +1402,6 @@
       return total;
     }
     function resetCoins() { classicStorage.setItem('user_accumulated_coins', '0'); saveCurrentAppState(); }
-    function calculateSentenceCount() {
-      if (parsedTextLines.length === 0) return 1;
-      return Math.max(1, Math.abs(markB_Index - markA_Index) + 1);
-    }
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
 
@@ -1718,7 +1414,7 @@
       classicStorage.setItem('user_profile_name', userName);
 
       const coinsToOffer = getStoredCoins();
-      if (coinsToOffer <= 0) { alert("目前福慧幣為 0 枚！"); return; }
+      if (coinsToOffer <= 0) { alert("目前黃金幣為 0 枚！"); return; }
 
       btnConfirmOffering.disabled = true;
       btnConfirmOffering.textContent = '供養中...';
@@ -1765,12 +1461,6 @@
     }
 
     btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
-
-    function haltGuideRunnerImmediately() {
-      isGuideActive = false;
-      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-    }
 
     window.addEventListener('DOMContentLoaded', async () => {
       await prefetchSentenceCountOnStartup();
