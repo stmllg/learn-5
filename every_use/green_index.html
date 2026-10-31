@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背20穩定版</title>
+  <title>歡喜</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -33,7 +33,7 @@
     
     let CLASSIC_TOTAL_SENTENCES = 37;
     const DEFAULT_DAILY_STEP = 1;
-    const DEFAULT_REPEAT_NEW = 10;
+    const DEFAULT_REPEAT_NEW = ２;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
   </script>
 
@@ -940,10 +940,11 @@
 
       const flowers = [];
       const lotusColors = ['#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC'];
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 60; i++) {
         flowers.push({
           x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 12 + 10, speedY: Math.random() * 1.5 + 1.0, color: lotusColors[i % lotusColors.length]
+          size: Math.random() * 14 + 10, speedY: Math.random() * 1.8 + 1.0, color: lotusColors[i % lotusColors.length],
+          rotation: Math.random() * Math.PI, rotSpeed: (Math.random() - 0.5) * 0.05
         });
       }
       let start = performance.now();
@@ -951,14 +952,80 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         flowers.forEach(f => {
           f.y += f.speedY;
+          f.rotation += f.rotSpeed;
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate(f.rotation);
           ctx.fillStyle = f.color;
-          ctx.beginPath(); ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2); ctx.fill();
-          if (f.y > canvas.height + 20) f.y = -20;
+          // Draw 5-petal lotus flower
+          for (let p = 0; p < 5; p++) {
+            ctx.beginPath();
+            ctx.ellipse(0, -f.size * 0.5, f.size * 0.35, f.size * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.rotate((Math.PI * 2) / 5);
+          }
+          ctx.restore();
+          if (f.y > canvas.height + 30) f.y = -30;
+        });
+        if (now - start < 6000) requestAnimationFrame(anim);
+        else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; }
+      }
+      requestAnimationFrame(anim);
+    }
+
+    function triggerGoldCoinShower() {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const coins = [];
+      for (let i = 0; i < 50; i++) {
+        coins.push({
+          x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 12 + 14, speedY: Math.random() * 2.0 + 1.2
+        });
+      }
+      let start = performance.now();
+      function anim(now) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        coins.forEach(c => {
+          c.y += c.speedY;
+          ctx.fillStyle = '#F59E0B';
+          ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2); ctx.fill();
+          ctx.lineWidth = 2; ctx.strokeStyle = '#FEF3C7'; ctx.stroke();
+          ctx.fillStyle = '#78350F'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('福', c.x, c.y);
+          if (c.y > canvas.height + 30) c.y = -30;
         });
         if (now - start < 5000) requestAnimationFrame(anim);
         else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; }
       }
       requestAnimationFrame(anim);
+    }
+
+    // Touch swipe gesture handlers
+    let touchStartX = 0;
+    let touchEndX = 0;
+    window.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+    window.addEventListener('touchend', e => {
+      touchEndX = e.changedTouches[0].screenX;
+      handleSwipeGesture();
+    }, {passive: true});
+
+    function handleSwipeGesture() {
+      const diff = touchEndX - touchStartX;
+      if (Math.abs(diff) > 80) {
+        if (diff > 0) {
+          // Swipe Right
+          showToast('👈 向右滑動', 1500);
+        } else {
+          // Swipe Left
+          showToast('👉 向左滑動', 1500);
+        }
+      }
     }
 
     function handleOfferingClick() {
@@ -975,8 +1042,9 @@
       if (!classId || !userName) { alert("請輸入班號與姓名！"); return; }
       classicStorage.setItem('user_class_id', classId);
       classicStorage.setItem('user_profile_name', userName);
-      alert("🙏 供養成功，隨喜功德！");
       offeringOverlay.style.display = 'none';
+      triggerGoldCoinShower();
+      alert("🙏 供養成功，隨喜功德！");
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
