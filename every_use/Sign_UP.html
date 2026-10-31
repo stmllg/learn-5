@@ -180,7 +180,7 @@
         <input type="text" id="teamName" placeholder="例如：精進勇猛隊">
     </div>
 
-    <!-- 3. 長青班勾選框（打勾後，輸出的專屬網址會自動變成 green_index.html） -->
+    <!-- 3. 長青班勾選框 -->
     <div class="checkbox-group">
         <input type="checkbox" id="isSeniorCheckbox">
         <label for="isSeniorCheckbox">🌱 長青班專用模式（勾選後，產生的專屬網址將指向長青簡化版 green_index.html）</label>
@@ -308,7 +308,7 @@
         const coInitiator = document.getElementById("coInitiator").value.trim();
         const teamName = document.getElementById("teamName").value.trim();
         const userEmail = document.getElementById("userEmail").value.trim();
-        const isSenior = document.getElementById("isSeniorCheckbox").checked; // 檢查是否有勾選長青班
+        const isSenior = document.getElementById("isSeniorCheckbox").checked;
         const selectElem = document.getElementById("classicSelect");
         const classicCode = selectElem.value;
         const classicText = selectElem.options[selectElem.selectedIndex].text;
@@ -330,7 +330,6 @@
         pathArr.pop(); 
         const basePath = pathArr.join('/') + '/';
         
-        // 核心邏輯：如果勾選了長青班，產生的網址就指向 green_index.html，否則指向 index.html (或原網頁)
         const targetFileName = isSenior ? "green_index.html" : "index.html";
         const personalLink = `${origin}${basePath}${targetFileName}?classic=${classicCode}&start=${start}&group=${group}`;
         
@@ -353,9 +352,15 @@
         console.log("總表同步結果: ", res);
     }
 
+    // 優化後的複製按鈕：複製成功後彈出提示，並在點擊確定後自動關閉頁面或跳轉
     function copyToLine() {
         navigator.clipboard.writeText(finalShareText).then(() => {
-            alert("✨ 已成功複製，快去貼給同修們吧！");
+            // 彈出提示，按下確定後嘗試關閉視窗或返回
+            if (confirm("✨ 已成功複製 LINE 文案！\n\n點擊「確定」後即可關閉此頁面去 LINE 貼上。")) {
+                window.close(); // 嘗試關閉視窗
+                // 如果瀏覽器安全限制無法關閉，則導向空白頁或上一頁
+                window.location.href = "about:blank"; 
+            }
         }).catch(err => {
             alert("複製失敗，請手動複製。");
         });
