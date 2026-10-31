@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜版</title>
+  <title>歡喜背書萬6・長青自動變速簡化版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,8 +32,6 @@
     const DEFAULT_REPEAT_NEW = 10;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
   </script>
-
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 
   <style>
     * {
@@ -91,24 +89,10 @@
       gap: 16px;
       box-sizing: border-box;
     }
-    .line-guide-title {
-      font-size: 20px;
-      font-weight: 900;
-      color: #FBBF24;
-      letter-spacing: 2px;
-    }
+    .line-guide-title { font-size: 20px; font-weight: 900; color: #FBBF24; letter-spacing: 2px; }
     .line-guide-content {
-      font-size: 16px;
-      line-height: 1.8;
-      color: #E2E8F0;
-      text-align: left;
-      background: rgba(15, 23, 42, 0.7);
-      padding: 16px 18px;
-      border-radius: 12px;
-      border: 1px dashed rgba(245, 158, 11, 0.45);
-    }
-    .line-guide-content strong {
-      color: #38BDF8;
+      font-size: 16px; line-height: 1.8; color: #E2E8F0; text-align: left;
+      background: rgba(15, 23, 42, 0.7); padding: 16px 18px; border-radius: 12px; border: 1px dashed rgba(245, 158, 11, 0.45);
     }
 
     #portrait-blocker-overlay {
@@ -128,25 +112,18 @@
     }
 
     .rotate-phone-icon {
-      width: 62px;
-      height: 100px;
-      border: 3px solid #F59E0B;
-      border-radius: 12px;
-      position: relative;
-      margin-bottom: 8px;
+      width: 62px; height: 100px;
+      border: 3px solid #F59E0B; border-radius: 12px;
+      position: relative; margin-bottom: 8px;
       animation: rotatePhoneAnim 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
       box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
       flex-shrink: 0;
     }
     .rotate-phone-icon::after {
       content: '';
-      position: absolute;
-      bottom: 8px;
-      left: 50%;
+      position: absolute; bottom: 8px; left: 50%;
       transform: translateX(-50%);
-      width: 9px; height: 9px;
-      border-radius: 50%;
-      background: #F59E0B;
+      width: 9px; height: 9px; border-radius: 50%; background: #F59E0B;
     }
 
     @keyframes rotatePhoneAnim {
@@ -527,9 +504,6 @@
       removeItem(key) { localStorage.removeItem(NAMESPACE_KEY + '::' + key); }
     };
 
-    let mp4Speed = parseFloat(classicStorage.getItem('user_mp4_speed_preference') || '1.0');
-    if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
-
     let compareSpeed = parseFloat(classicStorage.getItem('user_compare_speed_preference') || '1.0');
     if (isNaN(compareSpeed) || compareSpeed < 0.5 || compareSpeed > 2.5) compareSpeed = 1.0;
 
@@ -579,7 +553,6 @@
     let recordAudioElement = new Audio();
 
     let scriptureData = [];
-    let cachedPdfBuffer = null;
     let currentCycleCount = 0; 
     let videoPausedAt = -1;
     let hasEnteredReciting = false;
@@ -609,6 +582,20 @@
       return 1;
     }
 
+    function updateAutomaticSpeed() {
+      if (practicePhase === 'new_gendu') {
+        // 定課 10 遍：由 0.8x 遞增 10 階至 1.2x
+        const step = Math.min(9, Math.max(0, currentCycleCount));
+        const speed = 0.8 + step * (0.4 / 9);
+        video.playbackRate = speed;
+      } else if (practicePhase === 'cumulative_gendu') {
+        // 串習 3 遍：由 0.9x 遞增 3 階至 1.1x
+        const step = Math.min(2, Math.max(0, currentCycleCount));
+        const speed = 0.9 + step * (0.2 / 2);
+        video.playbackRate = speed;
+      }
+    }
+
     function saveCurrentAppState() {
       if (!hasEnteredReciting) return;
       const state = {
@@ -620,16 +607,16 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V9', JSON.stringify(state));
+      classicStorage.setItem('APP_SAVED_STATE_SENIOR_AUTO_V1', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V9');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         if (state.savedDateStr !== getNormalizedDateStr()) {
-          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V9');
+          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
           return false;
         }
         pendingRestoredState = state;
@@ -638,7 +625,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V9');
+        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
         return false;
       }
     }
@@ -788,7 +775,7 @@
           showToast('✨ 前行圓滿，3秒後自動進入今日定課...', 3000);
           await loadAllAssetsSmartSync();
 
-          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V9');
+          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
           if (savedStr) {
             try {
               const state = JSON.parse(savedStr);
@@ -816,7 +803,7 @@
 
         await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V9');
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
         if (savedStr) {
           try {
             const state = JSON.parse(savedStr);
@@ -888,7 +875,7 @@
       currentCycleCount = 0;
     }
 
-    const DB_NAME = 'SeniorReciteDB_' + CURRENT_CLASSIC_ID;
+    const DB_NAME = 'SeniorReciteAutoDB_' + CURRENT_CLASSIC_ID;
     const STORE_NAME = 'app_offline_files';
 
     function openDatabase() {
@@ -941,13 +928,6 @@
       } catch (e) {}
     }
 
-    function setMp4Speed(val) {
-      mp4Speed = val;
-      classicStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
-      video.playbackRate = mp4Speed;
-      saveCurrentAppState();
-    }
-
     function releaseMicrophoneResources() {
       if (micStream) {
         try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
@@ -969,7 +949,7 @@
       if (mode === 'mode2') {
         releaseMicrophoneResources();
         videoWrap.style.display = 'flex';
-        video.playbackRate = mp4Speed;
+        updateAutomaticSpeed();
 
         const range = getActiveVideoRange();
         videoPausedAt = -1;
@@ -990,30 +970,6 @@
         slotR3.innerHTML = '';
         slotR4.innerHTML = '';
 
-        // 進行定課/串習中：僅保留基本的速度調整（左4：慢速 🚲，右4：快速 ✈️）
-        slotL4.innerHTML = '<button class="square-btn" id="btn-speed-down"><span class="max-icon">🚲</span></button>';
-        const btnSpeedDown = document.getElementById('btn-speed-down');
-        if (btnSpeedDown) {
-          btnSpeedDown.addEventListener('click', (e) => {
-            e.stopPropagation();
-            let newSpeed = Math.max(0.5, Math.round((mp4Speed - 0.1) * 10) / 10);
-            setMp4Speed(newSpeed);
-            showToast('已設為慢速 ' + newSpeed.toFixed(1) + 'x', 1200);
-          });
-        }
-
-        slotR4.innerHTML = '<button class="square-btn" id="btn-speed-up"><span class="max-icon">✈️</span></button>';
-        const btnSpeedUp = document.getElementById('btn-speed-up');
-        if (btnSpeedUp) {
-          btnSpeedUp.addEventListener('click', (e) => {
-            e.stopPropagation();
-            let newSpeed = Math.min(2.5, Math.round((mp4Speed + 0.1) * 10) / 10);
-            setMp4Speed(newSpeed);
-            showToast('已設為快速 ' + newSpeed.toFixed(1) + 'x', 1200);
-          });
-        }
-
-        // 定課圓滿完成時：出現「再學一次」按鍵、巧克力金幣供養按鍵、比對按鍵
         if (showRepeatAgainButton) {
           // 左1: 巧克力金幣供養 (🪙)
           slotL1.innerHTML = '<button class="square-btn chocolate-coin-btn" id="btn-offering"><span class="max-icon">🪙</span></button>';
@@ -1057,6 +1013,7 @@
       const range = getActiveVideoRange();
       if (!range.valid) { showToast('⚠️ 影片資料不完整', 3000); return; }
       
+      updateAutomaticSpeed();
       video.currentTime = range.start;
       video.play().then(() => {
         updateModeButtonsStyle();
