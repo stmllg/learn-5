@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書速與流暢接續版</title>
+  <title>歡續版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,6 +32,8 @@
     const DEFAULT_REPEAT_NEW = 10;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
   </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 
   <style>
     * {
@@ -315,6 +317,16 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
+    #pdf-container-wrap {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: #FAFAFA;
+      display: none; justify-content: center;
+      z-index: 56;
+      overflow-y: auto;
+    }
+    #pdf-canvas { display: block; width: 100% !important; height: auto !important; image-rendering: -webkit-optimize-contrast; }
+
     #standalone-video-overlay {
       display: none; position: fixed; top: 0; left: 0;
       width: 100vw; height: 100vh; height: 100dvh;
@@ -409,6 +421,9 @@
       <div id="video-container-wrap">
         <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
       </div>
+      <div id="pdf-container-wrap">
+        <canvas id="pdf-canvas"></canvas>
+      </div>
     </div>
 
     <div class="side-wing" id="right-wing">
@@ -421,7 +436,7 @@
 
   <div id="offering-modal-overlay">
     <div class="offering-card">
-      <div class="offering-header"><span>🪙</span> 福慧巧克力金幣供養</div>
+      <div class="offering-header"><span>🪙</span> 福慧圓滿金幣供養</div>
       <button id="btn-play-dedication" class="btn-dedication-long">🙏 今日背書功德迴向</button>
       <div class="offering-row">
         <div class="offering-field"><label>班號：</label><input type="text" id="input-class-id" class="offering-input" placeholder="例: 22宗009"></div>
@@ -455,7 +470,12 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
   <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+    }
+
     const classicStorage = {
       getItem(key) { return localStorage.getItem(NAMESPACE_KEY + '::' + key); },
       setItem(key, value) { localStorage.setItem(NAMESPACE_KEY + '::' + key, value); },
@@ -472,6 +492,10 @@
 
     const videoWrap = document.getElementById('video-container-wrap');
     const video = document.getElementById('my-chant-video');
+    const pdfContainerWrap = document.getElementById('pdf-container-wrap');
+    const pdfCanvas = document.getElementById('pdf-canvas');
+    let cachedPdfBuffer = null;
+    let currentPdfDoc = null;
 
     const standaloneOverlay = document.getElementById('standalone-video-overlay');
     const standaloneVideo = document.getElementById('standalone-video');
@@ -508,7 +532,6 @@
 
     let scriptureData = [];
     let currentCycleCount = 0; 
-    let videoPausedAt = -1;
     let hasEnteredReciting = false;
     let activeDayNumber = 1;
 
@@ -790,10 +813,52 @@
       await prefetchSentenceCountOnStartup();
       activeDayNumber = calculateActiveDayNumber();
 
+      const savedPdf = await getLocalFile('pdf_file_senior');
+      if (savedPdf && savedPdf.data) {
+        cachedPdfBuffer = savedPdf.data;
+      } else {
+        try {
+          const res = await fetch(CLASSIC_ASSETS.pdf + '?nocache=' + timestamp);
+          if (res.ok) {
+            const buf = await res.arrayBuffer();
+            await saveLocalFile('pdf_file_senior', buf, 'pdf_cached');
+            cachedPdfBuffer = buf;
+          }
+        } catch (e) {}
+      }
+
       video.src = CLASSIC_ASSETS.video;
       video.load();
 
       applyScheduleToState();
+    }
+
+    async function renderPdfOnValidDimensions() {
+      if (!cachedPdfBuffer || !window.pdfjsLib) return;
+      try {
+        const loadingTask = pdfjsLib.getDocument({
+          data: new Uint8Array(cachedPdfBuffer),
+          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+          cMapPacked: true
+        });
+        currentPdfDoc = await loadingTask.promise;
+        const page = await currentPdfDoc.getPage(1);
+
+        pdfCanvas.width = 0;
+        pdfCanvas.height = 0;
+
+        const availableWidth = Math.max(document.getElementById('center-core').clientWidth || 300, window.innerWidth - 160);
+        const pageRotation = page.rotate || 0;
+        const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
+        const pageScale = availableWidth / unscaledViewport.width;
+        const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
+
+        pdfCanvas.width = viewport.width;
+        pdfCanvas.height = viewport.height;
+        const ctx = pdfCanvas.getContext('2d');
+
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+      } catch (e) {}
     }
 
     function applyScheduleToState() {
@@ -828,6 +893,14 @@
           req.onerror = () => resolve(null);
         });
       } catch (e) { return null; }
+    }
+
+    async function saveLocalFile(key, data, tag) {
+      try {
+        const db = await openDatabase();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put({ data: data, tag: tag }, key);
+      } catch (e) {}
     }
 
     function showToast(msg, duration = 4000) {
@@ -874,14 +947,19 @@
 
       if (mode === 'mode2') {
         releaseMicrophoneResources();
+        pdfContainerWrap.style.display = 'none';
         videoWrap.style.display = 'flex';
         updateAutomaticSpeed();
 
         const range = getActiveVideoRange();
-        videoPausedAt = -1;
         if (range.valid) {
           try { video.currentTime = range.start; } catch (e) {}
         }
+      } else if (mode === 'mode4') {
+        video.pause();
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+        setTimeout(() => { renderPdfOnValidDimensions(); }, 150);
       }
 
       saveCurrentAppState();
@@ -949,7 +1027,7 @@
       triggerAppFullscreen();
       if (currentCoreMode !== 'mode4') {
         setCoreMode('mode4');
-        showToast('🎙️ 已進入比對畫面，再按一下收音機即可開始錄音', 3000);
+        showToast('🎙️ 已切換至比對與PDF經文對照畫面，再按一下收音機即可開始錄音', 3000);
         return;
       }
 
@@ -1091,7 +1169,6 @@
     }
 
     function handleMp4CycleEnd(range) {
-      videoPausedAt = -1;
       video.currentTime = range.start;
       handleCycleCompletion();
     }
@@ -1248,7 +1325,6 @@
           canvas.style.display = 'none';
         }
       }
-
       requestAnimationFrame(animateCoinRain);
     }
 
