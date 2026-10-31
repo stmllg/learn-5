@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>時時歡喜・經典背誦供養登記</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #fdfbf7 0%, #eef4f1 100%);
+            color: #2c3e50;
+            max-width: 520px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+        .card {
+            background: #ffffff;
+            padding: 35px 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(46, 125, 50, 0.08);
+            border: 1px solid #e8f5e9;
+        }
+        h2 { 
+            text-align: center; 
+            color: #2e7d32; 
+            margin-bottom: 8px; 
+            font-size: 24px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #607d8b;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .info-box {
+            background: #f1f8e9;
+            border: 1px solid #c8e6c9;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #33691e;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+        .info-box p { margin: 0; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #37474f; font-size: 14px; }
+        input[type="text"], input[type="email"], select {
+            width: 100%;
+            padding: 12px;
+            border: 1.5px solid #cfd8dc;
+            border-radius: 8px;
+            font-size: 15px;
+            box-sizing: border-box;
+            background-color: #fafafa;
+            transition: all 0.3s ease;
+        }
+        input:focus, select:focus {
+            border-color: #43a047;
+            background-color: #fff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.15);
+        }
+        /* 長青班勾選框樣式美化 */
+        .checkbox-group {
+            background: #f1f8e9;
+            border: 1.5px solid #c8e6c9;
+            padding: 12px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #2e7d32;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            margin: 0;
+            color: #2e7d32;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .end-date-tip {
+            font-size: 13px;
+            color: #2e7d32;
+            margin-top: 6px;
+            font-weight: 500;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25);
+            transition: all 0.2s ease;
+        }
+        button:hover { 
+            background: linear-gradient(135deg, #388e3c 0%, #1b5e20 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(46, 125, 50, 0.35);
+        }
+        #result-box {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f1f8e9;
+            border: 1px solid #aed581;
+            border-radius: 10px;
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .link-text {
+            word-break: break-all;
+            background: #ffffff;
+            padding: 12px;
+            border: 1px solid #c5e1a5;
+            border-radius: 6px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #2e7d32;
+            line-height: 1.5;
+        }
+        .btn-copy { 
+            background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%); 
+            margin-top: 8px; 
+            box-shadow: 0 4px 10px rgba(21, 101, 192, 0.25);
+        }
+        .btn-copy:hover { 
+            background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%); 
+        }
+        .footer-note {
+            text-align: center;
+            font-size: 12px;
+            color: #90a4ae;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>📖 時時歡喜・經典背書供養</h2>
+    <div class="subtitle">培福修慧，每日與法相伴同行</div>
+    
+    <div class="info-box">
+        <p><strong>👥 群組代號</strong><br><span id="display-group" style="font-size: 16px; font-weight: bold;">讀取中...</span></p>
+        <p><strong>📅 起跑日期</strong><br><span id="display-start" style="font-size: 16px; font-weight: bold;">讀取中...</span></p>
+    </div>
+
+    <!-- 1. 發起人與共同發起人 -->
+    <div class="form-group">
+        <label for="initiator">🌟 發起人姓名：</label>
+        <input type="text" id="initiator" placeholder="請輸入您的姓名" required>
+    </div>
+
+    <div class="form-group">
+        <label for="coInitiator">🤝 共同發起人姓名（選填）：</label>
+        <input type="text" id="coInitiator" placeholder="若有同行好友可在此輸入">
+    </div>
+
+    <!-- 2. 隊名 -->
+    <div class="form-group">
+        <label for="teamName">🚩 隊名（選填）：</label>
+        <input type="text" id="teamName" placeholder="例如：精進勇猛隊">
+    </div>
+
+    <!-- 3. 長青班勾選框（打勾後，輸出的專屬網址會自動變成 green_index.html） -->
+    <div class="checkbox-group">
+        <input type="checkbox" id="isSeniorCheckbox">
+        <label for="isSeniorCheckbox">🌱 長青班專用模式（勾選後，產生的專屬網址將指向長青簡化版 green_index.html）</label>
+    </div>
+
+    <!-- 4. 選擇已上線經典 + 自動計算預計結束日 -->
+    <div class="form-group">
+        <label for="classicSelect">📚 選擇欲背誦的經典：</label>
+        <select id="classicSelect" onchange="updateEndDate()">
+            <option value="">正在從雲端載入已上線經典...</option>
+        </select>
+        <div class="end-date-tip" id="endDateTip">⏳ 預計結束日計算中...</div>
+    </div>
+
+    <!-- 5. E-mail 欄位 -->
+    <div class="form-group">
+        <label for="userEmail">✉️ 電子信箱 E-mail（選填）：</label>
+        <input type="email" id="userEmail" placeholder="如需寄發電子獎狀請填寫此處">
+        <div style="font-size: 12px; color: #78909c; margin-top: 4px;">※ 此信箱僅供雲端後台發放獎狀使用，不會顯示在 LINE 公告中。</div>
+    </div>
+    
+    <button id="submitBtn" onclick="submitSelection()">✨ 隨喜發心 確認報名</button>
+
+    <div id="result-box">
+        <strong>🎉 登記成功並已寫入雲端總表！請點擊下方按鈕複製後貼給同修：</strong>
+        <div class="link-text" id="generated-text"></div>
+        <button class="btn-copy" onclick="copyToLine()">📋 一鍵複製 LINE 貼給同修</button>
+    </div>
+
+    <div class="footer-note">願以此功德，普及於一切，我等與眾生，皆共成佛道。</div>
+</div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec";
+
+    function getRandomLetters() {
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let result = "";
+        for (let i = 0; i < 3; i++) {
+            result += letters.charAt(Math.floor(Math.random() * letters.length));
+        }
+        return result;
+    }
+
+    function getTodayString() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const group = urlParams.get('group') || getRandomLetters();
+    const start = urlParams.get('start') || getTodayString();
+    const preClassic = urlParams.get('classic');
+
+    document.getElementById("display-group").innerText = group;
+    document.getElementById("display-start").innerText = start;
+
+    let classicDataMap = {};
+
+    function loadActiveClassics() {
+        const targetUrl = `${GAS_URL}?action=getActives&callback=handleActiveClassics`;
+        const script = document.createElement('script');
+        script.src = targetUrl;
+        document.body.appendChild(script);
+    }
+
+    function handleActiveClassics(res) {
+        const selectElem = document.getElementById("classicSelect");
+        selectElem.innerHTML = "";
+        classicDataMap = {};
+
+        if (res && res.success && res.actives && res.actives.length > 0) {
+            res.actives.forEach(item => {
+                classicDataMap[item.id] = { name: item.name, days: item.days };
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.text = item.name;
+                selectElem.appendChild(opt);
+            });
+
+            if (preClassic) {
+                for (let opt of selectElem.options) {
+                    if (opt.value === preClassic) {
+                        opt.selected = true;
+                        break;
+                    }
+                }
+            }
+            updateEndDate();
+        } else {
+            selectElem.innerHTML = '<option value="">目前尚無已上線的經典</option>';
+            document.getElementById("endDateTip").innerText = "";
+        }
+    }
+
+    function updateEndDate() {
+        const selectElem = document.getElementById("classicSelect");
+        const classicCode = selectElem.value;
+        if (!classicCode || !classicDataMap[classicCode]) return;
+
+        const days = classicDataMap[classicCode].days;
+        
+        let startDateObj = new Date(start);
+        startDateObj.setDate(startDateObj.getDate() + days - 1);
+
+        const y = startDateObj.getFullYear();
+        const m = String(startDateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(startDateObj.getDate()).padStart(2, '0');
+        const endDateStr = `${y}-${m}-${d}`;
+
+        document.getElementById("endDateTip").innerText = `📅 預計結束日：${endDateStr} （共 ${days} 天）`;
+    }
+
+    window.onload = function() {
+        loadActiveClassics();
+    };
+
+    let finalShareText = "";
+
+    function submitSelection() {
+        const initiator = document.getElementById("initiator").value.trim();
+        const coInitiator = document.getElementById("coInitiator").value.trim();
+        const teamName = document.getElementById("teamName").value.trim();
+        const userEmail = document.getElementById("userEmail").value.trim();
+        const isSenior = document.getElementById("isSeniorCheckbox").checked; // 檢查是否有勾選長青班
+        const selectElem = document.getElementById("classicSelect");
+        const classicCode = selectElem.value;
+        const classicText = selectElem.options[selectElem.selectedIndex].text;
+
+        if (!initiator) {
+            alert("請先輸入「發起人姓名」！");
+            return;
+        }
+
+        document.getElementById("submitBtn").style.display = "none";
+
+        let fullName = initiator;
+        if (coInitiator) {
+            fullName += ` & ${coInitiator}`;
+        }
+
+        const origin = window.location.origin;
+        const pathArr = window.location.pathname.split('/');
+        pathArr.pop(); 
+        const basePath = pathArr.join('/') + '/';
+        
+        // 核心邏輯：如果勾選了長青班，產生的網址就指向 green_index.html，否則指向 index.html (或原網頁)
+        const targetFileName = isSenior ? "green_index.html" : "index.html";
+        const personalLink = `${origin}${basePath}${targetFileName}?classic=${classicCode}&start=${start}&group=${group}`;
+        
+        let teamHeader = teamName ? `【${teamName}】發起人` : "發起人";
+
+        finalShareText = `${teamHeader} ${fullName}\n📚《${classicText}》 📅 ${start}\n👉 點擊連結背誦：${personalLink}`;
+
+        document.getElementById("generated-text").innerText = finalShareText;
+        document.getElementById("result-box").style.display = "block";
+
+        if (GAS_URL) {
+            const targetUrl = `${GAS_URL}?teamName=${encodeURIComponent(teamName)}&groupName=${encodeURIComponent(group)}&classicId=${encodeURIComponent(classicCode)}&startDate=${encodeURIComponent(start)}&userName=${encodeURIComponent(fullName)}&email=${encodeURIComponent(userEmail)}`;
+            const script = document.createElement('script');
+            script.src = targetUrl + '&callback=handleCloudResponse';
+            document.body.appendChild(script);
+        }
+    }
+
+    function handleCloudResponse(res) {
+        console.log("總表同步結果: ", res);
+    }
+
+    function copyToLine() {
+        navigator.clipboard.writeText(finalShareText).then(() => {
+            alert("✨ 已成功複製，快去貼給同修們吧！");
+        }).catch(err => {
+            alert("複製失敗，請手動複製。");
+        });
+    }
+</script>
+
+</body>
+</html>
