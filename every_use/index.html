@@ -2190,23 +2190,51 @@
     }
 
     function updateModeButtonsStyle() {
-      const btnGendu = document.getElementById('btn-gendu');
-      const btnZidu = document.getElementById('btn-zidu');
-      const btnRecord = document.getElementById('btn-record');
+  const btnFollow = document.getElementById('btnFollow');
+  const btnZidu = document.getElementById('btnZidu');
+  const btnRecord = document.getElementById('btnRecord');
 
-      const colorBlack = '#000000';
-      const colorGreen = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
-      const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
+  // 輔助函式：設定按鈕顏色樣式
+  // isSelected: 是否為當前作用中的模式 (顯示綠色)
+  // isRunning: 是否正在執行/錄音中 (顯示紫色)
+  function applyStyle(btn, isSelected, isRunning) {
+    if (!btn) return;
+    if (!isSelected) {
+      // 未選中 -> 黑色
+      btn.style.background = 'linear-gradient(135deg, #222222, #000000)';
+      btn.style.borderColor = '#444';
+      btn.style.color = '#fff';
+    } else {
+      if (isRunning) {
+        // 已選中且正在執行/錄音中 -> 紫色
+        btn.style.background = 'linear-gradient(135deg, #8b008b, #4b0082)';
+        btn.style.borderColor = '#da70d6';
+        btn.style.color = '#fff';
+      } else {
+        // 已選中但處於待命/暫停狀態（或切換過來的第一時間） -> 綠色
+        btn.style.background = 'linear-gradient(135deg, #2e8b57, #1e5631)';
+        btn.style.borderColor = '#3cb371';
+        btn.style.color = '#fff';
+      }
+    }
+  }
 
-      [btnGendu, btnZidu, btnRecord].forEach(btn => {
-          if (btn) {
-              btn.style.background = colorBlack;
-              btn.style.borderColor = '#BAE6FD';
-              btn.style.color = '#FB923C';
-              btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
-              btn.classList.remove('recording-flashing');
-          }
-      });
+  // 判斷各模式是否為當前核心模式
+  const isMode2 = (currentCoreMode === 'mode2');
+  const isMode3 = (currentCoreMode === 'mode3');
+  const isMode4 = (currentCoreMode === 'mode4');
+
+  // 各模式對應的運行中狀態 (例如播放中、自讀中、錄音中)
+  // 請根據您的變數名稱調整 (例如 isUserFollowing, isUserZiduRunning, isUserRecording)
+  const isMode2Running = isMode2 && (typeof isUserFollowing !== 'undefined' ? isUserFollowing : false);
+  const isMode3Running = isMode3 && (typeof isUserZiduRunning !== 'undefined' ? isUserZiduRunning : false);
+  const isMode4Running = isMode4 && (typeof isUserRecording !== 'undefined' ? isUserRecording : false);
+
+  // 套用樣式
+  applyStyle(btnFollow, isMode2, isMode2Running);
+  applyStyle(btnZidu, isMode3, isMode3Running);
+  applyStyle(btnRecord, isMode4, isMode4Running);
+}
 
       if (btnGendu) {
           const isGenduPlaying = (currentCoreMode === 'mode2' && video && !video.paused);
