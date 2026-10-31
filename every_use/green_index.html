@@ -3,13 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書萬6・長青自動變速與流暢接續版</title>
+  <title>歡喜金幣供養版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
   <meta name="theme-color" content="#0B0F19">
 
+  <!-- ========================================================================== -->
+  <!-- 📌【v608 核心唯一設定】經典與群組雙重隔離命名空間 -->
+  <!-- ========================================================================== -->
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const CLASSIC_PARAM = urlParams.get('classic');
@@ -29,6 +32,7 @@
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
     
     let CLASSIC_TOTAL_SENTENCES = 37;
+    const DEFAULT_DAILY_STEP = 1;
     const DEFAULT_REPEAT_NEW = 10;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
   </script>
@@ -96,6 +100,7 @@
       font-size: 16px; line-height: 1.8; color: #E2E8F0; text-align: left;
       background: rgba(15, 23, 42, 0.7); padding: 16px 18px; border-radius: 12px; border: 1px dashed rgba(245, 158, 11, 0.45);
     }
+    .line-guide-content strong { color: #38BDF8; }
 
     #portrait-blocker-overlay {
       display: none;
@@ -109,6 +114,7 @@
       align-items: center;
       padding: 24px;
       text-align: center;
+      pointer-events: all;
       box-sizing: border-box;
       gap: 16px;
     }
@@ -281,22 +287,33 @@
     }
 
     .max-icon {
-      font-size: 48px !important;
+      font-size: 42px !important;
       line-height: 1;
       display: inline-block;
     }
 
+    /* 精緻巧克力金幣按鈕樣式 */
     .chocolate-coin-btn {
-      background: radial-gradient(circle at 35% 35%, #FDE047 0%, #CA8A04 60%, #854D0E 100%) !important;
-      border: 2.5px solid #FEF08A !important;
+      width: 74px !important;
+      height: 74px !important;
+      background: radial-gradient(circle at 35% 35%, #FFFBEB 0%, #FDE047 30%, #D97706 75%, #92400E 100%) !important;
+      border: 3.5px solid #FEF08A !important;
       border-radius: 50% !important;
-      box-shadow: 0 4px 16px rgba(202, 138, 4, 0.8), inset 0 2px 6px rgba(255, 255, 255, 0.6) !important;
+      box-shadow: 0 6px 20px rgba(146, 64, 14, 0.9), inset 0 3px 8px rgba(255, 255, 255, 0.8) !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
       animation: coinGlow 1.8s infinite ease-in-out;
+      transition: transform 0.15s ease-out;
     }
+    .chocolate-coin-btn:active { transform: scale(0.90); }
+
     @keyframes coinGlow {
-      0% { box-shadow: 0 0 10px rgba(250, 204, 21, 0.7); transform: scale(1); }
-      50% { box-shadow: 0 0 22px rgba(250, 204, 21, 1); transform: scale(1.04); }
-      100% { box-shadow: 0 0 10px rgba(250, 204, 21, 0.7); transform: scale(1); }
+      0% { box-shadow: 0 0 12px rgba(250, 204, 21, 0.7); transform: scale(1); }
+      50% { box-shadow: 0 0 26px rgba(250, 204, 21, 1); transform: scale(1.05); }
+      100% { box-shadow: 0 0 12px rgba(250, 204, 21, 0.7); transform: scale(1); }
     }
 
     #center-core {
@@ -317,20 +334,15 @@
     }
     #my-chant-video { width: 100%; height: 100%; object-fit: contain; }
 
-    #pdf-container-wrap {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: #FAFAFA;
-      display: none; justify-content: center;
-      z-index: 56;
-      overflow-y: auto;
-    }
-    #pdf-canvas { display: block; width: 100% !important; height: auto !important; image-rendering: -webkit-optimize-contrast; }
+    #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; display: none; justify-content: center; }
+    #pdf-canvas { display: block; width: 100% !important; height: auto !important; image-rendering: -webkit-optimize-contrast; transform: translateZ(0); }
 
     #standalone-video-overlay {
-      display: none; position: fixed; top: 0; left: 0;
+      display: none;
+      position: fixed; top: 0; left: 0;
       width: 100vw; height: 100vh; height: 100dvh;
-      background-color: #000000; z-index: 999999;
+      background-color: #000000;
+      z-index: 999999;
       justify-content: center; align-items: center;
     }
     #standalone-video { width: 100%; height: 100%; object-fit: contain; }
@@ -345,11 +357,12 @@
     .offering-header { font-size: 20px; font-weight: 900; color: #D97706; text-align: center; }
     
     .btn-dedication-long {
-      width: 100%; padding: 12px 16px; font-size: 16px; font-weight: 900;
-      color: #78350F; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%);
-      border: 2px solid #D97706; border-radius: 12px; cursor: pointer; text-align: center;
+      width: 100%; padding: 12px 16px; font-size: 16px; font-weight: 900; color: #78350F;
+      background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%);
+      border: 2px solid #D97706; border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35); cursor: pointer; text-align: center;
+      margin-bottom: 4px;
     }
-
     .offering-row { display: flex; flex-direction: row; gap: 12px; width: 100%; }
     .offering-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
     .offering-field label { font-size: 14px; font-weight: 800; color: #475569; }
@@ -384,7 +397,7 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
+        請點選右上角<strong>「⋮」</strong>或<strong>「⋯」</strong>，選擇<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）以獲得最佳誦讀體驗。
       </div>
     </div>
   </div>
@@ -392,21 +405,20 @@
   <div id="portrait-blocker-overlay">
     <div class="rotate-phone-icon"></div>
     <div class="rotate-hint-title">請將手機橫放</div>
-    <div class="rotate-hint-subtitle">長青歡喜背書 ｜ 專注精進</div>
+    <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
   <div id="companion-overlay">
     <div class="companion-wrapper">
       <img id="companion-img-display" src="" alt="心靈陪伴卡" />
       <div class="companion-actions-row">
-        <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">🙏 老師帶前行</button>
-        <button class="btn-card-orange" onclick="closeCompanionCard()">✨ 開始今日定課</button>
+        <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
+        <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
       </div>
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【載入中】...</div>
-
+  <div id="schedule-toast">📦 載入中...</div>
   <canvas id="flowerCanvas"></canvas>
 
   <div id="landscape-container">
@@ -418,11 +430,11 @@
     </div>
 
     <div id="center-core">
-      <div id="video-container-wrap">
-        <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
-      </div>
       <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
+      </div>
+      <div id="video-container-wrap">
+        <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
       </div>
     </div>
 
@@ -470,11 +482,13 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
   <script>
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
     }
+
+    const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     const classicStorage = {
       getItem(key) { return localStorage.getItem(NAMESPACE_KEY + '::' + key); },
@@ -482,28 +496,28 @@
       removeItem(key) { localStorage.removeItem(NAMESPACE_KEY + '::' + key); }
     };
 
-    let compareSpeed = parseFloat(classicStorage.getItem('user_compare_speed_preference') || '1.0');
-    if (isNaN(compareSpeed) || compareSpeed < 0.5 || compareSpeed > 2.5) compareSpeed = 1.0;
-
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
+    const lineBrowserOverlay = document.getElementById('line-browser-overlay');
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
     const companionOverlay = document.getElementById('companion-overlay');
+    const companionImgDisplay = document.getElementById('companion-img-display');
 
-    const videoWrap = document.getElementById('video-container-wrap');
-    const video = document.getElementById('my-chant-video');
+    const centerCore = document.getElementById('center-core');
     const pdfContainerWrap = document.getElementById('pdf-container-wrap');
     const pdfCanvas = document.getElementById('pdf-canvas');
-    let cachedPdfBuffer = null;
-    let currentPdfDoc = null;
+    const videoWrap = document.getElementById('video-container-wrap');
+    const video = document.getElementById('my-chant-video');
 
     const standaloneOverlay = document.getElementById('standalone-video-overlay');
     const standaloneVideo = document.getElementById('standalone-video');
     const scheduleToast = document.getElementById('schedule-toast');
 
     const slotL1 = document.getElementById('slot-l1');
+    const slotL4 = document.getElementById('slot-l4');
     const slotR1 = document.getElementById('slot-r1');
     const slotR3 = document.getElementById('slot-r3');
+    const slotR4 = document.getElementById('slot-r4');
 
     const offeringOverlay = document.getElementById('offering-modal-overlay');
     const inputClassId = document.getElementById('input-class-id');
@@ -520,9 +534,9 @@
 
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
-    let showRepeatAgainButton = false;
 
     let audioContext = null;
+    let analyser = null;
     let micStream = null;
     let mediaRecorder = null;
     let audioChunks = [];
@@ -531,141 +545,60 @@
     let recordAudioElement = new Audio();
 
     let scriptureData = [];
+    let currentPdfDoc = null;
+    let parsedTextLines = [];
+    let cachedPdfBuffer = null;
+
+    let markA_Index = -1;
+    let markB_Index = -1;
+    let currentDayPlan = null; 
     let currentCycleCount = 0; 
     let hasEnteredReciting = false;
-    let activeDayNumber = 1;
 
     function getNormalizedDateStr() {
       const now = new Date();
       return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
     }
 
-    function calculateActiveDayNumber() {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('start')) {
-        const startStr = urlParams.get('start');
-        const parts = startStr.split('-');
-        if (parts.length === 3) {
-          const userStartDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-          const now = new Date();
-          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
-          return Math.max(1, diffDays);
-        }
-      } else if (urlParams.get('day')) {
-        return parseInt(urlParams.get('day'), 10) || 1;
-      }
-      return 1;
-    }
-
-    function updateAutomaticSpeed() {
-      if (practicePhase === 'new_gendu') {
-        const step = Math.min(9, Math.max(0, currentCycleCount));
-        const speed = 0.8 + step * (0.4 / 9);
-        video.playbackRate = speed;
-      } else if (practicePhase === 'cumulative_gendu') {
-        const step = Math.min(2, Math.max(0, currentCycleCount));
-        const speed = 0.9 + step * (0.2 / 2);
-        video.playbackRate = speed;
-      }
+    function isIndependentModeUnlocked() {
+      if (practicePhase === 'completed') return true;
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
+      if (!savedStr) return false;
+      try {
+        const savedState = JSON.parse(savedStr);
+        return savedState.savedDateStr === getNormalizedDateStr() &&
+          savedState.practicePhase === 'completed' &&
+          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V608') === getNormalizedDateStr();
+      } catch (e) { return false; }
     }
 
     function saveCurrentAppState() {
       if (!hasEnteredReciting) return;
+      if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') return;
+
+      if (practicePhase === 'completed') {
+        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V608', getNormalizedDateStr());
+      }
       const state = {
         coreMode: currentCoreMode,
         practicePhase: practicePhase,
         currentCycleCount: currentCycleCount,
         videoCurrentTime: (currentCoreMode === 'mode2' ? video.currentTime : 0),
-        showRepeatAgainButton: showRepeatAgainButton,
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_SENIOR_AUTO_V1', JSON.stringify(state));
-    }
-
-    function tryAutoResumeOnStartup() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
-      if (!savedStr) return false;
-      try {
-        const state = JSON.parse(savedStr);
-        if (state.savedDateStr !== getNormalizedDateStr()) {
-          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
-          return false;
-        }
-        currentCoreMode = state.coreMode || 'mode2';
-        practicePhase = state.practicePhase || 'new_gendu';
-        currentCycleCount = state.currentCycleCount || 0;
-        showRepeatAgainButton = state.showRepeatAgainButton || false;
-
-        loadAllAssetsSmartSync().then(() => {
-          setCoreMode(currentCoreMode);
-          if (currentCoreMode === 'mode2') {
-            updateAutomaticSpeed();
-            const range = getActiveVideoRange();
-            if (state.videoCurrentTime > range.start && state.videoCurrentTime < range.end) {
-              video.currentTime = state.videoCurrentTime;
-            } else {
-              video.currentTime = range.start;
-            }
-            video.play().then(() => {
-              startMp4PrecisionCheck();
-              showToast('✨ 已自動無縫接續上次進度播放', 3000);
-            }).catch(() => {
-              showToast('✨ 進度已恢復，請點擊畫面開始播放', 3000);
-            });
-          }
-          renderUI();
-        });
-        return true;
-      } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_AUTO_V1');
-        return false;
-      }
+      classicStorage.setItem('APP_SAVED_STATE_V608', JSON.stringify(state));
     }
 
     window.addEventListener('beforeunload', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
     window.addEventListener('pagehide', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
-
-    let swipeStartX = 0;
-    let swipeStartY = 0;
-    window.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        swipeStartX = e.touches[0].clientX;
-        swipeStartY = e.touches[0].clientY;
+    
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        saveCurrentAppState();
+        releaseMicrophoneResources();
       }
-    }, { passive: true });
-
-    window.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length === 1 && hasEnteredReciting) {
-        const deltaX = e.changedTouches[0].clientX - swipeStartX;
-        const deltaY = e.changedTouches[0].clientY - swipeStartY;
-        if (Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-          handleReturnToCompanionCard();
-        }
-      }
-    }, { passive: true });
-
-    function handleReturnToCompanionCard() {
-      saveCurrentAppState();
-      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
-      isUserRecording = false;
-      if (recordAudioElement) recordAudioElement.pause();
-      releaseMicrophoneResources();
-      
-      try { 
-        video.pause(); 
-        video.currentTime = 0;
-        video.removeAttribute('src');
-        video.load(); 
-      } catch(e) {}
-
-      hasEnteredReciting = false;
-      companionOverlay.style.display = 'flex';
-      companionOverlay.style.opacity = '1';
-      companionOverlay.classList.add('active');
-      showToast('💤 已為您自動存檔並返回休息', 3000);
-    }
+    });
 
     function handleOrientationCheck() {
       if (hasEnteredReciting) return;
@@ -678,7 +611,6 @@
         companionOverlay.style.display = 'flex';
       }
     }
-
     window.addEventListener('resize', handleOrientationCheck);
     window.addEventListener('orientationchange', () => setTimeout(handleOrientationCheck, 150));
 
@@ -693,17 +625,14 @@
     async function playStandaloneVideo(modeType, startSeekSec = 0, onEndedCallback) {
       currentCoreMode = modeType; 
       if (video && !video.paused) video.pause();
-      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
-      isUserRecording = false;
-
       standaloneOverlay.style.display = 'flex';
       
       let defaultUrl = (modeType === 'mode1') ? CLASSIC_ASSETS.buddha : CLASSIC_ASSETS.dedication;
-      let toastText = (modeType === 'mode1') ? '🙏【老師帶前行：念佛清心】播放中...' : '🙏【功德迴向】播放中...';
+      let toastText = (modeType === 'mode1') ? '🙏【老師帶前行：念佛清心】播放中...' : '🙏【模式5：功德迴向】播放中...';
 
       let mediaUrl = defaultUrl;
       try {
-        let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_senior' : 'merit_dedication_file_senior';
+        let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_v608' : 'merit_dedication_file_v608';
         const savedFile = await getLocalFile(fileKey);
         if (savedFile && savedFile.data) {
           mediaUrl = URL.createObjectURL(new Blob([savedFile.data], { type: 'video/mp4' }));
@@ -728,11 +657,7 @@
       standaloneVideo.onended = cleanupAndExit;
       standaloneVideo.onerror = cleanupAndExit;
 
-      try {
-        await standaloneVideo.play();
-      } catch(e) {
-        cleanupAndExit();
-      }
+      try { await standaloneVideo.play(); } catch(e) { cleanupAndExit(); }
     }
 
     async function playTeacherGuideAndRecite() {
@@ -744,13 +669,10 @@
         companionOverlay.style.display = 'none';
 
         playStandaloneVideo('mode1', 0, async () => {
-          showToast('✨ 前行圓滿，3秒後自動進入今日定課...', 3000);
+          showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
           await loadAllAssetsSmartSync();
-
-          if (tryAutoResumeOnStartup()) return;
-
           setCoreMode('mode2');
-          setTimeout(() => { autoPlayCurrentSchedule(); }, 3000);
+          autoPlayCurrentCycle();
         });
       }, 350);
     }
@@ -764,413 +686,286 @@
         companionOverlay.style.display = 'none';
 
         await loadAllAssetsSmartSync();
-
-        if (tryAutoResumeOnStartup()) return;
+        
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
+        if (savedStr) {
+          try {
+            const state = JSON.parse(savedStr);
+            if (state.savedDateStr === getNormalizedDateStr()) {
+              practicePhase = state.practicePhase || 'new_gendu';
+              currentCycleCount = state.currentCycleCount || 0;
+            }
+          } catch(e) {}
+        }
 
         setCoreMode('mode2');
-        showToast('✨ 3秒後自動進入今日定課...', 2500);
-        setTimeout(() => { autoPlayCurrentSchedule(); }, 3000);
+        autoPlayCurrentCycle();
       }, 350);
     }
 
-    if (btnPlayDedication) {
-      btnPlayDedication.addEventListener('click', async () => {
-        offeringOverlay.style.display = 'none';
-        playStandaloneVideo('mode5', 0, () => {
-          showToast('✨ 迴向圓滿，隨喜功德', 3000);
-          practicePhase = 'completed';
-          setCoreMode('mode2');
-          renderUI();
-        });
-      });
+    function getCurrentActiveDayNumber() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('start')) {
+        const startStr = urlParams.get('start');
+        const parts = startStr.split('-');
+        if (parts.length === 3) {
+          const userStartDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+          const now = new Date();
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          return Math.max(1, Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1);
+        }
+      } else if (urlParams.get('day')) {
+        return parseInt(urlParams.get('day'), 10) || 1;
+      }
+      return 1;
     }
 
     async function prefetchSentenceCountOnStartup() {
-      const timestamp = Date.now();
-      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_SENIOR');
       try {
-        const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
+        const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + Date.now(), { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
           if (Array.isArray(freshSent) && freshSent.length > 0) {
             scriptureData = freshSent;
-            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_SENIOR', JSON.stringify(freshSent));
+            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V608', JSON.stringify(freshSent));
           }
         }
       } catch (e) {}
 
-      if (scriptureData.length === 0 && localSentStr) {
-        try { scriptureData = JSON.parse(localSentStr); } catch(e){}
+      if (scriptureData.length === 0) {
+        try { scriptureData = JSON.parse(classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V608') || '[]'); } catch(e){}
       }
-
       if (Array.isArray(scriptureData) && scriptureData.length > 0) {
         CLASSIC_TOTAL_SENTENCES = scriptureData.length;
       }
+
+      generateAlgorithmicSchedule();
     }
 
     async function loadAllAssetsSmartSync() {
-      const timestamp = Date.now();
       await prefetchSentenceCountOnStartup();
-      activeDayNumber = calculateActiveDayNumber();
-
-      const savedPdf = await getLocalFile('pdf_file_senior');
-      if (savedPdf && savedPdf.data) {
-        cachedPdfBuffer = savedPdf.data;
-      } else {
-        try {
-          const res = await fetch(CLASSIC_ASSETS.pdf + '?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_senior', buf, 'pdf_cached');
-            cachedPdfBuffer = buf;
-          }
-        } catch (e) {}
-      }
+      try {
+        const res = await fetch(CLASSIC_ASSETS.pdf + '?nocache=' + Date.now());
+        if (res.ok) cachedPdfBuffer = await res.arrayBuffer();
+      } catch (e) {}
+      if (cachedPdfBuffer && parsedTextLines.length === 0) await renderPdfOnValidDimensions();
 
       video.src = CLASSIC_ASSETS.video;
       video.load();
-
       applyScheduleToState();
     }
 
-    async function renderPdfOnValidDimensions() {
-      if (!cachedPdfBuffer || !window.pdfjsLib) return;
-      try {
-        const loadingTask = pdfjsLib.getDocument({
-          data: new Uint8Array(cachedPdfBuffer),
-          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
-          cMapPacked: true
-        });
-        currentPdfDoc = await loadingTask.promise;
-        const page = await currentPdfDoc.getPage(1);
+    function generateAlgorithmicSchedule() {
+      const total = CLASSIC_TOTAL_SENTENCES;
+      const targetDay = getCurrentActiveDayNumber();
+      const scheduleList = [];
 
-        pdfCanvas.width = 0;
-        pdfCanvas.height = 0;
+      let simStart = 1;
+      for (let simDay = 1; simDay <= 100; simDay++) {
+        let end = (simDay === 1) ? 1 : Math.min(total, simStart);
+        let cStart = (simDay > 1) ? 1 : null;
+        let cEnd = (simDay > 1) ? end : null;
 
-        const availableWidth = Math.max(document.getElementById('center-core').clientWidth || 300, window.innerWidth - 160);
-        const pageRotation = page.rotate || 0;
-        const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
-        const pageScale = availableWidth / unscaledViewport.width;
-        const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
-
-        pdfCanvas.width = viewport.width;
-        pdfCanvas.height = viewport.height;
-        const ctx = pdfCanvas.getContext('2d');
-
-        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-      } catch (e) {}
+        scheduleList.push({ day: simDay, start: simStart, end: end, cStart: cStart, cEnd: cEnd });
+        if (end >= total) break;
+        simStart = Math.min(total, end + 1);
+      }
+      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V608', JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState() {
-      practicePhase = 'new_gendu';
-      currentCycleCount = 0;
-    }
-
-    const DB_NAME = 'SeniorReciteAutoDB_' + CURRENT_CLASSIC_ID;
-    const STORE_NAME = 'app_offline_files';
-
-    function openDatabase() {
-      return new Promise((resolve, reject) => {
-        try {
-          const req = indexedDB.open(DB_NAME, 1);
-          req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
-          };
-          req.onsuccess = () => resolve(req.result);
-          req.onerror = () => reject(req.error);
-        } catch (e) { reject(e); }
-      });
-    }
-
-    async function getLocalFile(key) {
       try {
-        const db = await openDatabase();
-        return new Promise((resolve) => {
-          const tx = db.transaction(STORE_NAME, 'readonly');
-          const req = tx.objectStore(STORE_NAME).get(key);
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror = () => resolve(null);
+        const scheduleData = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V608') || '[]');
+        const targetDay = getCurrentActiveDayNumber();
+        currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1] || { start: 1, end: 1 };
+        setupStageRange();
+      } catch (err) {}
+    }
+
+    function setupStageRange() {
+      if (!currentDayPlan) return;
+      const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : CLASSIC_TOTAL_SENTENCES - 1));
+
+      if (practicePhase === 'new_gendu') {
+        markA_Index = Math.max(0, (currentDayPlan.start || 1) - 1);
+        markB_Index = Math.min(maxIdx, (currentDayPlan.end || 1) - 1);
+      } else if (practicePhase === 'cumulative_gendu') {
+        markA_Index = 0;
+        markB_Index = Math.min(maxIdx, (currentDayPlan.cEnd || 1) - 1);
+      }
+    }
+
+    async function renderPdfOnValidDimensions() {
+      if (!cachedPdfBuffer) return;
+      try {
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(cachedPdfBuffer) });
+        currentPdfDoc = await loadingTask.promise;
+        const page = await currentPdfDoc.getPage(1);
+        const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
+        const viewport = page.getViewport({ scale: availableWidth / page.getViewport({ scale: 1.0 }).width });
+
+        pdfCanvas.width = viewport.width;
+        pdfCanvas.height = viewport.height;
+        await page.render({ canvasContext: pdfCanvas.getContext('2d'), viewport: viewport }).promise;
+
+        const textContent = await page.getTextContent();
+        const validSpans = [];
+        textContent.items.forEach(it => {
+          const str = it.str || '';
+          if (!str.trim()) return;
+          const p = pdfjsLib.Util.applyTransform([it.transform[4], it.transform[5]], viewport.transform);
+          for (let c = 0; c < str.length; c++) {
+            if (/[\u4e00-\u9fa5]/.test(str[c])) validSpans.push({ topY: p[1] });
+          }
         });
-      } catch (e) { return null; }
+        parsedTextLines = validSpans.map((s, idx) => ({ lineIndex: idx }));
+      } catch(e) {}
     }
 
-    async function saveLocalFile(key, data, tag) {
-      try {
-        const db = await openDatabase();
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).put({ data: data, tag: tag }, key);
-      } catch (e) {}
-    }
-
+    async function getLocalFile(key) { return null; }
     function showToast(msg, duration = 4000) {
       if (!scheduleToast) return;
       scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
       scheduleToast.style.display = 'block';
-      scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
-      scheduleToast._timer = setTimeout(() => {
-        scheduleToast.style.opacity = '0';
-        setTimeout(() => { scheduleToast.style.display = 'none'; }, 300);
-      }, duration);
-    }
-
-    function speakPrompt(text) {
-      try {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = 'zh-TW';
-          utterance.rate = 1.0;
-          window.speechSynthesis.speak(utterance);
-        }
-      } catch (e) {}
-    }
-
-    function releaseMicrophoneResources() {
-      if (micStream) {
-        try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
-        micStream = null;
-      }
-      if (audioContext && audioContext.state !== 'closed') {
-        try { audioContext.suspend(); } catch (e) {}
-      }
+      scheduleToast._timer = setTimeout(() => { scheduleToast.style.display = 'none'; }, duration);
     }
 
     function setCoreMode(mode) {
-      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
-      isUserRecording = false;
-      if (recordAudioElement) recordAudioElement.pause();
-
       currentCoreMode = mode;
       standaloneOverlay.style.display = 'none';
-
       if (mode === 'mode2') {
-        releaseMicrophoneResources();
         pdfContainerWrap.style.display = 'none';
         videoWrap.style.display = 'flex';
-        updateAutomaticSpeed();
-
-        const range = getActiveVideoRange();
-        if (range.valid) {
-          try { video.currentTime = range.start; } catch (e) {}
-        }
-      } else if (mode === 'mode4') {
+      } else {
         video.pause();
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
-        setTimeout(() => { renderPdfOnValidDimensions(); }, 150);
       }
-
-      saveCurrentAppState();
       renderUI();
     }
 
     function renderUI() {
-      try {
-        slotL1.innerHTML = '';
+      slotL1.innerHTML = `<button class="chocolate-coin-btn" id="btn-offering" title="福慧金幣供養"><span class="max-icon">🪙</span></button>`;
+      document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
+
+      slotL4.innerHTML = `<button class="square-btn" id="btn-slow"><span class="max-icon" id="icon-slow">🚲</span></button>`;
+      slotR4.innerHTML = `<button class="square-btn" id="btn-fast"><span class="max-icon" id="icon-fast">✈️</span></button>`;
+
+      document.getElementById('btn-slow').addEventListener('touchstart', () => { document.getElementById('icon-slow').textContent = '慢'; });
+      document.getElementById('btn-slow').addEventListener('touchend', () => { document.getElementById('icon-slow').textContent = '🚲'; });
+      document.getElementById('btn-fast').addEventListener('touchstart', () => { document.getElementById('icon-fast').textContent = '快'; });
+      document.getElementById('btn-fast').addEventListener('touchend', () => { document.getElementById('icon-fast').textContent = '✈️'; });
+
+      if (practicePhase === 'completed') {
+        slotR1.innerHTML = `<button class="btn-repeat-again" id="btn-repeat">再學一次</button>`;
+        document.getElementById('btn-repeat').addEventListener('click', handleRepeatAgain);
+
+        slotR3.innerHTML = `<button class="square-btn" id="btn-record"><span class="max-icon">📻</span></button>`;
+        document.getElementById('btn-record').addEventListener('click', handleRecordModeClick);
+      } else {
         slotR1.innerHTML = '';
         slotR3.innerHTML = '';
-
-        if (showRepeatAgainButton) {
-          slotL1.innerHTML = '<button class="square-btn chocolate-coin-btn" id="btn-offering"><span class="max-icon">🪙</span></button>';
-          const btnOffering = document.getElementById('btn-offering');
-          if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
-
-          slotR1.innerHTML = '<button class="btn-repeat-again" id="btn-repeat-again" onclick="handleRepeatAgainClick()">再學一次</button>';
-
-          slotR3.innerHTML = '<button class="square-btn" id="btn-record"><span class="max-icon" id="record-icon">📻</span></button>';
-          const btnRecord = document.getElementById('btn-record');
-          if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
-        }
-
-        updateModeButtonsStyle();
-      } catch (err) {}
-    }
-
-    function updateModeButtonsStyle() {
-      const recordIcon = document.getElementById('record-icon');
-      const isMode4 = (currentCoreMode === 'mode4');
-      const isRecordRunning = isMode4 && isUserRecording;
-      if (recordIcon) {
-        recordIcon.textContent = isRecordRunning ? '🗣️' : '📻';
       }
     }
 
-    function handleRepeatAgainClick() {
-      showRepeatAgainButton = false;
-      practicePhase = 'new_gendu';
-      currentCycleCount = 0;
-      applyScheduleToState();
+    function getActiveVideoRange() {
+      if (!scriptureData || scriptureData.length === 0) return { start: 0, end: 10, valid: false };
+      let aIdx = Math.max(0, markA_Index);
+      let bIdx = Math.min(scriptureData.length - 1, markB_Index);
+      if (bIdx < aIdx) bIdx = aIdx;
+      return { start: scriptureData[aIdx].start, end: scriptureData[bIdx].end, valid: true };
+    }
+
+    function autoPlayCurrentCycle() {
       setCoreMode('mode2');
-      autoPlayCurrentSchedule();
-      showToast('✨ 重新開始定課與串習複習', 2500);
+      const range = getActiveVideoRange();
+      if (!range.valid) return;
+
+      video.currentTime = range.start;
+      
+      let rate = 1.0;
+      if (practicePhase === 'new_gendu') {
+        rate = Math.round((0.8 + (currentCycleCount * (0.4 / (DEFAULT_REPEAT_NEW - 1)))) * 100) / 100;
+      } else if (practicePhase === 'cumulative_gendu') {
+        rate = Math.round((0.9 + (currentCycleCount * (0.2 / (DEFAULT_REPEAT_CUMULATIVE - 1)))) * 100) / 100;
+      }
+      video.playbackRate = Math.max(0.5, Math.min(2.5, rate));
+
+      video.play().catch(() => {});
+
+      video.onetimeupdate = () => {
+        if (video.currentTime >= range.end) {
+          video.pause();
+          video.onetimeupdate = null;
+          handleCycleCompletion();
+        }
+      };
+    }
+
+    function handleCycleCompletion() {
+      currentCycleCount++;
+      addCoins(1);
+
+      if (practicePhase === 'new_gendu') {
+        if (currentCycleCount < DEFAULT_REPEAT_NEW) {
+          setTimeout(autoPlayCurrentCycle, 500);
+        } else {
+          practicePhase = 'cumulative_gendu';
+          currentCycleCount = 0;
+          setupStageRange();
+          speakPrompt("從頭開始背", () => {
+            showToast("✨ 新進度圓滿！\n自動進入串習複習...", 3000);
+            setTimeout(autoPlayCurrentCycle, 1500);
+          });
+        }
+      } else if (practicePhase === 'cumulative_gendu') {
+        if (currentCycleCount < DEFAULT_REPEAT_CUMULATIVE) {
+          setTimeout(autoPlayCurrentCycle, 500);
+        } else {
+          practicePhase = 'completed';
+          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V608', getNormalizedDateStr());
+          renderUI();
+          triggerSevenColoredLotusFlowerRain();
+          speakPrompt("今日定課與串習全部圓滿");
+          showToast("🎉 今日定課與串習全部圓滿！\n右側已解鎖『再學一次』與『比對』", 6000);
+        }
+      }
       saveCurrentAppState();
     }
 
-    function autoPlayCurrentSchedule() {
-      const range = getActiveVideoRange();
-      if (!range.valid) { showToast('⚠️ 影片資料不完整', 3000); return; }
-      
-      updateAutomaticSpeed();
-      video.currentTime = range.start;
-      video.play().then(() => {
-        updateModeButtonsStyle();
-        startMp4PrecisionCheck();
-        saveCurrentAppState();
-      }).catch(() => {
-        showToast('⚠️ 請點擊畫面或按鈕開始播放', 3000);
-      });
+    function handleRepeatAgain() {
+      practicePhase = 'new_gendu';
+      currentCycleCount = 0;
+      setupStageRange();
+      renderUI();
+      autoPlayCurrentCycle();
+      showToast("🔄 重新開始今日定課", 2500);
     }
 
     async function handleRecordModeClick() {
       triggerAppFullscreen();
       if (currentCoreMode !== 'mode4') {
         setCoreMode('mode4');
-        showToast('🎙️ 已切換至比對與PDF經文對照畫面，再按一下收音機即可開始錄音', 3000);
+        showToast('🎙️ 已切換至比對模式，請點擊錄音', 2000);
         return;
-      }
-
-      const ok = await ensureMicrophoneActive();
-      if (!ok) {
-        showToast("⚠️ 無法取得麥克風授權，請檢查瀏覽器設定", 3000);
-        return;
-      }
-
-      if (isUserRecording) {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-        isUserRecording = false;
-        renderUI();
-        setTimeout(() => {
-          if (recordedAudioBlobUrl) togglePlaybackAction();
-        }, 200);
-      } else {
-        audioChunks = [];
-        mediaRecorder = new MediaRecorder(micStream);
-        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
-        mediaRecorder.onstop = () => {
-          const recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
-          recordAudioElement.src = recordedAudioBlobUrl;
-          recordAudioElement.playbackRate = compareSpeed;
-          renderUI();
-        };
-        mediaRecorder.start();
-        isUserRecording = true;
-        renderUI();
-        showToast('🔴 錄音中... 唸完後再按一下停止並比對播放', 3000);
       }
     }
 
-    function togglePlaybackAction() {
-      if (!recordedAudioBlobUrl) return;
-      if (recordAudioElement.paused) {
-        recordAudioElement.playbackRate = compareSpeed;
-        recordAudioElement.play().then(() => {
-          showToast('🗣️ 正在播放錄音比對', 2500);
-          renderUI();
-        }).catch(() => {});
-      } else {
-        recordAudioElement.pause();
-        renderUI();
-      }
-    }
-
-    async function ensureMicrophoneActive() {
-      if (micStream) return true;
+    function speakPrompt(text, onEnded) {
       try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') await audioContext.resume();
-
-        micStream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true }
-        });
-        return true;
-      } catch (err) {
-        return false;
-      }
-    }
-
-    let mp4PrecisionCheckAnimId = null;
-    function startMp4PrecisionCheck() {
-      if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
-      function check() {
-        if (currentCoreMode === 'mode2' && !video.paused && !video.ended) {
-          const range = getActiveVideoRange();
-          if (range.valid && video.currentTime >= range.end) {
-            video.pause();
-            video.currentTime = range.end;
-            handleMp4CycleEnd(range);
-            return;
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'zh-TW';
+          utterance.rate = 1.1;
+          if (typeof onEnded === 'function') {
+            utterance.onend = onEnded;
+            utterance.onerror = onEnded;
           }
-        }
-        mp4PrecisionCheckAnimId = requestAnimationFrame(check);
-      }
-      mp4PrecisionCheckAnimId = requestAnimationFrame(check);
-    }
-
-    function getActiveVideoRange() {
-      if (!scriptureData || scriptureData.length === 0) {
-        return { start: 0, end: 5, valid: true };
-      }
-      
-      let startIdx = 0;
-      let endIdx = 0;
-
-      if (practicePhase === 'new_gendu') {
-        let idx = Math.min(CLASSIC_TOTAL_SENTENCES - 1, Math.max(0, activeDayNumber - 1));
-        startIdx = idx;
-        endIdx = idx;
-      } else if (practicePhase === 'cumulative_gendu') {
-        startIdx = 0;
-        endIdx = Math.min(CLASSIC_TOTAL_SENTENCES - 1, Math.max(0, activeDayNumber - 1));
-      }
-
-      const startObj = scriptureData[startIdx];
-      const endObj = scriptureData[endIdx];
-      if (!startObj || !endObj) return { start: 0, end: 5, valid: true };
-      return { start: startObj.start, end: endObj.end, valid: true };
-    }
-
-    function handleCycleCompletion() {
-      video.pause();
-      currentCycleCount++;
-      addCoins(1);
-
-      const repeatNew = DEFAULT_REPEAT_NEW; 
-      const cRepeat = DEFAULT_REPEAT_CUMULATIVE; 
-
-      if (practicePhase === 'new_gendu') {
-        if (currentCycleCount < repeatNew) {
-          video.currentTime = getActiveVideoRange().start;
-          setTimeout(() => autoPlayCurrentSchedule(), 400);
-        } else {
-          practicePhase = 'cumulative_gendu';
-          currentCycleCount = 0;
-          speakPrompt("從頭開始背");
-          showToast(`🎉 今日定課圓滿！\n3秒後自動進入串習定課（從頭開始背）...`, 4500);
-          setTimeout(() => autoPlayCurrentSchedule(), 3000);
-        }
-      } else if (practicePhase === 'cumulative_gendu') {
-        if (currentCycleCount < cRepeat) {
-          video.currentTime = getActiveVideoRange().start;
-          setTimeout(() => autoPlayCurrentSchedule(), 400);
-        } else {
-          practicePhase = 'completed';
-          showRepeatAgainButton = true;
-          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_SENIOR', getNormalizedDateStr());
-          renderUI();
-          triggerSevenColoredLotusFlowerRain();
-          showToast(`🎉 今日定課與串習全部圓滿！\n右側已出現「再學一次」與比對按鈕`, 6000);
-        }
-      }
-      saveCurrentAppState();
-    }
-
-    function handleMp4CycleEnd(range) {
-      video.currentTime = range.start;
-      handleCycleCompletion();
+          window.speechSynthesis.speak(utterance);
+        } else if (typeof onEnded === 'function') { onEnded(); }
+      } catch (e) { if (typeof onEnded === 'function') onEnded(); }
     }
 
     function triggerSevenColoredLotusFlowerRain() {
@@ -1182,150 +977,26 @@
       canvas.height = window.innerHeight;
 
       const flowers = [];
-      const lotusColors = ['#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'];
-      
-      for (let i = 0; i < 70; i++) {
+      const lotusColors = ['#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC'];
+      for (let i = 0; i < 50; i++) {
         flowers.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          size: Math.random() * 10 + 10,
-          speedY: Math.random() * 1.8 + 1.0,
-          speedX: (Math.random() - 0.5) * 1.2,
-          rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 2.5,
-          color: lotusColors[Math.floor(Math.random() * lotusColors.length)],
-          opacity: 0.94
+          x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 12 + 10, speedY: Math.random() * 1.5 + 1.0, color: lotusColors[i % lotusColors.length]
         });
       }
-
-      let startTime = performance.now();
-      const duration = 5800;
-
-      function animateLotusRain(now) {
-        let elapsed = now - startTime;
+      let start = performance.now();
+      function anim(now) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         flowers.forEach(f => {
           f.y += f.speedY;
-          f.x += f.speedX + Math.sin(f.y / 45) * 0.7;
-          f.rotation += f.rotationSpeed;
-
-          ctx.save();
-          ctx.translate(f.x, f.y);
-          ctx.rotate((f.rotation * Math.PI) / 180);
-          ctx.globalAlpha = f.opacity;
-
-          for (let j = 0; j < 5; j++) {
-            const angle = (j * 2 * Math.PI) / 5;
-            const dist = f.size * 0.40;
-            ctx.fillStyle = f.color;
-            ctx.beginPath();
-            ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, f.size * 0.42, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.beginPath();
-          ctx.arc(0, 0, f.size * 0.30, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-
-          if (f.y > canvas.height + 30) {
-            f.y = -30;
-            f.x = Math.random() * canvas.width;
-          }
+          ctx.fillStyle = f.color;
+          ctx.beginPath(); ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2); ctx.fill();
+          if (f.y > canvas.height + 20) f.y = -20;
         });
-
-        if (elapsed < duration) {
-          requestAnimationFrame(animateLotusRain);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          canvas.style.display = 'none';
-        }
+        if (now - start < 5000) requestAnimationFrame(anim);
+        else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; }
       }
-      requestAnimationFrame(animateLotusRain);
-    }
-
-    function triggerOfferingCoinRain() {
-      const canvas = document.getElementById('flowerCanvas');
-      if (!canvas) return;
-      canvas.style.display = 'block';
-      const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      const coins = [];
-      const labels = ['福', '慧'];
-      
-      for (let i = 0; i < 55; i++) {
-        coins.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          radius: Math.random() * 12 + 14,
-          speedY: Math.random() * 1.5 + 0.8,
-          speedX: (Math.random() - 0.5) * 0.8,
-          rotation: Math.random() * Math.PI * 2,
-          rotationSpeed: (Math.random() - 0.5) * 0.04,
-          label: labels[i % labels.length],
-          opacity: 0.98
-        });
-      }
-
-      let startTime = performance.now();
-      const duration = 5500;
-
-      function animateCoinRain(now) {
-        let elapsed = now - startTime;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        coins.forEach(c => {
-          c.y += c.speedY;
-          c.x += c.speedX + Math.sin(c.y / 50) * 0.5;
-          c.rotation += c.rotationSpeed;
-
-          ctx.save();
-          ctx.translate(c.x, c.y);
-          ctx.rotate(c.rotation);
-          ctx.globalAlpha = c.opacity;
-
-          const grad = ctx.createRadialGradient(-2, -2, 2, 0, 0, c.radius);
-          grad.addColorStop(0, '#FEF08A');
-          grad.addColorStop(0.5, '#F59E0B');
-          grad.addColorStop(1, '#B45309');
-
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.strokeStyle = '#FEF3C7';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(0, 0, c.radius * 0.82, 0, Math.PI * 2);
-          ctx.stroke();
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = `bold ${Math.floor(c.radius * 0.9)}px sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(c.label, 0, 1);
-
-          ctx.restore();
-
-          if (c.y > canvas.height + 40) {
-            c.y = -40;
-            c.x = Math.random() * canvas.width;
-          }
-        });
-
-        if (elapsed < duration) {
-          requestAnimationFrame(animateCoinRain);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          canvas.style.display = 'none';
-        }
-      }
-      requestAnimationFrame(animateCoinRain);
+      requestAnimationFrame(anim);
     }
 
     function handleOfferingClick() {
@@ -1339,91 +1010,36 @@
     function addCoins(amount) {
       const total = getStoredCoins() + amount;
       classicStorage.setItem('user_accumulated_coins', total.toString());
-      saveCurrentAppState();
       return total;
     }
-    function resetCoins() { classicStorage.setItem('user_accumulated_coins', '0'); saveCurrentAppState(); }
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
-
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
       if (!classId || !userName) { alert("請輸入班號與姓名！"); return; }
-
       classicStorage.setItem('user_class_id', classId);
       classicStorage.setItem('user_profile_name', userName);
-
-      const coinsToOffer = getStoredCoins();
-      if (coinsToOffer <= 0) { alert("目前福慧金幣為 0 枚！"); return; }
-
-      btnConfirmOffering.disabled = true;
-      btnConfirmOffering.textContent = '供養中...';
-
-      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
-      let isDone = false;
-
-      function cleanup() {
-        delete window[callbackName];
-        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
-      }
-
-      window[callbackName] = (res) => {
-        if (isDone) return;
-        isDone = true;
-        cleanup();
-        resetCoins();
-        offeringOverlay.style.display = 'none';
-        btnConfirmOffering.disabled = false;
-        btnConfirmOffering.textContent = '確認供養';
-        renderLeaderboards(res, classId, userName, coinsToOffer);
-        leaderboardOverlay.style.display = 'flex';
-        triggerOfferingCoinRain();
-      };
-
-      const scriptTag = document.createElement('script');
-      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&callback=${callbackName}&t=${Date.now()}`;
-      document.body.appendChild(scriptTag);
+      alert("🙏 供養成功，隨喜功德！");
+      offeringOverlay.style.display = 'none';
     });
-
-    function renderLeaderboards(data, curClass, curName, curCoins) {
-      const medals = ['🥇', '🥈', '🥉'];
-      function buildListHtml(list) {
-        const fullList = (list && Array.isArray(list)) ? [...list] : [];
-        while (fullList.length < 3) fullList.push({ isPlaceholder: true });
-        return fullList.slice(0, 3).map((item, idx) => {
-          const medal = medals[idx] || `第${idx + 1}名`;
-          if (item.isPlaceholder) return `<div class="rank-item"><span>${medal} 虛位以待</span><span class="rank-coins">--</span></div>`;
-          return `<div class="rank-item"><span>${medal} ${item.maskName || item.name}</span><span class="rank-coins">${item.coins} 枚</span></div>`;
-        }).join('');
-      }
-      todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
-      totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
-    }
-
-    btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
 
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
-        document.getElementById('line-browser-overlay').classList.add('active');
+        lineBrowserOverlay.classList.add('active');
         return;
       }
-
-      await prefetchSentenceCountOnStartup();
-      activeDayNumber = calculateActiveDayNumber();
-
-      let cardFileName = (activeDayNumber >= 22) ? "card_021.webp" : ('card_' + String(activeDayNumber).padStart(3, "0") + '.webp');
-      const imgDisplay = document.getElementById('companion-img-display');
-      const compWrapper = document.querySelector('.companion-wrapper');
-
-      imgDisplay.onload = () => { compWrapper.classList.add('ready'); };
-      imgDisplay.onerror = () => { compWrapper.classList.add('ready'); };
-      imgDisplay.src = 'cards/' + cardFileName;
-      
-      document.getElementById('companion-overlay').style.display = 'flex';
-      document.getElementById('companion-overlay').classList.add('active');
-
       handleOrientationCheck();
+
+      const targetDay = getCurrentActiveDayNumber();
+      const cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
+      
+      companionImgDisplay.onload = () => { document.querySelector('.companion-wrapper').classList.add('ready'); };
+      companionImgDisplay.onerror = () => { document.querySelector('.companion-wrapper').classList.add('ready'); };
+      companionImgDisplay.src = 'cards/' + cardFileName;
+      
+      companionOverlay.style.display = 'flex';
+      companionOverlay.classList.add('active');
     });
   </script>
 </body>
