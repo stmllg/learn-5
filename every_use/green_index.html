@@ -323,6 +323,35 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
+    /* 垂直文字按鈕：「再學一次」 (跨右1與右2) */
+    .btn-repeat-again {
+      position: absolute;
+      top: 0;
+      height: 205%; /* 跨越右1與右2兩個slot */
+      width: 72px;
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+      color: #FFFFFF !important;
+      border: 2px solid #34D399 !important;
+      border-radius: 16px !important;
+      font-size: 22px !important;
+      font-weight: 900 !important;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      letter-spacing: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.8);
+      animation: pulseGreen 1.5s infinite ease-in-out;
+    }
+    @keyframes pulseGreen {
+      0% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.6); }
+      50% { box-shadow: 0 0 25px rgba(16, 185, 129, 1); }
+      100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.6); }
+    }
+
     /* 各按鍵最大化圖示 */
     .max-icon {
       font-size: 38px !important;
@@ -579,6 +608,8 @@
 
     const slotL1 = document.getElementById('slot-l1');
     const slotL4 = document.getElementById('slot-l4');
+    const slotR1 = document.getElementById('slot-r1');
+    const slotR2 = document.getElementById('slot-r2');
     const slotR3 = document.getElementById('slot-r3');
     const slotR4 = document.getElementById('slot-r4');
 
@@ -597,6 +628,7 @@
 
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
+    let showRepeatAgainButton = false;
 
     let audioContext = null;
     let analyser = null;
@@ -643,27 +675,29 @@
         currentLineIndex: currentLineIndex,
         markA_Index: markA_Index,
         markB_Index: markB_Index,
+        showRepeatAgainButton: showRepeatAgainButton,
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V3', JSON.stringify(state));
+      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V4', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V3');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V4');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         if (state.savedDateStr !== getNormalizedDateStr()) {
-          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V3');
+          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V4');
           return false;
         }
         pendingRestoredState = state;
+        showRepeatAgainButton = state.showRepeatAgainButton || false;
         restoreDescText.innerHTML = `上次背書進度：<br><strong style="color: #34D399;">${state.practicePhase}</strong><br>準備好後請按下方按鈕回到畫面。`;
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V3');
+        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V4');
         return false;
       }
     }
@@ -817,7 +851,7 @@
           showToast('✨ 前行圓滿，3秒後自動進入今日定課...', 3000);
           await loadAllAssetsSmartSync();
 
-          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V3');
+          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V4');
           if (savedStr) {
             try {
               const state = JSON.parse(savedStr);
@@ -845,7 +879,7 @@
 
         await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V3');
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V4');
         if (savedStr) {
           try {
             const state = JSON.parse(savedStr);
@@ -1274,12 +1308,12 @@
 
     function renderUI() {
       try {
-        // 左1: 背書供養 (福慧幣圖形 🪙，黑底、無字、放到最大)
+        // 左1: 背書供養
         slotL1.innerHTML = '<button class="square-btn" id="btn-offering"><span class="max-icon">🪙</span></button>';
         const btnOffering = document.getElementById('btn-offering');
         if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
-        // 左4: 慢鍵 (小綠人走路動畫 🚶‍♂️，黑底、無字、放到最大)
+        // 左4: 慢鍵 (小綠人)
         slotL4.innerHTML = '<button class="square-btn" id="btn-speed-down"><span class="max-icon anim-walker">🚶‍♂️</span></button>';
         const btnSpeedDown = document.getElementById('btn-speed-down');
         if (btnSpeedDown) {
@@ -1289,12 +1323,21 @@
           });
         }
 
-        // 右3: 比對 (收音機圖示 📻，黑底、無字、放到最大)
+        // 右1 & 右2 區域
+        if (showRepeatAgainButton) {
+          slotR1.innerHTML = '<button class="btn-repeat-again" id="btn-repeat-again" onclick="handleRepeatAgainClick()">再學一次</button>';
+          slotR2.innerHTML = '';
+        } else {
+          slotR1.innerHTML = '';
+          slotR2.innerHTML = '';
+        }
+
+        // 右3: 比對 (收音機)
         slotR3.innerHTML = '<button class="square-btn" id="btn-record"><span class="max-icon" id="record-icon">📻</span></button>';
         const btnRecord = document.getElementById('btn-record');
         if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
 
-        // 右4: 快鍵 (飛機動態動畫 ✈️，黑底、無字、放到最大)
+        // 右4: 快鍵 (飛機)
         slotR4.innerHTML = '<button class="square-btn" id="btn-speed-up"><span class="max-icon anim-plane">✈️</span></button>';
         const btnSpeedUp = document.getElementById('btn-speed-up');
         if (btnSpeedUp) {
@@ -1316,6 +1359,17 @@
       if (recordIcon) {
         recordIcon.textContent = isRecordRunning ? '▶️' : '📻';
       }
+    }
+
+    function handleRepeatAgainClick() {
+      showRepeatAgainButton = false;
+      practicePhase = 'new_gendu';
+      currentCycleCount = 0;
+      setupStageRange();
+      setCoreMode('mode2');
+      autoPlayCurrentSchedule();
+      showToast('✨ 重新開始定課複習', 2500);
+      saveCurrentAppState();
     }
 
     function autoPlayCurrentSchedule() {
@@ -1466,6 +1520,7 @@
           setTimeout(() => autoPlayCurrentSchedule(), 1000);
         } else {
           practicePhase = 'completed';
+          showRepeatAgainButton = true;
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_SENIOR', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
@@ -1486,6 +1541,7 @@
         }
       } else if (practicePhase === 'cumulative_compare') {
         practicePhase = 'completed';
+        showRepeatAgainButton = true;
         classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_SENIOR', getNormalizedDateStr());
         renderUI();
         triggerSevenColoredLotusFlowerRain();
