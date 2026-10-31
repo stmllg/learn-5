@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書17</title>
+  <title>歡喜18版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -76,10 +76,7 @@
       opacity: 0;
       transition: opacity 0.3s ease;
     }
-    #line-browser-overlay.active {
-      display: flex;
-      opacity: 1;
-    }
+    #line-browser-overlay.active { display: flex; opacity: 1; }
 
     .line-guide-card {
       background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
@@ -263,7 +260,6 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 左右兩側一致大小的直式膠囊按鈕（跨 slot 1 & 2） */
     .tall-pill-btn {
       position: absolute;
       top: 4px; 
@@ -309,11 +305,7 @@
       100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.6); }
     }
 
-    .max-icon {
-      font-size: 42px !important;
-      line-height: 1;
-      display: inline-block;
-    }
+    .max-icon { font-size: 42px !important; line-height: 1; display: inline-block; }
 
     #center-core {
       flex: 1; height: 100%;
@@ -523,11 +515,6 @@
     const btnCancelOffering = document.getElementById('btn-cancel-offering');
     const btnPlayDedication = document.getElementById('btn-play-dedication');
 
-    const leaderboardOverlay = document.getElementById('leaderboard-modal-overlay');
-    const todayRankList = document.getElementById('today-rank-list');
-    const totalRankList = document.getElementById('total-rank-list');
-    const btnRejoiceClose = document.getElementById('btn-rejoice-close');
-
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
 
@@ -536,8 +523,8 @@
     let parsedTextLines = [];
     let cachedPdfBuffer = null;
 
-    let markA_Index = -1;
-    let markB_Index = -1;
+    let markA_Index = 0;
+    let markB_Index = 0;
     let currentDayPlan = null; 
     let currentCycleCount = 0; 
     let hasEnteredReciting = false;
@@ -545,18 +532,6 @@
     function getNormalizedDateStr() {
       const now = new Date();
       return now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
-    }
-
-    function isIndependentModeUnlocked() {
-      if (practicePhase === 'completed') return true;
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
-      if (!savedStr) return false;
-      try {
-        const savedState = JSON.parse(savedStr);
-        return savedState.savedDateStr === getNormalizedDateStr() &&
-          savedState.practicePhase === 'completed' &&
-          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V608') === getNormalizedDateStr();
-      } catch (e) { return false; }
     }
 
     function saveCurrentAppState() {
@@ -610,8 +585,7 @@
       let defaultUrl = (modeType === 'mode1') ? CLASSIC_ASSETS.buddha : CLASSIC_ASSETS.dedication;
       let toastText = (modeType === 'mode1') ? '🙏【老師帶前行：念佛清心】播放中...' : '🙏【模式5：功德迴向】播放中...';
 
-      let mediaUrl = defaultUrl;
-      standaloneVideo.src = mediaUrl;
+      standaloneVideo.src = defaultUrl;
       standaloneVideo.currentTime = startSeekSec;
       standaloneVideo.playbackRate = 1.0;
       showToast(toastText, 4000);
@@ -733,7 +707,7 @@
 
       let simStart = 1;
       for (let simDay = 1; simDay <= 100; simDay++) {
-        let end = (simDay === 1) ? 1 : Math.min(total, simStart);
+        let end = (simDay === 1) ? 1 : Math.min(total, simStart + DEFAULT_DAILY_STEP - 1);
         let cStart = (simDay > 1) ? 1 : null;
         let cEnd = (simDay > 1) ? end : null;
 
@@ -750,18 +724,24 @@
         const targetDay = getCurrentActiveDayNumber();
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1] || { start: 1, end: 1 };
         setupStageRange();
-      } catch (err) {}
+      } catch (err) {
+        currentDayPlan = { start: 1, end: 1, cStart: 1, cEnd: 1 };
+        setupStageRange();
+      }
     }
 
     function setupStageRange() {
-      if (!currentDayPlan) return;
-      const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : CLASSIC_TOTAL_SENTENCES - 1));
+      const maxIdx = Math.max(0, (scriptureData.length > 0 ? scriptureData.length - 1 : CLASSIC_TOTAL_SENTENCES - 1));
+      
+      if (!currentDayPlan) {
+        currentDayPlan = { start: 1, end: Math.min(maxIdx + 1, DEFAULT_DAILY_STEP), cStart: 1, cEnd: Math.min(maxIdx + 1, DEFAULT_DAILY_STEP) };
+      }
 
       if (practicePhase === 'new_gendu') {
         markA_Index = Math.max(0, (currentDayPlan.start || 1) - 1);
         markB_Index = Math.min(maxIdx, (currentDayPlan.end || 1) - 1);
       } else if (practicePhase === 'cumulative_gendu') {
-        markA_Index = 0;
+        markA_Index = Math.max(0, (currentDayPlan.cStart || 1) - 1);
         markB_Index = Math.min(maxIdx, (currentDayPlan.cEnd || 1) - 1);
       }
     }
@@ -777,10 +757,8 @@
         pdfCanvas.height = 0;
 
         const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 164);
-        const pageRotation = page.rotate || 0;
-        const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
-        const pageScale = availableWidth / unscaledViewport.width;
-        const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
+        const pageScale = availableWidth / page.getViewport({ scale: 1.0 }).width;
+        const viewport = page.getViewport({ scale: pageScale });
 
         pdfCanvas.width = viewport.width;
         pdfCanvas.height = viewport.height;
@@ -818,11 +796,9 @@
 
     function renderUI() {
       if (practicePhase === 'completed') {
-        // 左 1 左 2 放置「背書供養」膠囊按鈕
         leftWing.innerHTML = `<button class="tall-pill-btn btn-style-offering" id="btn-offering">背書供養</button>`;
         document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
 
-        // 右側放置「再學一次」與「比對」按鈕
         rightWing.innerHTML = `
           <button class="tall-pill-btn btn-style-repeat" id="btn-repeat" style="top: 4px;">再學一次</button>
           <div class="slot" style="position: absolute; bottom: 4px; left: 0; width: 100%; height: 25%; display: flex; align-items: center; justify-content: center;">
@@ -832,20 +808,27 @@
         document.getElementById('btn-repeat').addEventListener('click', handleRepeatAgain);
         document.getElementById('btn-record').addEventListener('click', handleRecordModeClick);
       } else {
-        // 定課或串習進行中：兩側乾淨，無供養、無再學一次、無比對、無速度鍵
         leftWing.innerHTML = '';
         rightWing.innerHTML = '';
       }
     }
 
     function getActiveVideoRange() {
+      setupStageRange();
       if (!scriptureData || scriptureData.length === 0) return { start: 0, end: 10, valid: false };
       let aIdx = Math.max(0, markA_Index);
       let bIdx = Math.min(scriptureData.length - 1, markB_Index);
       if (bIdx < aIdx) bIdx = aIdx;
-      return { start: scriptureData[aIdx].start, end: scriptureData[bIdx].end, valid: true };
+      
+      const startObj = scriptureData[aIdx];
+      const endObj = scriptureData[bIdx];
+      if (!startObj || typeof startObj.start !== 'number' || !endObj || typeof endObj.end !== 'number') {
+        return { start: 0, end: 10, valid: false };
+      }
+      return { start: startObj.start, end: endObj.end, valid: true };
     }
 
+    let precisionInterval = null;
     function autoPlayCurrentCycle() {
       setCoreMode('mode2');
       const range = getActiveVideoRange();
@@ -863,21 +846,25 @@
 
       video.play().catch(() => {});
 
-      video.onetimeupdate = () => {
-        if (video.currentTime >= range.end) {
-          video.pause();
-          video.onetimeupdate = null;
-          handleCycleCompletion();
+      if (precisionInterval) clearInterval(precisionInterval);
+      precisionInterval = setInterval(() => {
+        if (currentCoreMode === 'mode2' && !video.paused) {
+          if (video.currentTime >= range.end) {
+            video.pause();
+            clearInterval(precisionInterval);
+            precisionInterval = null;
+            handleCycleCompletion();
+          }
         }
-      };
+      }, 100);
     }
 
     function handleCycleCompletion() {
       currentCycleCount++;
-      addCoins(1);
 
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < DEFAULT_REPEAT_NEW) {
+          showToast(`✅ 新進度跟讀完成第 ${currentCycleCount} 遍`, 1500);
           setTimeout(autoPlayCurrentCycle, 500);
         } else {
           practicePhase = 'cumulative_gendu';
@@ -890,6 +877,7 @@
         }
       } else if (practicePhase === 'cumulative_gendu') {
         if (currentCycleCount < DEFAULT_REPEAT_CUMULATIVE) {
+          showToast(`✅ 串習複習完成第 ${currentCycleCount} 遍`, 1500);
           setTimeout(autoPlayCurrentCycle, 500);
         } else {
           practicePhase = 'completed';
@@ -966,17 +954,10 @@
     }
 
     function handleOfferingClick() {
-      displayCoinsCount.textContent = (classicStorage.getItem('user_accumulated_coins') || '0') + ' 枚';
+      document.getElementById('display-coins-count').textContent = (classicStorage.getItem('user_accumulated_coins') || '0') + ' 枚';
       inputClassId.value = classicStorage.getItem('user_class_id') || '';
       inputUserName.value = classicStorage.getItem('user_profile_name') || '';
       offeringOverlay.style.display = 'flex';
-    }
-
-    function getStoredCoins() { return parseInt(classicStorage.getItem('user_accumulated_coins') || '0', 10); }
-    function addCoins(amount) {
-      const total = getStoredCoins() + amount;
-      classicStorage.setItem('user_accumulated_coins', total.toString());
-      return total;
     }
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
