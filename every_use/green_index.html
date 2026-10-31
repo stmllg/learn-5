@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜簡化版</title>
+  <title>歡喜背書萬6・長青簡化版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -332,7 +332,7 @@
     }
 
     .max-icon {
-      font-size: 38px !important;
+      font-size: 42px !important;
       line-height: 1;
       display: inline-block;
     }
@@ -550,6 +550,8 @@
     const scheduleToast = document.getElementById('schedule-toast');
 
     const slotL1 = document.getElementById('slot-l1');
+    const slotL2 = document.getElementById('slot-l2');
+    const slotL3 = document.getElementById('slot-l3');
     const slotL4 = document.getElementById('slot-l4');
     const slotR1 = document.getElementById('slot-r1');
     const slotR2 = document.getElementById('slot-r2');
@@ -570,7 +572,7 @@
     const btnRejoiceClose = document.getElementById('btn-rejoice-close');
 
     let currentCoreMode = 'mode2'; 
-    let practicePhase = 'new_gendu'; // 'new_gendu' (10遍) -> 'cumulative_gendu' (3遍) -> 'completed'
+    let practicePhase = 'new_gendu'; 
     let showRepeatAgainButton = false;
 
     let audioContext = null;
@@ -631,16 +633,16 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V7', JSON.stringify(state));
+      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V8', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V7');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V8');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         if (state.savedDateStr !== getNormalizedDateStr()) {
-          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V7');
+          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V8');
           return false;
         }
         pendingRestoredState = state;
@@ -649,7 +651,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V7');
+        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V8');
         return false;
       }
     }
@@ -801,7 +803,7 @@
           showToast('✨ 前行圓滿，3秒後自動進入今日定課...', 3000);
           await loadAllAssetsSmartSync();
 
-          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V7');
+          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V8');
           if (savedStr) {
             try {
               const state = JSON.parse(savedStr);
@@ -829,7 +831,7 @@
 
         await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V7');
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V8');
         if (savedStr) {
           try {
             const state = JSON.parse(savedStr);
@@ -914,7 +916,6 @@
     }
 
     function applyScheduleToState() {
-      // 今日定課範圍：基於 activeDayNumber 決定第幾句 (每天1句)
       let todayIdx = Math.min(CLASSIC_TOTAL_SENTENCES - 1, Math.max(0, activeDayNumber - 1));
       markA_Index = todayIdx;
       markB_Index = todayIdx;
@@ -1037,63 +1038,53 @@
 
     function renderUI() {
       try {
-        // 左1: 背書供養 (黃金金幣 🪙)
-        slotL1.innerHTML = '<button class="square-btn" id="btn-offering"><span class="max-icon">🪙</span></button>';
-        const btnOffering = document.getElementById('btn-offering');
-        if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+        // 清空所有槽位
+        slotL1.innerHTML = '';
+        slotL2.innerHTML = '';
+        slotL3.innerHTML = '';
+        slotL4.innerHTML = '';
+        slotR1.innerHTML = '';
+        slotR2.innerHTML = '';
+        slotR3.innerHTML = '';
+        slotR4.innerHTML = '';
 
-        // 左4: 慢鍵 (按下去時圖樣變「慢」，放開恢復走路人)
-        slotL4.innerHTML = '<button class="square-btn" id="btn-speed-down"><span class="max-icon" id="walker-icon">🚶‍♂️</span></button>';
+        // 進行定課/串習中：僅保留基本的速度調整（左4：慢速 🚶‍♂️，右4：快速 ✈️）
+        slotL4.innerHTML = '<button class="square-btn" id="btn-speed-down"><span class="max-icon">🚶‍♂️</span></button>';
         const btnSpeedDown = document.getElementById('btn-speed-down');
         if (btnSpeedDown) {
-          const walkerIcon = document.getElementById('walker-icon');
-          const triggerSlow = () => {
-            if (walkerIcon) walkerIcon.textContent = '慢';
+          btnSpeedDown.addEventListener('click', (e) => {
+            e.stopPropagation();
             let newSpeed = Math.max(0.5, Math.round((mp4Speed - 0.1) * 10) / 10);
             setMp4Speed(newSpeed);
             showToast('已設為慢速 ' + newSpeed.toFixed(1) + 'x', 1200);
-          };
-          const releaseSlow = () => { if (walkerIcon) walkerIcon.textContent = '🚶‍♂️'; };
-
-          btnSpeedDown.addEventListener('mousedown', triggerSlow);
-          btnSpeedDown.addEventListener('mouseup', releaseSlow);
-          btnSpeedDown.addEventListener('mouseleave', releaseSlow);
-          btnSpeedDown.addEventListener('touchstart', (e) => { e.preventDefault(); triggerSlow(); });
-          btnSpeedDown.addEventListener('touchend', (e) => { e.preventDefault(); releaseSlow(); });
+          });
         }
 
-        // 右1 & 右2 區域 (如果完成定課與串習，顯示「再學一次」)
-        if (showRepeatAgainButton) {
-          slotR1.innerHTML = '<button class="btn-repeat-again" id="btn-repeat-again" onclick="handleRepeatAgainClick()">再學一次</button>';
-          slotR2.innerHTML = '';
-        } else {
-          slotR1.innerHTML = '';
-          slotR2.innerHTML = '';
-        }
-
-        // 右3: 獨立比對 (收音機 📻，錄音時變成 🗣️ 嘴巴說話)
-        slotR3.innerHTML = '<button class="square-btn" id="btn-record"><span class="max-icon" id="record-icon">📻</span></button>';
-        const btnRecord = document.getElementById('btn-record');
-        if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
-
-        // 右4: 快鍵 (按下去時圖樣變「快」，放開恢復飛機)
-        slotR4.innerHTML = '<button class="square-btn" id="btn-speed-up"><span class="max-icon" id="plane-icon">✈️</span></button>';
+        slotR4.innerHTML = '<button class="square-btn" id="btn-speed-up"><span class="max-icon">✈️</span></button>';
         const btnSpeedUp = document.getElementById('btn-speed-up');
         if (btnSpeedUp) {
-          const planeIcon = document.getElementById('plane-icon');
-          const triggerFast = () => {
-            if (planeIcon) planeIcon.textContent = '快';
+          btnSpeedUp.addEventListener('click', (e) => {
+            e.stopPropagation();
             let newSpeed = Math.min(2.5, Math.round((mp4Speed + 0.1) * 10) / 10);
             setMp4Speed(newSpeed);
             showToast('已設為快速 ' + newSpeed.toFixed(1) + 'x', 1200);
-          };
-          const releaseFast = () => { if (planeIcon) planeIcon.textContent = '✈️'; };
+          });
+        }
 
-          btnSpeedUp.addEventListener('mousedown', triggerFast);
-          btnSpeedUp.addEventListener('mouseup', releaseFast);
-          btnSpeedUp.addEventListener('mouseleave', releaseFast);
-          btnSpeedUp.addEventListener('touchstart', (e) => { e.preventDefault(); triggerFast(); });
-          btnSpeedUp.addEventListener('touchend', (e) => { e.preventDefault(); releaseFast(); });
+        // 定課圓滿完成時：出現「再學一次」按鍵、金幣供養按鍵、比對按鍵
+        if (showRepeatAgainButton) {
+          // 左1: 黃金幣供養 (🪙)
+          slotL1.innerHTML = '<button class="square-btn" id="btn-offering"><span class="max-icon">🪙</span></button>';
+          const btnOffering = document.getElementById('btn-offering');
+          if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+
+          // 右1: 再學一次
+          slotR1.innerHTML = '<button class="btn-repeat-again" id="btn-repeat-again" onclick="handleRepeatAgainClick()">再學一次</button>';
+
+          // 右3: 比對按鍵 (收音機 📻)
+          slotR3.innerHTML = '<button class="square-btn" id="btn-record"><span class="max-icon" id="record-icon">📻</span></button>';
+          const btnRecord = document.getElementById('btn-record');
+          if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
         }
 
         updateModeButtonsStyle();
@@ -1138,7 +1129,6 @@
 
     async function handleRecordModeClick() {
       triggerAppFullscreen();
-      // 如果不在比對模式，先切過去
       if (currentCoreMode !== 'mode4') {
         setCoreMode('mode4');
         showToast('🎙️ 已進入比對畫面，再按一下收音機即可開始錄音', 3000);
@@ -1233,12 +1223,10 @@
       let endIdx = 0;
 
       if (practicePhase === 'new_gendu') {
-        // 今日定課：第 activeDayNumber 句 (索引為 activeDayNumber - 1)
         let idx = Math.min(CLASSIC_TOTAL_SENTENCES - 1, Math.max(0, activeDayNumber - 1));
         startIdx = idx;
         endIdx = idx;
       } else if (practicePhase === 'cumulative_gendu') {
-        // 串習定課：從第 1 句 (索引 0) 到今天的進度 (索引 activeDayNumber - 1)
         startIdx = 0;
         endIdx = Math.min(CLASSIC_TOTAL_SENTENCES - 1, Math.max(0, activeDayNumber - 1));
       }
@@ -1279,7 +1267,7 @@
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_SENIOR', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
-          showToast(`🎉 今日定課與串習全部圓滿！\n右側已出現「再學一次」按鈕，隨喜功德`, 6000);
+          showToast(`🎉 今日定課與串習全部圓滿！\n右側已出現「再學一次」按鈕與比對按鈕，隨喜功德`, 6000);
         }
       }
       saveCurrentAppState();
