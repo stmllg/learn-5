@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜18版</title>
+  <title>歡喜背書萬6・長青精緻穩定版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -478,9 +478,6 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
     }
 
-    const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
     const classicStorage = {
       getItem(key) { return localStorage.getItem(NAMESPACE_KEY + '::' + key); },
       setItem(key, value) { localStorage.setItem(NAMESPACE_KEY + '::' + key, value); },
@@ -554,6 +551,9 @@
 
     window.addEventListener('beforeunload', () => { saveCurrentAppState(); });
     window.addEventListener('pagehide', () => { saveCurrentAppState(); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) saveCurrentAppState();
+    });
 
     function handleOrientationCheck() {
       if (hasEnteredReciting) return;
@@ -617,8 +617,7 @@
         playStandaloneVideo('mode1', 0, async () => {
           showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
           await loadAllAssetsSmartSync();
-          setCoreMode('mode2');
-          autoPlayCurrentCycle();
+          checkAndRestoreSavedState(false);
         });
       }, 350);
     }
@@ -632,21 +631,31 @@
         companionOverlay.style.display = 'none';
 
         await loadAllAssetsSmartSync();
-        
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
-        if (savedStr) {
-          try {
-            const state = JSON.parse(savedStr);
-            if (state.savedDateStr === getNormalizedDateStr()) {
-              practicePhase = state.practicePhase || 'new_gendu';
-              currentCycleCount = state.currentCycleCount || 0;
-            }
-          } catch(e) {}
-        }
-
-        setCoreMode('mode2');
-        autoPlayCurrentCycle();
+        checkAndRestoreSavedState(true);
       }, 350);
+    }
+
+    function checkAndRestoreSavedState(autoResume) {
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
+      let restored = false;
+      if (savedStr) {
+        try {
+          const state = JSON.parse(savedStr);
+          if (state.savedDateStr === getNormalizedDateStr()) {
+            practicePhase = state.practicePhase || 'new_gendu';
+            currentCycleCount = state.currentCycleCount || 0;
+            restored = true;
+            showToast('🔄 已自動恢復上次進度', 2000);
+          }
+        } catch(e) {}
+      }
+
+      setCoreMode('mode2');
+      if (autoResume || restored) {
+        autoPlayCurrentCycle();
+      } else {
+        autoPlayCurrentCycle();
+      }
     }
 
     function getCurrentActiveDayNumber() {
@@ -882,6 +891,9 @@
         } else {
           practicePhase = 'completed';
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V608', getNormalizedDateStr());
+          let currentCoins = parseInt(classicStorage.getItem('user_accumulated_coins') || '0', 10) + 10;
+          classicStorage.setItem('user_accumulated_coins', currentCoins);
+
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日定課與串習全部圓滿");
