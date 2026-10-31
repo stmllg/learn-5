@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書萬6・長青簡化版</title>
+  <title>歡喜・長青簡化版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,9 +29,9 @@
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
     
     let CLASSIC_TOTAL_SENTENCES = 37;
-    const DEFAULT_DAILY_STEP = 4;
-    const DEFAULT_REPEAT_NEW = 5;
-    const DEFAULT_REPEAT_CUMULATIVE = 2;
+    const DEFAULT_DAILY_STEP = 1;
+    const DEFAULT_REPEAT_NEW = 10;
+    const DEFAULT_REPEAT_CUMULATIVE = 3;
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
@@ -327,7 +327,7 @@
     .btn-repeat-again {
       position: absolute;
       top: 0;
-      height: 205%; /* 跨越右1與右2兩個slot */
+      height: 205%; 
       width: 72px;
       background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
       color: #FFFFFF !important;
@@ -359,7 +359,6 @@
       display: inline-block;
     }
 
-    /* 動態動畫圖標 */
     .anim-plane {
       animation: flyAnim 1.6s ease-in-out infinite;
     }
@@ -679,16 +678,16 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V4', JSON.stringify(state));
+      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V5', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V4');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V5');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         if (state.savedDateStr !== getNormalizedDateStr()) {
-          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V4');
+          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V5');
           return false;
         }
         pendingRestoredState = state;
@@ -697,7 +696,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V4');
+        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V5');
         return false;
       }
     }
@@ -715,6 +714,7 @@
       currentLineIndex = state.currentLineIndex || 0;
       markA_Index = state.markA_Index !== undefined ? state.markA_Index : -1;
       markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
+      showRepeatAgainButton = state.showRepeatAgainButton || false;
 
       restoreModalOverlay.style.display = 'none';
 
@@ -851,7 +851,7 @@
           showToast('✨ 前行圓滿，3秒後自動進入今日定課...', 3000);
           await loadAllAssetsSmartSync();
 
-          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V4');
+          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V5');
           if (savedStr) {
             try {
               const state = JSON.parse(savedStr);
@@ -879,7 +879,7 @@
 
         await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V4');
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V5');
         if (savedStr) {
           try {
             const state = JSON.parse(savedStr);
@@ -1238,7 +1238,15 @@
       mp4Speed = val;
       classicStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
       video.playbackRate = mp4Speed;
-      flashSpeedToast('【語速 ' + mp4Speed.toFixed(1) + 'x】');
+      flashSpeedToast('快');
+      saveCurrentAppState();
+    }
+
+    function setMp4Slow(val) {
+      mp4Speed = val;
+      classicStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
+      video.playbackRate = mp4Speed;
+      flashSpeedToast('慢');
       saveCurrentAppState();
     }
 
@@ -1250,12 +1258,7 @@
       speedToastBadge._t = setTimeout(() => {
         speedToastBadge.style.opacity = '0';
         setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
-      }, 2500);
-    }
-
-    function triggerMp4SpeedChange(delta) {
-      let newSpeed = Math.round((mp4Speed + delta) * 10) / 10;
-      setMp4Speed(Math.max(0.5, Math.min(2.5, newSpeed)));
+      }, 1500);
     }
 
     function releaseMicrophoneResources() {
@@ -1308,22 +1311,23 @@
 
     function renderUI() {
       try {
-        // 左1: 背書供養
-        slotL1.innerHTML = '<button class="square-btn" id="btn-offering"><span class="max-icon">🪙</span></button>';
+        // 左1: 背書供養 (美金金幣 💵 或 🪙)
+        slotL1.innerHTML = '<button class="square-btn" id="btn-offering"><span class="max-icon">💵</span></button>';
         const btnOffering = document.getElementById('btn-offering');
         if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
-        // 左4: 慢鍵 (小綠人)
+        // 左4: 慢鍵 (小綠人 -> 點擊後顯示慢)
         slotL4.innerHTML = '<button class="square-btn" id="btn-speed-down"><span class="max-icon anim-walker">🚶‍♂️</span></button>';
         const btnSpeedDown = document.getElementById('btn-speed-down');
         if (btnSpeedDown) {
           btnSpeedDown.addEventListener('click', (e) => {
             e.stopPropagation();
-            triggerMp4SpeedChange(-0.1);
+            let newSpeed = Math.max(0.5, Math.round((mp4Speed - 0.1) * 10) / 10);
+            setMp4Slow(newSpeed);
           });
         }
 
-        // 右1 & 右2 區域
+        // 右1 & 右2 區域 (如果圓滿完成，顯示「再學一次」)
         if (showRepeatAgainButton) {
           slotR1.innerHTML = '<button class="btn-repeat-again" id="btn-repeat-again" onclick="handleRepeatAgainClick()">再學一次</button>';
           slotR2.innerHTML = '';
@@ -1332,18 +1336,19 @@
           slotR2.innerHTML = '';
         }
 
-        // 右3: 比對 (收音機)
+        // 右3: 比對 (收音機/說話 🗣️)
         slotR3.innerHTML = '<button class="square-btn" id="btn-record"><span class="max-icon" id="record-icon">📻</span></button>';
         const btnRecord = document.getElementById('btn-record');
         if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
 
-        // 右4: 快鍵 (飛機)
+        // 右4: 快鍵 (飛機 -> 點擊後顯示快)
         slotR4.innerHTML = '<button class="square-btn" id="btn-speed-up"><span class="max-icon anim-plane">✈️</span></button>';
         const btnSpeedUp = document.getElementById('btn-speed-up');
         if (btnSpeedUp) {
           btnSpeedUp.addEventListener('click', (e) => {
             e.stopPropagation();
-            triggerMp4SpeedChange(+0.1);
+            let newSpeed = Math.min(2.5, Math.round((mp4Speed + 0.1) * 10) / 10);
+            setMp4Speed(newSpeed);
           });
         }
 
@@ -1357,7 +1362,7 @@
       const isRecordRunning = isMode4 && isUserRecording;
 
       if (recordIcon) {
-        recordIcon.textContent = isRecordRunning ? '▶️' : '📻';
+        recordIcon.textContent = isRecordRunning ? '🗣️' : '📻';
       }
     }
 
@@ -1391,7 +1396,7 @@
       triggerAppFullscreen();
       if (currentCoreMode !== 'mode4') {
         setCoreMode('mode4');
-        showToast('🎙️ 已進入比對畫面，點擊按鈕即可開始錄音與回放', 3000);
+        showToast('🎙️ 已進入比對畫面，點擊按鈕即可開始錄音與說話回放', 3000);
         return;
       }
 
@@ -1422,7 +1427,7 @@
         mediaRecorder.start();
         isUserRecording = true;
         renderUI();
-        showToast('🔴 正在錄音中... 唸完後再按一次停止並播放', 3000);
+        showToast('🔴 正在錄音中(說話)... 唸完後再按一次停止並播放', 3000);
       }
     }
 
@@ -1430,7 +1435,7 @@
       if (!recordedAudioBlobUrl) return;
       if (recordAudioElement.paused) {
         recordAudioElement.play().then(() => {
-          showToast('▶️ 正在播放您的錄音比對', 2500);
+          showToast('🗣️ 正在播放您的錄音比對', 2500);
           renderUI();
         }).catch(() => {});
       } else {
@@ -1508,7 +1513,7 @@
           currentCycleCount = 0;
           setupStageRange();
           setCoreMode('mode4');
-          showToast(`🎉 今日跟讀圓滿！\n請點擊右側「收音機」按鈕進行錄音比對。`, 5000);
+          showToast(`🎉 今日跟讀圓滿！\n請點擊右側「收音機/說話」按鈕進行錄音比對。`, 5000);
         }
       } else if (practicePhase === 'new_compare') {
         if (hasCumulative) {
@@ -1537,7 +1542,7 @@
           currentCycleCount = 0;
           setupStageRange();
           setCoreMode('mode4');
-          showToast(`🎉 串習跟讀圓滿！\n請點擊右側「收音機」進行錄音比對。`, 5000);
+          showToast(`🎉 串習跟讀圓滿！\n請點擊右側「收音機/說話」進行錄音比對。`, 5000);
         }
       } else if (practicePhase === 'cumulative_compare') {
         practicePhase = 'completed';
