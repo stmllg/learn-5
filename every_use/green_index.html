@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜</title>
+  <title>歡喜背書17</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -245,8 +245,8 @@
       display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;
       padding-top: 4px; padding-bottom: 4px; z-index: 60; box-sizing: border-box;
     }
-    #left-wing { width: calc(82px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; }
-    #right-wing { width: calc(82px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; }
+    #left-wing { width: calc(82px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; position: relative; }
+    #right-wing { width: calc(82px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; position: relative; }
 
     .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
 
@@ -263,12 +263,12 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    .btn-repeat-again {
+    /* 左右兩側一致大小的直式膠囊按鈕（跨 slot 1 & 2） */
+    .tall-pill-btn {
       position: absolute;
-      top: 0; height: 205%; width: 74px;
-      background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
-      color: #FFFFFF !important;
-      border: 2px solid #34D399 !important;
+      top: 4px; 
+      height: calc(50% - 8px); 
+      width: 74px;
       border-radius: 16px !important;
       font-size: 22px !important;
       font-weight: 900 !important;
@@ -277,7 +277,17 @@
       letter-spacing: 4px;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; z-index: 100;
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.8);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+      touch-action: manipulation;
+      transition: transform 0.15s ease-out;
+    }
+    .tall-pill-btn:active { transform: scale(0.92); }
+
+    .btn-style-repeat {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+      color: #FFFFFF !important;
+      border: 2.5px solid #34D399 !important;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
       animation: pulseGreen 1.5s infinite ease-in-out;
     }
     @keyframes pulseGreen {
@@ -286,34 +296,23 @@
       100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.6); }
     }
 
+    .btn-style-offering {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
+      color: #FEF3C7 !important;
+      border: 2.5px solid #FDE68A !important;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.8) !important;
+      animation: pulseGold 1.8s infinite ease-in-out;
+    }
+    @keyframes pulseGold {
+      0% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.6); }
+      50% { box-shadow: 0 0 25px rgba(245, 158, 11, 1); }
+      100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.6); }
+    }
+
     .max-icon {
       font-size: 42px !important;
       line-height: 1;
       display: inline-block;
-    }
-
-    /* 精緻巧克力金幣按鈕樣式 */
-    .chocolate-coin-btn {
-      width: 74px !important;
-      height: 74px !important;
-      background: radial-gradient(circle at 35% 35%, #FFFBEB 0%, #FDE047 30%, #D97706 75%, #92400E 100%) !important;
-      border: 3.5px solid #FEF08A !important;
-      border-radius: 50% !important;
-      box-shadow: 0 6px 20px rgba(146, 64, 14, 0.9), inset 0 3px 8px rgba(255, 255, 255, 0.8) !important;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      animation: coinGlow 1.8s infinite ease-in-out;
-      transition: transform 0.15s ease-out;
-    }
-    .chocolate-coin-btn:active { transform: scale(0.90); }
-
-    @keyframes coinGlow {
-      0% { box-shadow: 0 0 12px rgba(250, 204, 21, 0.7); transform: scale(1); }
-      50% { box-shadow: 0 0 26px rgba(250, 204, 21, 1); transform: scale(1.05); }
-      100% { box-shadow: 0 0 12px rgba(250, 204, 21, 0.7); transform: scale(1); }
     }
 
     #center-core {
@@ -513,11 +512,8 @@
     const standaloneVideo = document.getElementById('standalone-video');
     const scheduleToast = document.getElementById('schedule-toast');
 
-    const slotL1 = document.getElementById('slot-l1');
-    const slotL4 = document.getElementById('slot-l4');
-    const slotR1 = document.getElementById('slot-r1');
-    const slotR3 = document.getElementById('slot-r3');
-    const slotR4 = document.getElementById('slot-r4');
+    const leftWing = document.getElementById('left-wing');
+    const rightWing = document.getElementById('right-wing');
 
     const offeringOverlay = document.getElementById('offering-modal-overlay');
     const inputClassId = document.getElementById('input-class-id');
@@ -780,7 +776,7 @@
         pdfCanvas.width = 0;
         pdfCanvas.height = 0;
 
-        const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 136);
+        const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 164);
         const pageRotation = page.rotate || 0;
         const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
         const pageScale = availableWidth / unscaledViewport.width;
@@ -821,26 +817,24 @@
     }
 
     function renderUI() {
-      slotL1.innerHTML = `<button class="chocolate-coin-btn" id="btn-offering" title="福慧金幣供養"><span class="max-icon">🪙</span></button>`;
-      document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
-
-      slotL4.innerHTML = `<button class="square-btn" id="btn-slow"><span class="max-icon" id="icon-slow">🚲</span></button>`;
-      slotR4.innerHTML = `<button class="square-btn" id="btn-fast"><span class="max-icon" id="icon-fast">✈️</span></button>`;
-
-      document.getElementById('btn-slow').addEventListener('touchstart', () => { document.getElementById('icon-slow').textContent = '慢'; });
-      document.getElementById('btn-slow').addEventListener('touchend', () => { document.getElementById('icon-slow').textContent = '🚲'; });
-      document.getElementById('btn-fast').addEventListener('touchstart', () => { document.getElementById('icon-fast').textContent = '快'; });
-      document.getElementById('btn-fast').addEventListener('touchend', () => { document.getElementById('icon-fast').textContent = '✈️'; });
-
       if (practicePhase === 'completed') {
-        slotR1.innerHTML = `<button class="btn-repeat-again" id="btn-repeat">再學一次</button>`;
-        document.getElementById('btn-repeat').addEventListener('click', handleRepeatAgain);
+        // 左 1 左 2 放置「背書供養」膠囊按鈕
+        leftWing.innerHTML = `<button class="tall-pill-btn btn-style-offering" id="btn-offering">背書供養</button>`;
+        document.getElementById('btn-offering').addEventListener('click', handleOfferingClick);
 
-        slotR3.innerHTML = `<button class="square-btn" id="btn-record"><span class="max-icon">📻</span></button>`;
+        // 右側放置「再學一次」與「比對」按鈕
+        rightWing.innerHTML = `
+          <button class="tall-pill-btn btn-style-repeat" id="btn-repeat" style="top: 4px;">再學一次</button>
+          <div class="slot" style="position: absolute; bottom: 4px; left: 0; width: 100%; height: 25%; display: flex; align-items: center; justify-content: center;">
+            <button class="square-btn" id="btn-record" title="比對"><span class="max-icon">📻</span></button>
+          </div>
+        `;
+        document.getElementById('btn-repeat').addEventListener('click', handleRepeatAgain);
         document.getElementById('btn-record').addEventListener('click', handleRecordModeClick);
       } else {
-        slotR1.innerHTML = '';
-        slotR3.innerHTML = '';
+        // 定課或串習進行中：兩側乾淨，無供養、無再學一次、無比對、無速度鍵
+        leftWing.innerHTML = '';
+        rightWing.innerHTML = '';
       }
     }
 
@@ -903,7 +897,7 @@
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日定課與串習全部圓滿");
-          showToast("🎉 今日定課與串習全部圓滿！\n右側已解鎖『再學一次』與『比對』", 6000);
+          showToast("🎉 今日定課與串習全部圓滿！\n左側已解鎖『背書供養』，右側已解鎖『再學一次』與『比對』", 6000);
         }
       }
       saveCurrentAppState();
