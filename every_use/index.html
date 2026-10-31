@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>背書</title>
+  <title>歡喜背書萬6</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1728,7 +1728,7 @@
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          practicePhase = 'new_gendu';
+          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V608') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
           currentCycleCount = 0;
           return false;
         }
@@ -1739,7 +1739,11 @@
 
         classicStorage.setItem('USER_CURRENT_PROGRESS_END_V608', currentDayPlan.end.toString());
 
-        practicePhase = 'new_gendu';
+        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V608') === getNormalizedDateStr()) {
+          practicePhase = 'completed';
+        } else {
+          practicePhase = 'new_gendu';
+        }
         currentCycleCount = 0;
 
         setupStageRange();
@@ -2186,49 +2190,41 @@
           }
       });
 
+      // 模式 2 (跟讀)
       if (btnGendu) {
-          const isGenduActivePhase = (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu' || isIndependentModeUnlocked());
           const isGenduPlaying = (currentCoreMode === 'mode2' && video && !video.paused);
-
-          if (isGenduPlaying) {
-              btnGendu.textContent = '跟著唸';
-              btnGendu.style.background = colorPurple;
-              btnGendu.style.borderColor = '#E9D5FF';
+          if (currentCoreMode === 'mode2') {
+              btnGendu.textContent = isGenduPlaying ? '跟著唸' : '跟讀';
+              btnGendu.style.background = isGenduPlaying ? colorPurple : colorGreen;
+              btnGendu.style.borderColor = isGenduPlaying ? '#E9D5FF' : '#A7F3D0';
               btnGendu.style.color = '#FFFFFF';
-              btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
-          } else if (isGenduActivePhase) {
-              btnGendu.textContent = '跟讀';
-              btnGendu.style.background = (currentCoreMode === 'mode2') ? colorGreen : colorBlack;
-              btnGendu.style.borderColor = (currentCoreMode === 'mode2') ? '#A7F3D0' : '#BAE6FD';
-              btnGendu.style.color = (currentCoreMode === 'mode2') ? '#FFFFFF' : '#FB923C';
+              if (isGenduPlaying) btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
           }
       }
 
+      // 模式 3 (自讀)
       if (btnZidu) {
-          const isZiduActivePhase = (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu' || isIndependentModeUnlocked());
           const isZiduRunning = (currentCoreMode === 'mode3' && isGuideActive);
-
-          if (isZiduRunning) {
-              btnZidu.textContent = '唸出聲';
-              btnZidu.style.background = colorPurple;
-              btnZidu.style.borderColor = '#E9D5FF';
+          if (currentCoreMode === 'mode3') {
+              btnZidu.textContent = isZiduRunning ? '唸出聲' : '自讀';
+              btnZidu.style.background = isZiduRunning ? colorPurple : colorGreen;
+              btnZidu.style.borderColor = isZiduRunning ? '#E9D5FF' : '#A7F3D0';
               btnZidu.style.color = '#FFFFFF';
-              btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
-          } else if (isZiduActivePhase) {
-              btnZidu.textContent = '自讀';
-              btnZidu.style.background = (currentCoreMode === 'mode3') ? colorGreen : colorBlack;
-              btnZidu.style.borderColor = (currentCoreMode === 'mode3') ? '#A7F3D0' : '#BAE6FD';
-              btnZidu.style.color = (currentCoreMode === 'mode3') ? '#FFFFFF' : '#FB923C';
+              if (isZiduRunning) btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
           }
       }
 
+      // 模式 4 (比對)
       if (btnRecord && isIndependentModeUnlocked()) {
           if (currentCoreMode === 'mode4') {
               btnRecord.textContent = isUserRecording ? '錄音中' : '比對';
               btnRecord.style.background = isUserRecording ? colorPurple : colorGreen;
               btnRecord.style.borderColor = isUserRecording ? '#E9D5FF' : '#A7F3D0';
               btnRecord.style.color = '#FFFFFF';
-              if (isUserRecording) btnRecord.classList.add('recording-flashing');
+              if (isUserRecording) {
+                  btnRecord.classList.add('recording-flashing');
+                  btnRecord.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
+              }
           }
       }
     }
@@ -2497,6 +2493,7 @@
             }, 3000);
           } else {
             practicePhase = 'completed';
+            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V608', getNormalizedDateStr());
             renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿，功能已全部解鎖");
@@ -2528,6 +2525,7 @@
           setTimeout(() => { handleZiduClick(); }, 500);
         } else {
           practicePhase = 'completed';
+          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V608', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
