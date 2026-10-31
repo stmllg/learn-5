@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡</title>
+  <title>歡喜</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1594,7 +1594,6 @@
       });
     }
 
-    // 🌟【精準核心修復】開機第一時間預先載入 sentence.json 取得真實句數，確保排程與模態視窗抓到正確總數
     async function prefetchSentenceCountOnStartup() {
       const timestamp = Date.now();
       let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V608');
@@ -1864,7 +1863,8 @@
             r.underLineY = r.maxBottom + 7;
           });
 
-          const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80);
+          // 🌟 放寬過濾條件：允許中文數 >= 2 (支援 2-3 字短標題如心經、文殊讚)，寬度門檻降低以完美識別第一句標題
+          const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30);
           let mainTextFontSize = 0;
           if (candidateLargeRows.length > 0) {
             const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
@@ -1875,8 +1875,8 @@
           let internalIndex = 0;
 
           analyzedRows.forEach(r => {
-            const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.80);
-            if (r.chineseCount >= 4 && (r.lineX1 - r.lineX0) >= 80 && isNormalOrLarge) {
+            const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.70);
+            if (r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30 && isNormalOrLarge) {
               parsedTextLines.push({
                 lineIndex: internalIndex++, x0: r.lineX0, x1: r.lineX1, topGlobal: r.minTop, bottomGlobal: r.maxBottom, underLineY: r.underLineY, charItems: r.spans
               });
@@ -3239,7 +3239,6 @@
         return; 
       }
 
-      // 🌟 開機時立即預先載入真實 sentence 總句數，確保排程設定與全域正確
       await prefetchSentenceCountOnStartup();
 
       checkDailyResetOnStartup();
