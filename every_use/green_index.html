@@ -304,46 +304,34 @@
       display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;
       padding-top: 4px; padding-bottom: 4px; z-index: 60; box-sizing: border-box;
     }
-    #left-wing { width: calc(76px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; }
-    #right-wing { width: calc(76px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; }
+    #left-wing { width: calc(82px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; }
+    #right-wing { width: calc(82px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; }
 
     .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
 
+    /* 按鍵統一：純黑底、無文字、圖示放到最大 */
     .square-btn {
-      width: 68px !important; height: 68px !important;
-      border-radius: 16px !important;
-      border: 2.5px solid #BAE6FD;
-      background: #000000;
+      width: 72px !important; height: 72px !important;
+      border-radius: 18px !important;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      background: #000000 !important;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      font-size: 15px !important; font-weight: 900;
-      color: #FB923C; cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
-      text-align: center; line-height: 1.25;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.9);
       touch-action: manipulation;
-      transition: transform 0.15s ease-out;
+      transition: transform 0.15s ease-out, border-color 0.2s ease;
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    .btn-color-offering {
-      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
-      border: 2.5px solid #FDE68A !important;
-      color: #FEF3C7 !important;
-      animation: coinPulseGlow 1.8s infinite ease-in-out;
+    /* 各按鍵最大化圖示 */
+    .max-icon {
+      font-size: 38px !important;
+      line-height: 1;
+      display: inline-block;
     }
-    @keyframes coinPulseGlow {
-      0% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.7); transform: scale(1); }
-      50% { box-shadow: 0 0 25px rgba(245, 158, 11, 1); transform: scale(1.04); }
-      100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.7); transform: scale(1); }
-    }
-
-    .btn-color-compare { background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%); border-color: #E9D5FF; color: #FFFFFF; }
-    .btn-color-speed-up { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; color: #FFFFFF; }
-    .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; color: #FFFFFF; }
 
     /* 動態動畫圖標 */
     .anim-plane {
-      display: inline-block;
-      font-size: 26px !important;
       animation: flyAnim 1.6s ease-in-out infinite;
     }
     @keyframes flyAnim {
@@ -353,19 +341,12 @@
     }
 
     .anim-walker {
-      display: inline-block;
-      font-size: 26px !important;
       animation: walkAnim 1.2s ease-in-out infinite;
     }
     @keyframes walkAnim {
       0% { transform: translateY(0px) scale(1); }
-      50% { transform: translateY(-3px) scale(1.1); }
+      50% { transform: translateY(-3px) scale(1.15); }
       100% { transform: translateY(0px) scale(1); }
-    }
-
-    .coin-icon-btn {
-      font-size: 26px !important;
-      line-height: 1;
     }
 
     #center-core {
@@ -665,16 +646,16 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V2', JSON.stringify(state));
+      classicStorage.setItem('APP_SAVED_STATE_SENIOR_V3', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V2');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V3');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         if (state.savedDateStr !== getNormalizedDateStr()) {
-          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V2');
+          classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V3');
           return false;
         }
         pendingRestoredState = state;
@@ -682,7 +663,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V2');
+        classicStorage.removeItem('APP_SAVED_STATE_SENIOR_V3');
         return false;
       }
     }
@@ -833,10 +814,10 @@
         companionOverlay.style.display = 'none';
 
         playStandaloneVideo('mode1', 0, async () => {
-          showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
+          showToast('✨ 前行圓滿，3秒後自動進入今日定課...', 3000);
           await loadAllAssetsSmartSync();
 
-          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V2');
+          const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V3');
           if (savedStr) {
             try {
               const state = JSON.parse(savedStr);
@@ -849,7 +830,7 @@
           }
 
           setCoreMode('mode2');
-          autoPlayCurrentSchedule();
+          setTimeout(() => { autoPlayCurrentSchedule(); }, 3000);
         });
       }, 350);
     }
@@ -864,7 +845,7 @@
 
         await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V2');
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_SENIOR_V3');
         if (savedStr) {
           try {
             const state = JSON.parse(savedStr);
@@ -879,7 +860,8 @@
         const hasRestore = checkAndPrepareRestoreState();
         if (!hasRestore) {
           setCoreMode('mode2');
-          autoPlayCurrentSchedule();
+          showToast('✨ 3秒後自動進入今日定課...', 2500);
+          setTimeout(() => { autoPlayCurrentSchedule(); }, 3000);
         }
       }, 350);
     }
@@ -1292,13 +1274,13 @@
 
     function renderUI() {
       try {
-        // 左1: 背書供養 (福慧幣圖形)
-        slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering"><span class="coin-icon-btn">🪙</span><br>供養</button>';
+        // 左1: 背書供養 (福慧幣圖形 🪙，黑底、無字、放到最大)
+        slotL1.innerHTML = '<button class="square-btn" id="btn-offering"><span class="max-icon">🪙</span></button>';
         const btnOffering = document.getElementById('btn-offering');
         if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
-        // 左4: 慢鍵 (小綠人走路圖示，無文字)
-        slotL4.innerHTML = '<button class="square-btn btn-color-speed-down" id="btn-speed-down"><span class="anim-walker">🚶‍♂️</span></button>';
+        // 左4: 慢鍵 (小綠人走路動畫 🚶‍♂️，黑底、無字、放到最大)
+        slotL4.innerHTML = '<button class="square-btn" id="btn-speed-down"><span class="max-icon anim-walker">🚶‍♂️</span></button>';
         const btnSpeedDown = document.getElementById('btn-speed-down');
         if (btnSpeedDown) {
           btnSpeedDown.addEventListener('click', (e) => {
@@ -1307,13 +1289,13 @@
           });
         }
 
-        // 右3: 比對
-        slotR3.innerHTML = '<button class="square-btn btn-color-compare" id="btn-record">比對</button>';
+        // 右3: 比對 (收音機圖示 📻，黑底、無字、放到最大)
+        slotR3.innerHTML = '<button class="square-btn" id="btn-record"><span class="max-icon" id="record-icon">📻</span></button>';
         const btnRecord = document.getElementById('btn-record');
         if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
 
-        // 右4: 快鍵 (飛機動態圖示，無文字)
-        slotR4.innerHTML = '<button class="square-btn btn-color-speed-up" id="btn-speed-up"><span class="anim-plane">✈️</span></button>';
+        // 右4: 快鍵 (飛機動態動畫 ✈️，黑底、無字、放到最大)
+        slotR4.innerHTML = '<button class="square-btn" id="btn-speed-up"><span class="max-icon anim-plane">✈️</span></button>';
         const btnSpeedUp = document.getElementById('btn-speed-up');
         if (btnSpeedUp) {
           btnSpeedUp.addEventListener('click', (e) => {
@@ -1327,12 +1309,12 @@
     }
 
     function updateModeButtonsStyle() {
-      const btnRecord = document.getElementById('btn-record');
+      const recordIcon = document.getElementById('record-icon');
       const isMode4 = (currentCoreMode === 'mode4');
       const isRecordRunning = isMode4 && isUserRecording;
 
-      if (btnRecord) {
-        btnRecord.textContent = isRecordRunning ? '播放' : '比對';
+      if (recordIcon) {
+        recordIcon.textContent = isRecordRunning ? '▶️' : '📻';
       }
     }
 
@@ -1472,7 +1454,7 @@
           currentCycleCount = 0;
           setupStageRange();
           setCoreMode('mode4');
-          showToast(`🎉 今日跟讀圓滿！\n請點擊右側「比對」按鈕進行錄音比對。`, 5000);
+          showToast(`🎉 今日跟讀圓滿！\n請點擊右側「收音機」按鈕進行錄音比對。`, 5000);
         }
       } else if (practicePhase === 'new_compare') {
         if (hasCumulative) {
@@ -1500,7 +1482,7 @@
           currentCycleCount = 0;
           setupStageRange();
           setCoreMode('mode4');
-          showToast(`🎉 串習跟讀圓滿！\n請點擊右側「比對」進行錄音比對。`, 5000);
+          showToast(`🎉 串習跟讀圓滿！\n請點擊右側「收音機」進行錄音比對。`, 5000);
         }
       } else if (practicePhase === 'cumulative_compare') {
         practicePhase = 'completed';
