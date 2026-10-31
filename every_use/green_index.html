@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜金幣供養版</title>
+  <title>歡喜背書萬6・長青精緻金幣供養版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -535,15 +535,6 @@
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
 
-    let audioContext = null;
-    let analyser = null;
-    let micStream = null;
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isUserRecording = false;
-    let recordedAudioBlobUrl = null;
-    let recordAudioElement = new Audio();
-
     let scriptureData = [];
     let currentPdfDoc = null;
     let parsedTextLines = [];
@@ -590,15 +581,8 @@
       classicStorage.setItem('APP_SAVED_STATE_V608', JSON.stringify(state));
     }
 
-    window.addEventListener('beforeunload', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
-    window.addEventListener('pagehide', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
-    
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        saveCurrentAppState();
-        releaseMicrophoneResources();
-      }
-    });
+    window.addEventListener('beforeunload', () => { saveCurrentAppState(); });
+    window.addEventListener('pagehide', () => { saveCurrentAppState(); });
 
     function handleOrientationCheck() {
       if (hasEnteredReciting) return;
@@ -631,14 +615,6 @@
       let toastText = (modeType === 'mode1') ? '🙏【老師帶前行：念佛清心】播放中...' : '🙏【模式5：功德迴向】播放中...';
 
       let mediaUrl = defaultUrl;
-      try {
-        let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_v608' : 'merit_dedication_file_v608';
-        const savedFile = await getLocalFile(fileKey);
-        if (savedFile && savedFile.data) {
-          mediaUrl = URL.createObjectURL(new Blob([savedFile.data], { type: 'video/mp4' }));
-        }
-      } catch(e) {}
-
       standaloneVideo.src = mediaUrl;
       standaloneVideo.currentTime = startSeekSec;
       standaloneVideo.playbackRate = 1.0;
@@ -757,7 +733,6 @@
 
     function generateAlgorithmicSchedule() {
       const total = CLASSIC_TOTAL_SENTENCES;
-      const targetDay = getCurrentActiveDayNumber();
       const scheduleList = [];
 
       let simStart = 1;
@@ -801,28 +776,27 @@
         const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(cachedPdfBuffer) });
         currentPdfDoc = await loadingTask.promise;
         const page = await currentPdfDoc.getPage(1);
-        const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
-        const viewport = page.getViewport({ scale: availableWidth / page.getViewport({ scale: 1.0 }).width });
+
+        pdfCanvas.width = 0;
+        pdfCanvas.height = 0;
+
+        const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 136);
+        const pageRotation = page.rotate || 0;
+        const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
+        const pageScale = availableWidth / unscaledViewport.width;
+        const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
 
         pdfCanvas.width = viewport.width;
         pdfCanvas.height = viewport.height;
-        await page.render({ canvasContext: pdfCanvas.getContext('2d'), viewport: viewport }).promise;
+        const ctx = pdfCanvas.getContext('2d');
+
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
         const textContent = await page.getTextContent();
-        const validSpans = [];
-        textContent.items.forEach(it => {
-          const str = it.str || '';
-          if (!str.trim()) return;
-          const p = pdfjsLib.Util.applyTransform([it.transform[4], it.transform[5]], viewport.transform);
-          for (let c = 0; c < str.length; c++) {
-            if (/[\u4e00-\u9fa5]/.test(str[c])) validSpans.push({ topY: p[1] });
-          }
-        });
-        parsedTextLines = validSpans.map((s, idx) => ({ lineIndex: idx }));
+        parsedTextLines = textContent.items.filter(it => (it.str || '').trim().length > 0).map((it, idx) => ({ lineIndex: idx }));
       } catch(e) {}
     }
 
-    async function getLocalFile(key) { return null; }
     function showToast(msg, duration = 4000) {
       if (!scheduleToast) return;
       scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
@@ -841,6 +815,7 @@
         video.pause();
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
+        setTimeout(() => { renderPdfOnValidDimensions(); }, 100);
       }
       renderUI();
     }
@@ -945,11 +920,8 @@
 
     async function handleRecordModeClick() {
       triggerAppFullscreen();
-      if (currentCoreMode !== 'mode4') {
-        setCoreMode('mode4');
-        showToast('🎙️ 已切換至比對模式，請點擊錄音', 2000);
-        return;
-      }
+      setCoreMode('mode4');
+      showToast('🎙️ 已切換至比對模式，請對照上方經文', 2500);
     }
 
     function speakPrompt(text, onEnded) {
