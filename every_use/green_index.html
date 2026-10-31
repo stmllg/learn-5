@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜</title>
+  <title>歡喜背書萬6・長青精緻穩定版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,6 +17,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const CLASSIC_PARAM = urlParams.get('classic');
     const GROUP_PARAM = urlParams.get('group') || 'def';
+    const START_DATE_PARAM = urlParams.get('start') || '';
 
     const CURRENT_CLASSIC_ID = /^[a-zA-Z0-9_-]+$/.test(CLASSIC_PARAM || '') ? CLASSIC_PARAM : 'er_sheng';
     const CURRENT_GROUP_ID = /^[a-zA-Z0-9_-]+$/.test(GROUP_PARAM || '') ? GROUP_PARAM : 'def';
@@ -33,7 +34,7 @@
     
     let CLASSIC_TOTAL_SENTENCES = 37;
     const DEFAULT_DAILY_STEP = 1;
-    const DEFAULT_REPEAT_NEW = ２;
+    const DEFAULT_REPEAT_NEW = 10;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
   </script>
 
@@ -655,10 +656,8 @@
     }
 
     function getCurrentActiveDayNumber() {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('start')) {
-        const startStr = urlParams.get('start');
-        const parts = startStr.split('-');
+      if (START_DATE_PARAM) {
+        const parts = START_DATE_PARAM.split('-');
         if (parts.length === 3) {
           const userStartDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
           const now = new Date();
@@ -957,7 +956,6 @@
           ctx.translate(f.x, f.y);
           ctx.rotate(f.rotation);
           ctx.fillStyle = f.color;
-          // Draw 5-petal lotus flower
           for (let p = 0; p < 5; p++) {
             ctx.beginPath();
             ctx.ellipse(0, -f.size * 0.5, f.size * 0.35, f.size * 0.6, 0, 0, Math.PI * 2);
@@ -1006,7 +1004,6 @@
       requestAnimationFrame(anim);
     }
 
-    // Touch swipe gesture handlers
     let touchStartX = 0;
     let touchEndX = 0;
     window.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
@@ -1018,13 +1015,8 @@
     function handleSwipeGesture() {
       const diff = touchEndX - touchStartX;
       if (Math.abs(diff) > 80) {
-        if (diff > 0) {
-          // Swipe Right
-          showToast('👈 向右滑動', 1500);
-        } else {
-          // Swipe Left
-          showToast('👉 向左滑動', 1500);
-        }
+        if (diff > 0) { showToast('👈 向右滑動', 1500); }
+        else { showToast('👉 向左滑動', 1500); }
       }
     }
 
@@ -1036,15 +1028,45 @@
     }
 
     btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
-    btnConfirmOffering.addEventListener('click', () => {
+    btnConfirmOffering.addEventListener('click', async () => {
       const classId = inputClassId.value.trim();
       const userName = inputUserName.value.trim();
       if (!classId || !userName) { alert("請輸入班號與姓名！"); return; }
+      
       classicStorage.setItem('user_class_id', classId);
       classicStorage.setItem('user_profile_name', userName);
       offeringOverlay.style.display = 'none';
       triggerGoldCoinShower();
-      alert("🙏 供養成功，隨喜功德！");
+
+      // Send to Google Apps Script backend including start date and group
+      const payload = {
+        classId: classId,
+        name: userName,
+        coins: parseInt(classicStorage.getItem('user_accumulated_coins') || '10', 10),
+        classic: CURRENT_CLASSIC_ID,
+        group: CURRENT_GROUP_ID,
+        startDate: START_DATE_PARAM || getNormalizedDateStr()
+      };
+
+      try {
+        await fetch(GAS_BACKEND_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast("🙏 供養成功，已回報至雲端！", 3500);
+      } catch (e) {
+        showToast("🙏 供養成功（離線儲存）", 3000);
+      }
+    });
+
+    btnPlayDedication.addEventListener('click', () => {
+      offeringOverlay.style.display = 'none';
+      playStandaloneVideo('mode5', 0, () => {
+        showToast("✨ 迴向圓滿", 3000);
+        offeringOverlay.style.display = 'flex';
+      });
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
