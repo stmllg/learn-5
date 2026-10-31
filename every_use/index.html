@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書萬6</title>
+  <title>歡萬6</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,8 +31,8 @@
     };
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
     
-    let CLASSIC_TOTAL_SENTENCES = 37;
-    const DEFAULT_DAILY_STEP = 4;
+    let CLASSIC_TOTAL_SENTENCES = 66;
+    const DEFAULT_DAILY_STEP = 1;
     const DEFAULT_REPEAT_NEW = 10;
     const DEFAULT_REPEAT_CUMULATIVE = 3;
   </script>
@@ -2191,7 +2191,6 @@
       const colorGreen = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
       const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
 
-      // 1. Reset all buttons to black (inactive mode default)
       [btnGendu, btnZidu, btnRecord].forEach(btn => {
           if (btn) {
               btn.style.background = colorBlack;
@@ -2202,7 +2201,6 @@
           }
       });
 
-      // 2. Apply active mode colors (Green when selected/idle, Purple when running/playing/recording)
       if (btnGendu) {
           const isGenduPlaying = (currentCoreMode === 'mode2' && video && !video.paused);
           if (currentCoreMode === 'mode2') {
@@ -3252,10 +3250,17 @@
 
       checkDailyResetOnStartup();
 
-      const isFirstSessionToday = !sessionStorage.getItem('session_started_v608');
+      const todayStr = getNormalizedDateStr();
+      const lastSettingShownDate = classicStorage.getItem('LAST_SCHEDULE_SETTING_SHOWN_DATE_V608');
+      const isFirstSessionToday = (lastSettingShownDate !== todayStr);
+
       if (isFirstSessionToday) {
+        classicStorage.setItem('LAST_SCHEDULE_SETTING_SHOWN_DATE_V608', todayStr);
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
+      } else {
+        const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
       }
 
       const urlParams = new URLSearchParams(window.location.search);
