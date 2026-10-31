@@ -47,7 +47,7 @@
         .info-box p { margin: 0; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #37474f; font-size: 14px; }
-        input, select {
+        input[type="text"], input[type="email"], select {
             width: 100%;
             padding: 12px;
             border: 1.5px solid #cfd8dc;
@@ -62,6 +62,31 @@
             background-color: #fff;
             outline: none;
             box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.15);
+        }
+        /* 長青班勾選框樣式美化 */
+        .checkbox-group {
+            background: #f1f8e9;
+            border: 1.5px solid #c8e6c9;
+            padding: 12px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #2e7d32;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            margin: 0;
+            color: #2e7d32;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
         }
         .end-date-tip {
             font-size: 13px;
@@ -130,7 +155,7 @@
 <body>
 
 <div class="card">
-    <h2>📖 時時歡喜・背書供養</h2>
+    <h2>📖 時時歡喜・經典背書供養</h2>
     <div class="subtitle">培福修慧，每日與法相伴同行</div>
     
     <div class="info-box">
@@ -155,7 +180,13 @@
         <input type="text" id="teamName" placeholder="例如：精進勇猛隊">
     </div>
 
-    <!-- 3. 選擇已上線經典 + 自動計算預計結束日 -->
+    <!-- 3. 長青班勾選框（打勾後，輸出的專屬網址會自動變成 green_index.html） -->
+    <div class="checkbox-group">
+        <input type="checkbox" id="isSeniorCheckbox">
+        <label for="isSeniorCheckbox">🌱 長青班專用模式（勾選後，產生的專屬網址將指向長青簡化版 green_index.html）</label>
+    </div>
+
+    <!-- 4. 選擇已上線經典 + 自動計算預計結束日 -->
     <div class="form-group">
         <label for="classicSelect">📚 選擇欲背誦的經典：</label>
         <select id="classicSelect" onchange="updateEndDate()">
@@ -164,7 +195,7 @@
         <div class="end-date-tip" id="endDateTip">⏳ 預計結束日計算中...</div>
     </div>
 
-    <!-- 4. E-mail 欄位 -->
+    <!-- 5. E-mail 欄位 -->
     <div class="form-group">
         <label for="userEmail">✉️ 電子信箱 E-mail（選填）：</label>
         <input type="email" id="userEmail" placeholder="如需寄發電子獎狀請填寫此處">
@@ -176,7 +207,6 @@
     <div id="result-box">
         <strong>🎉 登記成功並已寫入雲端總表！請點擊下方按鈕複製後貼給同修：</strong>
         <div class="link-text" id="generated-text"></div>
-        <!-- 按鈕文字已更新 -->
         <button class="btn-copy" onclick="copyToLine()">📋 一鍵複製 LINE 貼給同修</button>
     </div>
 
@@ -278,6 +308,7 @@
         const coInitiator = document.getElementById("coInitiator").value.trim();
         const teamName = document.getElementById("teamName").value.trim();
         const userEmail = document.getElementById("userEmail").value.trim();
+        const isSenior = document.getElementById("isSeniorCheckbox").checked; // 檢查是否有勾選長青班
         const selectElem = document.getElementById("classicSelect");
         const classicCode = selectElem.value;
         const classicText = selectElem.options[selectElem.selectedIndex].text;
@@ -298,7 +329,10 @@
         const pathArr = window.location.pathname.split('/');
         pathArr.pop(); 
         const basePath = pathArr.join('/') + '/';
-        const personalLink = `${origin}${basePath}index.html?classic=${classicCode}&start=${start}&group=${group}`;
+        
+        // 核心邏輯：如果勾選了長青班，產生的網址就指向 green_index.html，否則指向 index.html (或原網頁)
+        const targetFileName = isSenior ? "green_index.html" : "index.html";
+        const personalLink = `${origin}${basePath}${targetFileName}?classic=${classicCode}&start=${start}&group=${group}`;
         
         let teamHeader = teamName ? `【${teamName}】發起人` : "發起人";
 
