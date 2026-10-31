@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書萬6</title>
+  <title>歡喜6</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -920,15 +920,18 @@
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+    // ==========================================================================
+    // 📌【徹底隔離版 classicStorage】嚴格以 NAMESPACE_KEY 隔離，絕無跨經典干擾
+    // ==========================================================================
     const classicStorage = {
       getItem(key) {
-        const namespaced = localStorage.getItem(NAMESPACE_KEY + '::' + key);
-        return namespaced !== null ? namespaced : (NAMESPACE_KEY === 'er_sheng_def' ? localStorage.getItem(key) : null);
+        return localStorage.getItem(NAMESPACE_KEY + '::' + key);
       },
-      setItem(key, value) { localStorage.setItem(NAMESPACE_KEY + '::' + key, value); },
+      setItem(key, value) {
+        localStorage.setItem(NAMESPACE_KEY + '::' + key, value);
+      },
       removeItem(key) {
         localStorage.removeItem(NAMESPACE_KEY + '::' + key);
-        if (NAMESPACE_KEY === 'er_sheng_def') localStorage.removeItem(key);
       }
     };
 
@@ -2119,69 +2122,71 @@
     }
 
     function renderUI() {
-      if (isIndependentModeUnlocked()) {
-        slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
-        const btnOffering = document.getElementById('btn-offering');
-        if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+      try {
+        if (isIndependentModeUnlocked()) {
+          slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
+          const btnOffering = document.getElementById('btn-offering');
+          if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
-        const textA = isSelectingMarkA ? '請點句' : '起句';
-        const textB = isSelectingMarkB ? '請點句' : '終句';
-        const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
-        const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+          const textA = isSelectingMarkA ? '請點句' : '起句';
+          const textB = isSelectingMarkB ? '請點句' : '終句';
+          const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+          const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
 
-        slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
-        slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
-        slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
-      } else {
-        slotL1.innerHTML = '';
-        slotL2.innerHTML = '';
-        slotL3.innerHTML = '';
-        slotR3.innerHTML = '';
-      }
+          slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
+          slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
+          slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
+        } else {
+          slotL1.innerHTML = '';
+          slotL2.innerHTML = '';
+          slotL3.innerHTML = '';
+          slotR3.innerHTML = '';
+        }
 
-      slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
-      slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+        slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
+        slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
-      slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
-      slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
+        slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
+        slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
 
-      const btnMarkA = document.getElementById('btn-mark-a');
-      if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
+        const btnMarkA = document.getElementById('btn-mark-a');
+        if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
 
-      const btnMarkB = document.getElementById('btn-mark-b');
-      if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
+        const btnMarkB = document.getElementById('btn-mark-b');
+        if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
 
-      const btnSpeedDown = document.getElementById('btn-speed-down');
-      if (btnSpeedDown) {
-        btnSpeedDown.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
-          else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
-          else triggerPdfSpeedChange(-0.1);
-        });
-      }
+        const btnSpeedDown = document.getElementById('btn-speed-down');
+        if (btnSpeedDown) {
+          btnSpeedDown.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
+            else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
+            else triggerPdfSpeedChange(-0.1);
+          });
+        }
 
-      const btnGendu = document.getElementById('btn-gendu');
-      if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
+        const btnGendu = document.getElementById('btn-gendu');
+        if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
 
-      const btnZidu = document.getElementById('btn-zidu');
-      if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
+        const btnZidu = document.getElementById('btn-zidu');
+        if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
 
-      const btnRecord = document.getElementById('btn-record');
-      if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
+        const btnRecord = document.getElementById('btn-record');
+        if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
 
-      const btnSpeedUp = document.getElementById('btn-speed-up');
-      if (btnSpeedUp) {
-        btnSpeedUp.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
-          else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
-          else triggerPdfSpeedChange(+0.1);
-        });
-      }
+        const btnSpeedUp = document.getElementById('btn-speed-up');
+        if (btnSpeedUp) {
+          btnSpeedUp.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
+            else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
+            else triggerPdfSpeedChange(+0.1);
+          });
+        }
 
-      updateModeButtonsStyle();
-      updateVisualDisplay();
+        updateModeButtonsStyle();
+        updateVisualDisplay();
+      } catch (err) {}
     }
 
     function updateModeButtonsStyle() {
