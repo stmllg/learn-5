@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡書萬6</title>
+  <title>歡喜背書萬6</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1995,16 +1995,24 @@
       setCompareSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
     }
 
-    function speakPrompt(text) {
+    function speakPrompt(text, onEnded) {
       try {
         if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel();
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'zh-TW';
           utterance.rate = 1.1;
+          if (typeof onEnded === 'function') {
+            utterance.onend = onEnded;
+            utterance.onerror = onEnded;
+          }
           window.speechSynthesis.speak(utterance);
+        } else {
+          if (typeof onEnded === 'function') onEnded();
         }
-      } catch (e) {}
+      } catch (e) {
+        if (typeof onEnded === 'function') onEnded();
+      }
     }
 
     function getActiveVideoRange() {
@@ -2183,6 +2191,7 @@
       const colorGreen = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
       const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
 
+      // 1. Reset all buttons to black (inactive mode default)
       [btnGendu, btnZidu, btnRecord].forEach(btn => {
           if (btn) {
               btn.style.background = colorBlack;
@@ -2193,6 +2202,7 @@
           }
       });
 
+      // 2. Apply active mode colors (Green when selected/idle, Purple when running/playing/recording)
       if (btnGendu) {
           const isGenduPlaying = (currentCoreMode === 'mode2' && video && !video.paused);
           if (currentCoreMode === 'mode2') {
@@ -2466,16 +2476,18 @@
           setupStageRange();
 
           setCoreMode('mode3');
-          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。");
+          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
+            handleZiduClick();
+          });
           showToast("🎉 新進度跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
-
-          setTimeout(() => { handleZiduClick(); }, 1200);
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
           showToast(`✅ 新進度自讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
           setupStageRange();
-          setTimeout(() => { handleZiduClick(); }, 500);
+          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
+            handleZiduClick();
+          });
         } else {
           if (hasCumulative) {
             practicePhase = 'cumulative_gendu';
@@ -2483,14 +2495,12 @@
             setupStageRange();
 
             setCoreMode('mode2');
-            speakPrompt("新進度圓滿，準備進入串習複習跟讀");
-            showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
-
-            setTimeout(() => { 
+            speakPrompt("新進度圓滿，準備進入串習複習跟讀", () => {
               const range = getActiveVideoRange();
               if (range.valid) { video.currentTime = range.start; }
-              handleGenduClick(); 
-            }, 3000);
+              handleGenduClick();
+            });
+            showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
           } else {
             practicePhase = 'completed';
             classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V608', getNormalizedDateStr());
@@ -2513,16 +2523,18 @@
           setupStageRange();
 
           setCoreMode('mode3');
-          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。");
+          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
+            handleZiduClick();
+          });
           showToast("🎉 串習複習跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
-
-          setTimeout(() => { handleZiduClick(); }, 1200);
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
           showToast(`✅ 串習複習自讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
           setupStageRange();
-          setTimeout(() => { handleZiduClick(); }, 500);
+          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
+            handleZiduClick();
+          });
         } else {
           practicePhase = 'completed';
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V608', getNormalizedDateStr());
