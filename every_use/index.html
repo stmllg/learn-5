@@ -1075,7 +1075,6 @@
     let isUserRecording = false;
     let recordedAudioBlobUrl = null;
     let recordAudioElement = new Audio();
-    let recordTimeoutTimer = null; // 限制錄音時間計時器
 
 
     let scriptureData = [];
@@ -1325,10 +1324,7 @@
     function handleReturnToCompanionCard() {
       saveCurrentAppState();
       haltGuideRunnerImmediately();
-      if (isUserRecording) {
-        if (recordTimeoutTimer) clearTimeout(recordTimeoutTimer);
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-      }
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
       releaseMicrophoneResources();
@@ -1426,10 +1422,7 @@
       currentCoreMode = modeType; 
       haltGuideRunnerImmediately();
       if (video && !video.paused) video.pause();
-      if (isUserRecording) {
-        if (recordTimeoutTimer) clearTimeout(recordTimeoutTimer);
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-      }
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
 
 
@@ -2294,10 +2287,7 @@
       haltGuideRunnerImmediately();
 
 
-      if (isUserRecording) {
-        if (recordTimeoutTimer) clearTimeout(recordTimeoutTimer);
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-      }
+      if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
 
@@ -2671,7 +2661,6 @@
 
       // 第二步：已經是比對模式，再次點擊才切換錄音/停止錄音
       if (isUserRecording) {
-        if (recordTimeoutTimer) clearTimeout(recordTimeoutTimer);
         if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
         isUserRecording = false;
         renderUI();
@@ -3277,10 +3266,6 @@
         if (e.data.size > 0) audioChunks.push(e.data);
       };
       mediaRecorder.onstop = () => {
-        if (recordTimeoutTimer) {
-          clearTimeout(recordTimeoutTimer);
-          recordTimeoutTimer = null;
-        }
         const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
         const recordedBlob = new Blob(audioChunks, options);
         recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
@@ -3290,28 +3275,19 @@
       };
       mediaRecorder.start(); 
       isUserRecording = true;
+      renderUI();
 
 
-      // 限制錄音時間超過 18 分鐘 (18 * 60 * 1000 毫秒) 自動關閉錄音防止誤觸
-      if (recordTimeoutTimer) clearTimeout(recordTimeoutTimer);
-      recordTimeoutTimer = setTimeout(() => {
-        if (isUserRecording) {
-          if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
-          }
+      // 防誤觸保護：限制錄音時間超過 18 分鐘（1080000 毫秒）自動停止關閉錄音
+      if (window._recordTimeoutTimer) clearTimeout(window._recordTimeoutTimer);
+      window._recordTimeoutTimer = setTimeout(() => {
+        if (isUserRecording && mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
           isUserRecording = false;
           renderUI();
-          showToast('⚠️ 已達 18 分鐘錄音極限，為防誤觸已自動關閉錄音', 5000);
-          setTimeout(() => {
-            if (recordedAudioBlobUrl) {
-              togglePlaybackAction();
-            }
-          }, 200);
+          showToast('⚠️ 錄音時間已達 18 分鐘上限，為防誤觸已自動關閉錄音', 6000);
         }
       }, 18 * 60 * 1000);
-
-
-      renderUI();
     }
 
 
