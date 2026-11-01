@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V905</title>
+  <title>歡V905</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -3348,9 +3348,9 @@
       }
       classicStorage.setItem('CURRENT_SCHEDULE_DAY_V905', targetDay.toString());
 
-      // 📌【嚴格區分天數邏輯：V905版本】
-      // 1. 若 targetDay <= 21，強制鎖定對應的 001 ~ 021 檔案，絕對不隨機。
-      // 2. 若 targetDay >= 22，則強制啟用隨機池，從 022 到 120 之間隨機抽選。
+      // 📌【V905 絕對防線邏輯】
+      // 1. 若 targetDay <= 21：絕對死鎖對應的 card_001.webp ~ card_021.webp，不隨機！
+      // 2. 若 targetDay >= 22：解鎖隨機池，從 card_022 到 card_120 之間隨機抽樣。
       let cardFileName = "";
       if (targetDay <= 21) {
         cardFileName = 'card_' + String(targetDay).padStart(3, "0") + '.webp';
@@ -3366,7 +3366,7 @@
       const imgDisplay = document.getElementById('companion-img-display');
       const compWrapper = document.querySelector('.companion-wrapper');
 
-      // 🛡️ 防呆機制：若隨機抽到的 22~120 檔案尚未補齊（404），自動安全降級回 001~021 內的圖檔
+      // 🛡️ 防呆機制：若 22~120 檔案 404，安全降級回 001~021 內的圖檔
       imgDisplay.onerror = function() {
         let fallbackDay = Math.floor(Math.random() * (21 - 1 + 1)) + 1;
         imgDisplay.src = 'cards/' + ('card_' + String(fallbackDay).padStart(3, "0") + '.webp');
