@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V900</title>
+  <title>歡喜背書V901</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1315,7 +1315,7 @@
       } catch (e) {}
     }
 
-    // 💡 預先解鎖麥克風權限輔助函式
+    // 💡 最佳實務：在無任何遮罩干擾下立即預先要求麥克風權限
     async function preWarmMicrophonePermission() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -1377,7 +1377,13 @@
     }
 
     async function playTeacherGuideAndRecite() {
-      preWarmMicrophonePermission(); // 預先解鎖授權
+      // 1. 先把陪跑卡片遮罩關閉，讓畫面乾淨，避免原生權限彈窗被遮罩擋住
+      companionOverlay.style.opacity = '0';
+      companionOverlay.classList.remove('active');
+      companionOverlay.style.display = 'none';
+
+      // 2. 立即在用戶手勢當下請求麥克風權限，確保彈窗在最上層
+      await preWarmMicrophonePermission();
 
       hasEnteredReciting = true;
       classicStorage.setItem('SETTING_BTN_USED_DATE_V608', getNormalizedDateStr());
@@ -1386,47 +1392,8 @@
 
       triggerAppFullscreen();
 
-      companionOverlay.style.opacity = '0';
-      setTimeout(async () => {
-        companionOverlay.classList.remove('active');
-        companionOverlay.style.display = 'none';
-
-        playStandaloneVideo('mode1', 0, async () => {
-          showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
-          await loadAllAssetsSmartSync();
-
-          const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
-          if (savedStr) {
-            try {
-              const state = JSON.parse(savedStr);
-              if (state.savedDateStr === getNormalizedDateStr()) {
-                pendingRestoredState = state;
-                confirmRestoreState();
-                return;
-              }
-            } catch(e) {}
-          }
-
-          setCoreMode('mode2');
-        });
-      }, 350);
-    }
-
-    async function closeCompanionCard() {
-      preWarmMicrophonePermission(); // 預先解鎖授權
-
-      hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V608', getNormalizedDateStr());
-      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
-
-      triggerAppFullscreen();
-
-      companionOverlay.style.opacity = '0';
-      setTimeout(async () => {
-        companionOverlay.classList.remove('active');
-        companionOverlay.style.display = 'none';
-
+      playStandaloneVideo('mode1', 0, async () => {
+        showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
         await loadAllAssetsSmartSync();
 
         const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
@@ -1441,11 +1408,44 @@
           } catch(e) {}
         }
 
-        const hasRestore = checkAndPrepareRestoreState();
-        if (!hasRestore) {
-          setCoreMode('mode2');
-        }
-      }, 350);
+        setCoreMode('mode2');
+      });
+    }
+
+    async function closeCompanionCard() {
+      // 1. 先把陪跑卡片遮罩關閉，讓畫面乾淨，避免原生權限彈窗被遮罩擋住
+      companionOverlay.style.opacity = '0';
+      companionOverlay.classList.remove('active');
+      companionOverlay.style.display = 'none';
+
+      // 2. 立即在用戶手勢當下請求麥克風權限，確保彈窗在最上層
+      await preWarmMicrophonePermission();
+
+      hasEnteredReciting = true;
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V608', getNormalizedDateStr());
+      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
+      triggerAppFullscreen();
+
+      await loadAllAssetsSmartSync();
+
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V608');
+      if (savedStr) {
+        try {
+          const state = JSON.parse(savedStr);
+          if (state.savedDateStr === getNormalizedDateStr()) {
+            pendingRestoredState = state;
+            confirmRestoreState();
+            return;
+          }
+        } catch(e) {}
+      }
+
+      const hasRestore = checkAndPrepareRestoreState();
+      if (!hasRestore) {
+        setCoreMode('mode2');
+      }
     }
 
     function getCurrentProgressEnd() {
