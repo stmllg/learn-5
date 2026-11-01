@@ -3722,7 +3722,15 @@
       classicStorage.setItem('CURRENT_SCHEDULE_DAY_V608', targetDay.toString());
 
 
-      let cardFileName = (targetDay >= 22) ? "card_021.webp" : ('card_' + String(targetDay).padStart(3, "0") + '.webp');
+      // 動態隨機抽取：第1至21天按順序對應，第22天起在22到最高圖檔編號(例如50，可無限擴充)之間隨機抽取
+      let cardFileName = '';
+      if (targetDay <= 21) {
+        cardFileName = 'card_' + String(targetDay).padStart(3, "0") + '.webp';
+      } else {
+        const maxCardNum = 50; // 可隨時隨您上傳更高編號的圖片而手動調整此上限數字
+        const randomCardNum = Math.floor(Math.random() * (maxCardNum - 22 + 1)) + 22;
+        cardFileName = 'card_' + String(randomCardNum).padStart(3, "0") + '.webp';
+      }
       
       const imgDisplay = document.getElementById('companion-img-display');
       const compWrapper = document.querySelector('.companion-wrapper');
