@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V111)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V112)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -43,22 +43,22 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 【V111 調整】：右上角「希望新生」純橘色字體，無外框，緊貼右上角 */
+        /* 【V112 調整】：右上角「希望新生 + 編號」，純橘色字體，無陰影、極致清晰 */
         .top-right-badge {
             position: absolute;
             top: 2%;
             right: 2.5%;
-            color: #F97316;
+            color: #FF6600;
             font-family: "Microsoft JhengHei", sans-serif;
             font-size: 18px;
             font-weight: 900;
-            letter-spacing: 2px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            letter-spacing: 1px;
+            -webkit-text-stroke: 0.5px #FFFFFF; /* 極細白描邊，確保在任何背景上都清晰 */
             z-index: 40;
             pointer-events: none;
         }
 
-        /* 【V111 調整】：文字容器整體往下移一點（從 8% 改為 11%），徹底閃過右上角標籤 */
+        /* 橫式紅框區域：整體往下移（11%），完美閃過右上角標籤 */
         .card-text-container {
             position: absolute;
             top: 11%;
@@ -154,8 +154,8 @@
 
 <div class="container">
     <div class="card-stage" id="cardStage">
-        <!-- 【V111】右上角純橘色「希望新生」標籤 -->
-        <div class="top-right-badge">希望新生</div>
+        <!-- 【V112】右上角「希望新生 + 編號」純橘色清晰字體 -->
+        <div class="top-right-badge" id="topRightBadge">希望新生</div>
 
         <div class="card-text-container" id="textContainer">
             <div class="card-title" id="cardTitle">載入中...</div>
@@ -169,7 +169,7 @@
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 準備讀取 images_text.json (V111)</div>
+    <div class="status-bar" id="statusBar">狀態: 準備讀取 images_text.json (V112)</div>
 </div>
 
 <script>
@@ -209,6 +209,9 @@
 
         cardTitle.textContent = titleText;
         cardContent.textContent = contentText;
+
+        // 【V112】更新右上角顯示「希望新生 + 編號」
+        document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
 
         // 內文超過 45 字即觸發長文模式，標題上移並壓縮行高
         if (rawContent.length > 45) {
