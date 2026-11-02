@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第1天到第50天陪伴卡與文字輪播測試 (v11 - 完整按鈕與智慧排版)</title>
+    <title>第1天到第50天陪伴卡與文字輪播測試 (v12 - 按鈕浮在圖片上方)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -49,7 +49,7 @@
             border-radius: 8px;
             border: 1px solid #10B981;
         }
-        /* 舞台容器：背景圖置中顯示 */
+        /* 舞台容器：背景圖置中，且讓內部文字與絕對定位的按鈕完美疊加 */
         .card-stage {
             position: relative;
             width: 100%;
@@ -66,13 +66,13 @@
             justify-content: center;
             align-items: center;
         }
-        /* 智慧上下分區排版：上方放標題，下方留給內容文字 */
+        /* 上下分區排版：讓字體擁有最大空間 */
         .card-text-container {
             position: absolute;
-            top: 15%;
-            bottom: 12%;
-            left: 12%;
-            right: 12%;
+            top: 10%;
+            bottom: 22%; /* 預留下方給按鈕列 */
+            left: 10%;
+            right: 10%;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -97,24 +97,30 @@
             text-shadow: 0 1px 3px rgba(255,255,255,0.95);
             overflow: hidden;
         }
-        /* 控制按鈕區：包含原主程式的「排程設定」、「上師前行」、「開始播放」等完整按鈕 */
-        .controls {
+        /* 關鍵：將操作按鈕群組用絕對定位「壓在圖片下方（內部）」 */
+        .controls-overlay {
+            position: absolute;
+            bottom: 3%;
+            left: 5%;
+            right: 5%;
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
             flex-wrap: wrap;
-            padding: 10px;
-            background: rgba(15, 23, 42, 0.7);
+            padding: 8px 12px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(4px);
             border-radius: 12px;
-            border: 1px dashed rgba(56, 189, 248, 0.4);
+            border: 1.5px solid rgba(56, 189, 248, 0.5);
+            z-index: 30;
         }
         button {
             background: linear-gradient(135deg, #34D399 0%, #059669 100%);
             color: #064E3B;
             border: none;
-            padding: 10px 16px;
-            font-size: 15px;
+            padding: 8px 14px;
+            font-size: 13px;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
@@ -153,29 +159,30 @@
         <div class="mode-indicator" id="modeIndicator">載入中...</div>
     </div>
 
+    <!-- 舞台容器內同時包含：背景圖、文字、以及壓在圖片上方的按鈕列 -->
     <div class="card-stage" id="cardStage">
         <div class="card-text-container" id="textContainer" style="display: none;">
             <div class="card-title" id="cardTitle"></div>
             <div class="card-content" id="cardContent"></div>
         </div>
-    </div>
 
-    <!-- 完整按鈕區：排程設定、上師前行（老師帶前行）、開始播放（開始背誦）、輪播控制 -->
-    <div class="controls">
-        <button class="btn-setting" onclick="alert('點擊了：排程設定')">⚙️ 排程設定</button>
-        <button class="btn-orange" onclick="alert('點擊了：老師帶前行 (上師前行)')">🙏 老師帶前行</button>
-        <button class="btn-orange" onclick="alert('點擊了：開始背誦 / 開始播放')">✨ 開始播放</button>
-        <button class="secondary" onclick="prevDay()">上一張</button>
-        <button id="playPauseBtn" onclick="togglePlay()">暫停自動</button>
-        <button class="secondary" onclick="nextDay()">下一張</button>
-        <button onclick="jumpToDay(22)">跳至第22天</button>
+        <!-- 按鈕群組：直接懸浮壓在圖片下半部上方 -->
+        <div class="controls-overlay">
+            <button class="btn-setting" onclick="alert('點擊了：排程設定')">⚙️ 排程</button>
+            <button class="btn-orange" onclick="alert('點擊了：老師帶前行')">🙏 前行</button>
+            <button class="btn-orange" onclick="alert('點擊了：開始播放')">✨ 播放</button>
+            <button class="secondary" onclick="prevDay()">上一張</button>
+            <button id="playPauseBtn" onclick="togglePlay()">暫停</button>
+            <button class="secondary" onclick="nextDay()">下一張</button>
+            <button onclick="jumpToDay(22)">跳22天</button>
+        </div>
     </div>
 
     <div class="status-bar" id="statusBar">狀態: 準備就緒</div>
 </div>
 
 <script>
-    const cardTexts = {"22": {"id": 184, "title": "痛苦真正的原因", "content": "希望大家真實地洞悉到， 是什麼原因使自己過得這麼痛苦， 是不是沒遇到好的人、 沒遇到好的事情， 還是自己不會快樂的方法？"}, "23": {"id": 185, "title": "痛苦來自錯誤的思路", "content": "痛苦從哪裡產生？錯誤的理路。 想錯了，生命就越來越苦； 想對了，生命就越來越快樂。"}, "24": {"id": 186, "title": "擺脫苦難是最輝煌的事", "content": "我們看事情就會只看現在的苦， 所以修行感到辛苦時就會想退， 但實際上我們現在正在做一件最輝煌的事 ——正在經歷擺脫苦難的過程。"}, "25": {"id": 187, "title": "煩惱絕對不能累積", "content": "如果有一件事不能累積的話， 那一定是煩惱！"}, "26": {"id": 188, "title": "善用智慧能安忍", "content": "佛法中所謂的「安受苦忍」， 就是用非常智慧的方式去處理痛苦。"}, "27": {"id": 189, "title": "踐踏痛苦最痛快", "content": "哪有比踐踏痛苦更痛快的？ 「你壓迫我，我就把你踩在腳下！」"}, "28": {"id": 190, "title": "何必被怨氣所綁", "content": "其實怨氣綁住的不是一個人， 是兩個人或者更多人。"}, "29": {"id": 191, "title": "用短暫人生創造無限價值", "content": "很多人都想要變得更美，那就好好修忍辱， 利用這短暫的人生是可以達到的。"}, "30": {"id": 192, "title": "斬除生氣的習慣", "content": "正因為有人總是惹我們生氣， 最好把自己喜歡生氣這個毛病徹底改了， 這樣就算所有的有情有一天都來敵對我們， 我們都不會再生氣了。"}, "31": {"id": 193, "title": "轉苦澀為快樂", "content": "當發現自己有一種習慣的思路， 會讓自己的人生過得非常苦澀， 那麼就要把這個習慣改掉， 改成快樂的思路。"}, "32": {"id": 194, "title": "凡夫的苦受", "content": "當痛苦來臨， 感覺苦受似乎被無限增大時， 要意識到："}, "33": {"id": 195, "title": "從初發點擊潰苦", "content": "當我們的苦受如大海的濁浪拍天， 這時再用功就有點晚了。"}, "34": {"id": 196, "title": "學習以法調心", "content": "學會用法調伏心， 學會用法穿越困境，"}, "35": {"id": 197, "title": "抓出煩惱背後的堅固見解", "content": "任何熾盛的煩惱 後面都有一個堅固的見解，"}, "36": {"id": 198, "title": "氾濫成災的思路", "content": "想要達到生命深沉的寧靜和喜悅， 就必須戰鬥內心中那些亂七八糟的見解。"}, "37": {"id": 199, "title": "不要對自己失去耐心", "content": "要懂得欣賞自己與煩惱戰鬥的過程， 不要每次都看成是失敗。"}, "38": {"id": 200, "title": "方法正確還需上陣練", "content": "我們已經找到能對治內心煩惱的法， 它悲憫和清涼的力量， 能讓生命的痛苦慢慢變弱。"}, "39": {"id": 201, "title": "下决心讓自己幸福", "content": "下個決心讓自己幸福、快樂， 別習慣生活在憂悲苦惱 和各種情緒的糾結之中， 這才是真正漂亮的選擇！"}, "40": {"id": 202, "title": "痛苦來自錯誤的安立", "content": "當一個人開始為「我」辯解時， 我愛執會極度膨脹， 其實我們並不會因此感到快樂。"}, "41": {"id": 203, "title": "以歡喜心滅除憂瞋", "content": "有了歡喜心就沒有憂慮， 沒有憂慮就不會有瞋恨， 沒有瞋恨就不會有傷害， 不會去做傷害自己和他人的事。"}, "42": {"id": 204, "title": "正理源於淨智", "content": "正理是什麼呢? 正確無垢的道理。"}, "43": {"id": 205, "title": "訓練心的力量", "content": "當我們的心越來越有力量的時候， 就可以挑戰越來越大的痛苦； 克服痛苦之後， 心又會越來越有力量。"}, "44": {"id": 206, "title": "智慧是幸福第一要素", "content": "我最想要擁有的財富就是智慧， 最不能捨離的摯友、導師也是智慧， 最不能離開的光明也是智慧， 最不能失去的、像山一樣的依靠， 也是智慧， 因為它是幸福的第一要素。"}, "45": {"id": 207, "title": "澈見一切得大樂", "content": "有了對一切都了解的智慧， 就能遠離一切恐怖、 遠離一切顛倒的認識， 生命會進入徹底大樂的境界。"}, "46": {"id": 208, "title": "溝通的基礎", "content": "溝通要在不散夥的狀態下才能進行， 如果老存著一種想另起爐灶自己幹的心， 是沒辦法溝通的。"}, "47": {"id": 209, "title": "起點無論高低", "content": "不管自己的起點有多低，都要敢於面對， 並且就從這樣的起點上開始修行， 這沒有什麼不光彩的！"}, "48": {"id": 210, "title": "比生命還重要的珍寶", "content": "無論什麼理由、什麼困境， 都不足以使我們放棄佛法！ 因為它是比生命更重要的珍寶！"}, "49": {"id": 211, "title": "靜心能生善行", "content": "一旦我們的心安靜下來， 不再被情緒所控制的時候， 就能夠看清楚自己怎麼了， 這個時候該行的善 就都能起步行起來。"}, "50": {"id": 212, "title": "以法調心自清涼", "content": "如果不用法向內調伏， 大大小小的事都會帶來痛苦和麻煩； 如果能藉助法的力量向內調伏， 內心就會獲得安穩和清涼。"}};
+    const cardTexts = {"22": {"id": 184, "title": "痛苦真正的原因", "content": "希望大家真實地洞悉到， 是什麼原因使自己過得這麼痛苦， 是不是沒遇到好的人、 沒遇到好的事情， 還是自己不會快樂的方法？"}, "23": {"id": 185, "title": "痛苦來自錯誤的思路", "content": "痛苦從哪裡產生？錯誤的理路。 想錯了，生命就越來越苦； 想對了，生命就越來越快樂。"}, "24": {"id": 186, "title": "擺脫苦難是最輝煌的事", "content": "我們看事情就會只看現在的苦， 所以修行感到辛苦時就會想退， 但實際上我們現在正在做一件最輝煌的事 ——正在經歷擺脫苦難的過程。"}, "25": {"id": 187, "title": "煩惱絕對不能累積", "content": "如果有一件事不能累積的話， 那一定是煩惱！"}, "26": {"id": 188, "title": "善用智慧能安忍", "content": "佛法中所謂的「安受苦忍」， 就是用非常智慧的方式去處理痛苦。"}, "27": {"id": 189, "title": "踐踏痛苦最痛快", "content": "哪有比踐踏痛苦更痛快的？ 「你壓迫我，我就把你踩在腳下！」"}, "28": {"id": 190, "title": "何必被怨氣所綁", "content": "其實怨氣綁住的不是一個人， 是兩個人或者更多人。"}, "29": {"id": 191, "title": "用短暫人生創造無限價值", "content": "很多人都想要變得更美，那就好好修忍辱， 利用這短暫的人生是可以達到的。"}, "30": {"id": 192, "title": "斬除生氣的習慣", "content": "正因為有人總是惹我們生氣， 最好把自己喜歡生氣這個毛病徹底改了， 這樣就算所有的有情有一天都來敵對我們， 我們都不會再生氣了。"}, "31": {"id": 193, "title": "轉苦澀為快樂", "content": "當發現自己有一種習慣的思路， 會讓自己的人生過得非常苦澀， 那麼就要把這個習慣改掉， 改成快樂的思路。"}, "32": {"id": 194, "title": "凡夫的苦受", "content": "當痛苦來臨， 感覺苦受似乎被無限增大時， 要意識到："}, "33": {"id": 195, "title": "從初發點擊潰苦", "content": "當我們的苦受如大海的濁浪拍天， 這時再用功就有點晚了。"}, "34": {"id": 196, "title": "學習以法調心", "content": "學會用法調伏心， 學會用法穿越困境，"}, "35": {"id": 197, "title": "抓出煩惱背後的堅固見解", "content": "任何熾盛的煩惱 後面都有一個堅固的見解，"}, "36": {"id": 198, "title": "氾濫成災的思路", "content": "想要達到生命深沉的寧靜和喜悅， 就必須戰鬥內心中那些亂七八糟的見解。"}, "37": {"id": 199, "title": "不要對自己失去耐心", "content": "要懂得欣賞自己與煩惱戰鬥的過程， 不要每次都看成是失敗。"}, "38": {"id": 200, "title": "方法正確還需上陣練", "content": "我們已經找到能對治內心煩惱的法， 它悲憫和清涼的力量， 能讓生命的痛苦慢慢變弱。"}, "39": {"id": 201, "title": "下决心讓自己幸福", "content": "下個決心讓自己幸福、快樂， 別習慣生活在憂悲苦惱 和各種情緒的糾結之中， 這才是真正漂亮的選擇！"}, "40": {"id": 202, "title": "痛苦來自錯誤的安立", "content": "當一個人開始為「我」辯解時， 我愛執會極度膨脹， 其實我們並不會因此感到快樂。"}, "41": {"id": 203, "title": "以歡喜心滅除憂瞋", "content": "有了歡喜心就沒有憂慮， 沒有憂慮就不會有瞋恨， 沒有瞋恨就不會有傷害， 不會去做傷害自己和他人的事。"}, "42": {"id": 204, "title": "正理源於淨智", "content": "正理是什麼呢? 正確無垢的道理。"}, "43": {"id": 205, "title": "訓練心的力量", "content": "當我們的心越來越有力量的時候， 就可以挑戰越來越大的痛苦； 克服痛苦之後， 心又會越來越有力量。"}, "44": {"id": 206, "title": "智慧是幸福第一要素", "content": "我最想要擁有的財富就是智慧， 最不能捨離的摯友、導師也是智慧， 最不能離開的光明也是智慧， 最不能失去的、像山一樣的依靠， 也是智慧， 因為它是幸福的第一要素。"}, "45": {"id": 207, "title": "澈見一切得大樂", "content": "有了對一切都了解的智慧， 就能遠離一切恐怖、 遠離一切顛倒的認識， 生命會進入徹底大樂的境界。"}, "46": {"id": 208, "title": "溝通的基礎", "content": "溝通要在不散夥的狀態下才能進行， 如果老存著一種想另起爐灶自己幹的心， 是沒辦法溝通的。"}, "47": {"id": 209, "title": "起點無論高低", "content": "不管自己的起點有多低，都要敢於面對， 並且就從這樣的起點上開始修行， 這沒有什麼不光彩的！"}, "48": {"id": 210, "title": "比生命還重要的珍寶", "content": "Regardless of reason or predicament..."}};
 
     let currentDay = 1;
     const maxDay = 50;
@@ -214,17 +221,17 @@
                 cardTitle.textContent = titleText;
                 cardContent.textContent = contentText;
 
-                // 智慧自適應放大字體
+                // 智慧放大字級，讓字體在剩餘空間最大化顯示
                 const totalLen = titleText.length + contentText.length;
-                let titleSize = "clamp(24px, 4vw, 42px)";
-                let contentSize = "clamp(18px, 2.8vw, 28px)";
+                let titleSize = "clamp(24px, 3.8vw, 40px)";
+                let contentSize = "clamp(16px, 2.5vw, 26px)";
                 
                 if (totalLen > 100) {
-                    titleSize = "clamp(20px, 3.2vw, 34px)";
-                    contentSize = "clamp(14px, 2.1vw, 21px)";
+                    titleSize = "clamp(18px, 2.8vw, 30px)";
+                    contentSize = "clamp(13px, 1.9vw, 19px)";
                 } else if (totalLen > 60) {
-                    titleSize = "clamp(22px, 3.6vw, 38px)";
-                    contentSize = "clamp(16px, 2.4vw, 24px)";
+                    titleSize = "clamp(21px, 3.3vw, 35px)";
+                    contentSize = "clamp(15px, 2.2vw, 22px)";
                 }
 
                 cardTitle.style.fontSize = titleSize;
@@ -232,8 +239,8 @@
             } else {
                 cardTitle.textContent = "精進法語";
                 cardContent.textContent = "下個決心讓自己幸福、快樂！";
-                cardTitle.style.fontSize = "clamp(24px, 4vw, 42px)";
-                cardContent.style.fontSize = "clamp(18px, 2.8vw, 28px)";
+                cardTitle.style.fontSize = "clamp(24px, 3.8vw, 40px)";
+                cardContent.style.fontSize = "clamp(16px, 2.5vw, 26px)";
             }
             textContainer.style.display = 'flex';
         }
@@ -250,7 +257,6 @@
         updateDisplay();
     }
 
-    fn = prevDay; // placeholder
     function prevDay() {
         currentDay--;
         if (currentDay < 1) {
@@ -272,10 +278,10 @@
     function togglePlay() {
         isPlaying = !isPlaying;
         if (isPlaying) {
-            playPauseBtn.textContent = "暫停自動";
+            playPauseBtn.textContent = "暫停";
             startTimer();
         } else {
-            playPauseBtn.textContent = "開始自動";
+            playPauseBtn.textContent = "播放";
             clearInterval(timer);
         }
     }
