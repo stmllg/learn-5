@@ -66,7 +66,7 @@
         .card-text-container {
             position: absolute;
             top: 10%;
-            bottom: 24%;
+            bottom: 26%;
             left: 33%;
             right: 5%;
             display: flex;
@@ -76,7 +76,7 @@
             text-align: left;
             z-index: 10;
             pointer-events: none;
-            gap: 10px;
+            gap: 8px;
         }
         .card-title {
             font-weight: 900;
@@ -84,18 +84,20 @@
             text-shadow: 0 1px 3px rgba(255,255,255,0.95);
             width: 100%;
             line-height: 1.2;
-            white-space: nowrap; /* 絕對橫向、靠左對齊，絕不變成直行 */
+            white-space: nowrap; /* 標題完全橫向、靠左對齊，絕不變成直行 */
         }
         .card-content {
             font-weight: 800;
             color: #0F172A;
-            line-height: 1.45;
-            white-space: pre-wrap;
+            line-height: 1.4;
+            /* 核心修正：利用 ch 單位精準鎖死每行剛好 12 個中文字寬度，杜絕字元被拆散 */
+            width: 12ch; 
             max-width: 100%;
+            word-break: break-all;
             text-shadow: 0 1px 3px rgba(255,255,255,0.95);
             overflow: hidden;
         }
-        /* 畫面下方完美貼齊的三個按鈕（不互相覆蓋、不被擋到） */
+        /* 畫面下方完美貼齊的三個按鈕 */
         .controls-overlay {
             position: absolute;
             bottom: 3%;
@@ -202,7 +204,7 @@
         "50": {"id": 212, "title": "以法調心自清涼", "content": "如果不用法向內調伏，大大小小的事都會帶來痛苦和麻煩；如果能藉助法的力量向內調伏，內心就會獲得安穩和清涼。"}
     };
 
-    let currentDay = 1; // 從第 1 天開始測試 (1~21固定播放，22~62隨機播放)
+    let currentDay = 1;
     const maxDay = 62;
 
     const dayIndicator = document.getElementById('dayIndicator');
@@ -213,29 +215,17 @@
     const cardContent = document.getElementById('cardContent');
     const statusBar = document.getElementById('statusBar');
 
-    // 嚴格將內文每 12 個字強制切成一行
-    function formatTo12CharsPerLine(str) {
-        let cleanStr = str.replace(/[\s\n\r]+/g, '');
-        let lines = [];
-        for (let i = 0; i < cleanStr.length; i += 12) {
-            lines.push(cleanStr.substring(i, i + 12));
-        }
-        return lines.join('\n');
-    }
-
     function updateDisplay() {
         dayIndicator.textContent = `第 ${currentDay} 天 / 共 ${maxDay} 天`;
         
         let imgPath = "";
         if (currentDay <= 21) {
-            // Card 放 001 到 021，固定播放，1天播放一張
             const paddedNum = String(currentDay).padStart(3, '0');
             imgPath = `cards/card_${paddedNum}.webp`;
             modeIndicator.textContent = `固定卡片 (cards/card_${paddedNum}.webp)`;
             textContainer.style.display = 'none';
         } else {
-            // images 放 0022 到 0062 隨機播放，文字浮印在上面
-            const randomNum = Math.floor(Math.random() * 41) + 22; // 0022 到 0062
+            const randomNum = Math.floor(Math.random() * 41) + 22;
             const paddedImgNum = String(randomNum).padStart(4, '0');
             imgPath = `images/${paddedImgNum}.webp`;
             modeIndicator.textContent = `隨機法語 (${paddedImgNum}.webp)`;
@@ -243,14 +233,15 @@
             const dayKey = String(currentDay);
             if (cardTexts[dayKey]) {
                 const titleText = cardTexts[dayKey].title;
-                const contentText = formatTo12CharsPerLine(cardTexts[dayKey].content);
+                // 直接指派原始文字，由 CSS width: 12ch 自動完美排版，不再透過 JS 強制斷行
+                const contentText = cardTexts[dayKey].content;
                 
                 cardTitle.textContent = titleText;
                 cardContent.textContent = contentText;
                 textContainer.style.display = 'flex';
 
-                // 迴圈自動放大/防擋機制：從大字級開始往下檢查，直到完全不超出紅框或碰到按鈕為止
-                let size = 32; 
+                // 自動迴圈放大/防擋機制
+                let size = 30; 
                 const minSize = 14; 
                 
                 cardContent.style.fontSize = size + "px";
@@ -263,7 +254,7 @@
                 }
             } else {
                 cardTitle.textContent = "精進法語";
-                cardContent.textContent = formatTo12CharsPerLine("下個決心讓自己幸福、快樂！");
+                cardContent.textContent = "下個決心讓自己幸福、快樂！";
                 textContainer.style.display = 'flex';
             }
         }
@@ -272,7 +263,6 @@
         cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
-    // 測驗要求：兩秒鐘顯示一張 (2000ms)
     setInterval(() => {
         currentDay++;
         if (currentDay > maxDay) {
@@ -281,7 +271,6 @@
         updateDisplay();
     }, 2000);
 
-    // 初始化執行第一張
     updateDisplay();
 </script>
 
