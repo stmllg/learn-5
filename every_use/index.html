@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V109)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V110)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -30,25 +30,6 @@
             flex-direction: column;
             gap: 12px;
         }
-        .header-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 10px;
-        }
-        .day-indicator {
-            font-size: 20px;
-            font-weight: bold;
-            color: #FBBF24;
-        }
-        .mode-indicator {
-            font-size: 14px;
-            color: #34D399;
-            background: rgba(16, 185, 129, 0.2);
-            padding: 4px 10px;
-            border-radius: 8px;
-            border: 1px solid #10B981;
-        }
         /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例，全面填滿不留黑邊 */
         .card-stage {
             position: relative;
@@ -62,7 +43,30 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 【V109 調整】：將文字容器再向右平移 1 個字的寬度（從 33% 調整為 35%） */
+        /* 【V110 新增】：活潑變化的編號標籤，絕對定位在畫面最右上角 */
+        .top-right-badge {
+            position: absolute;
+            top: 4%;
+            right: 4%;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.85), rgba(220, 38, 38, 0.85));
+            color: #FFFBEB;
+            font-family: "Microsoft JhengHei", sans-serif;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
+            border: 1.5px solid rgba(255, 255, 255, 0.8);
+            z-index: 40;
+            animation: bounceBadge 2s infinite ease-in-out;
+        }
+        @keyframes bounceBadge {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-3px) scale(1.03); }
+        }
+
+        /* 紅框區域：向右平移（35%），上方留白，底部預留安全防護區給按鈕 */
         .card-text-container {
             position: absolute;
             top: 8%;
@@ -157,12 +161,10 @@
 <body>
 
 <div class="container">
-    <div class="header-info">
-        <div class="day-indicator" id="dayIndicator">外部資料讀取模式</div>
-        <div class="mode-indicator" id="modeIndicator">V109 測試中 (2秒/張)</div>
-    </div>
-
     <div class="card-stage" id="cardStage">
+        <!-- 【V110】編號顯示在畫面最右上角 -->
+        <div class="top-right-badge" id="topRightBadge">載入中...</div>
+
         <div class="card-text-container" id="textContainer">
             <div class="card-title" id="cardTitle">載入中...</div>
             <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
@@ -170,12 +172,12 @@
 
         <div class="controls-overlay">
             <button class="btn-setting" onclick="alert('點擊了：排程')">⚙️ 排程</button>
-            <button class="btn-orange" onclick="alert('點擊了：老師帶前行')">🙏 老師帶前行</button>
-            <button class="btn-orange" onclick="alert('點擊了：開始背誦')">✨ 開始背誦</button>
+            <button class="btn-orange" onclick="alert('老師帶前行點擊')">🙏 老師帶前行</button>
+            <button class="btn-orange" onclick="alert('開始背誦點擊')">✨ 開始背誦</button>
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 準備讀取 images_text.json (V109)</div>
+    <div class="status-bar" id="statusBar">狀態: 準備讀取 images_text.json (V110)</div>
 </div>
 
 <script>
@@ -216,6 +218,9 @@
         cardTitle.textContent = titleText;
         cardContent.textContent = contentText;
 
+        // 更新右上角活潑編號標籤
+        document.getElementById('topRightBadge').textContent = `✨ 法語編號：${randomTextKey}`;
+
         // 內文超過 45 字即觸發長文模式，標題上移並壓縮行高
         if (rawContent.length > 45) {
             textContainer.classList.add('long-text');
@@ -237,7 +242,6 @@
         }
 
         statusBar.textContent = `隨機載入背景: bg_${paddedImgNum}.webp | 文字代號: ${randomTextKey} (字數: ${rawContent.length})`;
-        dayIndicator.textContent = `外部JSON隨機輪播 (V109)`;
         cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
