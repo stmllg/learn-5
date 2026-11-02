@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第1天到第50天陪伴卡與文字輪播測試 (v7 - CSS背景圖絕對疊加)</title>
+    <title>第1天到第50天陪伴卡與文字輪播測試 (v8 - 智慧排版與微調)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -49,7 +49,7 @@
             border-radius: 8px;
             border: 1px solid #10B981;
         }
-        /* 關鍵改造：將圖片改為 CSS 背景圖，文字直接置於其上，百分之百不會分離！ */
+        /* 舞台容器：背景圖絕對居中，文字透過 flex 微微往上、往右偏移 */
         .card-stage {
             position: relative;
             width: 100%;
@@ -65,24 +65,23 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 12% 14%;
+            /* 調整內距：讓整體重心稍微「往上、往右」一點點 */
+            padding: 10% 10% 14% 14%; 
         }
         .card-title {
-            font-size: clamp(18px, 2.8vw, 32px);
             font-weight: 900;
             color: #78350F;
-            margin-bottom: 10px;
-            text-shadow: 0 1px 2px rgba(255,255,255,0.9);
+            margin-bottom: 12px;
+            text-shadow: 0 1px 3px rgba(255,255,255,0.95);
             z-index: 10;
         }
         .card-content {
-            font-size: clamp(13px, 1.9vw, 21px);
             line-height: 1.75;
             color: #1E293B;
             font-weight: 700;
             white-space: pre-wrap;
-            max-width: 100%;
-            text-shadow: 0 1px 2px rgba(255,255,255,0.9);
+            max-width: 95%;
+            text-shadow: 0 1px 3px rgba(255,255,255,0.95);
             z-index: 10;
         }
         .controls {
@@ -174,11 +173,32 @@
             
             const dayKey = String(currentDay);
             if (cardTexts[dayKey]) {
-                cardTitle.textContent = cardTexts[dayKey].title;
-                cardContent.textContent = cardTexts[dayKey].content;
+                const titleText = cardTexts[dayKey].title;
+                const contentText = cardTexts[dayKey].content;
+                
+                cardTitle.textContent = titleText;
+                cardContent.textContent = contentText;
+
+                // 智慧自適應字體大小：根據內文長度動態調整字型，確保大字且不溢出
+                const totalLen = titleText.length + contentText.length;
+                let titleSize = "clamp(22px, 3.5vw, 36px)";
+                let contentSize = "clamp(15px, 2.3vw, 24px)";
+                
+                if (totalLen > 120) {
+                    titleSize = "clamp(18px, 2.8vw, 28px)";
+                    contentSize = "clamp(12px, 1.7vw, 18px)";
+                } else if (totalLen > 80) {
+                    titleSize = "clamp(20px, 3.1vw, 32px)";
+                    contentSize = "clamp(13px, 1.9vw, 20px)";
+                }
+
+                cardTitle.style.fontSize = titleSize;
+                cardContent.style.fontSize = contentSize;
             } else {
                 cardTitle.textContent = "精進法語";
                 cardContent.textContent = "下個決心讓自己幸福、快樂！";
+                cardTitle.style.fontSize = "clamp(22px, 3.5vw, 36px)";
+                cardContent.style.fontSize = "clamp(15px, 2.3vw, 24px)";
             }
             cardTitle.style.display = 'block';
             cardContent.style.display = 'block';
