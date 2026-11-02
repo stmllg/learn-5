@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V106)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V108)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -62,12 +62,12 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 紅框區域：左側 29%，上方留白，底部預留安全防護區給按鈕 */
+        /* 紅框區域：向右平移（33%），上方留白，底部預留安全防護區給按鈕 */
         .card-text-container {
             position: absolute;
             top: 8%;
             bottom: 27%;
-            left: 29%;
+            left: 33%;
             right: 5%;
             display: flex;
             flex-direction: column;
@@ -80,7 +80,7 @@
             overflow: hidden;
             transition: top 0.2s, gap 0.2s;
         }
-        /* 【V106 長文模式強化】：內文超過 45 字即觸發，標題上移並壓縮行高 */
+        /* 長文模式：內文超過 45 字即觸發，標題上移並壓縮行高 */
         .card-text-container.long-text {
             top: 4.5%;
             gap: 3px;
@@ -158,14 +158,14 @@
 
 <div class="container">
     <div class="header-info">
-        <div class="day-indicator" id="dayIndicator">圖文隨機播放模式</div>
-        <div class="mode-indicator" id="modeIndicator">V106 測試中 (2秒/張)</div>
+        <div class="day-indicator" id="dayIndicator">外部資料讀取模式</div>
+        <div class="mode-indicator" id="modeIndicator">V108 測試中 (2秒/張)</div>
     </div>
 
     <div class="card-stage" id="cardStage">
         <div class="card-text-container" id="textContainer">
-            <div class="card-title" id="cardTitle"></div>
-            <div class="card-content" id="cardContent"></div>
+            <div class="card-title" id="cardTitle">載入中...</div>
+            <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
         </div>
 
         <div class="controls-overlay">
@@ -175,49 +175,12 @@
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 準備就緒 (V106)</div>
+    <div class="status-bar" id="statusBar">狀態: 準備讀取 images_text.json (V108)</div>
 </div>
 
 <script>
-    const cardTexts = {
-        "1": {"title": "痛苦真正的原因", "content": "希望大家真實地洞悉到，是什麼原因使自己過得這麼痛苦，是不是沒遇到好的人、沒遇到好的事情，還是自己不會快樂的方法？"},
-        "2": {"title": "痛苦來自錯誤的思路", "content": "痛苦從哪裡產生？錯誤的理路。想錯了，生命就越來越苦；想對了，生命就越來越快樂。"},
-        "3": {"title": "擺脫苦難是最輝煌的事", "content": "我們看事情就會只看現在的苦，所以修行感到辛苦時就會想退，但實際上我們現在正在做一件最輝煌的事 ——正在經歷擺脫苦難的過程。"},
-        "4": {"title": "煩惱絕對不能累積", "content": "如果有一件事不能累積的話，那一定是煩惱！"},
-        "5": {"title": "善用智慧能安忍", "content": "佛法中所謂的「安受苦忍」，就是用非常智慧的方式去處理痛苦。"},
-        "6": {"title": "踐踏痛苦最痛快", "content": "哪有比踐踏痛苦更痛快的？「你壓迫我，我就把你踩在腳下！」"},
-        "7": {"title": "何必被怨氣所綁", "content": "其實怨氣綁住的不是一個人，是兩個人或者更多人。"},
-        "8": {"title": "用短暫人生創造無限價值", "content": "很多人都想要變得更美，那就好好修忍辱，利用這短暫的人生是可以達到的。"},
-        "9": {"title": "斬除生氣的習慣", "content": "正因為有人總是惹我們生氣，最好把自己喜歡生氣這個毛病徹底改了，這樣就算所有的有情有一天都來敵對我們，我們都不會再生氣了。"},
-        "10": {"title": "轉苦澀為快樂", "content": "當發現自己有一種習慣的思路，會讓自己的人生過得非常苦澀，那麼就要把這個習慣改掉，改成快樂的思路。"},
-        "11": {"title": "凡夫的苦受", "content": "當痛苦來臨，感覺苦受似乎被無限增大時，要意識到："},
-        "12": {"title": "從初發點擊潰苦", "content": "當我們的苦受如大海的濁浪拍天，這時再用功就有點晚了。"},
-        "13": {"title": "學習以法調心", "content": "學會用法調伏心，學會用法穿越困境，"},
-        "14": {"title": "抓出煩惱背後的堅固見解", "content": "任何熾盛的煩惱後面都有一個堅固的見解，"},
-        "15": {"title": "氾濫成災的思路", "content": "想要達到生命深沉的寧靜和喜悅，就必須戰鬥內心中那些亂七八糟的見解。"},
-        "16": {"title": "不要對自己失去耐心", "content": "要懂得欣賞自己與煩惱戰鬥的過程，不要每次都看成是失敗。"},
-        "17": {"title": "方法正確還需上陣練", "content": "我們已經找到能對治內心煩惱的法，它悲憫和清涼的力量，能讓生命的痛苦慢慢變弱。"},
-        "18": {"title": "下决心讓自己幸福", "content": "下個決心讓自己幸福、快樂，別習慣生活在憂悲苦惱和各種情緒的糾結之中，這才是真正漂亮的選擇！"},
-        "19": {"title": "痛苦來自錯誤的安立", "content": "當一個人開始為「我」辯解時，我愛執會極度膨脹，其實我們並不會因此感到快樂。"},
-        "20": {"title": "以歡喜心滅除憂瞋", "content": "有了歡喜心就沒有憂慮，沒有憂慮就不會有瞋恨，沒有瞋恨就不會有傷害，不會去做傷害自己和他人的事。"},
-        "21": {"title": "正理源於淨智", "content": "正理是什麼呢? 正確無垢的道理。"},
-        "22": {"title": "訓練心的力量", "content": "當我們的心越來越有力量的時候，就可以挑戰越來越大的痛苦；克服痛苦之後，心又會越來越有力量。"},
-        "23": {"title": "智慧是幸福第一要素", "content": "我最想要擁有的財富就是智慧，最不能捨離的摯友、導師也是智慧，最不能離開的光明也是智慧，最不能失去的、像山一樣的依靠，也是智慧，因為它是幸福的第一要素。"},
-        "24": {"title": "澈見一切得大樂", "content": "有了對一切都了解的智慧，就能遠離一切恐怖、遠離一切顛倒的認識，生命會進入徹底大樂的境界。"},
-        "25": {"title": "溝通的基礎", "content": "溝通要在不散夥的狀態下才能進行，如果老存著一種想另起爐灶自己幹的心，是沒辦法溝通的。"},
-        "26": {"title": "起點無論高低", "content": "不管自己的起點有多低，都要敢於面對，並且就從這樣的起點上開始修行，這沒有什麼不光彩的！"},
-        "27": {"title": "比生命還重要的珍寶", "content": "無論什麼理由、什麼困境，都不足以使我們放棄佛法！因為它是比生命更重要的珍寶！"},
-        "28": {"title": "靜心能生善行", "content": "一旦我們的心安靜下來，不再被情緒所控制的時候，就能夠看清楚自己怎麼了，這個時候該行的善就能起步行起來。"},
-        "29": {"title": "以法調心自清涼", "content": "如果不用法向內調伏，大大小小的事都會帶來痛苦和麻煩；如果能藉助法的力量向內調伏，內心就會獲得安穩和清涼。"}
-    };
-
-    const textKeys = Object.keys(cardTexts);
-    const cardStage = document.getElementById('cardStage');
-    const textContainer = document.getElementById('textContainer');
-    const cardTitle = document.getElementById('cardTitle');
-    const cardContent = document.getElementById('cardContent');
-    const statusBar = document.getElementById('statusBar');
-    const dayIndicator = document.getElementById('dayIndicator');
+    let cardTexts = {};
+    let textKeys = [];
 
     // 依據字數動態決定每行字數：>60字改為14字一行，否則12字一行
     function formatTextByLength(str) {
@@ -230,12 +193,14 @@
     }
 
     function updateRandomDisplay() {
+        if (textKeys.length === 0) return;
+
         // 1. 隨機抽取背景圖 (bg_01 至 bg_40)
         const randomImgNum = Math.floor(Math.random() * 40) + 1;
         const paddedImgNum = String(randomImgNum).padStart(2, '0');
         const imgPath = `images/bg_${paddedImgNum}.webp`;
 
-        // 2. 隨機抽取一句法語文字
+        // 2. 從外部讀入的資料中隨機抽取一句法語文字
         const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
         const selectedData = cardTexts[randomTextKey];
 
@@ -244,14 +209,14 @@
 
         // 安全防護：標題過長或內文超過 75 字自動截斷
         if (titleText.length > 14) titleText = titleText.substring(0, 14);
-        if (rawContent.length > 75) rawContent.substring(0, 75);
+        if (rawContent.length > 75) rawContent = rawContent.substring(0, 75);
 
         const contentText = formatTextByLength(rawContent);
 
         cardTitle.textContent = titleText;
         cardContent.textContent = contentText;
 
-        // 【V106 動態微調】：內文超過 45 字即觸發長文模式，標題上移並壓縮行高
+        // 內文超過 45 字即觸發長文模式，標題上移並壓縮行高
         if (rawContent.length > 45) {
             textContainer.classList.add('long-text');
         } else {
@@ -272,15 +237,31 @@
         }
 
         statusBar.textContent = `隨機載入背景: bg_${paddedImgNum}.webp | 文字代號: ${randomTextKey} (字數: ${rawContent.length})`;
-        dayIndicator.textContent = `隨機輪播播放中 (V106)`;
+        dayIndicator.textContent = `外部JSON隨機輪播 (V108)`;
         cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
-    // 兩秒鐘隨機切換一張
-    setInterval(updateRandomDisplay, 2000);
-
-    // 初始化執行第一張
-    updateRandomDisplay();
+    // 啟動時使用 fetch 讀取同目錄下的 images_text.json 檔案
+    fetch('images_text.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('無法讀取 images_text.json 檔案');
+            }
+            return response.json();
+        })
+        .then(data => {
+            cardTexts = data;
+            textKeys = Object.keys(cardTexts);
+            
+            // 讀取成功後開始進行 2 秒鐘隨機切換展示
+            updateRandomDisplay();
+            setInterval(updateRandomDisplay, 2000);
+        })
+        .catch(error => {
+            statusBar.textContent = `⚠️ 讀取 images_text.json 失敗: ${error.message}`;
+            cardTitle.textContent = "資料載入失敗";
+            cardContent.textContent = "請檢查專案資料夾是否包含 images_text.json 檔案";
+        });
 </script>
 
 </body>
