@@ -49,13 +49,13 @@
             border-radius: 8px;
             border: 1px solid #10B981;
         }
-        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例 */
+        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例，全面填滿不留黑邊 */
         .card-stage {
             position: relative;
             width: 100%;
             aspect-ratio: 1200 / 675;
             background-color: #0F172A;
-            background-size: contain;
+            background-size: cover;
             background-repeat: no-repeat;
             background-position: center;
             border-radius: 12px;
@@ -66,7 +66,7 @@
         .card-text-container {
             position: absolute;
             top: 10%;
-            bottom: 26%;
+            bottom: 24%;
             left: 33%;
             right: 5%;
             display: flex;
@@ -76,12 +76,12 @@
             text-align: left;
             z-index: 10;
             pointer-events: none;
-            gap: 8px;
+            gap: 10px;
         }
         .card-title {
             font-weight: 900;
             color: #581C87;
-            text-shadow: 0 1px 3px rgba(255,255,255,0.95);
+            text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
             width: 100%;
             line-height: 1.2;
             white-space: nowrap; /* 標題完全橫向、靠左對齊，絕不變成直行 */
@@ -89,15 +89,12 @@
         .card-content {
             font-weight: 800;
             color: #0F172A;
-            line-height: 1.4;
-            /* 核心修正：利用 ch 單位精準鎖死每行剛好 12 個中文字寬度，杜絕字元被拆散 */
-            width: 12ch; 
-            max-width: 100%;
-            word-break: break-all;
-            text-shadow: 0 1px 3px rgba(255,255,255,0.95);
+            line-height: 1.45;
+            white-space: pre-wrap; /* 確保 JavaScript 的換行符號有效 */
+            text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
             overflow: hidden;
         }
-        /* 畫面下方完美貼齊的三個按鈕 */
+        /* 畫面下方完美貼齊的三個按鈕（不互相覆蓋、不被擋到） */
         .controls-overlay {
             position: absolute;
             bottom: 3%;
@@ -215,6 +212,15 @@
     const cardContent = document.getElementById('cardContent');
     const statusBar = document.getElementById('statusBar');
 
+    // 嚴格將內文每 12 個字強制切成一行
+    function formatTo12CharsPerLine(str) {
+        let lines = [];
+        for (let i = 0; i < str.length; i += 12) {
+            lines.push(str.substring(i, i + 12));
+        }
+        return lines.join('\n');
+    }
+
     function updateDisplay() {
         dayIndicator.textContent = `第 ${currentDay} 天 / 共 ${maxDay} 天`;
         
@@ -225,23 +231,23 @@
             modeIndicator.textContent = `固定卡片 (cards/card_${paddedNum}.webp)`;
             textContainer.style.display = 'none';
         } else {
-            const randomNum = Math.floor(Math.random() * 41) + 22;
-            const paddedImgNum = String(randomNum).padStart(4, '0');
-            imgPath = `images/${paddedImgNum}.webp`;
-            modeIndicator.textContent = `隨機法語 (${paddedImgNum}.webp)`;
+            // 隨機選取 bg_01 至 bg_40
+            const randomNum = Math.floor(Math.random() * 40) + 1;
+            const paddedImgNum = String(randomNum).padStart(2, '0');
+            imgPath = `images/bg_${paddedImgNum}.webp`;
+            modeIndicator.textContent = `隨機法語 (bg_${paddedImgNum}.webp)`;
             
             const dayKey = String(currentDay);
             if (cardTexts[dayKey]) {
                 const titleText = cardTexts[dayKey].title;
-                // 直接指派原始文字，由 CSS width: 12ch 自動完美排版，不再透過 JS 強制斷行
-                const contentText = cardTexts[dayKey].content;
+                const contentText = formatTo12CharsPerLine(cardTexts[dayKey].content);
                 
                 cardTitle.textContent = titleText;
                 cardContent.textContent = contentText;
                 textContainer.style.display = 'flex';
 
-                // 自動迴圈放大/防擋機制
-                let size = 30; 
+                // 迴圈自動放大/防擋機制：從大字級往下檢查，確保不超出框也不碰到按鈕
+                let size = 28; 
                 const minSize = 14; 
                 
                 cardContent.style.fontSize = size + "px";
@@ -254,7 +260,7 @@
                 }
             } else {
                 cardTitle.textContent = "精進法語";
-                cardContent.textContent = "下個決心讓自己幸福、快樂！";
+                cardContent.textContent = formatTo12CharsPerLine("下個決心讓自己幸福、快樂！");
                 textContainer.style.display = 'flex';
             }
         }
@@ -263,6 +269,7 @@
         cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
+    // 兩秒鐘顯示一張測試
     setInterval(() => {
         currentDay++;
         if (currentDay > maxDay) {
