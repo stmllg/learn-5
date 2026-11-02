@@ -1,246 +1,288 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (v25 紅框完美對齊版)</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background-color: #0B0F19;
-            color: #FFFFFF;
-            font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 10px;
-        }
-        .container {
-            width: 100%;
-            max-width: 1100px;
-            background: #1E293B;
-            border-radius: 16px;
-            padding: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            text-align: center;
-            border: 2px solid #38BDF8;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .header-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 10px;
-        }
-        .day-indicator {
-            font-size: 20px;
-            font-weight: bold;
-            color: #FBBF24;
-        }
-        .mode-indicator {
-            font-size: 14px;
-            color: #34D399;
-            background: rgba(16, 185, 129, 0.2);
-            padding: 4px 10px;
-            border-radius: 8px;
-            border: 1px solid #10B981;
-        }
-        /* 橫式專用舞台容器 (1200:675 尺寸比例) */
-        .card-stage {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 1200 / 675;
-            background-color: #0F172A;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.9);
-        }
-        /* 紅框區域精準定位：
-           - 配合您提供的截圖紅框位置：
-           - left: 33% (避開左側的「定靜心」圓標)
-           - top: 12% (上方留點空間給卡片邊緣)
-           - right: 7% (右側保留空間)
-           - bottom: 25% (上方剛好貼齊底部按鈕上方，絕不被按鈕擋到)
-           - 水平置中對齊 (align-items: center) 讓標題與內文在紅框內完美置中對齊
-        */
-        .card-text-container {
-            position: absolute;
-            top: 12%;
-            bottom: 25%;
-            left: 33%;
-            right: 7%;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: center; /* 水平置中對齊，讓整齊的 12 字排版在紅框內居中顯現 */
-            text-align: center;
-            z-index: 10;
-            pointer-events: none;
-            gap: 12px;
-        }
-        .card-title {
-            font-weight: 900;
-            color: #581C87;
-            text-shadow: 0 1px 3px rgba(255,255,255,0.95);
-            width: 100%;
-            line-height: 1.3;
-            white-space: nowrap; /* 標題絕對橫向不折行 */
-        }
-        .card-content {
-            font-weight: 800;
-            color: #0F172A;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            max-width: 100%;
-            text-shadow: 0 1px 3px rgba(255,255,255,0.95);
-            overflow: visible;
-        }
-        /* 底部按鈕區：完美對齊截圖中的「老師帶前行」與「開始背誦」 */
-        .controls-overlay {
-            position: absolute;
-            bottom: 3%;
-            left: 8%;
-            right: 8%;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            gap: 16px;
-            z-index: 30;
-        }
-        button {
-            flex: 1;
-            background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%);
-            color: #431407;
-            border: 2px solid #F97316;
-            padding: 12px 20px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 30px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            transition: transform 0.1s;
-        }
-        button:active { transform: scale(0.95); }
-        .btn-setting {
-            background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%);
-            color: #1E293B;
-            border: 2px solid #94A3B8;
-            max-width: 120px;
-        }
-        .status-bar {
-            font-size: 13px;
-            color: #38BDF8;
-            background: rgba(15, 23, 42, 0.6);
-            padding: 6px;
-            border-radius: 6px;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歡喜背書・陪伴卡與法語輪播</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #0B0F19;
+            color: #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: #1E293B;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            text-align: center;
+            border: 2px solid #38BDF8;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+        }
+        .day-indicator {
+            font-size: 20px;
+            font-weight: bold;
+            color: #FBBF24;
+        }
+        .mode-indicator {
+            font-size: 14px;
+            color: #34D399;
+            background: rgba(16, 185, 129, 0.2);
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 1px solid #10B981;
+        }
+        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例 */
+        .card-stage {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1200 / 675;
+            background-color: #0F172A;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.9);
+        }
+        /* 紅框區域：自畫面左側 33% 處開始，上方留白，底部止於按鈕上方 */
+        .card-text-container {
+            position: absolute;
+            top: 10%;
+            bottom: 24%;
+            left: 33%;
+            right: 5%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            text-align: left;
+            z-index: 10;
+            pointer-events: none;
+            gap: 10px;
+        }
+        .card-title {
+            font-weight: 900;
+            color: #581C87;
+            text-shadow: 0 1px 3px rgba(255,255,255,0.95);
+            width: 100%;
+            line-height: 1.2;
+            white-space: nowrap; /* 絕對橫向、靠左對齊，絕不變成直行 */
+        }
+        .card-content {
+            font-weight: 800;
+            color: #0F172A;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            max-width: 100%;
+            text-shadow: 0 1px 3px rgba(255,255,255,0.95);
+            overflow: hidden;
+        }
+        /* 畫面下方完美貼齊的三個按鈕（不互相覆蓋、不被擋到） */
+        .controls-overlay {
+            position: absolute;
+            bottom: 3%;
+            left: 5%;
+            right: 5%;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 8px 16px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(4px);
+            border-radius: 12px;
+            border: 1.5px solid rgba(56, 189, 248, 0.5);
+            z-index: 30;
+        }
+        button {
+            background: linear-gradient(135deg, #34D399 0%, #059669 100%);
+            color: #064E3B;
+            border: none;
+            padding: 10px 22px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+        .btn-orange {
+            background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%);
+            color: #431407;
+            border: 1.5px solid #F97316;
+        }
+        .btn-setting {
+            background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%);
+            color: #1E293B;
+            border: 1.5px solid #94A3B8;
+        }
+        .status-bar {
+            font-size: 13px;
+            color: #38BDF8;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 6px;
+            border-radius: 6px;
+        }
+    </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header-info">
-        <div class="day-indicator" id="dayIndicator">第 1 天 / 共 50 天</div>
-        <div class="mode-indicator" id="modeIndicator">載入中...</div>
-    </div>
+    <div class="header-info">
+        <div class="day-indicator" id="dayIndicator">載入中...</div>
+        <div class="mode-indicator" id="modeIndicator">測試播放中 (2秒/張)</div>
+    </div>
 
-    <div class="card-stage" id="cardStage">
-        <div class="card-text-container" id="textContainer" style="display: none;">
-            <div class="card-title" id="cardTitle"></div>
-            <div class="card-content" id="cardContent"></div>
-        </div>
+    <div class="card-stage" id="cardStage">
+        <div class="card-text-container" id="textContainer" style="display: none;">
+            <div class="card-title" id="cardTitle"></div>
+            <div class="card-content" id="cardContent"></div>
+        </div>
 
-        <!-- 按鈕區完美對照您的範例截圖：排程、老師帶前行、開始背誦 -->
-        <div class="controls-overlay">
-            <button class="btn-setting" onclick="alert('點擊了：排程設定')">⚙️ 排程</button>
-            <button onclick="alert('點擊了：老師帶前行')">🙏 老師帶前行</button>
-            <button onclick="alert('點擊了：開始背誦')">✨ 開始背誦</button>
-        </div>
-    </div>
+        <div class="controls-overlay">
+            <button class="btn-setting" onclick="alert('點擊了：排程')">⚙️ 排程</button>
+            <button class="btn-orange" onclick="alert('點擊了：老師帶前行')">🙏 老師帶前行</button>
+            <button class="btn-orange" onclick="alert('點擊了：開始背誦')">✨ 開始背誦</button>
+        </div>
+    </div>
 
-    <div class="status-bar" id="statusBar">狀態: 準備就緒</div>
+    <div class="status-bar" id="statusBar">狀態: 準備就緒</div>
 </div>
 
 <script>
-    const cardTexts = {"22": {"id": 184, "title": "痛苦真正的原因", "content": "希望大家真實地洞悉到，是什麼原因使自己過得這麼痛苦，是不是沒遇到好的人、沒遇到好的事情，還是自己不會快樂的方法？"}, "23": {"id": 185, "title": "痛苦來自錯誤的思路", "content": "痛苦從哪裡產生？錯誤的理路。想錯了，生命就越來越苦；想對了，生命就越來越快樂。"}, "24": {"id": 186, "title": "擺脫苦難是最輝煌的事", "content": "我們看事情就會只看現在的苦，所以修行感到辛苦時就會想退，但實際上我們現在正在做一件最輝煌的事 ——正在經歷擺脫苦難的過程。"}, "25": {"id": 187, "title": "煩惱絕對不能累積", "content": "如果有一件事不能累積的話，那一定是煩惱！"}, "26": {"id": 188, "title": "善用智慧能安忍", "content": "佛法中所謂的「安受苦忍」，就是用非常智慧的方式去處理痛苦。"}, "27": {"id": 189, "title": "踐踏痛苦最痛快", "content": "哪有比踐踏痛苦更痛快的？「你壓迫我，我就把你踩在腳下！」"}, "28": {"id": 190, "title": "何必被怨氣所綁", "content": "其實怨氣綁住的不是一個人，是兩個人或者更多人。"}, "29": {"id": 191, "title": "用短暫人生創造無限價值", "content": "很多人都想要變得更美，那就好好修忍辱，利用這短暫的人生是可以達到的。"}, "30": {"id": 192, "title": "斬除生氣的習慣", "content": "正因為有人總是惹我們生氣，最好把自己喜歡生氣這個毛病徹底改了，這樣就算所有的有情有一天都來敵對我們，我們都不會再生氣了。"}, "31": {"id": 193, "title": "轉苦澀為快樂", "content": "當發現自己有一種習慣的思路，會讓自己的人生過得非常苦澀，那麼就要把這個習慣改掉，改成快樂的思路。"}, "32": {"id": 194, "title": "凡夫的苦受", "content": "當痛苦來臨，感覺苦受似乎被無限增大時，要意識到："}, "33": {"id": 195, "title": "從初發點擊潰苦", "content": "當我們的苦受如大海的濁浪拍天，這時再用功就有點晚了。"}, "34": {"id": 196, "title": "學習以法調心", "content": "學會用法調伏心，學會用法穿越困境，"}, "35": {"id": 197, "title": "抓出煩惱背後的堅固見解", "content": "任何熾盛的煩惱後面都有一個堅固的見解，"}, "36": {"id": 198, "title": "氾濫成災的思路", "content": "想要達到生命深沉的寧靜和喜悅，就必須戰鬥內心中那些亂七八糟的見解。"}, "37": {"id": 199, "title": "不要對自己失去耐心", "content": "要懂得欣賞自己與煩惱戰鬥的過程，不要每次都看成是失敗。"}, "38": {"id": 200, "title": "方法正確還需上陣練", "content": "我們已經找到能對治內心煩惱的法，它悲憫和清涼的力量，能讓生命的痛苦慢慢變弱。"}, "39": {"id": 201, "title": "下决心讓自己幸福", "content": "下個決心讓自己幸福、快樂，別習慣生活在憂悲苦惱和各種情緒的糾結之中，這才是真正漂亮的選擇！"}, "40": {"id": 202, "title": "痛苦來自錯誤的安立", "content": "當一個人開始為「我」辯解時，我愛執會極度膨脹，其實我們並不會因此感到快樂。"}, "41": {"id": 203, "title": "以歡喜心滅除憂瞋", "content": "有了歡喜心就沒有憂慮，沒有憂慮就不會有瞋恨，沒有瞋恨就不會有傷害，不會去做傷害自己和他人的事。"}, "42": {"id": 204, "title": "正理源於淨智", "content": "正理是什麼呢? 正確無垢的道理。"}, "43": {"id": 205, "title": "訓練心的力量", "content": "當我們的心越來越有力量的時候，就可以挑戰越來越大的痛苦；克服痛苦之後，心又會越來越有力量。"}, "44": {"id": 206, "title": "智慧是幸福第一要素", "content": "我最想要擁有的財富就是智慧，最不能捨離的摯友、導師也是智慧，最不能離開的光明也是智慧，最不能失去的、像山一樣的依靠，也是智慧，因為它是幸福的第一要素。"}, "45": {"id": 207, "title": "澈見一切得大樂", "content": "有了對一切都了解的智慧，就能遠離一切恐怖、遠離一切顛倒的認識，生命會進入徹底大樂的境界。"}, "46": {"id": 208, "title": "溝通的基礎", "content": "溝通要在不散夥的狀態下才能進行，如果老存著一種想另起爐灶自己幹的心，是沒辦法溝通的。"}, "47": {"id": 209, "title": "起點無論高低", "content": "不管自己的起點有多低，都要敢於面對，並且就從這樣的起點上開始修行，這沒有什麼不光彩的！"}, "48": {"id": 210, "title": "比生命還重要的珍寶", "content": "無論什麼理由、什麼困境，都不足以使我們放棄佛法！因為它是比生命更重要的珍寶！"}, "49": {"id": 211, "title": "靜心能生善行", "content": "一旦我們的心安靜下來，不再被情緒所控制的時候，就能夠看清楚自己怎麼了，這個時候該行的善就能起步行起來。"}, "50": {"id": 212, "title": "以法調心自清涼", "content": "如果不用法向內調伏，大大小小的事都會帶來痛苦和麻煩；如果能藉助法的力量向內調伏，內心就會獲得安穩和清涼。"}};
+    const cardTexts = {
+        "22": {"id": 184, "title": "痛苦真正的原因", "content": "希望大家真實地洞悉到，是什麼原因使自己過得這麼痛苦，是不是沒遇到好的人、沒遇到好的事情，還是自己不會快樂的方法？"},
+        "23": {"id": 185, "title": "痛苦來自錯誤的思路", "content": "痛苦從哪裡產生？錯誤的理路。想錯了，生命就越來越苦；想對了，生命就越來越快樂。"},
+        "24": {"id": 186, "title": "擺脫苦難是最輝煌的事", "content": "我們看事情就會只看現在的苦，所以修行感到辛苦時就會想退，但實際上我們現在正在做一件最輝煌的事 ——正在經歷擺脫苦難的過程。"},
+        "25": {"id": 187, "title": "煩惱絕對不能累積", "content": "如果有一件事不能累積的話，那一定是煩惱！"},
+        "26": {"id": 188, "title": "善用智慧能安忍", "content": "佛法中所謂的「安受苦忍」，就是用非常智慧的方式去處理痛苦。"},
+        "27": {"id": 189, "title": "踐踏痛苦最痛快", "content": "哪有比踐踏痛苦更痛快的？「你壓迫我，我就把你踩在腳下！」"},
+        "28": {"id": 190, "title": "何必被怨氣所綁", "content": "其實怨氣綁住的不是一個人，是兩個人或者更多人。"},
+        "29": {"id": 191, "title": "用短暫人生創造無限價值", "content": "很多人都想要變得更美，那就好好修忍辱，利用這短暫的人生是可以達到的。"},
+        "30": {"id": 192, "title": "斬除生氣的習慣", "content": "正因為有人總是惹我們生氣，最好把自己喜歡生氣這個毛病徹底改了，這樣就算所有的有情有一天都來敵對我們，我們都不會再生氣了。"},
+        "31": {"id": 193, "title": "轉苦澀為快樂", "content": "當發現自己有一種習慣的思路，會讓自己的人生過得非常苦澀，那麼就要把這個習慣改掉，改成快樂的思路。"},
+        "32": {"id": 194, "title": "凡夫的苦受", "content": "當痛苦來臨，感覺苦受似乎被無限增大時，要意識到："},
+        "33": {"id": 195, "title": "從初發點擊潰苦", "content": "當我們的苦受如大海的濁浪拍天，這時再用功就有點晚了。"},
+        "34": {"id": 196, "title": "學習以法調心", "content": "學會用法調伏心，學會用法穿越困境，"},
+        "35": {"id": 197, "title": "抓出煩惱背後的堅固見解", "content": "任何熾盛的煩惱後面都有一個堅固的見解，"},
+        "36": {"id": 198, "title": "氾濫成災的思路", "content": "想要達到生命深沉的寧靜和喜悅，就必須戰鬥內心中那些亂七八糟的見解。"},
+        "37": {"id": 199, "title": "不要對自己失去耐心", "content": "要懂得欣賞自己與煩惱戰鬥的過程，不要每次都看成是失敗。"},
+        "38": {"id": 200, "title": "方法正確還需上陣練", "content": "我們已經找到能對治內心煩惱的法，它悲憫和清涼的力量，能讓生命的痛苦慢慢變弱。"},
+        "39": {"id": 201, "title": "下决心讓自己幸福", "content": "下個決心讓自己幸福、快樂，別習慣生活在憂悲苦惱和各種情緒的糾結之中，這才是真正漂亮的選擇！"},
+        "40": {"id": 202, "title": "痛苦來自錯誤的安立", "content": "當一個人開始為「我」辯解時，我愛執會極度膨脹，其實我們並不會因此感到快樂。"},
+        "41": {"id": 203, "title": "以歡喜心滅除憂瞋", "content": "有了歡喜心就沒有憂慮，沒有憂慮就不會有瞋恨，沒有瞋恨就不會有傷害，不會去做傷害自己和他人的事。"},
+        "42": {"id": 204, "title": "正理源於淨智", "content": "正理是什麼呢? 正確無垢的道理。"},
+        "43": {"id": 205, "title": "訓練心的力量", "content": "當我們的心越來越有力量的時候，就可以挑戰越來越大的痛苦；克服痛苦之後，心又會越來越有力量。"},
+        "44": {"id": 206, "title": "智慧是幸福第一要素", "content": "我最想要擁有的財富就是智慧，最不能捨離的摯友、導師也是智慧，最不能離開的光明也是智慧，最不能失去的、像山一樣的依靠，也是智慧，因為它是幸福的第一要素。"},
+        "45": {"id": 207, "title": "澈見一切得大樂", "content": "有了對一切都了解的智慧，就能遠離一切恐怖、遠離一切顛倒的認識，生命會進入徹底大樂的境界。"},
+        "46": {"id": 208, "title": "溝通的基礎", "content": "溝通要在不散夥的狀態下才能進行，如果老存著一種想另起爐灶自己幹的心，是沒辦法溝通的。"},
+        "47": {"id": 209, "title": "起點無論高低", "content": "不管自己的起點有多低，都要敢於面對，並且就從這樣的起點上開始修行，這沒有什麼不光彩的！"},
+        "48": {"id": 210, "title": "比生命還重要的珍寶", "content": "無論什麼理由、什麼困境，都不足以使我們放棄佛法！因為它是比生命更重要的珍寶！"},
+        "49": {"id": 211, "title": "靜心能生善行", "content": "一旦我們的心安靜下來，不再被情緒所控制的時候，就能夠看清楚自己怎麼了，這個時候該行的善就能起步行起來。"},
+        "50": {"id": 212, "title": "以法調心自清涼", "content": "如果不用法向內調伏，大大小小的事都會帶來痛苦和麻煩；如果能藉助法的力量向內調伏，內心就會獲得安穩和清涼。"}
+    };
 
-    let currentDay = 22; // 預設從第22天開始測試法語顯示
-    const maxDay = 50;
+    let currentDay = 1; // 從第 1 天開始測試 (1~21固定播放，22~62隨機播放)
+    const maxDay = 62;
 
-    const dayIndicator = document.getElementById('dayIndicator');
-    const modeIndicator = document.getElementById('modeIndicator');
-    const cardStage = document.getElementById('cardStage');
-    const textContainer = document.getElementById('textContainer');
-    const cardTitle = document.getElementById('cardTitle');
-    const cardContent = document.getElementById('cardContent');
-    const statusBar = document.getElementById('statusBar');
+    const dayIndicator = document.getElementById('dayIndicator');
+    const modeIndicator = document.getElementById('modeIndicator');
+    const cardStage = document.getElementById('cardStage');
+    const textContainer = document.getElementById('textContainer');
+    const cardTitle = document.getElementById('cardTitle');
+    const cardContent = document.getElementById('cardContent');
+    const statusBar = document.getElementById('statusBar');
 
-    // 嚴格將內文每 12 個字強制切成一行
-    function formatTo12CharsPerLine(str) {
-        let cleanStr = str.replace(/[\s\n\r]+/g, '');
-        let lines = [];
-        for (let i = 0; i < cleanStr.length; i += 12) {
-            lines.push(cleanStr.substring(i, i + 12));
-        }
-        return lines.join('\n');
-    }
+    // 嚴格將內文每 12 個字強制切成一行
+    function formatTo12CharsPerLine(str) {
+        let cleanStr = str.replace(/[\s\n\r]+/g, '');
+        let lines = [];
+        for (let i = 0; i < cleanStr.length; i += 12) {
+            lines.push(cleanStr.substring(i, i + 12));
+        }
+        return lines.join('\n');
+    }
 
-    function updateDisplay() {
-        dayIndicator.textContent = `第 ${currentDay} 天 / 共 ${maxDay} 天`;
-        
-        let imgPath = "";
-        if (currentDay <= 21) {
-            modeIndicator.textContent = "第 1-21 天 (cards/)";
-            const paddedNum = String(currentDay).padStart(3, '0');
-            imgPath = `cards/card_${paddedNum}.webp`;
-            textContainer.style.display = 'none';
-        } else {
-            modeIndicator.textContent = "第 22+ 天 (images/bg_XX.webp)";
-            const randomNum = Math.floor(Math.random() * 40) + 1;
-            const bgName = 'bg_' + String(randomNum).padStart(2, '0') + '.webp';
-            imgPath = `images/${bgName}`;
-            
-            const dayKey = String(currentDay);
-            if (cardTexts[dayKey]) {
-                const titleText = cardTexts[dayKey].title;
-                const contentText = formatTo12CharsPerLine(cardTexts[dayKey].content);
-                
-                cardTitle.textContent = titleText;
-                cardContent.textContent = contentText;
-                textContainer.style.display = 'flex';
+    function updateDisplay() {
+        dayIndicator.textContent = `第 ${currentDay} 天 / 共 ${maxDay} 天`;
+        
+        let imgPath = "";
+        if (currentDay <= 21) {
+            // Card 放 001 到 021，固定播放，1天播放一張
+            const paddedNum = String(currentDay).padStart(3, '0');
+            imgPath = `cards/card_${paddedNum}.webp`;
+            modeIndicator.textContent = `固定卡片 (cards/card_${paddedNum}.webp)`;
+            textContainer.style.display = 'none';
+        } else {
+            // images 放 0022 到 0062 隨機播放，文字浮印在上面
+            const randomNum = Math.floor(Math.random() * 41) + 22; // 0022 到 0062
+            const paddedImgNum = String(randomNum).padStart(4, '0');
+            imgPath = `images/${paddedImgNum}.webp`;
+            modeIndicator.textContent = `隨機法語 (${paddedImgNum}.webp)`;
+            
+            const dayKey = String(currentDay);
+            if (cardTexts[dayKey]) {
+                const titleText = cardTexts[dayKey].title;
+                const contentText = formatTo12CharsPerLine(cardTexts[dayKey].content);
+                
+                cardTitle.textContent = titleText;
+                cardContent.textContent = contentText;
+                textContainer.style.display = 'flex';
 
-                // **【智慧防擋與最大化字型迴圈】**
-                // 完美在紅框範圍與按鈕上方之間，自動計算並放大到最大字級
-                let size = 28; 
-                const minSize = 14; 
-                
-                cardContent.style.fontSize = size + "px";
-                cardTitle.style.fontSize = (size + 4) + "px";
+                // 迴圈自動放大/防擋機制：從大字級開始往下檢查，直到完全不超出紅框或碰到按鈕為止
+                let size = 32; 
+                const minSize = 14; 
+                
+                cardContent.style.fontSize = size + "px";
+                cardTitle.style.fontSize = (size + 4) + "px";
 
-                while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
-                    size--;
-                    cardContent.style.fontSize = size + "px";
-                    cardTitle.style.fontSize = (size + 4) + "px";
-                }
-            } else {
-                cardTitle.textContent = "精進法語";
-                cardContent.textContent = formatTo12CharsPerLine("下個決心讓自己幸福、快樂！");
-                textContainer.style.display = 'flex';
-            }
-        }
+                while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
+                    size--;
+                    cardContent.style.fontSize = size + "px";
+                    cardTitle.style.fontSize = (size + 4) + "px";
+                }
+            } else {
+                cardTitle.textContent = "精進法語";
+                cardContent.textContent = formatTo12CharsPerLine("下個決心讓自己幸福、快樂！");
+                textContainer.style.display = 'flex';
+            }
+        }
 
-        statusBar.textContent = `正在載入背景圖: ${imgPath}`;
-        cardStage.style.backgroundImage = `url('${imgPath}')`;
-    }
+        statusBar.textContent = `正在載入背景圖: ${imgPath}`;
+        cardStage.style.backgroundImage = `url('${imgPath}')`;
+    }
 
-    updateDisplay();
+    // 測驗要求：兩秒鐘顯示一張 (2000ms)
+    setInterval(() => {
+        currentDay++;
+        if (currentDay > maxDay) {
+            currentDay = 1;
+        }
+        updateDisplay();
+    }, 2000);
+
+    // 初始化執行第一張
+    updateDisplay();
 </script>
 
 </body>
