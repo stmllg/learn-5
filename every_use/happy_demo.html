@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・輪播 (V115)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V116)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -30,7 +30,7 @@
             flex-direction: column;
             gap: 12px;
         }
-        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例，全面填滿不留黑邊 */
+        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例 */
         .card-stage {
             position: relative;
             width: 100%;
@@ -43,7 +43,7 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 右上角「希望新生 + 編號」綠色清晰字體，與標題保持安全距離 */
+        /* 右上角「希望新生 + 編號」：純綠色字體，無描邊、無陰影，極致清晰 */
         .top-right-badge {
             position: absolute;
             top: 2%;
@@ -53,18 +53,17 @@
             font-size: 18px;
             font-weight: 900;
             letter-spacing: 1px;
-            -webkit-text-stroke: 0.5px #FFFFFF;
             z-index: 40;
             pointer-events: none;
         }
 
-        /* 文字容器：恢復標準舒適位置，靠右 35%，下方預留安全防護區 */
+        /* 文字容器：大幅提高 bottom 至 32%，確保長文絕對不會壓到下方按鈕 */
         .card-text-container {
             position: absolute;
-            top: 11%;
-            bottom: 28%;
+            top: 10%;
+            bottom: 32%;
             left: 35%;
-            right: 5%;
+            right: 6%;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -72,7 +71,7 @@
             text-align: left;
             z-index: 10;
             pointer-events: none;
-            gap: 8px;
+            gap: 6px;
             overflow: hidden;
         }
         .card-title {
@@ -83,11 +82,13 @@
             line-height: 1.2;
             white-space: nowrap;
         }
+        /* 內文：使用自然行高與自動換行，不再強制斷字 */
         .card-content {
             font-weight: 800;
             color: #0F172A;
             line-height: 1.35;
             white-space: pre-wrap;
+            word-break: break-all;
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
             overflow: hidden;
         }
@@ -159,23 +160,13 @@
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 長文測試模式 (輪流顯示第 53, 54, 55 句) (V115)</div>
+    <div class="status-bar" id="statusBar">狀態: 長文自然斷行測試 (固定顯示第 53, 54, 55 句) (V116)</div>
 </div>
 
 <script>
     let cardTexts = {};
     const testKeys = ["53", "54", "55"];
     let testIndex = 0;
-
-    // 【V115】字數超過 60 字時，每行自動改為 15 個字（增加橫向容量，減少垂直行數）
-    function formatTextByLength(str) {
-        const charsPerLine = str.length > 60 ? 15 : 12;
-        let lines = [];
-        for (let i = 0; i < str.length; i += charsPerLine) {
-            lines.push(str.substring(i, i + charsPerLine));
-        }
-        return lines.join('\n');
-    }
 
     function showCard(cardKey) {
         if (!cardTexts[cardKey]) {
@@ -193,21 +184,20 @@
         let titleText = selectedData.title;
         let rawContent = selectedData.content;
 
-        // 安全防護：標題過長或內文超過 75 字自動截斷
+        // 安全防護：標題過長或內文過長自動截斷
         if (titleText.length > 14) titleText = titleText.substring(0, 14);
         if (rawContent.length > 75) rawContent = rawContent.substring(0, 75);
 
-        const contentText = formatTextByLength(rawContent);
-
+        // 直接帶入原始內文，取消原本強制 12/15 字硬切的函式，改由 CSS 自然斷行
         cardTitle.textContent = titleText;
-        cardContent.textContent = contentText;
+        cardContent.textContent = rawContent;
 
-        // 更新右上角顯示「希望新生 + 當前編號」
+        // 更新右上角顯示「希望新生 + 當前編號」純綠色
         document.getElementById('topRightBadge').textContent = `希望新生 ${cardKey}`;
 
-        // 迴圈自動放大與防擋縮放機制
+        // 迴圈自動縮放機制：確保字數再多也能自動縮小尺寸，完全不壓到下方按鈕
         let size = 26; 
-        const minSize = 9; // 允許足夠的縮小空間以確保絕不碰觸按鈕
+        const minSize = 10; 
         
         cardContent.style.fontSize = size + "px";
         cardTitle.style.fontSize = (size + 3) + "px";
@@ -218,7 +208,7 @@
             cardTitle.style.fontSize = (size + 3) + "px";
         }
 
-        statusBar.textContent = `[長文測試] 目前顯示第 ${cardKey} 句 (字數: ${rawContent.length}, 每行15字) | 背景: bg_${paddedImgNum}.webp`;
+        statusBar.textContent = `[V116測試] 目前顯示第 ${cardKey} 句 (自然斷行, 字數: ${rawContent.length}) | 背景: bg_${paddedImgNum}.webp`;
         cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
