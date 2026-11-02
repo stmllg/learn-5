@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第1天到第50天陪伴卡與文字輪播測試 (v3)</title>
+    <title>第1天到第50天陪伴卡與文字輪播測試 (v4 - 網格疊加修正)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -49,54 +49,48 @@
             border-radius: 8px;
             border: 1px solid #10B981;
         }
+        /* 使用 CSS Grid 確保圖片與文字完美疊加在同一區域 */
         .card-stage {
-            position: relative;
+            display: grid;
+            grid-template-areas: "stack";
             width: 100%;
             aspect-ratio: 1200 / 675;
             background: #0F172A;
             border-radius: 12px;
             overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        .card-stage img {
+        .card-stage img, .text-overlay {
+            grid-area: stack;
             width: 100%;
             height: 100%;
+        }
+        .card-stage img {
             object-fit: contain;
-            position: absolute;
-            top: 0;
-            left: 0;
             border-radius: 12px;
         }
         .text-overlay {
-            position: absolute;
-            top: 10%;
-            bottom: 10%;
-            left: 8%;
-            right: 8%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
+            padding: 8% 12%;
             z-index: 10;
-            padding: 10px;
             pointer-events: none;
         }
         .card-title {
-            font-size: clamp(16px, 2.5vw, 28px);
+            font-size: clamp(18px, 3vw, 32px);
             font-weight: 900;
             color: #FBBF24;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 6px rgba(0,0,0,0.95);
+            margin-bottom: 12px;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.8);
         }
         .card-content {
-            font-size: clamp(13px, 1.8vw, 20px);
-            line-height: 1.7;
+            font-size: clamp(14px, 2.2vw, 22px);
+            line-height: 1.8;
             color: #F8FAFC;
-            text-shadow: 0 2px 6px rgba(0,0,0,0.95);
+            text-shadow: 0 2px 6px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.8);
             white-space: pre-wrap;
             max-width: 95%;
         }
@@ -186,7 +180,6 @@
             textOverlay.style.display = 'none';
         } else {
             modeIndicator.textContent = "第 22+ 天 (images/bg_XX.webp)";
-            // 每次重新整理或切換到22天以上時，隨機從 bg_01.webp ~ bg_40.webp 抽一張
             const randomNum = Math.floor(Math.random() * 40) + 1;
             const bgName = 'bg_' + String(randomNum).padStart(2, '0') + '.webp';
             imgPath = `images/${bgName}`;
@@ -254,7 +247,7 @@
             if (isPlaying) {
                 nextDay();
             }
-        }, 3000); // 改為3秒，方便看得清楚
+        }, 3000);
     }
 
     updateDisplay();
