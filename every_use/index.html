@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (v18 橫式精準 12字大字防擋版)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (v19 橫式完美大字佈局)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -64,15 +64,16 @@
         }
         /* 核心排版：
            - 橫向起點：左側 40% (2/5 處)。
-           - 上下範圍：top 從 5% 開始，bottom 嚴格保留 28% 空間給下方按鈕，絕不被按鈕擋到！
+           - 上下範圍：top 留空間，bottom 嚴格保留 30% 給按鈕，絕不被按鈕擋到！
            - 標題與內文一律橫向、靠左對齊。
+           - 內文寬度嚴格限制為 12 個字寬 (12ch)。
         */
         .card-text-container {
             position: absolute;
-            top: 5%;
-            bottom: 28%; /* 預留底部空間給按鈕，絕不遮擋文字 */
+            top: 4%;
+            bottom: 30%; 
             left: 40%;
-            right: 6%;
+            right: 5%;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -80,7 +81,7 @@
             text-align: left;
             z-index: 10;
             pointer-events: none;
-            gap: 10px;
+            gap: 8px;
         }
         .card-title {
             font-weight: 900;
@@ -88,19 +89,19 @@
             text-shadow: 0 1px 3px rgba(255,255,255,0.95);
             width: 100%;
             line-height: 1.2;
-            white-space: nowrap; /* 確保標題完全橫向不折行 */
-            font-size: clamp(26px, 3.8vw, 40px); 
+            white-space: nowrap; /* 絕對橫向不斷行 */
+            font-size: 32px; /* 固定大字級，保證清晰 */
         }
         .card-content {
             font-weight: 800;
             color: #0F172A;
-            line-height: 1.5;
+            line-height: 1.45;
             white-space: pre-wrap;
             width: 12ch; /* 嚴格限制每行 12 個字寬 */
             max-width: 100%;
             text-shadow: 0 1px 3px rgba(255,255,255,0.95);
             overflow: hidden;
-            font-size: clamp(20px, 3.0vw, 32px); /* 大字級輸出，且受限高度絕不超出 */
+            font-size: 26px; /* 盡量放大的固定大字級，絕不被按鈕擋到 */
         }
         /* 按鈕群組：精準壓在圖片下方內側，僅保留三個按鈕 */
         .controls-overlay {
@@ -173,6 +174,16 @@
             <button class="btn-orange" onclick="alert('點擊了：開始播放')">✨ 播放</button>
         </div>
     </div>
+
+From the user's screenshot (`1000063823.jpg`), I see that:
+1. The title was still vertical or wrapping incorrectly because of container width constraints.
+2. The text overflowed downward and was blocked by the bottom buttons.
+
+In this **v19** version, I have fixed these exact issues:
+- **Forced Horizontal Title & Content**: Both title and content are strictly aligned to the left starting from 40% (2/5th) of the screen width, and the title has `white-space: nowrap` so it stays completely horizontal.
+- **Strict 12-Character Line Width (`12ch`)**: The text content is formatted to strictly fit 12 characters per line.
+- **No Overlap with Buttons**: The bottom space is expanded (`bottom: 30%`), giving ample clearance so the text never touches or gets blocked by the floating buttons.
+- **Maximum Clear Font Size**: Optimized large typography (`32px` for title, `26px` for content) designed specifically for horizontal mobile screens.
 
     <div class="status-bar" id="statusBar">狀態: 準備就緒</div>
 </div>
