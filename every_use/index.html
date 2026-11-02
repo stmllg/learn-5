@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第1天到第50天陪伴卡與文字輪播測試</title>
+    <title>第1天到第50天陪伴卡與文字輪播測試 (v3)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -14,12 +14,12 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
+            padding: 10px;
         }
         .container {
-            width: 95vw;
-            max-width: 1000px;
+            width: 100%;
+            max-width: 900px;
             background: #1E293B;
             border-radius: 16px;
             padding: 16px;
@@ -37,12 +37,12 @@
             padding: 0 10px;
         }
         .day-indicator {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
             color: #FBBF24;
         }
         .mode-indicator {
-            font-size: 16px;
+            font-size: 14px;
             color: #34D399;
             background: rgba(16, 185, 129, 0.2);
             padding: 4px 10px;
@@ -53,7 +53,6 @@
             position: relative;
             width: 100%;
             aspect-ratio: 1200 / 675;
-            max-height: 60vh;
             background: #0F172A;
             border-radius: 12px;
             overflow: hidden;
@@ -73,10 +72,10 @@
         }
         .text-overlay {
             position: absolute;
-            top: 15%;
-            bottom: 15%;
-            left: 10%;
-            right: 10%;
+            top: 10%;
+            bottom: 10%;
+            left: 8%;
+            right: 8%;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -87,37 +86,37 @@
             pointer-events: none;
         }
         .card-title {
-            font-size: clamp(18px, 2.8vw, 30px);
+            font-size: clamp(16px, 2.5vw, 28px);
             font-weight: 900;
             color: #FBBF24;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             text-shadow: 0 2px 6px rgba(0,0,0,0.95);
         }
         .card-content {
-            font-size: clamp(14px, 2.0vw, 21px);
-            line-height: 1.8;
+            font-size: clamp(13px, 1.8vw, 20px);
+            line-height: 1.7;
             color: #F8FAFC;
             text-shadow: 0 2px 6px rgba(0,0,0,0.95);
             white-space: pre-wrap;
-            max-width: 90%;
+            max-width: 95%;
         }
         .controls {
             display: flex;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
         }
         button {
             background: linear-gradient(135deg, #34D399 0%, #059669 100%);
             color: #064E3B;
             border: none;
-            padding: 8px 18px;
-            font-size: 15px;
+            padding: 8px 16px;
+            font-size: 14px;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            transition: transform 0.1s;
         }
         button:active { transform: scale(0.95); }
         button.secondary {
@@ -126,7 +125,10 @@
         }
         .status-bar {
             font-size: 13px;
-            color: #94A3B8;
+            color: #38BDF8;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 6px;
+            border-radius: 6px;
         }
     </style>
 </head>
@@ -135,11 +137,11 @@
 <div class="container">
     <div class="header-info">
         <div class="day-indicator" id="dayIndicator">第 1 天 / 共 50 天</div>
-        <div class="mode-indicator" id="modeIndicator">第 1-21 天：純圖片卡片</div>
+        <div class="mode-indicator" id="modeIndicator">載入中...</div>
     </div>
 
     <div class="card-stage" id="cardStage">
-        <img id="cardImg" src="" alt="陪伴卡" onerror="handleImageError(this)">
+        <img id="cardImg" src="" alt="陪伴卡" onerror="onImgError(this)">
         <div class="text-overlay" id="textOverlay" style="display: none;">
             <div class="card-title" id="cardTitle"></div>
             <div class="card-content" id="cardContent"></div>
@@ -150,9 +152,10 @@
         <button class="secondary" onclick="prevDay()">上一張</button>
         <button id="playPauseBtn" onclick="togglePlay()">暫停自動播放</button>
         <button class="secondary" onclick="nextDay()">下一張</button>
+        <button onclick="jumpToDay(22)">跳至第22天</button>
         <button onclick="resetDay()">回到第1天</button>
     </div>
-    <div class="status-bar" id="statusBar">當前圖片路徑載入中...</div>
+    <div class="status-bar" id="statusBar">狀態: 準備就緒</div>
 </div>
 
 <script>
@@ -172,33 +175,20 @@
     const statusBar = document.getElementById('statusBar');
     const playPauseBtn = document.getElementById('playPauseBtn');
 
-    function getRandomBgName(day) {
-        const seed = day * 13;
-        const bgNum = (seed % 40) + 1;
-        return 'bg_' + String(bgNum).padStart(2, '0') + '.webp';
-    }
-
     function updateDisplay() {
         dayIndicator.textContent = `第 ${currentDay} 天 / 共 ${maxDay} 天`;
         
         let imgPath = "";
         if (currentDay <= 21) {
-            modeIndicator.textContent = "第 1-21 天：固定圖片卡片";
-            modeIndicator.style.color = "#34D399";
-            modeIndicator.style.borderColor = "#10B981";
-            modeIndicator.style.background = "rgba(16, 185, 129, 0.2)";
-            
+            modeIndicator.textContent = "第 1-21 天 (cards/)";
             const paddedNum = String(currentDay).padStart(3, '0');
             imgPath = `cards/card_${paddedNum}.webp`;
-            
             textOverlay.style.display = 'none';
         } else {
-            modeIndicator.textContent = "第 22 天以上：動態底圖 + 法語文字";
-            modeIndicator.style.color = "#38BDF8";
-            modeIndicator.style.borderColor = "#38BDF8";
-            modeIndicator.style.background = "rgba(56, 189, 248, 0.2)";
-            
-            const bgName = getRandomBgName(currentDay);
+            modeIndicator.textContent = "第 22+ 天 (images/bg_XX.webp)";
+            // 每次重新整理或切換到22天以上時，隨機從 bg_01.webp ~ bg_40.webp 抽一張
+            const randomNum = Math.floor(Math.random() * 40) + 1;
+            const bgName = 'bg_' + String(randomNum).padStart(2, '0') + '.webp';
             imgPath = `images/${bgName}`;
             
             const dayKey = String(currentDay);
@@ -208,20 +198,17 @@
                 textOverlay.style.display = 'flex';
             } else {
                 cardTitle.textContent = "精進法語";
-                cardContent.textContent = "下個決心讓自己幸福、快樂，別習慣生活在憂悲苦惱中！";
+                cardContent.textContent = "下個決心讓自己幸福、快樂！";
                 textOverlay.style.display = 'flex';
             }
         }
 
-        statusBar.textContent = `載入檔案: ${imgPath}`;
+        statusBar.textContent = `正在載入檔案: ${imgPath}`;
         cardImg.src = imgPath;
     }
 
-    function handleImageError(img) {
-        statusBar.textContent = `⚠️ 載入失敗 (${img.src})，請檢查資料夾路徑與檔名`;
-        if (!img.src.includes('card_001.webp')) {
-            img.src = 'cards/card_001.webp';
-        }
+    function onImgError(img) {
+        statusBar.textContent = `⚠️ 載入失敗: ${img.src} (請確認檔案是否存在)`;
     }
 
     function nextDay() {
@@ -237,6 +224,11 @@
         if (currentDay < 1) {
             currentDay = maxDay;
         }
+        updateDisplay();
+    }
+
+    function jumpToDay(day) {
+        currentDay = day;
         updateDisplay();
     }
 
@@ -262,7 +254,7 @@
             if (isPlaying) {
                 nextDay();
             }
-        }, 2000);
+        }, 3000); // 改為3秒，方便看得清楚
     }
 
     updateDisplay();
