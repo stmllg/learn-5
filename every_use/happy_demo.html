@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V117)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V118)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -57,11 +57,7 @@
             pointer-events: none;
         }
 
-        /* 
-          【V117 調整】：
-          1. 將 top 稍微提高 (9%) 讓上方空間更充裕。
-          2. bottom 設定為 26%，將空間留給自動縮放迴圈去容納長文。
-        */
+        /* 文字容器設定 */
         .card-text-container {
             position: absolute;
             top: 9%;
@@ -87,11 +83,10 @@
             white-space: nowrap;
             flex-shrink: 0;
         }
-        /* 內文：自然斷行，並允許藉由 JS 動態強力縮小字體 */
         .card-content {
             font-weight: 800;
             color: #0F172A;
-            line-height: 1.3;
+            line-height: 1.35;
             white-space: pre-wrap;
             word-break: break-all;
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
@@ -165,7 +160,7 @@
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 長文自動縮放強力防護測試 (53, 54, 55 句) (V117)</div>
+    <div class="status-bar" id="statusBar">狀態: 短字數維持大字、長字數智慧縮放測試 (53, 54, 55 句) (V118)</div>
 </div>
 
 <script>
@@ -189,7 +184,6 @@
         let titleText = selectedData.title;
         let rawContent = selectedData.content;
 
-        // 安全防護：標題過長自動截斷
         if (titleText.length > 14) titleText = titleText.substring(0, 14);
 
         cardTitle.textContent = titleText;
@@ -198,21 +192,29 @@
         // 更新右上角顯示純綠色「希望新生 + 當前編號」
         document.getElementById('topRightBadge').textContent = `希望新生 ${cardKey}`;
 
-        // 【V117 強力自動縮放迴圈】：從 24px 開始往下調小，直到完全塞進容器且不壓按鈕為止
+        // 【V118 智慧邏輯】：
+        // 如果是短字數（<= 50 字），固定使用舒適清晰的大字 (24px)；
+        // 只有當字數較多（> 50 字）時，才啟動縮放迴圈往下調小字體，確保不壓到按鈕。
         let size = 24; 
-        const minSize = 8; // 允許縮小到 8px 確保極長文絕對裝得下
-        
-        cardContent.style.fontSize = size + "px";
-        cardTitle.style.fontSize = (size + 2) + "px";
+        const minSize = 12; 
 
-        // 當文字內容總高度大於容器可視高度時，持續縮小字體
-        while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
-            size--;
+        if (rawContent.length <= 50) {
+            size = 24; // 短字數固定大字，保持最佳閱讀體驗
             cardContent.style.fontSize = size + "px";
             cardTitle.style.fontSize = (size + 2) + "px";
+        } else {
+            // 長字數才進行自動縮放
+            cardContent.style.fontSize = size + "px";
+            cardTitle.style.fontSize = (size + 2) + "px";
+
+            while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
+                size--;
+                cardContent.style.fontSize = size + "px";
+                cardTitle.style.fontSize = (size + 2) + "px";
+            }
         }
 
-        statusBar.textContent = `[V117測試] 顯示第 ${cardKey} 句 (字數: ${rawContent.length}, 自動縮放後字體: ${size}px) | 背景: bg_${paddedImgNum}.webp`;
+        statusBar.textContent = `[V118測試] 顯示第 ${cardKey} 句 (字數: ${rawContent.length}, 套用字體: ${size}px) | 背景: bg_${paddedImgNum}.webp`;
         cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
@@ -227,10 +229,8 @@
         .then(data => {
             cardTexts = data;
             
-            // 立即顯示第一筆 (第 53 句)
             showCard(testKeys[testIndex]);
 
-            // 每 3 秒循環切換 53, 54, 55 句供您實測觀察
             setInterval(() => {
                 testIndex = (testIndex + 1) % testKeys.length;
                 showCard(testKeys[testIndex]);
