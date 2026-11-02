@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V113)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V115)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -43,7 +43,7 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 【V113 調整】：右上角「希望新生 + 編號」改為清晰的綠色字體 */
+        /* 右上角「希望新生 + 編號」綠色清晰字體，與標題保持安全距離 */
         .top-right-badge {
             position: absolute;
             top: 2%;
@@ -53,16 +53,16 @@
             font-size: 18px;
             font-weight: 900;
             letter-spacing: 1px;
-            -webkit-text-stroke: 0.5px #FFFFFF; /* 極細白描邊，確保在任何背景上都清晰 */
+            -webkit-text-stroke: 0.5px #FFFFFF;
             z-index: 40;
             pointer-events: none;
         }
 
-        /* 橫式紅框區域：整體往下移（11%），完美閃過右上角標籤 */
+        /* 文字容器：恢復標準舒適位置，靠右 35%，下方預留安全防護區 */
         .card-text-container {
             position: absolute;
             top: 11%;
-            bottom: 27%;
+            bottom: 28%;
             left: 35%;
             right: 5%;
             display: flex;
@@ -74,15 +74,6 @@
             pointer-events: none;
             gap: 8px;
             overflow: hidden;
-            transition: top 0.2s, gap 0.2s;
-        }
-        /* 長文模式：內文超過 45 字即觸發，標題上移並壓縮行高 */
-        .card-text-container.long-text {
-            top: 7.5%;
-            gap: 3px;
-        }
-        .card-text-container.long-text .card-content {
-            line-height: 1.25;
         }
         .card-title {
             font-weight: 900;
@@ -90,7 +81,7 @@
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
             width: 100%;
             line-height: 1.2;
-            white-space: nowrap; /* 標題完全橫向、靠左對齊，絕不變成直行 */
+            white-space: nowrap;
         }
         .card-content {
             font-weight: 800;
@@ -154,7 +145,6 @@
 
 <div class="container">
     <div class="card-stage" id="cardStage">
-        <!-- 【V113】右上角「希望新生 + 編號」綠色清晰字體 -->
         <div class="top-right-badge" id="topRightBadge">希望新生</div>
 
         <div class="card-text-container" id="textContainer">
@@ -169,16 +159,17 @@
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 準備讀取 images_text.json (V113)</div>
+    <div class="status-bar" id="statusBar">狀態: 長文測試模式 (輪流顯示第 53, 54, 55 句) (V115)</div>
 </div>
 
 <script>
     let cardTexts = {};
-    let textKeys = [];
+    const testKeys = ["53", "54", "55"];
+    let testIndex = 0;
 
-    // 依據字數動態決定每行字數：>60字改為14字一行，否則12字一行
+    // 【V115】字數超過 60 字時，每行自動改為 15 個字（增加橫向容量，減少垂直行數）
     function formatTextByLength(str) {
-        const charsPerLine = str.length > 60 ? 14 : 12;
+        const charsPerLine = str.length > 60 ? 15 : 12;
         let lines = [];
         for (let i = 0; i < str.length; i += charsPerLine) {
             lines.push(str.substring(i, i + charsPerLine));
@@ -186,18 +177,19 @@
         return lines.join('\n');
     }
 
-    function updateRandomDisplay() {
-        if (textKeys.length === 0) return;
+    function showCard(cardKey) {
+        if (!cardTexts[cardKey]) {
+            cardTitle.textContent = `找不到代號 ${cardKey}`;
+            cardContent.textContent = "請確認 images_text.json 內是否有此編號";
+            return;
+        }
 
         // 1. 隨機抽取背景圖 (bg_01 至 bg_40)
         const randomImgNum = Math.floor(Math.random() * 40) + 1;
         const paddedImgNum = String(randomImgNum).padStart(2, '0');
         const imgPath = `images/bg_${paddedImgNum}.webp`;
 
-        // 2. 從外部讀入的資料中隨機抽取一句法語文字
-        const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
-        const selectedData = cardTexts[randomTextKey];
-
+        const selectedData = cardTexts[cardKey];
         let titleText = selectedData.title;
         let rawContent = selectedData.content;
 
@@ -210,19 +202,12 @@
         cardTitle.textContent = titleText;
         cardContent.textContent = contentText;
 
-        // 【V113】更新右上角顯示「希望新生 + 編號」
-        document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
+        // 更新右上角顯示「希望新生 + 當前編號」
+        document.getElementById('topRightBadge').textContent = `希望新生 ${cardKey}`;
 
-        // 內文超過 45 字即觸發長文模式，標題上移並壓縮行高
-        if (rawContent.length > 45) {
-            textContainer.classList.add('long-text');
-        } else {
-            textContainer.classList.remove('long-text');
-        }
-
-        // 迴圈自動放大與防擋機制
+        // 迴圈自動放大與防擋縮放機制
         let size = 26; 
-        const minSize = 10; 
+        const minSize = 9; // 允許足夠的縮小空間以確保絕不碰觸按鈕
         
         cardContent.style.fontSize = size + "px";
         cardTitle.style.fontSize = (size + 3) + "px";
@@ -233,11 +218,11 @@
             cardTitle.style.fontSize = (size + 3) + "px";
         }
 
-        statusBar.textContent = `隨機載入背景: bg_${paddedImgNum}.webp | 文字代號: ${randomTextKey} (字數: ${rawContent.length})`;
+        statusBar.textContent = `[長文測試] 目前顯示第 ${cardKey} 句 (字數: ${rawContent.length}, 每行15字) | 背景: bg_${paddedImgNum}.webp`;
         cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
-    // 啟動時使用 fetch 讀取同目錄下的 images_text.json 檔案
+    // 啟動時讀取 images_text.json，並在 53、54、55 之間循環測試
     fetch('images_text.json')
         .then(response => {
             if (!response.ok) {
@@ -247,11 +232,15 @@
         })
         .then(data => {
             cardTexts = data;
-            textKeys = Object.keys(cardTexts);
             
-            // 讀取成功後開始進行 2 秒鐘隨機切換展示
-            updateRandomDisplay();
-            setInterval(updateRandomDisplay, 2000);
+            // 立即顯示第一筆 (第 53 句)
+            showCard(testKeys[testIndex]);
+
+            // 每 3 秒循環切換 53, 54, 55 句供您實測觀察
+            setInterval(() => {
+                testIndex = (testIndex + 1) % testKeys.length;
+                showCard(testKeys[testIndex]);
+            }, 3000);
         })
         .catch(error => {
             statusBar.textContent = `⚠️ 讀取 images_text.json 失敗: ${error.message}`;
