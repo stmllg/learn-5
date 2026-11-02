@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第1天到第50天陪伴卡與文字輪播測試 (v4 - 網格疊加修正)</title>
+    <title>第1天到第50天陪伴卡與文字輪播測試 (v5 - 絕對定位絕對覆蓋)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -49,10 +49,9 @@
             border-radius: 8px;
             border: 1px solid #10B981;
         }
-        /* 使用 CSS Grid 確保圖片與文字完美疊加在同一區域 */
+        /* 使用絕對定位保證文字絕對疊在圖片正上方 */
         .card-stage {
-            display: grid;
-            grid-template-areas: "stack";
+            position: relative;
             width: 100%;
             aspect-ratio: 1200 / 675;
             background: #0F172A;
@@ -60,37 +59,42 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        .card-stage img, .text-overlay {
-            grid-area: stack;
+        .card-stage img {
             width: 100%;
             height: 100%;
-        }
-        .card-stage img {
             object-fit: contain;
+            display: block;
             border-radius: 12px;
         }
         .text-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 8% 12%;
-            z-index: 10;
+            padding: 10% 12%;
+            z-index: 20;
             pointer-events: none;
+            background: rgba(0, 0, 0, 0.25); /* 微微加一點半透明背景保護膜，確保文字清晰 */
+            border-radius: 12px;
         }
         .card-title {
-            font-size: clamp(18px, 3vw, 32px);
+            font-size: clamp(20px, 3.2vw, 36px);
             font-weight: 900;
             color: #FBBF24;
-            margin-bottom: 12px;
-            text-shadow: 0 2px 6px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.8);
+            margin-bottom: 14px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.95), 0 0 12px rgba(0,0,0,0.9);
         }
         .card-content {
-            font-size: clamp(14px, 2.2vw, 22px);
-            line-height: 1.8;
+            font-size: clamp(15px, 2.3vw, 24px);
+            line-height: 1.85;
             color: #F8FAFC;
-            text-shadow: 0 2px 6px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.8);
+            text-shadow: 0 2px 8px rgba(0,0,0,0.95), 0 0 12px rgba(0,0,0,0.9);
             white-space: pre-wrap;
             max-width: 95%;
         }
