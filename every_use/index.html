@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V102 排版極限測試版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -49,7 +49,7 @@
             border-radius: 8px;
             border: 1px solid #10B981;
         }
-        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例，全面填滿不留黑邊 */
+        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例 */
         .card-stage {
             position: relative;
             width: 100%;
@@ -62,11 +62,11 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 紅框區域：自畫面左側 33% 處開始，上方留白，底部止於按鈕上方 */
+        /* 紅框區域：自畫面左側 33% 處開始，上方留白，底部預留安全防護區給按鈕 */
         .card-text-container {
             position: absolute;
-            top: 10%;
-            bottom: 24%;
+            top: 8%;
+            bottom: 28%;
             left: 33%;
             right: 5%;
             display: flex;
@@ -76,7 +76,8 @@
             text-align: left;
             z-index: 10;
             pointer-events: none;
-            gap: 10px;
+            gap: 8px;
+            overflow: hidden;
         }
         .card-title {
             font-weight: 900;
@@ -84,17 +85,17 @@
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
             width: 100%;
             line-height: 1.2;
-            white-space: nowrap; /* 標題完全橫向、靠左對齊，絕不變成直行 */
+            white-space: nowrap; /* 標題絕對橫向不斷行 */
         }
         .card-content {
             font-weight: 800;
             color: #0F172A;
-            line-height: 1.45;
-            white-space: pre-wrap; /* 確保 JavaScript 的換行符號有效 */
+            line-height: 1.35;
+            white-space: pre-wrap; /* 確保換行符號有效 */
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
             overflow: hidden;
         }
-        /* 畫面下方完美貼齊的三個按鈕（不互相覆蓋、不被擋到） */
+        /* 畫面下方完美貼齊的三個按鈕 */
         .controls-overlay {
             position: absolute;
             bottom: 3%;
@@ -148,14 +149,19 @@
 
 <div class="container">
     <div class="header-info">
-        <div class="day-indicator" id="dayIndicator">載入中...</div>
-        <div class="mode-indicator" id="modeIndicator">測試播放中 (2秒/張)</div>
+        <div class="day-indicator" id="dayIndicator">排版極限測試 (V102)</div>
+        <div class="mode-indicator" id="modeIndicator">固定測試字元模式</div>
     </div>
 
     <div class="card-stage" id="cardStage">
-        <div class="card-text-container" id="textContainer" style="display: none;">
-            <div class="card-title" id="cardTitle"></div>
-            <div class="card-content" id="cardContent"></div>
+        <div class="card-text-container" id="textContainer">
+            <!-- 標題測試：固定 10 個字 -->
+            <div class="card-title" id="cardTitle">一二三四五六七八九十</div>
+            <!-- 內文測試：多行，每行嚴格 12 個字 -->
+            <div class="card-content" id="cardContent">一二三四五六七八九十一二
+一二三四五六七八九十一二
+一二三四五六七八九十一二
+一二三四五六七八九十一二</div>
         </div>
 
         <div class="controls-overlay">
@@ -165,120 +171,38 @@
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 準備就緒</div>
+    <div class="status-bar" id="statusBar">狀態: V102 測試中（請檢查字體大小與按鈕上方距離是否完美）</div>
 </div>
 
 <script>
-    const cardTexts = {
-        "22": {"id": 184, "title": "痛苦真正的原因", "content": "希望大家真實地洞悉到，是什麼原因使自己過得這麼痛苦，是不是沒遇到好的人、沒遇到好的事情，還是自己不會快樂的方法？"},
-        "23": {"id": 185, "title": "痛苦來自錯誤的思路", "content": "痛苦從哪裡產生？錯誤的理路。想錯了，生命就越來越苦；想對了，生命就越來越快樂。"},
-        "24": {"id": 186, "title": "擺脫苦難是最輝煌的事", "content": "我們看事情就會只看現在的苦，所以修行感到辛苦時就會想退，但實際上我們現在正在做一件最輝煌的事 ——正在經歷擺脫苦難的過程。"},
-        "25": {"id": 187, "title": "煩惱絕對不能累積", "content": "如果有一件事不能累積的話，那一定是煩惱！"},
-        "26": {"id": 188, "title": "善用智慧能安忍", "content": "佛法中所謂的「安受苦忍」，就是用非常智慧的方式去處理痛苦。"},
-        "27": {"id": 189, "title": "踐踏痛苦最痛快", "content": "哪有比踐踏痛苦更痛快的？「你壓迫我，我就把你踩在腳下！」"},
-        "28": {"id": 190, "title": "何必被怨氣所綁", "content": "其實怨氣綁住的不是一個人，是兩個人或者更多人。"},
-        "29": {"id": 191, "title": "用短暫人生創造無限價值", "content": "很多人都想要變得更美，那就好好修忍辱，利用這短暫的人生是可以達到的。"},
-        "30": {"id": 192, "title": "斬除生氣的習慣", "content": "正因為有人總是惹我們生氣，最好把自己喜歡生氣這個毛病徹底改了，這樣就算所有的有情有一天都來敵對我們，我們都不會再生氣了。"},
-        "31": {"id": 193, "title": "轉苦澀為快樂", "content": "當發現自己有一種習慣的思路，會讓自己的人生過得非常苦澀，那麼就要把這個習慣改掉，改成快樂的思路。"},
-        "32": {"id": 194, "title": "凡夫的苦受", "content": "當痛苦來臨，感覺苦受似乎被無限增大時，要意識到："},
-        "33": {"id": 195, "title": "從初發點擊潰苦", "content": "當我們的苦受如大海的濁浪拍天，這時再用功就有點晚了。"},
-        "34": {"id": 196, "title": "學習以法調心", "content": "學會用法調伏心，學會用法穿越困境，"},
-        "35": {"id": 197, "title": "抓出煩惱背後的堅固見解", "content": "任何熾盛的煩惱後面都有一個堅固的見解，"},
-        "36": {"id": 198, "title": "氾濫成災的思路", "content": "想要達到生命深沉的寧靜和喜悅，就必須戰鬥內心中那些亂七八糟的見解。"},
-        "37": {"id": 199, "title": "不要對自己失去耐心", "content": "要懂得欣賞自己與煩惱戰鬥的過程，不要每次都看成是失敗。"},
-        "38": {"id": 200, "title": "方法正確還需上陣練", "content": "我們已經找到能對治內心煩惱的法，它悲憫和清涼的力量，能讓生命的痛苦慢慢變弱。"},
-        "39": {"id": 201, "title": "下决心讓自己幸福", "content": "下個決心讓自己幸福、快樂，別習慣生活在憂悲苦惱和各種情緒的糾結之中，這才是真正漂亮的選擇！"},
-        "40": {"id": 202, "title": "痛苦來自錯誤的安立", "content": "當一個人開始為「我」辯解時，我愛執會極度膨脹，其實我們並不會因此感到快樂。"},
-        "41": {"id": 203, "title": "以歡喜心滅除憂瞋", "content": "有了歡喜心就沒有憂慮，沒有憂慮就不會有瞋恨，沒有瞋恨就不會有傷害，不會去做傷害自己和他人的事。"},
-        "42": {"id": 204, "title": "正理源於淨智", "content": "正理是什麼呢? 正確無垢的道理。"},
-        "43": {"id": 205, "title": "訓練心的力量", "content": "當我們的心越來越有力量的時候，就可以挑戰越來越大的痛苦；克服痛苦之後，心又會越來越有力量。"},
-        "44": {"id": 206, "title": "智慧是幸福第一要素", "content": "我最想要擁有的財富就是智慧，最不能捨離的摯友、導師也是智慧，最不能離開的光明也是智慧，最不能失去的、像山一樣的依靠，也是智慧，因為它是幸福的第一要素。"},
-        "45": {"id": 207, "title": "澈見一切得大樂", "content": "有了對一切都了解的智慧，就能遠離一切恐怖、遠離一切顛倒的認識，生命會進入徹底大樂的境界。"},
-        "46": {"id": 208, "title": "溝通的基礎", "content": "溝通要在不散夥的狀態下才能進行，如果老存著一種想另起爐灶自己幹的心，是沒辦法溝通的。"},
-        "47": {"id": 209, "title": "起點無論高低", "content": "不管自己的起點有多低，都要敢於面對，並且就從這樣的起點上開始修行，這沒有什麼不光彩的！"},
-        "48": {"id": 210, "title": "比生命還重要的珍寶", "content": "無論什麼理由、什麼困境，都不足以使我們放棄佛法！因為它是比生命更重要的珍寶！"},
-        "49": {"id": 211, "title": "靜心能生善行", "content": "一旦我們的心安靜下來，不再被情緒所控制的時候，就能夠看清楚自己怎麼了，這個時候該行的善就能起步行起來。"},
-        "50": {"id": 212, "title": "以法調心自清涼", "content": "如果不用法向內調伏，大大小小的事都會帶來痛苦和麻煩；如果能藉助法的力量向內調伏，內心就會獲得安穩和清涼。"}
-    };
-
-    let currentDay = 1;
-    const maxDay = 62;
-
-    const dayIndicator = document.getElementById('dayIndicator');
-    const modeIndicator = document.getElementById('modeIndicator');
-    const cardStage = document.getElementById('cardStage');
     const textContainer = document.getElementById('textContainer');
     const cardTitle = document.getElementById('cardTitle');
     const cardContent = document.getElementById('cardContent');
-    const statusBar = document.getElementById('statusBar');
+    const cardStage = document.getElementById('cardStage');
 
-    // 嚴格將內文每 12 個字強制切成一行
-    function formatTo12CharsPerLine(str) {
-        let lines = [];
-        for (let i = 0; i < str.length; i += 12) {
-            lines.push(str.substring(i, i + 12));
-        }
-        return lines.join('\n');
-    }
+    // 載入一張測試背景圖（使用您資料夾內的 bg_01.webp）
+    const testImgPath = `images/bg_01.webp`;
+    cardStage.style.backgroundImage = `url('${testImgPath}')`;
 
-    function updateDisplay() {
-        dayIndicator.textContent = `第 ${currentDay} 天 / 共 ${maxDay} 天`;
+    // **【V102 智慧防擋自動縮放迴圈】**
+    function autoFitText() {
+        let size = 30; // 從較大字級開始嘗試
+        const minSize = 10; // 最小極限字級
         
-        let imgPath = "";
-        if (currentDay <= 21) {
-            const paddedNum = String(currentDay).padStart(3, '0');
-            imgPath = `cards/card_${paddedNum}.webp`;
-            modeIndicator.textContent = `固定卡片 (cards/card_${paddedNum}.webp)`;
-            textContainer.style.display = 'none';
-        } else {
-            // 隨機選取 bg_01 至 bg_40
-            const randomNum = Math.floor(Math.random() * 40) + 1;
-            const paddedImgNum = String(randomNum).padStart(2, '0');
-            imgPath = `images/bg_${paddedImgNum}.webp`;
-            modeIndicator.textContent = `隨機法語 (bg_${paddedImgNum}.webp)`;
-            
-            const dayKey = String(currentDay);
-            if (cardTexts[dayKey]) {
-                const titleText = cardTexts[dayKey].title;
-                const contentText = formatTo12CharsPerLine(cardTexts[dayKey].content);
-                
-                cardTitle.textContent = titleText;
-                cardContent.textContent = contentText;
-                textContainer.style.display = 'flex';
+        cardContent.style.fontSize = size + "px";
+        cardTitle.style.fontSize = (size + 3) + "px";
 
-                // 迴圈自動放大/防擋機制：從大字級往下檢查，確保不超出框也不碰到按鈕
-                let size = 28; 
-                const minSize = 14; 
-                
-                cardContent.style.fontSize = size + "px";
-                cardTitle.style.fontSize = (size + 4) + "px";
-
-                while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
-                    size--;
-                    cardContent.style.fontSize = size + "px";
-                    cardTitle.style.fontSize = (size + 4) + "px";
-                }
-            } else {
-                cardTitle.textContent = "精進法語";
-                cardContent.textContent = formatTo12CharsPerLine("下個決心讓自己幸福、快樂！");
-                textContainer.style.display = 'flex';
-            }
+        // 當文字總高度超過可用容器高度時，自動逐步縮小字體，直到完全不碰到按鈕為止
+        while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
+            size--;
+            cardContent.style.fontSize = size + "px";
+            cardTitle.style.fontSize = (size + 3) + "px";
         }
-
-        statusBar.textContent = `正在載入背景圖: ${imgPath}`;
-        cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
-    // 兩秒鐘顯示一張測試
-    setInterval(() => {
-        currentDay++;
-        if (currentDay > maxDay) {
-            currentDay = 1;
-        }
-        updateDisplay();
-    }, 2000);
-
-    updateDisplay();
+    // 畫面載入與視窗大小改變時自動執行字體適配
+    window.onload = autoFitText;
+    window.onresize = autoFitText;
 </script>
 
 </body>
