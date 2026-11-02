@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V104)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V106)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -62,7 +62,7 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 紅框區域：向左平移 1 個字（從 33% 改為 29%），上方留白，底部預留安全防護區給按鈕 */
+        /* 紅框區域：左側 29%，上方留白，底部預留安全防護區給按鈕 */
         .card-text-container {
             position: absolute;
             top: 8%;
@@ -80,10 +80,13 @@
             overflow: hidden;
             transition: top 0.2s, gap 0.2s;
         }
-        /* 【V104 動態兩步驟】：當內文超過 48 字時自動上移與收緊間距，多爭取一行空間 */
+        /* 【V106 長文模式強化】：內文超過 45 字即觸發，標題上移並壓縮行高 */
         .card-text-container.long-text {
-            top: 5%;
-            gap: 4px;
+            top: 4.5%;
+            gap: 3px;
+        }
+        .card-text-container.long-text .card-content {
+            line-height: 1.25;
         }
         .card-title {
             font-weight: 900;
@@ -97,11 +100,11 @@
             font-weight: 800;
             color: #0F172A;
             line-height: 1.35;
-            white-space: pre-wrap; /* 確保換行符號有效 */
+            white-space: pre-wrap;
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
             overflow: hidden;
         }
-        /* 畫面下方完美貼齊的三個按鈕（不互相覆蓋、不被擋到） */
+        /* 畫面下方完美貼齊的三個按鈕 */
         .controls-overlay {
             position: absolute;
             bottom: 3%;
@@ -156,7 +159,7 @@
 <div class="container">
     <div class="header-info">
         <div class="day-indicator" id="dayIndicator">圖文隨機播放模式</div>
-        <div class="mode-indicator" id="modeIndicator">V104 測試中 (2秒/張)</div>
+        <div class="mode-indicator" id="modeIndicator">V106 測試中 (2秒/張)</div>
     </div>
 
     <div class="card-stage" id="cardStage">
@@ -172,7 +175,7 @@
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 準備就緒 (V104)</div>
+    <div class="status-bar" id="statusBar">狀態: 準備就緒 (V106)</div>
 </div>
 
 <script>
@@ -216,11 +219,12 @@
     const statusBar = document.getElementById('statusBar');
     const dayIndicator = document.getElementById('dayIndicator');
 
-    // 嚴格將內文每 12 個字強制切成一行
-    function formatTo12CharsPerLine(str) {
+    // 依據字數動態決定每行字數：>60字改為14字一行，否則12字一行
+    function formatTextByLength(str) {
+        const charsPerLine = str.length > 60 ? 14 : 12;
         let lines = [];
-        for (let i = 0; i < str.length; i += 12) {
-            lines.push(str.substring(i, i + 12));
+        for (let i = 0; i < str.length; i += charsPerLine) {
+            lines.push(str.substring(i, i + charsPerLine));
         }
         return lines.join('\n');
     }
@@ -238,17 +242,17 @@
         let titleText = selectedData.title;
         let rawContent = selectedData.content;
 
-        // 安全防護：標題過長或內文過長自動截斷
+        // 安全防護：標題過長或內文超過 75 字自動截斷
         if (titleText.length > 14) titleText = titleText.substring(0, 14);
-        if (rawContent.length > 72) rawContent = rawContent.substring(0, 72);
+        if (rawContent.length > 75) rawContent.substring(0, 75);
 
-        const contentText = formatTo12CharsPerLine(rawContent);
+        const contentText = formatTextByLength(rawContent);
 
         cardTitle.textContent = titleText;
         cardContent.textContent = contentText;
 
-        // 【動態兩步驟：字數超過 48 字自動觸發長文模式，標題上移並收緊間距】
-        if (rawContent.length > 48) {
+        // 【V106 動態微調】：內文超過 45 字即觸發長文模式，標題上移並壓縮行高
+        if (rawContent.length > 45) {
             textContainer.classList.add('long-text');
         } else {
             textContainer.classList.remove('long-text');
@@ -267,8 +271,8 @@
             cardTitle.style.fontSize = (size + 3) + "px";
         }
 
-        statusBar.textContent = `隨機載入背景: bg_${paddedImgNum}.webp | 文字代號: ${randomTextKey}`;
-        dayIndicator.textContent = `隨機輪播播放中 (V104)`;
+        statusBar.textContent = `隨機載入背景: bg_${paddedImgNum}.webp | 文字代號: ${randomTextKey} (字數: ${rawContent.length})`;
+        dayIndicator.textContent = `隨機輪播播放中 (V106)`;
         cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
