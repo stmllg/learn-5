@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V118)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V119)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -30,7 +30,7 @@
             flex-direction: column;
             gap: 12px;
         }
-        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例 */
+        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例，全面填滿不留黑邊 */
         .card-stage {
             position: relative;
             width: 100%;
@@ -57,11 +57,14 @@
             pointer-events: none;
         }
 
-        /* 文字容器設定 */
+        /* 
+          【V119 終極自適應文字容器】：
+          保持完美靠右位置 (35%)，底部預留 29% 空間給下方按鈕作絕對安全防護區。
+        */
         .card-text-container {
             position: absolute;
             top: 9%;
-            bottom: 26%;
+            bottom: 29%;
             left: 35%;
             right: 5%;
             display: flex;
@@ -160,27 +163,25 @@
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 短字數維持大字、長字數智慧縮放測試 (53, 54, 55 句) (V118)</div>
+    <div class="status-bar" id="statusBar">狀態: 智慧自適應隨機輪播模式 (V119)</div>
 </div>
 
 <script>
     let cardTexts = {};
-    const testKeys = ["53", "54", "55"];
-    let testIndex = 0;
+    let textKeys = [];
 
-    function showCard(cardKey) {
-        if (!cardTexts[cardKey]) {
-            cardTitle.textContent = `找不到代號 ${cardKey}`;
-            cardContent.textContent = "請確認 images_text.json 內是否有此編號";
-            return;
-        }
+    function updateRandomDisplay() {
+        if (textKeys.length === 0) return;
 
         // 1. 隨機抽取背景圖 (bg_01 至 bg_40)
         const randomImgNum = Math.floor(Math.random() * 40) + 1;
         const paddedImgNum = String(randomImgNum).padStart(2, '0');
         const imgPath = `images/bg_${paddedImgNum}.webp`;
 
-        const selectedData = cardTexts[cardKey];
+        // 2. 從外部讀入的資料中隨機抽取一句法語文字
+        const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
+        const selectedData = cardTexts[randomTextKey];
+
         let titleText = selectedData.title;
         let rawContent = selectedData.content;
 
@@ -189,36 +190,30 @@
         cardTitle.textContent = titleText;
         cardContent.textContent = rawContent;
 
-        // 更新右上角顯示純綠色「希望新生 + 當前編號」
-        document.getElementById('topRightBadge').textContent = `希望新生 ${cardKey}`;
+        // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」
+        document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
 
-        // 【V118 智慧邏輯】：
-        // 如果是短字數（<= 50 字），固定使用舒適清晰的大字 (24px)；
-        // 只有當字數較多（> 50 字）時，才啟動縮放迴圈往下調小字體，確保不壓到按鈕。
-        let size = 24; 
-        const minSize = 12; 
+        // 【V119 智慧自適應核心演算】：
+        // 每次從最大舒適字體 26px 開始嘗試。
+        // 若內容較短，高度不超出紅框，字體直接維持 26px；
+        // 若內容較多（極長文），高度超出容器，迴圈會自動向下微縮，直到完全塞進按鈕上方為止！
+        let size = 26; 
+        const minSize = 10; 
+        
+        cardContent.style.fontSize = size + "px";
+        cardTitle.style.fontSize = (size + 2) + "px";
 
-        if (rawContent.length <= 50) {
-            size = 24; // 短字數固定大字，保持最佳閱讀體驗
+        while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
+            size--;
             cardContent.style.fontSize = size + "px";
             cardTitle.style.fontSize = (size + 2) + "px";
-        } else {
-            // 長字數才進行自動縮放
-            cardContent.style.fontSize = size + "px";
-            cardTitle.style.fontSize = (size + 2) + "px";
-
-            while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
-                size--;
-                cardContent.style.fontSize = size + "px";
-                cardTitle.style.fontSize = (size + 2) + "px";
-            }
         }
 
-        statusBar.textContent = `[V118測試] 顯示第 ${cardKey} 句 (字數: ${rawContent.length}, 套用字體: ${size}px) | 背景: bg_${paddedImgNum}.webp`;
+        statusBar.textContent = `隨機背景: bg_${paddedImgNum}.webp | 代號: ${randomTextKey} (字數: ${rawContent.length}, 適配字體: ${size}px)`;
         cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
-    // 啟動時讀取 images_text.json，並在 53、54、55 之間循環測試
+    // 啟動時讀取同目錄下的 images_text.json 檔案
     fetch('images_text.json')
         .then(response => {
             if (!response.ok) {
@@ -228,13 +223,11 @@
         })
         .then(data => {
             cardTexts = data;
+            textKeys = Object.keys(cardTexts);
             
-            showCard(testKeys[testIndex]);
-
-            setInterval(() => {
-                testIndex = (testIndex + 1) % testKeys.length;
-                showCard(testKeys[testIndex]);
-            }, 3000);
+            // 讀取成功後開始進行 2 秒鐘隨機切換展示
+            updateRandomDisplay();
+            setInterval(updateRandomDisplay, 2000);
         })
         .catch(error => {
             statusBar.textContent = `⚠️ 讀取 images_text.json 失敗: ${error.message}`;
