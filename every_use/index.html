@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V906</title>
+  <title>歡喜背書V907</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,7 +11,7 @@
   <meta name="theme-color" content="#0B0F19">
 
   <!-- ========================================================================== -->
-  <!-- 📌【v905 核心唯一設定】經典與群組雙重隔離命名空間 -->
+  <!-- 📌【v907 核心唯一設定】經典與群組雙重隔離命名空間 -->
   <!-- ========================================================================== -->
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -292,11 +292,11 @@
 
     .companion-actions-row button {
       flex: 0 1 auto;
-      min-width: 120px;
-      padding: 10px 22px;
+      min-width: 110px;
+      padding: 10px 18px;
       text-align: center;
       white-space: nowrap;
-      font-size: clamp(14px, 2.2vh, 18px);
+      font-size: clamp(13px, 2vh, 17px);
       font-weight: 900;
       border-radius: 26px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
@@ -323,6 +323,13 @@
     .btn-card-setting:active {
       transform: scale(0.95);
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
+    }
+
+    .btn-card-streak {
+      color: #064E3B;
+      background: linear-gradient(135deg, #A7F3D0 0%, #34D399 100%);
+      border: 1.5px solid #10B981;
+      pointer-events: none;
     }
 
     #schedule-modal-overlay {
@@ -841,13 +848,14 @@
         <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
+        <button id="btn-streak-days" class="btn-card-streak" style="display: none;">堅持天數</button>
       </div>
     </div>
   </div>
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v905)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v907)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -899,7 +907,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v905 載入中】...</div>
+  <div id="schedule-toast">📦 【v907 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1125,13 +1133,13 @@
 
     function isIndependentModeUnlocked() {
       if (practicePhase === 'completed') return true;
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V906');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V907');
       if (!savedStr) return false;
       try {
         const savedState = JSON.parse(savedStr);
         return savedState.savedDateStr === getNormalizedDateStr() &&
           savedState.practicePhase === 'completed' &&
-          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V906') === getNormalizedDateStr();
+          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V907') === getNormalizedDateStr();
       } catch (e) {
         return false;
       }
@@ -1142,7 +1150,7 @@
       if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') return;
 
       if (practicePhase === 'completed') {
-        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V906', getNormalizedDateStr());
+        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V907', getNormalizedDateStr());
       }
       const state = {
         coreMode: currentCoreMode,
@@ -1156,18 +1164,18 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_V906', JSON.stringify(state));
+      classicStorage.setItem('APP_SAVED_STATE_V907', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V906');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V907');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          classicStorage.removeItem('APP_SAVED_STATE_V906');
+          classicStorage.removeItem('APP_SAVED_STATE_V907');
           return false;
         }
 
@@ -1181,7 +1189,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_V906');
+        classicStorage.removeItem('APP_SAVED_STATE_V907');
         return false;
       }
     }
@@ -1238,7 +1246,7 @@
       } else if (document.visibilityState === 'visible') {
         setTimeout(() => {
           handleOrientationCheck();
-          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V906') === getNormalizedDateStr()) {
+          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V907') === getNormalizedDateStr()) {
             practicePhase = 'completed';
           }
           renderUI();
@@ -1343,9 +1351,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = classicStorage.getItem('APP_ACTIVE_DATE_V906');
+      const lastActiveDate = classicStorage.getItem('APP_ACTIVE_DATE_V907');
       if (lastActiveDate !== todayStr) {
-        classicStorage.setItem('APP_ACTIVE_DATE_V906', todayStr);
+        classicStorage.setItem('APP_ACTIVE_DATE_V907', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -1400,7 +1408,7 @@
 
       let mediaUrl = defaultUrl;
       try {
-        let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_v905' : 'merit_dedication_file_v905';
+        let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_v907' : 'merit_dedication_file_v907';
         const savedFile = await getLocalFile(fileKey);
         if (savedFile && savedFile.data) {
           mediaUrl = URL.createObjectURL(new Blob([savedFile.data], { type: 'video/mp4' }));
@@ -1443,7 +1451,7 @@
       await preWarmMicrophonePermission();
 
       hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V906', getNormalizedDateStr());
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V907', getNormalizedDateStr());
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
@@ -1453,7 +1461,7 @@
         showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
         await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V906');
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V907');
         if (savedStr) {
           try {
             const state = JSON.parse(savedStr);
@@ -1477,7 +1485,7 @@
       await preWarmMicrophonePermission();
 
       hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V906', getNormalizedDateStr());
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V907', getNormalizedDateStr());
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
@@ -1485,7 +1493,7 @@
 
       await loadAllAssetsSmartSync();
 
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V906');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V907');
       if (savedStr) {
         try {
           const state = JSON.parse(savedStr);
@@ -1507,7 +1515,7 @@
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V906');
+      const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V907');
       if (saved !== null) return parseInt(saved, 10);
       return 0;
     }
@@ -1533,7 +1541,7 @@
       } else if (urlParams.get('day')) {
         return parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V906');
+        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V907');
         if (currentSchedDay) {
           return parseInt(currentSchedDay, 10) || 1;
         }
@@ -1542,7 +1550,7 @@
     }
 
     function openScheduleModal() {
-      const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V906') || '{}');
+      const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V907') || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
@@ -1652,10 +1660,10 @@
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      classicStorage.setItem('USER_CURRENT_PROGRESS_END_V906', testCompleted.toString());
+      classicStorage.setItem('USER_CURRENT_PROGRESS_END_V907', testCompleted.toString());
 
       const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
-      classicStorage.setItem('USER_SCHEDULE_SETTINGS_V906', JSON.stringify(settings));
+      classicStorage.setItem('USER_SCHEDULE_SETTINGS_V907', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
@@ -1677,14 +1685,14 @@
 
     async function prefetchSentenceCountOnStartup() {
       const timestamp = Date.now();
-      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V906');
+      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V907');
       try {
         const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
           if (Array.isArray(freshSent) && freshSent.length > 0) {
             scriptureData = freshSent;
-            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V906', JSON.stringify(freshSent));
+            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V907', JSON.stringify(freshSent));
           }
         }
       } catch (e) {}
@@ -1702,9 +1710,9 @@
       if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
       if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
 
-      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V906') || CLASSIC_TOTAL_SENTENCES > 0) {
+      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V907') || CLASSIC_TOTAL_SENTENCES > 0) {
         let savedSchedule = null;
-        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V906') || 'null'); } catch (e) {}
+        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V907') || 'null'); } catch (e) {}
         const scheduleNeedsResize = !Array.isArray(savedSchedule) ||
           savedSchedule.length === 0 ||
           savedSchedule.some(item => Number(item.end) > CLASSIC_TOTAL_SENTENCES) ||
@@ -1712,7 +1720,7 @@
         
         if (scheduleNeedsResize) {
           let savedSettings = {};
-          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V906') || '{}'); } catch (e) {}
+          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V907') || '{}'); } catch (e) {}
           generateAlgorithmicSchedule({
             totalSentences: CLASSIC_TOTAL_SENTENCES,
             dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
@@ -1728,7 +1736,7 @@
       const timestamp = Date.now();
       await prefetchSentenceCountOnStartup();
 
-      const savedPdf = await getLocalFile('pdf_file_v905');
+      const savedPdf = await getLocalFile('pdf_file_v907');
       if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
       } else {
@@ -1736,7 +1744,7 @@
           const res = await fetch(CLASSIC_ASSETS.pdf + '?nocache=' + timestamp);
           if (res.ok) {
             const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v905', buf, 'pdf_cached');
+            await saveLocalFile('pdf_file_v907', buf, 'pdf_cached');
             cachedPdfBuffer = buf;
           }
         } catch (e) {}
@@ -1793,7 +1801,7 @@
         simDay++;
       }
 
-      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V906', JSON.stringify(scheduleList));
+      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V907', JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1801,7 +1809,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V906');
+        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V907');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -1809,7 +1817,7 @@
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V906') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
+          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V907') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
           currentCycleCount = 0;
           return false;
         }
@@ -1818,9 +1826,9 @@
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        classicStorage.setItem('USER_CURRENT_PROGRESS_END_V906', currentDayPlan.end.toString());
+        classicStorage.setItem('USER_CURRENT_PROGRESS_END_V907', currentDayPlan.end.toString());
 
-        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V906') === getNormalizedDateStr()) {
+        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V907') === getNormalizedDateStr()) {
           practicePhase = 'completed';
         } else {
           practicePhase = 'new_gendu';
@@ -2170,14 +2178,14 @@
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
-              const localPdf = await getLocalFile('pdf_file_v905');
+              const localPdf = await getLocalFile('pdf_file_v907');
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
                 const response = await fetch(CLASSIC_ASSETS.pdf + '?nocache=' + Date.now());
                 if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-                await saveLocalFile('pdf_file_v905', cachedPdfBuffer, 'mode-load');
+                await saveLocalFile('pdf_file_v907', cachedPdfBuffer, 'mode-load');
               }
             }
 
@@ -2568,7 +2576,7 @@
         haltGuideRunnerImmediately();
       }
 
-      const settings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V906') || '{}');
+      const settings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V907') || '{}');
       const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
       const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
       const hasCumulative = cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
@@ -2621,7 +2629,7 @@
             showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
           } else {
             practicePhase = 'completed';
-            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V906', getNormalizedDateStr());
+            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V907', getNormalizedDateStr());
             renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿，功能已全部解鎖");
@@ -2659,7 +2667,7 @@
           }
         } else {
           practicePhase = 'completed';
-          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V906', getNormalizedDateStr());
+          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V907', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
@@ -3372,6 +3380,19 @@
       const textContainer = document.getElementById('textContainer');
       const cardTitle = document.getElementById('cardTitle');
       const cardContent = document.getElementById('cardContent');
+      const btnStreak = document.getElementById('btn-streak-days');
+
+      // 堅持天數按鈕：第22天起顯示在最右側
+      if (targetDay >= 22) {
+        if (btnStreak) {
+          btnStreak.textContent = `堅持第 ${targetDay} 天`;
+          btnStreak.style.display = 'inline-block';
+        }
+      } else {
+        if (btnStreak) {
+          btnStreak.style.display = 'none';
+        }
+      }
 
       if (targetDay <= 21) {
         // 1-21天：固定取圖由 cards/card_001.webp 開始
@@ -3445,7 +3466,7 @@
       checkDailyResetOnStartup();
 
       const todayStr = getNormalizedDateStr();
-      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V906');
+      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V907');
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       
       if (btnCardSettingDynamic) {
@@ -3477,14 +3498,14 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V906');
+        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V907');
         if (currentSchedDay) {
           targetDay = parseInt(currentSchedDay, 10) || 1;
         } else {
           targetDay = 1;
         }
       }
-      classicStorage.setItem('CURRENT_SCHEDULE_DAY_V906', targetDay.toString());
+      classicStorage.setItem('CURRENT_SCHEDULE_DAY_V907', targetDay.toString());
 
       initCompanionCard(targetDay);
 
