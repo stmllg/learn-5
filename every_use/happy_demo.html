@@ -1,253 +1,254 @@
-name=demo.html
 <!DOCTYPE html>
+
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>歡喜背書・陪伴卡與法語祈福 (V136 完美置中與同步淡入淡出)</title>
+    <title>歡喜背書・陪伴卡與法語祈福 (V137 重新修正版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        /* 鎖定全螢幕視窗，背景純黑，禁止整頁隨意捲動 */
-        html, body {
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh;
-            background-color: #0B0F19;
-            color: #FFFFFF;
-            font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
-            overflow: hidden;
-            position: fixed;
-            top: 0;
-            left: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
 
-        /* 外部主容器：佔滿全螢幕，將 16:9 卡片完美置中，兩邊與上下自動留黑框 */
-        .landscape-container {
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #0B0F19;
-            position: relative;
-        }
+    /* 鎖定全螢幕視窗，背景純黑，禁止整頁滾動 */
+    html, body {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        background-color: #000000;
+        color: #FFFFFF;
+        font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
+    }
 
-        /* 16:9 固定的卡片舞台：保持嚴格 1200x675 比例 */
-        .card-stage {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh;
-            max-width: calc(100dvh * (1200 / 675));
-            max-height: calc(100vw * (675 / 1200));
-            aspect-ratio: 1200 / 675;
-            background-color: #0F172A;
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center;
-            box-shadow: 0 16px 45px rgba(0,0,0,0.9);
-            overflow: hidden;
-            border: 2px solid #38BDF8;
-            border-radius: 12px;
-            
-            /* 讓背景與內部所有文字、標籤一起參與淡入淡出 */
-            opacity: 1;
-            transition: opacity 0.3s ease-in-out;
-        }
-        .card-stage.fade-out {
-            opacity: 0;
-        }
+    /* 外部滿版容器：採用 Flex 絕對置中，兩側及上下自動留出黑邊 */
+    #landscape-container {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        background-color: #000000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+    }
 
-        /* 右上角「希望新生 + 編號」：純綠色字體 */
-        .top-right-badge {
-            position: absolute;
-            top: 2%;
-            right: 2.5%;
-            color: #10B981;
-            font-family: "Microsoft JhengHei", sans-serif;
-            font-size: 18px;
-            font-weight: 900;
-            letter-spacing: 1px;
-            z-index: 40;
-            pointer-events: none;
-        }
+    /* 
+      【16:9 絕對比例卡片舞台】：
+      嚴格鎖定 1200x675 比例，確保不變形、兩側必定留黑框
+    */
+    .card-stage {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        max-width: calc(100vh * (1200 / 675));
+        max-height: calc(100vw * (675 / 1200));
+        aspect-ratio: 1200 / 675;
+        background-color: #0F172A;
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+        box-shadow: 0 16px 45px rgba(0,0,0,0.9);
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid #38BDF8;
 
-        /* 文字框左擴與最大化配置 */
-        .card-text-container {
-            position: absolute;
-            top: 6%;
-            bottom: 6%;
-            left: 28%;
-            right: 9%;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: flex-start;
-            text-align: left;
-            z-index: 10;
-            pointer-events: none;
-            gap: 4px;
-            overflow: hidden;
-        }
+        /* 實現圖文同步淡入淡出 */
+        opacity: 1;
+        transition: opacity 0.3s ease-in-out;
+    }
+    .card-stage.fade-out {
+        opacity: 0;
+    }
 
-        .card-title {
-            font-weight: 900;
-            color: #581C87;
-            text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
-            width: 100%;
-            line-height: 1.2;
-            flex-shrink: 0;
-        }
-        .card-content {
-            font-weight: 800;
-            color: #0F172A;
-            line-height: 1.3;
-            white-space: pre-wrap;
-            word-break: break-all;
-            text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
-        }
+    /* 右上角「希望新生 + 編號」：純綠色字體 */
+    .top-right-badge {
+        position: absolute;
+        top: 2%;
+        right: 2.5%;
+        color: #10B981;
+        font-family: "Microsoft JhengHei", sans-serif;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: 1px;
+        z-index: 40;
+        pointer-events: none;
+    }
 
-        /* 右下角直立長條按鈕：內縮安全距離，確保絕不被切掉或擋到 */
-        .btn-blessing {
-            position: absolute;
-            bottom: 6%;
-            right: 3%;
-            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-            color: #FFFFFF;
-            border: 2px solid #FDE68A;
-            width: 42px;
-            padding: 14px 0;
-            font-size: 16px;
-            font-weight: 900;
-            border-radius: 21px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-            z-index: 50;
-            transition: transform 0.1s, background 0.2s;
-            font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
-            letter-spacing: 2px;
-            writing-mode: vertical-rl;
-            text-orientation: upright;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn-blessing:hover {
-            background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
-            transform: scale(1.05);
-        }
-        .btn-blessing:active { 
-            transform: scale(0.95); 
-        }
+    /* 文字框左擴與最大化配置 */
+    .card-text-container {
+        position: absolute;
+        top: 6%;
+        bottom: 6%;
+        left: 28%;
+        right: 9%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        text-align: left;
+        z-index: 10;
+        pointer-events: none;
+        gap: 4px;
+        overflow: hidden;
+    }
 
-        /* LINE 瀏覽器導引遮罩樣式 */
-        #line-browser-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            z-index: 100000;
-            background: rgba(4, 7, 15, 0.94);
-            backdrop-filter: blur(8px);
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-            box-sizing: border-box;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        #line-browser-overlay.active {
-            display: flex;
-            opacity: 1;
-        }
-        .line-guide-card {
-            background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
-            border: 2px solid #D97706;
-            border-radius: 18px;
-            max-width: 420px;
-            width: 90%;
-            padding: 24px 22px;
-            box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            cursor: pointer;
-        }
-        .line-guide-title {
-            font-size: 20px;
-            font-weight: 900;
-            color: #FBBF24;
-            letter-spacing: 2px;
-        }
-        .line-guide-content {
-            font-size: 16px;
-            line-height: 1.8;
-            color: #E2E8F0;
-            text-align: left;
-            background: rgba(15, 23, 42, 0.7);
-            padding: 16px 18px;
-            border-radius: 12px;
-            border: 1px dashed rgba(245, 158, 11, 0.45);
-        }
-        .line-guide-content strong {
-            color: #38BDF8;
-        }
-        .line-guide-btn {
-            margin-top: 4px;
-            padding: 12px;
-            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-            color: #FFFFFF;
-            font-size: 17px;
-            font-weight: 900;
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-            cursor: pointer;
-            letter-spacing: 1px;
-        }
-    </style>
+    .card-title {
+        font-weight: 900;
+        color: #581C87;
+        text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
+        width: 100%;
+        line-height: 1.2;
+        flex-shrink: 0;
+    }
+    .card-content {
+        font-weight: 800;
+        color: #0F172A;
+        line-height: 1.3;
+        white-space: pre-wrap;
+        word-break: break-all;
+        text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
+    }
+
+    /* 右下角直立長條按鈕：內縮於卡片舞台右下角內側，保證絕不被切掉 */
+    .btn-blessing {
+        position: absolute;
+        bottom: 5%;
+        right: 2.5%;
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        color: #FFFFFF;
+        border: 2px solid #FDE68A;
+        width: 40px;
+        padding: 12px 0;
+        font-size: 15px;
+        font-weight: 900;
+        border-radius: 20px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        z-index: 50;
+        transition: transform 0.1s, background 0.2s;
+        font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
+        letter-spacing: 2px;
+        writing-mode: vertical-rl;
+        text-orientation: upright;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .btn-blessing:hover {
+        background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+        transform: scale(1.05);
+    }
+    .btn-blessing:active { 
+        transform: scale(0.95); 
+    }
+
+    /* LINE 瀏覽器導引遮罩樣式 */
+    #line-browser-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        z-index: 100000;
+        background: rgba(4, 7, 15, 0.94);
+        backdrop-filter: blur(8px);
+        justify-content: center;
+        align-items: center;
+        padding: 16px;
+        box-sizing: border-box;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    #line-browser-overlay.active {
+        display: flex;
+        opacity: 1;
+    }
+    .line-guide-card {
+        background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
+        border: 2px solid #D97706;
+        border-radius: 18px;
+        max-width: 420px;
+        width: 90%;
+        padding: 24px 22px;
+        box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        cursor: pointer;
+    }
+    .line-guide-title {
+        font-size: 20px;
+        font-weight: 900;
+        color: #FBBF24;
+        letter-spacing: 2px;
+    }
+    .line-guide-content {
+        font-size: 16px;
+        line-height: 1.8;
+        color: #E2E8F0;
+        text-align: left;
+        background: rgba(15, 23, 42, 0.7);
+        padding: 16px 18px;
+        border-radius: 12px;
+        border: 1px dashed rgba(245, 158, 11, 0.45);
+    }
+    .line-guide-content strong {
+        color: #38BDF8;
+    }
+    .line-guide-btn {
+        margin-top: 4px;
+        padding: 12px;
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        color: #FFFFFF;
+        font-size: 17px;
+        font-weight: 900;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        cursor: pointer;
+        letter-spacing: 1px;
+    }
+</style>
 </head>
 <body>
 
-    <!-- LINE 瀏覽器導引遮罩 -->
-    <div id="line-browser-overlay">
-        <div class="line-guide-card" onclick="dismissLineOverlayAndFullscreen()">
-            <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
-            <div class="line-guide-content" id="line-guide-text">
-                載入中...
-            </div>
-            <button class="line-guide-btn">點擊進入並全螢幕專注</button>
+<!-- LINE 瀏覽器導引遮罩 -->
+<div id="line-browser-overlay">
+    <div class="line-guide-card" onclick="dismissLineOverlayAndFullscreen()">
+        <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
+        <div class="line-guide-content" id="line-guide-text">
+            載入中...
         </div>
+        <button class="line-guide-btn">點擊進入並全螢幕專注</button>
     </div>
+</div>
 
-    <!-- 完美置中、兩邊留黑的 16:9 框景容器 -->
-    <div class="landscape-container">
-        <div class="card-stage" id="cardStage">
-            <div class="top-right-badge" id="topRightBadge">希望新生</div>
+<!-- 完美置中、兩邊留黑的 16:9 框景容器 -->
+<div id="landscape-container">
+    <div class="card-stage" id="cardStage">
+        <div class="top-right-badge" id="topRightBadge">希望新生</div>
 
-            <div class="card-text-container" id="textContainer">
-                <div class="card-title" id="cardTitle">載入中...</div>
-                <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
-            </div>
-
-            <!-- 右下角直立長條祈求按鈕 -->
-            <button class="btn-blessing" onclick="handleBlessingClick()">今天祈求</button>
+        <div class="card-text-container" id="textContainer">
+            <div class="card-title" id="cardTitle">載入中...</div>
+            <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
         </div>
-    </div>
 
+        <!-- 右下角直立長條祈求按鈕 -->
+        <button class="btn-blessing" onclick="handleBlessingClick()">今天祈求</button>
+    </div>
+</div>
 <script>
     let cardTexts = {};
     let textKeys = [];
 
+
     // Apple 手機專有裝置判定分流
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 
     function triggerAppFullscreen() {
         const el = document.documentElement;
@@ -258,6 +259,7 @@ name=demo.html
         } catch (e) {}
     }
 
+
     function dismissLineOverlayAndFullscreen() {
         const overlay = document.getElementById('line-browser-overlay');
         if (overlay) {
@@ -267,36 +269,46 @@ name=demo.html
         triggerAppFullscreen();
     }
 
+
     function handleBlessingClick() {
         triggerAppFullscreen();
         updateRandomDisplay();
     }
 
+
     function updateRandomDisplay() {
         if (textKeys.length === 0) return;
 
+
         const cardStage = document.getElementById('cardStage');
 
-        // 1. 先讓整張卡片舞台（含圖與文）同步淡出
+
+        // 1. 同步淡出整張舞台（圖與文一起變透明）
         cardStage.classList.add('fade-out');
 
+
         setTimeout(() => {
-            // 2. 在透明狀態下更新背景圖片與文字內容
+            // 2. 在全透明狀態下更新背景圖片與文字內容
             const randomImgNum = Math.floor(Math.random() * 40) + 1;
             const paddedImgNum = String(randomImgNum).padStart(2, '0');
             const imgPath = `images/bg_${paddedImgNum}.webp`;
 
+
             const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
             const selectedData = cardTexts[randomTextKey];
+
 
             let titleText = selectedData.title;
             let rawContent = selectedData.content;
 
+
             if (titleText.length > 14) titleText = titleText.substring(0, 14);
+
 
             cardTitle.textContent = titleText;
             cardContent.textContent = rawContent;
             document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
+
 
             // 自適應填入演算
             let size = 26; 
@@ -305,18 +317,22 @@ name=demo.html
             cardContent.style.fontSize = size + "px";
             cardTitle.style.fontSize = (size + 2) + "px";
 
+
             while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
                 size--;
                 cardContent.style.fontSize = size + "px";
                 cardTitle.style.fontSize = (size + 2) + "px";
             }
 
+
             cardStage.style.backgroundImage = `url('${imgPath}')`;
 
-            // 3. 內容設定完成後，移除 fade-out 類別，實現圖文同步平滑淡入
+
+            // 3. 內容與背景就緒後，移除 fade-out，實現圖文同步平滑淡入
             cardStage.classList.remove('fade-out');
         }, 300);
     }
+
 
     // 啟動時讀取同目錄下的 images_text.json 檔案
     fetch('images_text.json')
@@ -337,6 +353,7 @@ name=demo.html
             cardTitle.textContent = "資料載入失敗";
             cardContent.textContent = "請檢查專案資料夾是否包含 images_text.json 檔案";
         });
+
 
     window.addEventListener('DOMContentLoaded', () => {
         // 透過 isAppleDevice 進行精準分流，針對 Apple 與 Android 顯示對應的右下角引導說明
