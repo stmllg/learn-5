@@ -4,7 +4,7 @@ name=demo.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>歡喜背書・陪伴卡與法語祈福 (V140 橫書一行與完美置中版)</title>
+    <title>歡喜背書・陪伴卡與法語祈福 (V141 右側雙格直書按鈕版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
@@ -174,12 +174,12 @@ name=demo.html
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
         }
 
-        /* 右側控制翼（位於右側黑邊區） */
+        /* 📌 右側控制翼：模擬 V911 架構，劃分 4 個等分 slot */
         .right-wing {
             position: fixed;
             right: 0;
             top: 0;
-            width: calc((100vw - max-width) / 2 + 90px);
+            width: calc((100vw - max-width) / 2 + 80px);
             height: 100vh;
             height: 100dvh;
             display: flex;
@@ -199,11 +199,11 @@ name=demo.html
             pointer-events: auto;
         }
 
-        /* 📌「今天祈求」按鈕：改為橫書一行，放置於右側黑邊區（右 2 / 右 3 位置） */
+        /* 📌「今天祈求」按鈕：直立 90 度（文字直書），跨越右 2 / 右 3 兩格高度 */
         .btn-blessing {
-            width: 82px !important;
-            height: 52px !important;
-            border-radius: 12px !important;
+            width: 52px !important;
+            height: 120px !important; /* 跨越右2、右3兩格高度 */
+            border-radius: 14px !important;
             border: 2.5px solid #FDE68A !important;
             background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
             color: #FEF3C7 !important;
@@ -219,6 +219,10 @@ name=demo.html
             touch-action: manipulation;
             transition: transform 0.15s ease-out;
             letter-spacing: 2px;
+            
+            /* 關鍵：直立 90 度文字直書排列 */
+            writing-mode: vertical-rl;
+            text-orientation: upright;
         }
         .btn-blessing:active { 
             transform: scale(0.90); 
@@ -325,13 +329,13 @@ name=demo.html
         </div>
     </div>
 
-    <!-- 右側控制翼：「今天祈求」橫書一行按鈕（點擊同步觸發全螢幕） -->
+    <!-- 📌 右側控制翼：將「今天祈求」按鈕放置於右 2 / 右 3 之間，直立 90 度跨兩格 -->
     <div class="right-wing" id="rightWing">
         <div class="slot" id="slot-r1"></div>
-        <div class="slot" id="slot-r2">
+        <div class="slot" id="slot-r2" style="grid-row: span 2; align-items: center;">
             <button class="btn-blessing" onclick="handleBlessingClick()">今天祈求</button>
         </div>
-        <div class="slot" id="slot-r3"></div>
+        <div class="slot" id="slot-r3" style="display: none;"></div>
         <div class="slot" id="slot-r4"></div>
     </div>
 
