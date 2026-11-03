@@ -4,7 +4,7 @@ name=demo.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>歡喜背書・陪伴卡與法語祈福 (V138 橫向偵測與右側翼按鈕版)</title>
+    <title>歡喜背書・陪伴卡與法語祈福 (V139 點擊按鈕同步全螢幕版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
@@ -22,7 +22,7 @@ name=demo.html
             left: 0;
         }
 
-        /* 📌 橫向偵測防護罩 (如同 V911) */
+        /* 橫向偵測防護罩 (直立時顯示，橫放時隱藏) */
         #portrait-blocker-overlay {
             display: none;
             position: fixed;
@@ -174,12 +174,12 @@ name=demo.html
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
         }
 
-        /* 📌 放在圖形外面的右側控制翼（模擬 V911 的 Side Wing，位於右側黑邊區） */
+        /* 右側控制翼（位於右側黑邊區） */
         .right-wing {
             position: fixed;
             right: 0;
             top: 0;
-            width: calc((100vw - max-width) / 2 + 80px); /* 依螢幕尺寸自動對應右側黑邊或邊緣 */
+            width: calc((100vw - max-width) / 2 + 80px);
             height: 100vh;
             height: 100dvh;
             display: flex;
@@ -190,7 +190,6 @@ name=demo.html
             pointer-events: none;
         }
 
-        /* 確保右 2 / 右 3 槽位可點擊 */
         .slot {
             width: 100%;
             height: 25%;
@@ -200,7 +199,7 @@ name=demo.html
             pointer-events: auto;
         }
 
-        /* 📌「今天祈求」按鈕：精準放置於右 2 / 右 3 的位置（圖形外面、黑邊區） */
+        /* 「今天祈求」按鈕：放置於右側黑邊區（右 2 / 右 3 位置） */
         .btn-blessing {
             width: 62px !important;
             height: 62px !important;
@@ -298,7 +297,7 @@ name=demo.html
 </head>
 <body>
 
-    <!-- 📌 橫向偵測防護罩 (直立時顯示，橫放時隱藏) -->
+    <!-- 橫向偵測防護罩 -->
     <div id="portrait-blocker-overlay">
         <div class="rotate-phone-icon"></div>
         <div class="rotate-hint-title">請將手機橫放</div>
@@ -316,7 +315,7 @@ name=demo.html
         </div>
     </div>
 
-    <!-- 完美置中、兩邊留黑的 16:9 框景容器 -->
+    <!-- 16:9 框景容器 -->
     <div class="landscape-container">
         <div class="card-stage" id="cardStage">
             <div class="top-right-badge" id="topRightBadge">希望新生</div>
@@ -328,7 +327,7 @@ name=demo.html
         </div>
     </div>
 
-    <!-- 📌 右側控制翼：將「今天祈求」按鈕放在圖形外面（右 2 / 右 3 位置） -->
+    <!-- 右側控制翼：「今天祈求」按鈕（點擊同步觸發全螢幕） -->
     <div class="right-wing" id="rightWing">
         <div class="slot" id="slot-r1"></div>
         <div class="slot" id="slot-r2">
@@ -342,10 +341,10 @@ name=demo.html
     let cardTexts = {};
     let textKeys = [];
 
-    // Apple 手機專有裝置判定分流
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+    // 📌 支援全螢幕切換（針對 Android 啟用全螢幕，Apple 則平滑支援）
     function triggerAppFullscreen() {
         const el = document.documentElement;
         try {
@@ -355,7 +354,6 @@ name=demo.html
         } catch (e) {}
     }
 
-    // 📌 橫向偵測檢測函式 (如同 V911)
     function handleOrientationCheck() {
         const portraitBlocker = document.getElementById('portrait-blocker-overlay');
         if (!portraitBlocker) return;
@@ -379,6 +377,7 @@ name=demo.html
         triggerAppFullscreen();
     }
 
+    // 📌 點擊「今天祈求」時，同時啟動全螢幕與隨機卡片切換
     function handleBlessingClick() {
         triggerAppFullscreen();
         updateRandomDisplay();
@@ -389,11 +388,10 @@ name=demo.html
 
         const cardStage = document.getElementById('cardStage');
 
-        // 1. 先讓整張卡片舞台（含圖與文）同步淡出
+        // 圖文同步淡出
         cardStage.classList.add('fade-out');
 
         setTimeout(() => {
-            // 2. 在透明狀態下更新背景圖片與文字內容
             const randomImgNum = Math.floor(Math.random() * 40) + 1;
             const paddedImgNum = String(randomImgNum).padStart(2, '0');
             const imgPath = `images/bg_${paddedImgNum}.webp`;
@@ -410,7 +408,6 @@ name=demo.html
             cardContent.textContent = rawContent;
             document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
 
-            // 自適應填入演算
             let size = 26; 
             const minSize = 7; 
             
@@ -425,12 +422,11 @@ name=demo.html
 
             cardStage.style.backgroundImage = `url('${imgPath}')`;
 
-            // 3. 內容設定完成後，移除 fade-out 類別，實現圖文同步平滑淡入
+            // 圖文同步淡入
             cardStage.classList.remove('fade-out');
         }, 300);
     }
 
-    // 啟動時讀取同目錄下的 images_text.json 檔案
     fetch('images_text.json')
         .then(response => {
             if (!response.ok) {
@@ -441,8 +437,6 @@ name=demo.html
         .then(data => {
             cardTexts = data;
             textKeys = Object.keys(cardTexts);
-            
-            // 讀取成功後立即顯示第一張隨機卡片
             updateRandomDisplay();
         })
         .catch(error => {
@@ -453,7 +447,6 @@ name=demo.html
     window.addEventListener('DOMContentLoaded', () => {
         handleOrientationCheck();
 
-        // 透過 isAppleDevice 進行精準分流，針對 Apple 與 Android 顯示對應的右下角引導說明
         if (/Line/i.test(navigator.userAgent)) {
             const overlay = document.getElementById('line-browser-overlay');
             const guideText = document.getElementById('line-guide-text');
