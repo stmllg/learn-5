@@ -4,7 +4,7 @@ name=demo.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>歡喜背書・陪伴卡與法語祈福 (V139 點擊按鈕同步全螢幕版)</title>
+    <title>歡喜背書・陪伴卡與法語祈福 (V140 橫書一行與完美置中版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
@@ -22,7 +22,7 @@ name=demo.html
             left: 0;
         }
 
-        /* 橫向偵測防護罩 (直立時顯示，橫放時隱藏) */
+        /* 橫向偵測防護罩 */
         #portrait-blocker-overlay {
             display: none;
             position: fixed;
@@ -179,7 +179,7 @@ name=demo.html
             position: fixed;
             right: 0;
             top: 0;
-            width: calc((100vw - max-width) / 2 + 80px);
+            width: calc((100vw - max-width) / 2 + 90px);
             height: 100vh;
             height: 100dvh;
             display: flex;
@@ -199,28 +199,26 @@ name=demo.html
             pointer-events: auto;
         }
 
-        /* 「今天祈求」按鈕：放置於右側黑邊區（右 2 / 右 3 位置） */
+        /* 📌「今天祈求」按鈕：改為橫書一行，放置於右側黑邊區（右 2 / 右 3 位置） */
         .btn-blessing {
-            width: 62px !important;
-            height: 62px !important;
-            border-radius: 14px !important;
+            width: 82px !important;
+            height: 52px !important;
+            border-radius: 12px !important;
             border: 2.5px solid #FDE68A !important;
             background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
             color: #FEF3C7 !important;
-            font-size: 15px !important;
+            font-size: 16px !important;
             font-weight: 900 !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85) !important;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            line-height: 1.15;
             cursor: pointer;
             touch-action: manipulation;
             transition: transform 0.15s ease-out;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
         }
         .btn-blessing:active { 
             transform: scale(0.90); 
@@ -327,11 +325,11 @@ name=demo.html
         </div>
     </div>
 
-    <!-- 右側控制翼：「今天祈求」按鈕（點擊同步觸發全螢幕） -->
+    <!-- 右側控制翼：「今天祈求」橫書一行按鈕（點擊同步觸發全螢幕） -->
     <div class="right-wing" id="rightWing">
         <div class="slot" id="slot-r1"></div>
         <div class="slot" id="slot-r2">
-            <button class="btn-blessing" onclick="handleBlessingClick()">今天<br>祈求</button>
+            <button class="btn-blessing" onclick="handleBlessingClick()">今天祈求</button>
         </div>
         <div class="slot" id="slot-r3"></div>
         <div class="slot" id="slot-r4"></div>
@@ -344,7 +342,6 @@ name=demo.html
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    // 📌 支援全螢幕切換（針對 Android 啟用全螢幕，Apple 則平滑支援）
     function triggerAppFullscreen() {
         const el = document.documentElement;
         try {
@@ -377,7 +374,6 @@ name=demo.html
         triggerAppFullscreen();
     }
 
-    // 📌 點擊「今天祈求」時，同時啟動全螢幕與隨機卡片切換
     function handleBlessingClick() {
         triggerAppFullscreen();
         updateRandomDisplay();
