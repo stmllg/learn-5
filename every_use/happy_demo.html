@@ -3,8 +3,8 @@ name=demo.html
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語祈福 (V129 修正右下角直式三點導引)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>歡喜背書・陪伴卡與法語祈福 (V130 專屬分流與全螢幕版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -59,9 +59,9 @@ name=demo.html
         }
 
         /* 
-          【文字框左擴調整 (V128/V129)】：
+          【文字框左擴調整】：
           將 left 設為 28%（往左多擴展 4 個字寬），right 設為 9%，
-          讓內文字數較多時能保持較大、易讀的字體，不被壓得太小。
+          確保內文字數較多時能保持較大、易讀的字體。
         */
         .card-text-container {
             position: absolute;
@@ -208,7 +208,7 @@ name=demo.html
 </head>
 <body>
 
-    <!-- LINE 瀏覽器導引遮罩 (修正為右下角直式三點與一鍵全螢幕) -->
+    <!-- LINE 瀏覽器導引遮罩 (內含 Apple / Android 專屬分流與一鍵全螢幕) -->
     <div id="line-browser-overlay">
         <div class="line-guide-card" onclick="dismissLineOverlayAndFullscreen()">
             <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
@@ -232,13 +232,14 @@ name=demo.html
         <button class="btn-blessing" onclick="updateRandomDisplay()">今天祈求</button>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 祈福陪伴卡模式 (V129)</div>
+    <div class="status-bar" id="statusBar">狀態: 祈福陪伴卡模式 (V130)</div>
 </div>
 
 <script>
     let cardTexts = {};
     let textKeys = [];
 
+    // 📌 Apple 手機專有裝置判定分流
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -322,15 +323,15 @@ name=demo.html
         });
 
     window.addEventListener('DOMContentLoaded', () => {
-        // 📌 偵測 LINE 內建瀏覽器，並分別顯示 Android / Apple 的「右下角直式三點」引導說明
+        // 📌 透過 isAppleDevice 進行精準分流，針對 Apple 與 Android 顯示對應的右下角引導說明
         if (/Line/i.test(navigator.userAgent)) {
             const overlay = document.getElementById('line-browser-overlay');
             const guideText = document.getElementById('line-guide-text');
             
             if (isAppleDevice) {
-                guideText.innerHTML = `您目前正在 <strong>LINE 內建瀏覽器</strong> 中開啟。<br><br>為確保畫面與點擊功能正常，請點選畫面<strong>右下角「⋯」</strong>或<strong>「🧭」</strong>圖示，選擇 <strong>「在 Safari 中打開」</strong>。`;
+                guideText.innerHTML = `您目前正在 <strong>LINE 內建瀏覽器</strong> 中開啟。<br><br>為確保畫面與點擊功能正常，請點選畫面<strong>右下角「⋯」</strong>或<strong>「🧭」</strong>圖示，選擇 <strong>〈在 Safari 中打開〉</strong>。`;
             } else {
-                guideText.innerHTML = `您目前正在 <strong>LINE 內建瀏覽器</strong> 中開啟。<br><br>為確保畫面與點擊功能正常，請點選畫面<strong>右下角的直式三點「⋮」</strong>選單，選擇 <strong>「以預設瀏覽器開啟」</strong> 或 <strong>「以 Chrome 開啟」</strong>。`;
+                guideText.innerHTML = `您目前正在 <strong>LINE 內建瀏覽器</strong> 中開啟。<br><br>為確保畫面與點擊功能正常，請點選畫面<strong>右下角的直式三點「⋮」</strong>選單，選擇 <strong>〈以預設瀏覽器開啟〉</strong> 或 <strong>〈以 Chrome 開啟〉</strong>。`;
             }
             
             overlay.classList.add('active');
