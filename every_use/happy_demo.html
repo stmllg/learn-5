@@ -1,274 +1,251 @@
+name=demo.html
 <!DOCTYPE html>
-
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>歡喜背書・陪伴卡與法語祈福 (V134 按鈕移至右側黑框區)</title>
+    <title>歡喜背書・陪伴卡與法語祈福 (V135 完美16:9與黑邊配置)</title>
     <style>
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            margin: 0;
-            padding: 0;
-            user-select: none;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        /* 模仿 V911：全螢幕固定黑色背景，禁止整頁隨意捲動 */
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            background-color: #0B0F19;
+            color: #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-    /* 鎖定全螢幕視窗，防止被手機自動撐滿變形 */
-    html, body {
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        background-color: #0B0F19;
-        color: #FFFFFF;
-        font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
-        overflow: hidden;
-        position: fixed;
-        top: 0;
-        left: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+        /* 外部主容器：佔滿全螢幕，確保 16:9 居中，四周留出黑色邊框 */
+        .landscape-container {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #0B0F19;
+            position: relative;
+        }
 
-    .container {
-        width: 100%;
-        height: 100%;
-        max-width: 1250px;
-        background: #0B0F19;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px;
-        box-sizing: border-box;
-    }
+        /* 16:9 固定的卡片舞台：依高度自動計算寬度，兩側或上下必有黑邊，絕對不變形 */
+        .card-stage {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            max-width: calc(100dvh * (1200 / 675));
+            max-height: calc(100vw * (675 / 1200));
+            aspect-ratio: 1200 / 675;
+            background-color: #0F172A;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            box-shadow: 0 16px 45px rgba(0,0,0,0.9);
+            overflow: hidden;
+            
+            /* 圖文同步淡入效果 */
+            opacity: 1;
+            transition: opacity 0.35s ease-in-out;
+        }
+        .card-stage.fade-out {
+            opacity: 0;
+        }
 
-    /* 外層包裝器：用於容納 16:9 卡片舞台以及右側黑框按鈕區 */
-    .stage-wrapper {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        max-width: 1150px;
-        aspect-ratio: 1200 / 675;
-    }
+        /* 右上角「希望新生 + 編號」：純綠色字體[cite: 2] */
+        .top-right-badge {
+            position: absolute;
+            top: 2%;
+            right: 2.5%;
+            color: #10B981;
+            font-family: "Microsoft JhengHei", sans-serif;
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            z-index: 40;
+            pointer-events: none;
+        }
 
-    /* 
-      【16:9 絕對比例鎖定】卡片本體：
-      維持標準 16:9 比例，絕不被強行拉伸填滿！
-    */
-    .card-stage {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        background-color: #0F172A;
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: center;
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 12px 40px rgba(0,0,0,0.9);
-        border: 2px solid #38BDF8;
-        
-        /* 圖文同步淡入效果 */
-        opacity: 1;
-        transition: opacity 0.35s ease-in-out;
-    }
-    .card-stage.fade-out {
-        opacity: 0;
-    }
+        /* 文字框左擴與最大化配置 */
+        .card-text-container {
+            position: absolute;
+            top: 6%;
+            bottom: 6%;
+            left: 28%;
+            right: 9%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            text-align: left;
+            z-index: 10;
+            pointer-events: none;
+            gap: 4px;
+            overflow: hidden;
+        }
 
-    /* 右上角「希望新生 + 編號」：純綠色字體 */
-    .top-right-badge {
-        position: absolute;
-        top: 2%;
-        right: 2.5%;
-        color: #10B981;
-        font-family: "Microsoft JhengHei", sans-serif;
-        font-size: 18px;
-        font-weight: 900;
-        letter-spacing: 1px;
-        z-index: 40;
-        pointer-events: none;
-    }
+        .card-title {
+            font-weight: 900;
+            color: #581C87;
+            text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
+            width: 100%;
+            line-height: 1.2;
+            flex-shrink: 0;
+        }
+        .card-content {
+            font-weight: 800;
+            color: #0F172A;
+            line-height: 1.3;
+            white-space: pre-wrap;
+            word-break: break-all;
+            text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
+        }
 
-    /* 文字框左擴與最大化配置 */
-    .card-text-container {
-        position: absolute;
-        top: 6%;
-        bottom: 6%;
-        left: 28%;
-        right: 7%;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: flex-start;
-        text-align: left;
-        z-index: 10;
-        pointer-events: none;
-        gap: 4px;
-        overflow: hidden;
-    }
+        /* 右下角直立長條按鈕：內縮安全距離，確保絕不被切掉或擋到 */
+        .btn-blessing {
+            position: absolute;
+            bottom: 6%;
+            right: 3%;
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            color: #FFFFFF;
+            border: 2px solid #FDE68A;
+            width: 42px;
+            padding: 14px 0;
+            font-size: 16px;
+            font-weight: 900;
+            border-radius: 21px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            z-index: 50;
+            transition: transform 0.1s, background 0.2s;
+            font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
+            letter-spacing: 2px;
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-blessing:hover {
+            background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+            transform: scale(1.05);
+        }
+        .btn-blessing:active { 
+            transform: scale(0.95); 
+        }
 
-    .card-title {
-        font-weight: 900;
-        color: #581C87;
-        text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
-        width: 100%;
-        line-height: 1.2;
-        flex-shrink: 0;
-    }
-    .card-content {
-        font-weight: 800;
-        color: #0F172A;
-        line-height: 1.3;
-        white-space: pre-wrap;
-        word-break: break-all;
-        text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
-    }
-
-    /* 
-      【按鈕移至右側黑框區 (stage-wrapper 外部右側)】：
-      使其完全脫離 16:9 卡片畫面，放置在右邊黑色留白處，絕不遮擋任何經文內容！
-    */
-    .btn-blessing {
-        position: absolute;
-        right: -55px; /* 延伸至卡片右側黑色框線外 */
-        top: 50%;
-        transform: translateY(-50%);
-        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-        color: #FFFFFF;
-        border: 2px solid #FDE68A;
-        width: 44px;
-        padding: 18px 0;
-        font-size: 16px;
-        font-weight: 900;
-        border-radius: 22px;
-        cursor: pointer;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-        z-index: 100;
-        transition: transform 0.15s, background 0.2s;
-        font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
-        letter-spacing: 2px;
-        writing-mode: vertical-rl;
-        text-orientation: upright;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .btn-blessing:hover {
-        background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
-        transform: translateY(-50%) scale(1.06);
-    }
-    .btn-blessing:active { 
-        transform: translateY(-50%) scale(0.95); 
-    }
-
-    /* LINE 瀏覽器導引遮罩樣式 */
-    #line-browser-overlay {
-        display: none;
-        position: fixed;
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        z-index: 100000;
-        background: rgba(4, 7, 15, 0.94);
-        backdrop-filter: blur(8px);
-        justify-content: center;
-        align-items: center;
-        padding: 16px;
-        box-sizing: border-box;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    #line-browser-overlay.active {
-        display: flex;
-        opacity: 1;
-    }
-    .line-guide-card {
-        background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
-        border: 2px solid #D97706;
-        border-radius: 18px;
-        max-width: 420px;
-        width: 90%;
-        padding: 24px 22px;
-        box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        cursor: pointer;
-    }
-    .line-guide-title {
-        font-size: 20px;
-        font-weight: 900;
-        color: #FBBF24;
-        letter-spacing: 2px;
-    }
-    .line-guide-content {
-        font-size: 16px;
-        line-height: 1.8;
-        color: #E2E8F0;
-        text-align: left;
-        background: rgba(15, 23, 42, 0.7);
-        padding: 16px 18px;
-        border-radius: 12px;
-        border: 1px dashed rgba(245, 158, 11, 0.45);
-    }
-    .line-guide-content strong {
-        color: #38BDF8;
-    }
-    .line-guide-btn {
-        margin-top: 4px;
-        padding: 12px;
-        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-        color: #FFFFFF;
-        font-size: 17px;
-        font-weight: 900;
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-        cursor: pointer;
-        letter-spacing: 1px;
-    }
-</style>
+        /* LINE 瀏覽器導引遮罩樣式 */
+        #line-browser-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 100000;
+            background: rgba(4, 7, 15, 0.94);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #line-browser-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+        .line-guide-card {
+            background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
+            border: 2px solid #D97706;
+            border-radius: 18px;
+            max-width: 420px;
+            width: 90%;
+            padding: 24px 22px;
+            box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            cursor: pointer;
+        }
+        .line-guide-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: #FBBF24;
+            letter-spacing: 2px;
+        }
+        .line-guide-content {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #E2E8F0;
+            text-align: left;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 16px 18px;
+            border-radius: 12px;
+            border: 1px dashed rgba(245, 158, 11, 0.45);
+        }
+        .line-guide-content strong {
+            color: #38BDF8;
+        }
+        .line-guide-btn {
+            margin-top: 4px;
+            padding: 12px;
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            color: #FFFFFF;
+            font-size: 17px;
+            font-weight: 900;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+    </style>
 </head>
 <body>
 
-<!-- LINE 瀏覽器導引遮罩 -->
-<div id="line-browser-overlay">
-    <div class="line-guide-card" onclick="dismissLineOverlayAndFullscreen()">
-        <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
-        <div class="line-guide-content" id="line-guide-text">
-            載入中...
+    <!-- LINE 瀏覽器導引遮罩 -->
+    <div id="line-browser-overlay">
+        <div class="line-guide-card" onclick="dismissLineOverlayAndFullscreen()">
+            <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
+            <div class="line-guide-content" id="line-guide-text">
+                載入中...
+            </div>
+            <button class="line-guide-btn">點擊進入並全螢幕專注</button>
         </div>
-        <button class="line-guide-btn">點擊進入並全螢幕專注</button>
     </div>
-</div>
-<div class="container">
-    <div class="stage-wrapper">
+
+    <!-- 外部 16:9 黑色框景容器 -->
+    <div class="landscape-container">
         <div class="card-stage" id="cardStage">
             <div class="top-right-badge" id="topRightBadge">希望新生</div>
 
-        <div class="card-text-container" id="textContainer">
-            <div class="card-title" id="cardTitle">載入中...</div>
-            <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
+            <div class="card-text-container" id="textContainer">
+                <div class="card-title" id="cardTitle">載入中...</div>
+                <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
+            </div>
+
+            <!-- 右下角直立長條祈求按鈕 -->
+            <button class="btn-blessing" onclick="handleBlessingClick()">今天祈求</button>
         </div>
     </div>
-
-    <!-- 獨立在右側黑框外的直立長條祈福按鈕 -->
-    <button class="btn-blessing" onclick="handleBlessingClick()">今天祈求</button>
-</div>
-</div>
 
 <script>
     let cardTexts = {};
     let textKeys = [];
 
-
+    // Apple 手機專有裝置判定分流
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
 
     function triggerAppFullscreen() {
         const el = document.documentElement;
@@ -279,7 +256,6 @@
         } catch (e) {}
     }
 
-
     function dismissLineOverlayAndFullscreen() {
         const overlay = document.getElementById('line-browser-overlay');
         if (overlay) {
@@ -289,49 +265,46 @@
         triggerAppFullscreen();
     }
 
-
     function handleBlessingClick() {
         triggerAppFullscreen();
         updateRandomDisplay();
     }
 
-
     function updateRandomDisplay() {
         if (textKeys.length === 0) return;
 
-
         const cardStage = document.getElementById('cardStage');
+
+        // 圖文同步淡出
         cardStage.classList.add('fade-out');
 
-
         setTimeout(() => {
+            // 1. 隨機抽取背景圖 (bg_01 至 bg_40)[cite: 2]
             const randomImgNum = Math.floor(Math.random() * 40) + 1;
             const paddedImgNum = String(randomImgNum).padStart(2, '0');
             const imgPath = `images/bg_${paddedImgNum}.webp`;
 
-
+            // 2. 從外部讀入的資料中隨機抽取一句法語文字[cite: 2]
             const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
             const selectedData = cardTexts[randomTextKey];
-
 
             let titleText = selectedData.title;
             let rawContent = selectedData.content;
 
-
             if (titleText.length > 14) titleText = titleText.substring(0, 14);
-
 
             cardTitle.textContent = titleText;
             cardContent.textContent = rawContent;
+
+            // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」[cite: 2]
             document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
 
-
+            // 自適應填入演算：從 26px 開始嘗試，自動縮小至能完整塞入畫面的大小 (minSize: 7px)
             let size = 26; 
             const minSize = 7; 
             
             cardContent.style.fontSize = size + "px";
             cardTitle.style.fontSize = (size + 2) + "px";
-
 
             while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
                 size--;
@@ -339,13 +312,13 @@
                 cardTitle.style.fontSize = (size + 2) + "px";
             }
 
-
+            // 更換背景圖並淡入
             cardStage.style.backgroundImage = `url('${imgPath}')`;
             cardStage.classList.remove('fade-out');
         }, 200);
     }
 
-
+    // 啟動時讀取同目錄下的 images_text.json 檔案[cite: 2]
     fetch('images_text.json')
         .then(response => {
             if (!response.ok) {
@@ -356,6 +329,8 @@
         .then(data => {
             cardTexts = data;
             textKeys = Object.keys(cardTexts);
+            
+            // 讀取成功後立即顯示第一張隨機卡片
             updateRandomDisplay();
         })
         .catch(error => {
@@ -363,16 +338,16 @@
             cardContent.textContent = "請檢查專案資料夾是否包含 images_text.json 檔案";
         });
 
-
     window.addEventListener('DOMContentLoaded', () => {
+        // 透過 isAppleDevice 進行精準分流，針對 Apple 與 Android 顯示對應的右下角引導說明
         if (/Line/i.test(navigator.userAgent)) {
             const overlay = document.getElementById('line-browser-overlay');
             const guideText = document.getElementById('line-guide-text');
             
             if (isAppleDevice) {
-                guideText.innerHTML = `您目前正在 <strong>LINE 內建瀏覽器</strong> 中開啟。<br><br>為確保畫面與點擊功能正常，請點選畫面<strong>右下角「⋯」</strong>或<strong>「🧭」</strong>圖示，選擇 <strong>〈在 Safari 中打開〉</strong>。`;
+                guideText.innerHTML = `您目前正在 <strong>LINE 內建瀏覽器</strong> 中開啟。<br><br>為確保畫面與點擊功能正常，請點選畫面<strong>右下角「⋯」</strong>或<strong><span>🧭</span></strong>圖示，選擇 <strong>〈在 Safari 中打開〉</strong>。`;
             } else {
-                guideText.innerHTML = `您目前正在 <strong>LINE 內建瀏覽器</strong> 中開啟。<br><br>為確保畫面與點擊功能正常，請點選畫面<strong>右下角的直式三點「⋮」</strong>選單，選擇 <strong>〈以預設瀏覽器開啟〉</strong> 或 <strong>〈以 Chrome 開啟〉</strong>。`;
+                guideText.innerHTML = `您目前正在 <strong>LINE 內建瀏覽器</strong> 中開啟。<br><br>為確保畫面與點擊功能正常，請點選畫面<strong>右下角的直式三點「<span>⋮</span>」</strong>選單，選擇 <strong>〈以預設瀏覽器開啟〉</strong> 或 <strong>〈以 Chrome 開啟〉</strong>。`;
             }
             
             overlay.classList.add('active');
