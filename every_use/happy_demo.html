@@ -4,7 +4,7 @@ name=demo.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語祈福 (V127 橫式直立按鈕版)</title>
+    <title>歡喜背書・陪伴卡與法語祈福 (V128 文字框左擴版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -31,10 +31,7 @@ name=demo.html
             flex-direction: column;
             gap: 12px;
         }
-        /* 
-          【橫式 16:9 規格還原 (如 V123)】：
-          固定 1200×675 橫式比例，背景圖片固定不動[cite: 2]。
-        */
+        /* 橫式 16:9 規格，背景圖片固定不動[cite: 2] */
         .card-stage {
             position: relative;
             width: 100%;
@@ -47,7 +44,7 @@ name=demo.html
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 右上角「希望新生 + 編號」：純綠色字體[cite: 2] */
+        /* 右上角「希望新生 + 編號」：純綠色字體[cite: 2, 4] */
         .top-right-badge {
             position: absolute;
             top: 2%;
@@ -62,15 +59,16 @@ name=demo.html
         }
 
         /* 
-          【橫式文字框最大化配置】：
-          保留寬廣顯示空間，右側預留適當間距給直立按鈕。
+          【文字框左擴調整 (V128)】：
+          將 left 從 33% 往左延伸至 28%（大約多出 4 個字的寬度），
+          讓每一行可以容納更多字，字體就不會被壓得太小。
         */
         .card-text-container {
             position: absolute;
             top: 6%;
             bottom: 6%;
-            left: 33%;
-            right: 9%; /* 讓出右側空間給直立按鈕，避免遮擋文字邊界 */
+            left: 28%;
+            right: 9%;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -99,10 +97,7 @@ name=demo.html
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
         }
 
-        /* 
-          【右下角直立長條按鈕設計】：
-          直立長方圓造型，文字縱向排列，緊貼右下角邊界，不擋文字顯示。
-        */
+        /* 右下角直立長條按鈕設計 */
         .btn-blessing {
             position: absolute;
             bottom: 6%;
@@ -110,19 +105,17 @@ name=demo.html
             background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
             color: #FFFFFF;
             border: 2px solid #FDE68A;
-            width: 42px;  /* 固定直立寬度 */
+            width: 42px;
             padding: 14px 0;
             font-size: 16px;
             font-weight: 900;
-            border-radius: 21px; /* 上下半圓的直立膠囊造型 */
+            border-radius: 21px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.6);
             z-index: 50;
             transition: transform 0.1s, background 0.2s;
             font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
             letter-spacing: 2px;
-            
-            /* 讓按鈕內的文字直向排列 */
             writing-mode: vertical-rl;
             text-orientation: upright;
             display: flex;
@@ -161,7 +154,7 @@ name=demo.html
         <button class="btn-blessing" onclick="updateRandomDisplay()">今天祈求</button>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 橫式背景與直立按鈕祈福模式 (V127)</div>
+    <div class="status-bar" id="statusBar">狀態: 文字框左擴 4 字版 (V128)</div>
 </div>
 
 <script>
@@ -188,10 +181,10 @@ name=demo.html
         cardTitle.textContent = titleText;
         cardContent.textContent = rawContent;
 
-        // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」[cite: 2]
+        // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」[cite: 2, 4]
         document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
 
-        // 最大化自適應填入演算：從 26px 開始嘗試，自動縮小至能完整塞入橫式畫面的大小 (minSize: 7px)
+        // 最大化自適應填入演算：從 26px 開始嘗試，自動縮小至能完整塞入畫面的大小 (minSize: 7px)
         let size = 26; 
         const minSize = 7; 
         
