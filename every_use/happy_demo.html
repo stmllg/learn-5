@@ -1,9 +1,10 @@
+name=demo.html
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V119)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V120)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -30,7 +31,7 @@
             flex-direction: column;
             gap: 12px;
         }
-        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例，全面填滿不留黑邊 */
+        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例，全面填滿不留黑邊[cite: 2] */
         .card-stage {
             position: relative;
             width: 100%;
@@ -43,7 +44,7 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 右上角「希望新生 + 編號」：純綠色字體，無描邊、清晰呈現 */
+        /* 右上角「希望新生 + 編號」：純綠色字體，無描邊、清晰呈現[cite: 2] */
         .top-right-badge {
             position: absolute;
             top: 2%;
@@ -58,8 +59,9 @@
         }
 
         /* 
-          【V119 終極自適應文字容器】：
-          保持完美靠右位置 (35%)，底部預留 29% 空間給下方按鈕作絕對安全防護區。
+          【方案 A 修正】：
+          取消原本的 overflow: hidden，改為 overflow-y: auto。
+          當文字較多時可順暢上下捲動檢視，pointer-events 改為 auto 以支援捲動觸控。
         */
         .card-text-container {
             position: absolute;
@@ -73,17 +75,27 @@
             align-items: flex-start;
             text-align: left;
             z-index: 10;
-            pointer-events: none;
+            pointer-events: auto;
             gap: 4px;
-            overflow: hidden;
+            overflow-y: auto;
+            padding-right: 4px; /* 避免捲軸擋住文字 */
         }
+        
+        /* 自訂美化捲軸（選用） */
+        .card-text-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .card-text-container::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.5);
+            border-radius: 3px;
+        }
+
         .card-title {
             font-weight: 900;
             color: #581C87;
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
             width: 100%;
             line-height: 1.2;
-            white-space: nowrap;
             flex-shrink: 0;
         }
         .card-content {
@@ -93,9 +105,8 @@
             white-space: pre-wrap;
             word-break: break-all;
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
-            overflow: hidden;
         }
-        /* 畫面下方完美貼齊的三個按鈕 */
+        /* 畫面下方完美貼齊的三個按鈕[cite: 2] */
         .controls-overlay {
             position: absolute;
             bottom: 3%;
@@ -163,7 +174,7 @@
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 智慧自適應隨機輪播模式 (V119)</div>
+    <div class="status-bar" id="statusBar">狀態: 智慧自適應隨機輪播模式 (V120)</div>
 </div>
 
 <script>
@@ -173,12 +184,12 @@
     function updateRandomDisplay() {
         if (textKeys.length === 0) return;
 
-        // 1. 隨機抽取背景圖 (bg_01 至 bg_40)
+        // 1. 隨機抽取背景圖 (bg_01 至 bg_40)[cite: 2]
         const randomImgNum = Math.floor(Math.random() * 40) + 1;
         const paddedImgNum = String(randomImgNum).padStart(2, '0');
         const imgPath = `images/bg_${paddedImgNum}.webp`;
 
-        // 2. 從外部讀入的資料中隨機抽取一句法語文字
+        // 2. 從外部讀入的資料中隨機抽取一句法語文字[cite: 2]
         const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
         const selectedData = cardTexts[randomTextKey];
 
@@ -190,13 +201,12 @@
         cardTitle.textContent = titleText;
         cardContent.textContent = rawContent;
 
-        // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」
+        // 每次切換新內容時，將捲軸自動歸位到最上方
+        textContainer.scrollTop = 0;
+
+        // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」[cite: 2]
         document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
 
-        // 【V119 智慧自適應核心演算】：
-        // 每次從最大舒適字體 26px 開始嘗試。
-        // 若內容較短，高度不超出紅框，字體直接維持 26px；
-        // 若內容較多（極長文），高度超出容器，迴圈會自動向下微縮，直到完全塞進按鈕上方為止！
         let size = 26; 
         const minSize = 10; 
         
@@ -213,7 +223,7 @@
         cardStage.style.backgroundImage = `url('${imgPath}')`;
     }
 
-    // 啟動時讀取同目錄下的 images_text.json 檔案
+    // 啟動時讀取同目錄下的 images_text.json 檔案[cite: 2]
     fetch('images_text.json')
         .then(response => {
             if (!response.ok) {
@@ -225,7 +235,7 @@
             cardTexts = data;
             textKeys = Object.keys(cardTexts);
             
-            // 讀取成功後開始進行 2 秒鐘隨機切換展示
+            // 讀取成功後開始進行 2 秒鐘隨機切換展示[cite: 2]
             updateRandomDisplay();
             setInterval(updateRandomDisplay, 2000);
         })
