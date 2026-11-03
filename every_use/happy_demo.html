@@ -4,11 +4,11 @@ name=demo.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>歡喜背書・陪伴卡與法語祈福 (V135 完美16:9與黑邊配置)</title>
+    <title>歡喜背書・陪伴卡與法語祈福 (V136 完美置中與同步淡入淡出)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        /* 模仿 V911：全螢幕固定黑色背景，禁止整頁隨意捲動 */
+        /* 鎖定全螢幕視窗，背景純黑，禁止整頁隨意捲動 */
         html, body {
             width: 100vw;
             height: 100vh;
@@ -25,7 +25,7 @@ name=demo.html
             align-items: center;
         }
 
-        /* 外部主容器：佔滿全螢幕，確保 16:9 居中，四周留出黑色邊框 */
+        /* 外部主容器：佔滿全螢幕，將 16:9 卡片完美置中，兩邊與上下自動留黑框 */
         .landscape-container {
             width: 100vw;
             height: 100vh;
@@ -37,7 +37,7 @@ name=demo.html
             position: relative;
         }
 
-        /* 16:9 固定的卡片舞台：依高度自動計算寬度，兩側或上下必有黑邊，絕對不變形 */
+        /* 16:9 固定的卡片舞台：保持嚴格 1200x675 比例 */
         .card-stage {
             position: relative;
             width: 100vw;
@@ -52,16 +52,18 @@ name=demo.html
             background-position: center;
             box-shadow: 0 16px 45px rgba(0,0,0,0.9);
             overflow: hidden;
+            border: 2px solid #38BDF8;
+            border-radius: 12px;
             
-            /* 圖文同步淡入效果 */
+            /* 讓背景與內部所有文字、標籤一起參與淡入淡出 */
             opacity: 1;
-            transition: opacity 0.35s ease-in-out;
+            transition: opacity 0.3s ease-in-out;
         }
         .card-stage.fade-out {
             opacity: 0;
         }
 
-        /* 右上角「希望新生 + 編號」：純綠色字體[cite: 2] */
+        /* 右上角「希望新生 + 編號」：純綠色字體 */
         .top-right-badge {
             position: absolute;
             top: 2%;
@@ -224,7 +226,7 @@ name=demo.html
         </div>
     </div>
 
-    <!-- 外部 16:9 黑色框景容器 -->
+    <!-- 完美置中、兩邊留黑的 16:9 框景容器 -->
     <div class="landscape-container">
         <div class="card-stage" id="cardStage">
             <div class="top-right-badge" id="topRightBadge">希望新生</div>
@@ -275,16 +277,15 @@ name=demo.html
 
         const cardStage = document.getElementById('cardStage');
 
-        // 圖文同步淡出
+        // 1. 先讓整張卡片舞台（含圖與文）同步淡出
         cardStage.classList.add('fade-out');
 
         setTimeout(() => {
-            // 1. 隨機抽取背景圖 (bg_01 至 bg_40)[cite: 2]
+            // 2. 在透明狀態下更新背景圖片與文字內容
             const randomImgNum = Math.floor(Math.random() * 40) + 1;
             const paddedImgNum = String(randomImgNum).padStart(2, '0');
             const imgPath = `images/bg_${paddedImgNum}.webp`;
 
-            // 2. 從外部讀入的資料中隨機抽取一句法語文字[cite: 2]
             const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
             const selectedData = cardTexts[randomTextKey];
 
@@ -295,11 +296,9 @@ name=demo.html
 
             cardTitle.textContent = titleText;
             cardContent.textContent = rawContent;
-
-            // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」[cite: 2]
             document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
 
-            // 自適應填入演算：從 26px 開始嘗試，自動縮小至能完整塞入畫面的大小 (minSize: 7px)
+            // 自適應填入演算
             let size = 26; 
             const minSize = 7; 
             
@@ -312,13 +311,14 @@ name=demo.html
                 cardTitle.style.fontSize = (size + 2) + "px";
             }
 
-            // 更換背景圖並淡入
             cardStage.style.backgroundImage = `url('${imgPath}')`;
+
+            // 3. 內容設定完成後，移除 fade-out 類別，實現圖文同步平滑淡入
             cardStage.classList.remove('fade-out');
-        }, 200);
+        }, 300);
     }
 
-    // 啟動時讀取同目錄下的 images_text.json 檔案[cite: 2]
+    // 啟動時讀取同目錄下的 images_text.json 檔案
     fetch('images_text.json')
         .then(response => {
             if (!response.ok) {
