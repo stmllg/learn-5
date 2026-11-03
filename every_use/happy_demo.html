@@ -4,7 +4,7 @@ name=demo.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語祈福 (V128 文字框左擴版)</title>
+    <title>歡喜背書・陪伴卡與法語祈福 (V129 修正右下角直式三點導引)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -44,7 +44,7 @@ name=demo.html
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 右上角「希望新生 + 編號」：純綠色字體[cite: 2, 4] */
+        /* 右上角「希望新生 + 編號」：純綠色字體[cite: 2] */
         .top-right-badge {
             position: absolute;
             top: 2%;
@@ -59,9 +59,9 @@ name=demo.html
         }
 
         /* 
-          【文字框左擴調整 (V128)】：
-          將 left 從 33% 往左延伸至 28%（大約多出 4 個字的寬度），
-          讓每一行可以容納更多字，字體就不會被壓得太小。
+          【文字框左擴調整 (V128/V129)】：
+          將 left 設為 28%（往左多擴展 4 個字寬），right 設為 9%，
+          讓內文字數較多時能保持較大、易讀的字體，不被壓得太小。
         */
         .card-text-container {
             position: absolute;
@@ -130,6 +130,73 @@ name=demo.html
             transform: scale(0.95); 
         }
 
+        /* LINE 瀏覽器導引遮罩樣式 */
+        #line-browser-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 100000;
+            background: rgba(4, 7, 15, 0.94);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #line-browser-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+        .line-guide-card {
+            background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
+            border: 2px solid #D97706;
+            border-radius: 18px;
+            max-width: 420px;
+            width: 90%;
+            padding: 24px 22px;
+            box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            cursor: pointer;
+        }
+        .line-guide-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: #FBBF24;
+            letter-spacing: 2px;
+        }
+        .line-guide-content {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #E2E8F0;
+            text-align: left;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 16px 18px;
+            border-radius: 12px;
+            border: 1px dashed rgba(245, 158, 11, 0.45);
+        }
+        .line-guide-content strong {
+            color: #38BDF8;
+        }
+        .line-guide-btn {
+            margin-top: 4px;
+            padding: 12px;
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            color: #FFFFFF;
+            font-size: 17px;
+            font-weight: 900;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
         .status-bar {
             font-size: 13px;
             color: #38BDF8;
@@ -140,6 +207,17 @@ name=demo.html
     </style>
 </head>
 <body>
+
+    <!-- LINE 瀏覽器導引遮罩 (修正為右下角直式三點與一鍵全螢幕) -->
+    <div id="line-browser-overlay">
+        <div class="line-guide-card" onclick="dismissLineOverlayAndFullscreen()">
+            <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
+            <div class="line-guide-content" id="line-guide-text">
+                載入中...
+            </div>
+            <button class="line-guide-btn">點擊進入並全螢幕專注</button>
+        </div>
+    </div>
 
 <div class="container">
     <div class="card-stage" id="cardStage">
@@ -154,12 +232,33 @@ name=demo.html
         <button class="btn-blessing" onclick="updateRandomDisplay()">今天祈求</button>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 文字框左擴 4 字版 (V128)</div>
+    <div class="status-bar" id="statusBar">狀態: 祈福陪伴卡模式 (V129)</div>
 </div>
 
 <script>
     let cardTexts = {};
     let textKeys = [];
+
+    const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    function triggerAppFullscreen() {
+        const el = document.documentElement;
+        try {
+            if (el.requestFullscreen) { el.requestFullscreen().catch(() => {}); } 
+            else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen().catch(() => {}); } 
+            else if (el.msRequestFullscreen) { el.msRequestFullscreen().catch(() => {}); }
+        } catch (e) {}
+    }
+
+    function dismissLineOverlayAndFullscreen() {
+        const overlay = document.getElementById('line-browser-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        }
+        triggerAppFullscreen();
+    }
 
     function updateRandomDisplay() {
         if (textKeys.length === 0) return;
@@ -181,10 +280,10 @@ name=demo.html
         cardTitle.textContent = titleText;
         cardContent.textContent = rawContent;
 
-        // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」[cite: 2, 4]
+        // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」[cite: 2]
         document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
 
-        // 最大化自適應填入演算：從 26px 開始嘗試，自動縮小至能完整塞入畫面的大小 (minSize: 7px)
+        // 自適應填入演算：從 26px 開始嘗試，自動縮小至能完整塞入畫面的大小 (minSize: 7px)
         let size = 26; 
         const minSize = 7; 
         
@@ -221,6 +320,22 @@ name=demo.html
             cardTitle.textContent = "資料載入失敗";
             cardContent.textContent = "請檢查專案資料夾是否包含 images_text.json 檔案";
         });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        // 📌 偵測 LINE 內建瀏覽器，並分別顯示 Android / Apple 的「右下角直式三點」引導說明
+        if (/Line/i.test(navigator.userAgent)) {
+            const overlay = document.getElementById('line-browser-overlay');
+            const guideText = document.getElementById('line-guide-text');
+            
+            if (isAppleDevice) {
+                guideText.innerHTML = `您目前正在 <strong>LINE 內建瀏覽器</strong> 中開啟。<br><br>為確保畫面與點擊功能正常，請點選畫面<strong>右下角「⋯」</strong>或<strong>「🧭」</strong>圖示，選擇 <strong>「在 Safari 中打開」</strong>。`;
+            } else {
+                guideText.innerHTML = `您目前正在 <strong>LINE 內建瀏覽器</strong> 中開啟。<br><br>為確保畫面與點擊功能正常，請點選畫面<strong>右下角的直式三點「⋮」</strong>選單，選擇 <strong>「以預設瀏覽器開啟」</strong> 或 <strong>「以 Chrome 開啟」</strong>。`;
+            }
+            
+            overlay.classList.add('active');
+        }
+    });
 </script>
 
 </body>
