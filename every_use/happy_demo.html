@@ -4,7 +4,7 @@ name=demo.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V120)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V121)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -31,7 +31,7 @@ name=demo.html
             flex-direction: column;
             gap: 12px;
         }
-        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例，全面填滿不留黑邊[cite: 2] */
+        /* 螢幕與圖片規格：固定 1200×675 橫式 16:9 比例，背景圖片固定不動[cite: 2] */
         .card-stage {
             position: relative;
             width: 100%;
@@ -44,7 +44,7 @@ name=demo.html
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.9);
         }
-        /* 右上角「希望新生 + 編號」：純綠色字體，無描邊、清晰呈現[cite: 2] */
+        /* 右上角「希望新生 + 編號」：純綠色字體[cite: 2] */
         .top-right-badge {
             position: absolute;
             top: 2%;
@@ -59,9 +59,9 @@ name=demo.html
         }
 
         /* 
-          【方案 A 修正】：
-          取消原本的 overflow: hidden，改為 overflow-y: auto。
-          當文字較多時可順暢上下捲動檢視，pointer-events 改為 auto 以支援捲動觸控。
+          【文字框獨立捲動修正】：
+          背景圖片與卡片舞台保持靜止不動。
+          僅讓右側的 .card-text-container 內部具備獨立捲動能力 (overflow-y: auto)。
         */
         .card-text-container {
             position: absolute;
@@ -75,19 +75,22 @@ name=demo.html
             align-items: flex-start;
             text-align: left;
             z-index: 10;
-            pointer-events: auto;
+            pointer-events: auto; /* 允許滑鼠或手指在文字框內獨立滑動 */
             gap: 4px;
-            overflow-y: auto;
-            padding-right: 4px; /* 避免捲軸擋住文字 */
+            overflow-y: auto;     /* 超出範圍時，僅文字框內出現捲軸，背景圖片完全不動 */
+            padding-right: 6px;   /* 留出空間給捲軸 */
         }
         
-        /* 自訂美化捲軸（選用） */
+        /* 自訂美化文字框內的捲軸，讓介面更清爽 */
         .card-text-container::-webkit-scrollbar {
             width: 6px;
         }
         .card-text-container::-webkit-scrollbar-thumb {
-            background: rgba(56, 189, 248, 0.5);
+            background: rgba(88, 28, 135, 0.4);
             border-radius: 3px;
+        }
+        .card-text-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(88, 28, 135, 0.7);
         }
 
         .card-title {
@@ -106,7 +109,7 @@ name=demo.html
             word-break: break-all;
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
         }
-        /* 畫面下方完美貼齊的三個按鈕[cite: 2] */
+        /* 畫面下方按鈕區[cite: 2] */
         .controls-overlay {
             position: absolute;
             bottom: 3%;
@@ -174,7 +177,7 @@ name=demo.html
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 智慧自適應隨機輪播模式 (V120)</div>
+    <div class="status-bar" id="statusBar">狀態: 獨立文字框捲動模式 (V121)</div>
 </div>
 
 <script>
@@ -184,7 +187,7 @@ name=demo.html
     function updateRandomDisplay() {
         if (textKeys.length === 0) return;
 
-        // 1. 隨機抽取背景圖 (bg_01 至 bg_40)[cite: 2]
+        // 1. 隨機抽取背景圖 (bg_01 至 bg_40)[cite: 2]，此時背景圖靜止不動
         const randomImgNum = Math.floor(Math.random() * 40) + 1;
         const paddedImgNum = String(randomImgNum).padStart(2, '0');
         const imgPath = `images/bg_${paddedImgNum}.webp`;
@@ -201,7 +204,7 @@ name=demo.html
         cardTitle.textContent = titleText;
         cardContent.textContent = rawContent;
 
-        // 每次切換新內容時，將捲軸自動歸位到最上方
+        // 切換新內容時，將右側文字框的捲軸自動歸位到最上方
         textContainer.scrollTop = 0;
 
         // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」[cite: 2]
