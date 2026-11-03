@@ -4,7 +4,7 @@ name=demo.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V121)</title>
+    <title>歡喜背書・陪伴卡與法語輪播 (V122)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -59,14 +59,14 @@ name=demo.html
         }
 
         /* 
-          【文字框獨立捲動修正】：
-          背景圖片與卡片舞台保持靜止不動。
-          僅讓右側的 .card-text-container 內部具備獨立捲動能力 (overflow-y: auto)。
+          【文字框最大化與自適應填入修正】：
+          1. 擴大文字框邊界：top 降至 8%、bottom 預留 26% 給按鈕區，讓文字框達到最大可用範圍。
+          2. 取消捲軸，改由 JavaScript 自動動態將字體縮放到剛好完全塞入。
         */
         .card-text-container {
             position: absolute;
-            top: 9%;
-            bottom: 29%;
+            top: 8%;
+            bottom: 26%;
             left: 35%;
             right: 5%;
             display: flex;
@@ -75,22 +75,9 @@ name=demo.html
             align-items: flex-start;
             text-align: left;
             z-index: 10;
-            pointer-events: auto; /* 允許滑鼠或手指在文字框內獨立滑動 */
+            pointer-events: none;
             gap: 4px;
-            overflow-y: auto;     /* 超出範圍時，僅文字框內出現捲軸，背景圖片完全不動 */
-            padding-right: 6px;   /* 留出空間給捲軸 */
-        }
-        
-        /* 自訂美化文字框內的捲軸，讓介面更清爽 */
-        .card-text-container::-webkit-scrollbar {
-            width: 6px;
-        }
-        .card-text-container::-webkit-scrollbar-thumb {
-            background: rgba(88, 28, 135, 0.4);
-            border-radius: 3px;
-        }
-        .card-text-container::-webkit-scrollbar-thumb:hover {
-            background: rgba(88, 28, 135, 0.7);
+            overflow: hidden; /* 確保全數容納在內部，不超出容器 */
         }
 
         .card-title {
@@ -104,7 +91,7 @@ name=demo.html
         .card-content {
             font-weight: 800;
             color: #0F172A;
-            line-height: 1.35;
+            line-height: 1.3;
             white-space: pre-wrap;
             word-break: break-all;
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
@@ -177,7 +164,7 @@ name=demo.html
         </div>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 獨立文字框捲動模式 (V121)</div>
+    <div class="status-bar" id="statusBar">狀態: 全文字自動自適應填入模式 (V122)</div>
 </div>
 
 <script>
@@ -187,7 +174,7 @@ name=demo.html
     function updateRandomDisplay() {
         if (textKeys.length === 0) return;
 
-        // 1. 隨機抽取背景圖 (bg_01 至 bg_40)[cite: 2]，此時背景圖靜止不動
+        // 1. 隨機抽取背景圖 (bg_01 至 bg_40)[cite: 2]
         const randomImgNum = Math.floor(Math.random() * 40) + 1;
         const paddedImgNum = String(randomImgNum).padStart(2, '0');
         const imgPath = `images/bg_${paddedImgNum}.webp`;
@@ -204,14 +191,14 @@ name=demo.html
         cardTitle.textContent = titleText;
         cardContent.textContent = rawContent;
 
-        // 切換新內容時，將右側文字框的捲軸自動歸位到最上方
-        textContainer.scrollTop = 0;
-
         // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」[cite: 2]
         document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
 
+        // 【V122 終極最大化自適應填入演算】：
+        // 從較大字體 26px 開始嘗試，若超過最大可用空間，自動向下縮小
+        // 將 minSize 降到 7px，確保即使是像第 68 條等超長文章也能完整縮放塞進畫面
         let size = 26; 
-        const minSize = 10; 
+        const minSize = 7; 
         
         cardContent.style.fontSize = size + "px";
         cardTitle.style.fontSize = (size + 2) + "px";
