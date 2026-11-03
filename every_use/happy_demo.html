@@ -4,7 +4,7 @@ name=demo.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡喜背書・陪伴卡與法語輪播 (V123)</title>
+    <title>歡喜背書・陪伴卡與法語祈福 (V124)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -59,9 +59,8 @@ name=demo.html
         }
 
         /* 
-          【V123 文字框最大化調整】：
-          1. 移除下方按鈕區後，將 bottom 延伸至 5%，讓文字框高度放到最大。
-          2. 將 left 拓寬至 33%、right 拓寬至 3%，讓右側顯示區域達到最大可用範圍。
+          【文字框最大化配置】：
+          拓寬至右側 3% 與下方 5%，確保文字擁有最大顯示空間。
         */
         .card-text-container {
             position: absolute;
@@ -97,6 +96,33 @@ name=demo.html
             text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 10px rgba(255,255,255,0.8);
         }
 
+        /* 右下角長方圓祈福按鈕 */
+        .btn-blessing {
+            position: absolute;
+            bottom: 4%;
+            right: 4%;
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            color: #FFFFFF;
+            border: 2px solid #FDE68A;
+            padding: 12px 28px;
+            font-size: 18px;
+            font-weight: 900;
+            border-radius: 50px; /* 長方圓膠囊造型 */
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+            z-index: 50;
+            transition: transform 0.1s, background 0.2s;
+            font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", serif;
+            letter-spacing: 2px;
+        }
+        .btn-blessing:hover {
+            background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+            transform: scale(1.05);
+        }
+        .btn-blessing:active { 
+            transform: scale(0.95); 
+        }
+
         .status-bar {
             font-size: 13px;
             color: #38BDF8;
@@ -116,9 +142,12 @@ name=demo.html
             <div class="card-title" id="cardTitle">載入中...</div>
             <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
         </div>
+
+        <!-- 右下角長方圓祈福按鈕 -->
+        <button class="btn-blessing" onclick="updateRandomDisplay()">今天祈求</button>
     </div>
 
-    <div class="status-bar" id="statusBar">狀態: 文字框最大化填入模式 (V123)</div>
+    <div class="status-bar" id="statusBar">狀態: 點擊按鈕隨機祈福模式 (V124)</div>
 </div>
 
 <script>
@@ -148,8 +177,7 @@ name=demo.html
         // 更新右上角顯示純綠色「希望新生 + 當前隨機編號」[cite: 2]
         document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
 
-        // 【V123 最大化自適應填入演算】：
-        // 從較大字體 26px 開始嘗試，若超過最大可用空間，自動向下縮小到 minSize (7px)
+        // 最大化自適應填入演算：從 26px 開始嘗試，自動縮小至能完整塞入畫面的大小 (minSize: 7px)
         let size = 26; 
         const minSize = 7; 
         
@@ -178,9 +206,8 @@ name=demo.html
             cardTexts = data;
             textKeys = Object.keys(cardTexts);
             
-            // 讀取成功後開始進行 2 秒鐘隨機切換展示[cite: 2]
+            // 讀取成功後立即顯示第一張隨機卡片
             updateRandomDisplay();
-            setInterval(updateRandomDisplay, 2000);
         })
         .catch(error => {
             statusBar.textContent = `⚠️ 讀取 images_text.json 失敗: ${error.message}`;
