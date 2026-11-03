@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V908</title>
+  <title>歡喜背書V909</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,7 +11,7 @@
   <meta name="theme-color" content="#0B0F19">
 
   <!-- ========================================================================== -->
-  <!-- 📌【v905 核心唯一設定】經典與群組雙重隔離命名空間 -->
+  <!-- 📌【v909 核心唯一設定】經典與群組雙重隔離命名空間 -->
   <!-- ========================================================================== -->
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -841,14 +841,14 @@
         <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
-        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706;" onclick="showToast('🙏 您已精進背誦至第 ' + window.CURRENT_TARGET_DAY + ' 天，隨喜功德！', 4000)">堅持第 22 天</button>
+        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="triggerFireworks(event)">堅持第 22 天</button>
       </div>
     </div>
   </div>
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v905)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v909)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -900,7 +900,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v905 載入中】...</div>
+  <div id="schedule-toast">📦 【v909 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1126,13 +1126,13 @@
 
     function isIndependentModeUnlocked() {
       if (practicePhase === 'completed') return true;
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V908');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V909');
       if (!savedStr) return false;
       try {
         const savedState = JSON.parse(savedStr);
         return savedState.savedDateStr === getNormalizedDateStr() &&
           savedState.practicePhase === 'completed' &&
-          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V908') === getNormalizedDateStr();
+          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V909') === getNormalizedDateStr();
       } catch (e) {
         return false;
       }
@@ -1143,7 +1143,7 @@
       if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') return;
 
       if (practicePhase === 'completed') {
-        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V908', getNormalizedDateStr());
+        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V909', getNormalizedDateStr());
       }
       const state = {
         coreMode: currentCoreMode,
@@ -1157,18 +1157,18 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_V908', JSON.stringify(state));
+      classicStorage.setItem('APP_SAVED_STATE_V909', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V908');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V909');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          classicStorage.removeItem('APP_SAVED_STATE_V908');
+          classicStorage.removeItem('APP_SAVED_STATE_V909');
           return false;
         }
 
@@ -1182,7 +1182,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_V908');
+        classicStorage.removeItem('APP_SAVED_STATE_V909');
         return false;
       }
     }
@@ -1239,7 +1239,7 @@
       } else if (document.visibilityState === 'visible') {
         setTimeout(() => {
           handleOrientationCheck();
-          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V908') === getNormalizedDateStr()) {
+          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V909') === getNormalizedDateStr()) {
             practicePhase = 'completed';
           }
           renderUI();
@@ -1348,9 +1348,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = classicStorage.getItem('APP_ACTIVE_DATE_V908');
+      const lastActiveDate = classicStorage.getItem('APP_ACTIVE_DATE_V909');
       if (lastActiveDate !== todayStr) {
-        classicStorage.setItem('APP_ACTIVE_DATE_V908', todayStr);
+        classicStorage.setItem('APP_ACTIVE_DATE_V909', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -1448,7 +1448,7 @@
       await preWarmMicrophonePermission();
 
       hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V908', getNormalizedDateStr());
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V909', getNormalizedDateStr());
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
@@ -1458,7 +1458,7 @@
         showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
         await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V908');
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V909');
         if (savedStr) {
           try {
             const state = JSON.parse(savedStr);
@@ -1482,7 +1482,7 @@
       await preWarmMicrophonePermission();
 
       hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V908', getNormalizedDateStr());
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V909', getNormalizedDateStr());
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
@@ -1490,7 +1490,7 @@
 
       await loadAllAssetsSmartSync();
 
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V908');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V909');
       if (savedStr) {
         try {
           const state = JSON.parse(savedStr);
@@ -1512,7 +1512,7 @@
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V908');
+      const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V909');
       if (saved !== null) return parseInt(saved, 10);
       return 0;
     }
@@ -1538,7 +1538,7 @@
       } else if (urlParams.get('day')) {
         return parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V908');
+        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V909');
         if (currentSchedDay) {
           return parseInt(currentSchedDay, 10) || 1;
         }
@@ -1547,7 +1547,7 @@
     }
 
     function openScheduleModal() {
-      const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V908') || '{}');
+      const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V909') || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
@@ -1657,10 +1657,10 @@
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      classicStorage.setItem('USER_CURRENT_PROGRESS_END_V908', testCompleted.toString());
+      classicStorage.setItem('USER_CURRENT_PROGRESS_END_V909', testCompleted.toString());
 
       const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
-      classicStorage.setItem('USER_SCHEDULE_SETTINGS_V908', JSON.stringify(settings));
+      classicStorage.setItem('USER_SCHEDULE_SETTINGS_V909', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
@@ -1682,14 +1682,14 @@
 
     async function prefetchSentenceCountOnStartup() {
       const timestamp = Date.now();
-      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V908');
+      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V909');
       try {
         const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
           if (Array.isArray(freshSent) && freshSent.length > 0) {
             scriptureData = freshSent;
-            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V908', JSON.stringify(freshSent));
+            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V909', JSON.stringify(freshSent));
           }
         }
       } catch (e) {}
@@ -1707,9 +1707,9 @@
       if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
       if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
 
-      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V908') || CLASSIC_TOTAL_SENTENCES > 0) {
+      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V909') || CLASSIC_TOTAL_SENTENCES > 0) {
         let savedSchedule = null;
-        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V908') || 'null'); } catch (e) {}
+        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V909') || 'null'); } catch (e) {}
         const scheduleNeedsResize = !Array.isArray(savedSchedule) ||
           savedSchedule.length === 0 ||
           savedSchedule.some(item => Number(item.end) > CLASSIC_TOTAL_SENTENCES) ||
@@ -1717,7 +1717,7 @@
         
         if (scheduleNeedsResize) {
           let savedSettings = {};
-          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V908') || '{}'); } catch (e) {}
+          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V909') || '{}'); } catch (e) {}
           generateAlgorithmicSchedule({
             totalSentences: CLASSIC_TOTAL_SENTENCES,
             dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
@@ -1798,7 +1798,7 @@
         simDay++;
       }
 
-      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V908', JSON.stringify(scheduleList));
+      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V909', JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1806,7 +1806,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V908');
+        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V909');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -1814,7 +1814,7 @@
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V908') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
+          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V909') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
           currentCycleCount = 0;
           return false;
         }
@@ -1823,9 +1823,9 @@
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        classicStorage.setItem('USER_CURRENT_PROGRESS_END_V908', currentDayPlan.end.toString());
+        classicStorage.setItem('USER_CURRENT_PROGRESS_END_V909', currentDayPlan.end.toString());
 
-        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V908') === getNormalizedDateStr()) {
+        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V909') === getNormalizedDateStr()) {
           practicePhase = 'completed';
         } else {
           practicePhase = 'new_gendu';
@@ -2573,7 +2573,7 @@
         haltGuideRunnerImmediately();
       }
 
-      const settings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V908') || '{}');
+      const settings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V909') || '{}');
       const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
       const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
       const hasCumulative = cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
@@ -2626,7 +2626,7 @@
             showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
           } else {
             practicePhase = 'completed';
-            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V908', getNormalizedDateStr());
+            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V909', getNormalizedDateStr());
             renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿，功能已全部解鎖");
@@ -2664,7 +2664,7 @@
           }
         } else {
           practicePhase = 'completed';
-          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V908', getNormalizedDateStr());
+          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V909', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
@@ -2678,6 +2678,127 @@
       videoPausedAt = -1;
       video.currentTime = range.start;
       handleCycleCompletion();
+    }
+
+    // 🎆 點擊「堅持第 N 天」觸發絢麗煙火與花瓣灑落特效
+    function triggerFireworks(e) {
+      const canvas = document.getElementById('flowerCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      let startX = window.innerWidth / 2;
+      let startY = window.innerHeight - 60;
+      if (e && e.target) {
+        const rect = e.target.getBoundingClientRect();
+        startX = rect.left + rect.width / 2;
+        startY = rect.top;
+      }
+
+      const targetX = startX + (Math.random() - 0.5) * 160;
+      const targetY = window.innerHeight * 0.22 + Math.random() * (window.innerHeight * 0.25);
+
+      let firework = {
+        x: startX,
+        y: startY,
+        targetX: targetX,
+        targetY: targetY,
+        speed: 13,
+        angle: Math.atan2(targetY - startY, targetX - startX),
+        exploded: false
+      };
+
+      let particles = [];
+      const colors = ['#FF94B8', '#FFB300', '#34D399', '#38BDF8', '#C084FC', '#F43F5E', '#FBBF24', '#FFFFFF'];
+
+      function explode() {
+        const particleCount = 80;
+        for (let i = 0; i < particleCount; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 7 + 2;
+          particles.push({
+            x: firework.targetX,
+            y: firework.targetY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: Math.random() * 6 + 6,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            alpha: 1.0,
+            decay: Math.random() * 0.012 + 0.008,
+            shape: Math.random() > 0.4 ? 'flower' : 'circle'
+          });
+        }
+      }
+
+      let startTime = performance.now();
+      const duration = 3800;
+
+      function animateFireworks(now) {
+        let elapsed = now - startTime;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!firework.exploded) {
+          let dx = firework.targetX - firework.x;
+          let dy = firework.targetY - firework.y;
+          firework.x += Math.cos(firework.angle) * firework.speed;
+          firework.y += Math.sin(firework.angle) * firework.speed;
+
+          ctx.fillStyle = '#FEF08A';
+          ctx.beginPath();
+          ctx.arc(firework.x, firework.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (Math.abs(dx) < 15 && Math.abs(dy) < 15) {
+            firework.exploded = true;
+            explode();
+          }
+        }
+
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.10; // 重力
+          p.vx *= 0.97; // 空氣阻力
+          p.alpha -= p.decay;
+          if (p.alpha < 0) p.alpha = 0;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.globalAlpha = p.alpha;
+
+          if (p.shape === 'flower') {
+            ctx.fillStyle = p.color;
+            for (let j = 0; j < 5; j++) {
+              const angle = (j * 2 * Math.PI) / 5;
+              ctx.beginPath();
+              ctx.arc(Math.cos(angle) * (p.size * 0.4), Math.sin(angle) * (p.size * 0.4), p.size * 0.45, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size * 0.28, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(animateFireworks);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.style.display = 'none';
+        }
+      }
+
+      requestAnimationFrame(animateFireworks);
+      showToast(`🙏 為自己第 ${window.CURRENT_TARGET_DAY} 天的堅持放一場燦爛煙火，隨喜功德！`, 3000);
     }
 
     function triggerSevenColoredLotusFlowerRain() {
@@ -3461,7 +3582,7 @@
       checkDailyResetOnStartup();
 
       const todayStr = getNormalizedDateStr();
-      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V908');
+      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V909');
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       
       if (btnCardSettingDynamic) {
@@ -3493,14 +3614,14 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V908');
+        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V909');
         if (currentSchedDay) {
           targetDay = parseInt(currentSchedDay, 10) || 1;
         } else {
           targetDay = 1;
         }
       }
-      classicStorage.setItem('CURRENT_SCHEDULE_DAY_V908', targetDay.toString());
+      classicStorage.setItem('CURRENT_SCHEDULE_DAY_V909', targetDay.toString());
 
       initCompanionCard(targetDay);
 
