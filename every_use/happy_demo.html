@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -120,7 +119,7 @@
             opacity: 0;
         }
 
-        /* 📌 讀取的 ID 標籤：移至右下角最底下 */
+        /* 讀取的 ID 標籤：放在右下角最底下 */
         .bottom-right-badge {
             position: absolute;
             bottom: 3%;
@@ -138,7 +137,7 @@
         .card-text-container {
             position: absolute;
             top: 6%;
-            bottom: 10%; /* 底部多留空間給右下角 ID 標籤 */
+            bottom: 10%;
             left: 28%;
             right: 9%;
             display: flex;
@@ -152,6 +151,7 @@
             overflow: hidden;
         }
 
+        /* 標題維持粗黑體 */
         .card-title {
             font-weight: 900;
             color: #581C87;
@@ -161,6 +161,7 @@
             flex-shrink: 0;
         }
         
+        /* 內文改為一般正常粗細 (font-weight: 400) */
         .card-content {
             font-weight: 400;
             color: #0F172A;
@@ -308,7 +309,7 @@
 
     <div class="landscape-container">
         <div class="card-stage" id="cardStage">
-            <!-- 📌 讀取的 ID 標籤移至右下角最底下 -->
+            <!-- 讀取的 ID 標籤移至右下角最底下 -->
             <div class="bottom-right-badge" id="bottomRightBadge">載入中...</div>
 
             <div class="card-text-container" id="textContainer">
@@ -388,26 +389,25 @@
 
             let titleText = selectedData.title;
             let rawContent = selectedData.content;
-            let readId = selectedData.id || `希望新生 ${randomTextKey}`; // 讀取 JSON 中的 id 欄位[cite: 13]
+            let readId = selectedData.id || `希望新生 ${randomTextKey}`;
 
             if (titleText.length > 14) titleText = titleText.substring(0, 14);
 
             cardTitle.textContent = titleText;
             cardContent.textContent = rawContent;
-            
-            // 📌 將讀取到的 id 顯示在右下角最底下
             document.getElementById('bottomRightBadge').textContent = readId;
 
-            let size = 26; 
-            const minSize = 7; 
+            // 字體自適應填滿文字框：字體大小由 32 到 20
+            let size = 32; 
+            const minSize = 20; 
             
             cardContent.style.fontSize = size + "px";
-            cardTitle.style.fontSize = (size + 2) + "px";
+            cardTitle.style.fontSize = (size + 4) + "px";
 
             while ((textContainer.scrollHeight > textContainer.clientHeight) && (size > minSize)) {
                 size--;
                 cardContent.style.fontSize = size + "px";
-                cardTitle.style.fontSize = (size + 2) + "px";
+                cardTitle.style.fontSize = (size + 4) + "px";
             }
 
             cardStage.style.backgroundImage = `url('${imgPath}')`;
