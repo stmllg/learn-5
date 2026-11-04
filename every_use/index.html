@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V918</title>
+  <title>歡喜背書V919</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -236,15 +236,16 @@
     }
 
     /* 
-      【V119 終極自適應文字容器】：
-      保持完美靠右位置 (35%)，底部預留 29% 空間給下方按鈕作絕對安全防護區。
+      【V918 修正版文字容器】：
+      左側留出 33% 空間避開主圖，底部保留 24% 空間避開按鈕，
+      確保觸發自動字體縮放，絕不壓到按鈕與圖片。
     */
     .card-text-container {
       position: absolute;
-      top: 6%;
-      bottom: 6%;
-      left: 28%;
-      right: 9%;
+      top: 9%;
+      bottom: 24%;
+      left: 33%;
+      right: 5%;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
@@ -1311,7 +1312,6 @@
         video.load(); 
       } catch(e) {}
 
-      // 每次返回陪伴卡時，使用真實計算出的天數初始化陪伴卡，確保不被排程進度覆蓋
       const targetDay = getRealTargetDay();
       initCompanionCard(targetDay);
 
@@ -1381,7 +1381,6 @@
       const el = document.documentElement;
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       if (isIOS) {
-        // iPhone (iOS) 不支援標準 requestFullscreen，自動捲動隱藏網址列達到沉浸全螢幕效果
         window.scrollTo(0, 1);
       } else {
         try {
@@ -1398,9 +1397,7 @@
           audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } 
         });
         stream.getTracks().forEach(track => track.stop());
-      } catch (e) {
-        console.log("使用者暫未允許麥克風權限或裝置不支援", e);
-      }
+      } catch (e) {}
     }
 
     async function playStandaloneVideo(modeType, startSeekSec = 0, onEndedCallback) {
@@ -1529,7 +1526,6 @@
       return 0;
     }
 
-    
     function getRealTargetDay() {
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
@@ -1559,7 +1555,7 @@
       return targetDay;
     }
 
-function getCurrentActiveDayNumber() {
+    function getCurrentActiveDayNumber() {
       if (currentDayPlan && currentDayPlan.day) {
         return currentDayPlan.day;
       }
@@ -2799,7 +2795,6 @@ function getCurrentActiveDayNumber() {
       requestAnimationFrame(animateLotusRain);
     }
 
-    
     function triggerFireworks(showToastFlag = false) {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
@@ -2808,7 +2803,6 @@ function getCurrentActiveDayNumber() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      // 由中間下方向上發射
       let startX = window.innerWidth / 2;
       let startY = window.innerHeight - 40;
 
@@ -2854,7 +2848,6 @@ function getCurrentActiveDayNumber() {
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 1. 發射上升期
         if (!firework.exploded) {
           let dx = firework.targetX - firework.x;
           let dy = firework.targetY - firework.y;
@@ -2872,12 +2865,11 @@ function getCurrentActiveDayNumber() {
           }
         }
 
-        // 2. 爆開灑花期
         particles.forEach(p => {
           p.x += p.vx;
           p.y += p.vy;
-          p.vy += 0.10; // 重力
-          p.vx *= 0.97; // 阻力
+          p.vy += 0.10;
+          p.vx *= 0.97;
           p.alpha -= p.decay;
           if (p.alpha < 0) p.alpha = 0;
 
@@ -2921,7 +2913,7 @@ function getCurrentActiveDayNumber() {
       }
     }
 
-function triggerOfferingCoinRain() {
+    function triggerOfferingCoinRain() {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
       canvas.style.display = 'block';
