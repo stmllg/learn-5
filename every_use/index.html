@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V938</title>
+  <title>歡喜背書V941</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -218,7 +218,7 @@
       transform: scale(1);
     }
 
-    /* 右上角即時診斷標籤 */
+    /* 右上角即時診斷標籤 (完美對應 id 欄位) */
     .top-right-badge {
       position: absolute;
       top: 1.5%;
@@ -237,7 +237,7 @@
     }
 
     /* 
-      【V938 黃金邊界版文字容器】：
+      【V941 黃金邊界版文字容器】：
       左 29%, 右 5%, 帶有紅色虛線偵錯框與 12px 緩衝區。
     */
     .card-text-container {
@@ -850,7 +850,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v938)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v941)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -902,7 +902,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v938 載入中】...</div>
+  <div id="schedule-toast">📦 【v941 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1128,13 +1128,13 @@
 
     function isIndependentModeUnlocked() {
       if (practicePhase === 'completed') return true;
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V938');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V941');
       if (!savedStr) return false;
       try {
         const savedState = JSON.parse(savedStr);
         return savedState.savedDateStr === getNormalizedDateStr() &&
           savedState.practicePhase === 'completed' &&
-          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V938') === getNormalizedDateStr();
+          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V941') === getNormalizedDateStr();
       } catch (e) {
         return false;
       }
@@ -1145,7 +1145,7 @@
       if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') return;
 
       if (practicePhase === 'completed') {
-        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V938', getNormalizedDateStr());
+        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V941', getNormalizedDateStr());
       }
       const state = {
         coreMode: currentCoreMode,
@@ -1159,18 +1159,18 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_V938', JSON.stringify(state));
+      classicStorage.setItem('APP_SAVED_STATE_V941', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V938');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V941');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          classicStorage.removeItem('APP_SAVED_STATE_V938');
+          classicStorage.removeItem('APP_SAVED_STATE_V941');
           return false;
         }
 
@@ -1184,7 +1184,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_V938');
+        classicStorage.removeItem('APP_SAVED_STATE_V941');
         return false;
       }
     }
@@ -1241,7 +1241,7 @@
       } else if (document.visibilityState === 'visible') {
         setTimeout(() => {
           handleOrientationCheck();
-          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V938') === getNormalizedDateStr()) {
+          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V941') === getNormalizedDateStr()) {
             practicePhase = 'completed';
           }
           renderUI();
@@ -1349,9 +1349,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = classicStorage.getItem('APP_ACTIVE_DATE_V938');
+      const lastActiveDate = classicStorage.getItem('APP_ACTIVE_DATE_V941');
       if (lastActiveDate !== todayStr) {
-        classicStorage.setItem('APP_ACTIVE_DATE_V938', todayStr);
+        classicStorage.setItem('APP_ACTIVE_DATE_V941', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -1452,7 +1452,7 @@
       await preWarmMicrophonePermission();
 
       hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V938', getNormalizedDateStr());
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V941', getNormalizedDateStr());
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
@@ -1462,7 +1462,7 @@
         showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
         await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V938');
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V941');
         if (savedStr) {
           try {
             const state = JSON.parse(savedStr);
@@ -1486,7 +1486,7 @@
       await preWarmMicrophonePermission();
 
       hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V938', getNormalizedDateStr());
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V941', getNormalizedDateStr());
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
@@ -1494,7 +1494,7 @@
 
       await loadAllAssetsSmartSync();
 
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V938');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V941');
       if (savedStr) {
         try {
           const state = JSON.parse(savedStr);
@@ -1516,7 +1516,7 @@
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V938');
+      const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V941');
       if (saved !== null) return parseInt(saved, 10);
       return 0;
     }
@@ -1540,7 +1540,7 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V938');
+        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V941');
         if (currentSchedDay) {
           targetDay = parseInt(currentSchedDay, 10) || 1;
         } else {
@@ -1571,7 +1571,7 @@
       } else if (urlParams.get('day')) {
         return parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V938');
+        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V941');
         if (currentSchedDay) {
           return parseInt(currentSchedDay, 10) || 1;
         }
@@ -1580,7 +1580,7 @@
     }
 
     function openScheduleModal() {
-      const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V938') || '{}');
+      const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V941') || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
@@ -1690,10 +1690,10 @@
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      classicStorage.setItem('USER_CURRENT_PROGRESS_END_V938', testCompleted.toString());
+      classicStorage.setItem('USER_CURRENT_PROGRESS_END_V941', testCompleted.toString());
 
       const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
-      classicStorage.setItem('USER_SCHEDULE_SETTINGS_V938', JSON.stringify(settings));
+      classicStorage.setItem('USER_SCHEDULE_SETTINGS_V941', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
@@ -1715,14 +1715,14 @@
 
     async function prefetchSentenceCountOnStartup() {
       const timestamp = Date.now();
-      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V938');
+      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V941');
       try {
         const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
           if (Array.isArray(freshSent) && freshSent.length > 0) {
             scriptureData = freshSent;
-            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V938', JSON.stringify(freshSent));
+            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V941', JSON.stringify(freshSent));
           }
         }
       } catch (e) {}
@@ -1740,9 +1740,9 @@
       if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
       if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
 
-      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V938') || CLASSIC_TOTAL_SENTENCES > 0) {
+      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V941') || CLASSIC_TOTAL_SENTENCES > 0) {
         let savedSchedule = null;
-        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V938') || 'null'); } catch (e) {}
+        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V941') || 'null'); } catch (e) {}
         const scheduleNeedsResize = !Array.isArray(savedSchedule) ||
           savedSchedule.length === 0 ||
           savedSchedule.some(item => Number(item.end) > CLASSIC_TOTAL_SENTENCES) ||
@@ -1750,7 +1750,7 @@
         
         if (scheduleNeedsResize) {
           let savedSettings = {};
-          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V938') || '{}'); } catch (e) {}
+          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V941') || '{}'); } catch (e) {}
           generateAlgorithmicSchedule({
             totalSentences: CLASSIC_TOTAL_SENTENCES,
             dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
@@ -1831,7 +1831,7 @@
         simDay++;
       }
 
-      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V938', JSON.stringify(scheduleList));
+      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V941', JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1839,7 +1839,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V938');
+        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V941');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -1847,7 +1847,7 @@
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V938') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
+          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V941') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
           currentCycleCount = 0;
           return false;
         }
@@ -1856,9 +1856,9 @@
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        classicStorage.setItem('USER_CURRENT_PROGRESS_END_V938', currentDayPlan.end.toString());
+        classicStorage.setItem('USER_CURRENT_PROGRESS_END_V941', currentDayPlan.end.toString());
 
-        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V938') === getNormalizedDateStr()) {
+        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V941') === getNormalizedDateStr()) {
           practicePhase = 'completed';
         } else {
           practicePhase = 'new_gendu';
@@ -2606,7 +2606,7 @@
         haltGuideRunnerImmediately();
       }
 
-      const settings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V938') || '{}');
+      const settings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V941') || '{}');
       const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
       const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
       const hasCumulative = cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
@@ -2659,7 +2659,7 @@
             showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
           } else {
             practicePhase = 'completed';
-            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V938', getNormalizedDateStr());
+            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V941', getNormalizedDateStr());
             renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿，功能已全部解鎖");
@@ -2697,7 +2697,7 @@
           }
         } else {
           practicePhase = 'completed';
-          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V938', getNormalizedDateStr());
+          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V941', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
@@ -2911,10 +2911,10 @@
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
-      const lastToastDate = classicStorage.getItem('FIREWORKS_TOAST_DATE_V938');
+      const lastToastDate = classicStorage.getItem('FIREWORKS_TOAST_DATE_V941');
       let showToastFlag = (lastToastDate !== todayStr);
       if (showToastFlag) {
-        classicStorage.setItem('FIREWORKS_TOAST_DATE_V938', todayStr);
+        classicStorage.setItem('FIREWORKS_TOAST_DATE_V941', todayStr);
       }
       triggerFireworks(showToastFlag);
       loadRandomCardData();
@@ -3581,7 +3581,7 @@
           const totalChars = (titleText + rawContent).length;
 
           // ==========================================
-          // 📌【V938 黃金字體引擎】：固定比例高度 (cH)，起始 33px 往下遞減至 20px
+          // 📌【V941 黃金字體引擎】：固定比例高度 (cH)，起始 33px 往下遞減至 20px
           // ==========================================
           const stageHeight = (cardStage && cardStage.clientHeight > 50) ? cardStage.clientHeight : window.innerHeight;
           const cH = stageHeight * 0.79; 
@@ -3603,7 +3603,9 @@
           }
 
           if (topRightBadge) {
-            topRightBadge.textContent = `${randomTextKey} | cH:${Math.round(cH)} tH:${Math.round(tH)} sz:${size}px (${totalChars}字)`;
+            // 完美讀取內部 id 屬性作為標籤顯示 (例如 "希望新生-四季法語001")
+            const displayId = selectedData.id || randomTextKey;
+            topRightBadge.textContent = `${displayId} | cH:${Math.round(cH)} tH:${Math.round(tH)} sz:${size}px (${totalChars}字)`;
           }
         }
         if (cardStage) {
@@ -3667,7 +3669,7 @@
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong>「⋯」</strong>或<strong>「指南針/Safari圖示」</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>「指南針/Safari圖示」</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
         } else {
           guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
         }
@@ -3679,7 +3681,7 @@
       checkDailyResetOnStartup();
 
       const todayStr = getNormalizedDateStr();
-      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V938');
+      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V941');
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       
       if (btnCardSettingDynamic) {
@@ -3691,7 +3693,7 @@
       }
 
       let targetDay = getRealTargetDay();
-      classicStorage.setItem('CURRENT_SCHEDULE_DAY_V938', targetDay.toString());
+      classicStorage.setItem('CURRENT_SCHEDULE_DAY_V941', targetDay.toString());
 
       initCompanionCard(targetDay);
 
