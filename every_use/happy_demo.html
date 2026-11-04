@@ -1,3 +1,4 @@
+name=demo.html
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -119,23 +120,25 @@
             opacity: 0;
         }
 
-        .top-right-badge {
+        /* 📌 讀取的 ID 標籤：移至右下角最底下 */
+        .bottom-right-badge {
             position: absolute;
-            top: 2%;
-            right: 2.5%;
+            bottom: 3%;
+            right: 4%;
             color: #10B981;
             font-family: "Microsoft JhengHei", sans-serif;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 900;
             letter-spacing: 1px;
             z-index: 40;
             pointer-events: none;
+            text-shadow: 0 1px 3px rgba(255,255,255,0.95);
         }
 
         .card-text-container {
             position: absolute;
             top: 6%;
-            bottom: 6%;
+            bottom: 10%; /* 底部多留空間給右下角 ID 標籤 */
             left: 28%;
             right: 9%;
             display: flex;
@@ -149,7 +152,6 @@
             overflow: hidden;
         }
 
-        /* 標題維持粗黑體 */
         .card-title {
             font-weight: 900;
             color: #581C87;
@@ -159,7 +161,6 @@
             flex-shrink: 0;
         }
         
-        /* 內文改為一般正常粗細 (font-weight: 400) */
         .card-content {
             font-weight: 400;
             color: #0F172A;
@@ -307,7 +308,8 @@
 
     <div class="landscape-container">
         <div class="card-stage" id="cardStage">
-            <div class="top-right-badge" id="topRightBadge">希望新生</div>
+            <!-- 📌 讀取的 ID 標籤移至右下角最底下 -->
+            <div class="bottom-right-badge" id="bottomRightBadge">載入中...</div>
 
             <div class="card-text-container" id="textContainer">
                 <div class="card-title" id="cardTitle">載入中...</div>
@@ -386,12 +388,15 @@
 
             let titleText = selectedData.title;
             let rawContent = selectedData.content;
+            let readId = selectedData.id || `希望新生 ${randomTextKey}`; // 讀取 JSON 中的 id 欄位[cite: 13]
 
             if (titleText.length > 14) titleText = titleText.substring(0, 14);
 
             cardTitle.textContent = titleText;
             cardContent.textContent = rawContent;
-            document.getElementById('topRightBadge').textContent = `希望新生 ${randomTextKey}`;
+            
+            // 📌 將讀取到的 id 顯示在右下角最底下
+            document.getElementById('bottomRightBadge').textContent = readId;
 
             let size = 26; 
             const minSize = 7; 
