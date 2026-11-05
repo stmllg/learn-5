@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V989</title>
+  <title>歡喜背書V990</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -846,7 +846,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v989)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v990)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -898,7 +898,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v989 載入中】...</div>
+  <div id="schedule-toast">📦 【v990 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1265,6 +1265,33 @@
         const deltaY = e.changedTouches[0].clientY - swipeStartY;
         if (Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
           handleReturnToCompanionCard();
+        }
+      }
+    }, { passive: true });
+
+    // 💡 陪伴卡畫面上的單指左右滑動：支援退出全螢幕（顯示網址列）
+    let compSwipeStartX = 0;
+    let compSwipeStartY = 0;
+    companionOverlay.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        compSwipeStartX = e.touches[0].clientX;
+        compSwipeStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    companionOverlay.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - compSwipeStartX;
+        const deltaY = e.changedTouches[0].clientY - compSwipeStartY;
+        if (Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+          try {
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+              if (document.exitFullscreen) { document.exitFullscreen().catch(() => {}); }
+              else if (document.webkitExitFullscreen) { document.webkitExitFullscreen().catch(() => {}); }
+            } else {
+              window.scrollTo(0, 0);
+            }
+          } catch(err) {}
         }
       }
     }, { passive: true });
@@ -3771,9 +3798,9 @@
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong>「⋯」</strong>或<strong>「指南針/Safari圖示」</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong><span>指南針/Safari圖示</span></strong>），點選<strong><span>在 Safari 中開啟</span></strong>以獲得最佳全螢幕體驗。`;
         } else {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong><span>⋮</span></strong>，點選<strong><span>以預設瀏覽器開啟</span></strong>（Chrome）。`;
         }
         overlay.classList.add('active');
         return; 
