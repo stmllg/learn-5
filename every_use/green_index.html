@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書・長青版V13</title>
+  <title>歡喜背書・長青版V15</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,7 +31,7 @@
     let CLASSIC_TOTAL_SENTENCES = 66;
     const DEFAULT_DAILY_STEP = 1;
     const DEFAULT_REPEAT_NEW = 10;
-    const DEFAULT_REPEAT_CUMULATIVE = 3;
+    const DEFAULT_REPEAT_CUMULATIVE = 10;
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
@@ -232,6 +232,12 @@
       background: transparent;
     }
 
+    .companion-wrapper {
+      transition: opacity 0.3s ease-in-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .companion-wrapper.fade-out {
+      opacity: 0.2;
+    }
     .card-title {
       font-weight: 900;
       color: #581C87;
@@ -520,9 +526,6 @@
       100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.7); transform: scale(1); }
     }
 
-    .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
-    .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
-
     #center-core {
       flex: 1;
       height: 100%;
@@ -681,7 +684,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【長青版V13 載入中】...</div>
+  <div id="schedule-toast">📦 【長青版V15 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -844,6 +847,8 @@
 
     let hasEnteredReciting = false;
     let pendingRestoredState = null;
+
+    const SPEED_STEPS = [0.80, 0.84, 0.89, 0.93, 0.98, 1.02, 1.07, 1.11, 1.16, 1.20];
 
     function getNormalizedDateStr() {
       const now = new Date();
@@ -1326,8 +1331,8 @@
           generateAlgorithmicSchedule({
             totalSentences: CLASSIC_TOTAL_SENTENCES,
             dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
-            repeatNew: savedSettings.repeatNew || DEFAULT_REPEAT_NEW,
-            repeatCum: savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE,
+            repeatNew: DEFAULT_REPEAT_NEW,
+            repeatCum: DEFAULT_REPEAT_CUMULATIVE,
             testCompleted: Math.min(CLASSIC_TOTAL_SENTENCES, getCurrentProgressEnd())
           });
         }
@@ -1361,8 +1366,8 @@
     function generateAlgorithmicSchedule(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
       const step = settings.dailyStep || DEFAULT_DAILY_STEP;
-      const rNew = settings.repeatNew;
-      const rCum = settings.repeatCum;
+      const rNew = DEFAULT_REPEAT_NEW;
+      const rCum = DEFAULT_REPEAT_CUMULATIVE;
       const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
       const scheduleList = [];
 
@@ -1413,8 +1418,8 @@
         }
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
-          currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          practicePhase = 'new_gendu';
+          currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: DEFAULT_REPEAT_CUMULATIVE };
+          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
           currentCycleCount = 0;
           return false;
         }
@@ -1425,8 +1430,24 @@
 
         classicStorage.setItem('USER_CURRENT_PROGRESS_END_V971', currentDayPlan.end.toString());
 
-        practicePhase = 'new_gendu';
-        currentCycleCount = 0;
+        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
+          practicePhase = 'completed';
+        } else {
+          practicePhase = 'new_gendu';
+        }
+        
+        const savedStateStr = classicStorage.getItem('APP_SAVED_STATE_V971');
+        let restoredCount = 0;
+        if (savedStateStr) {
+          try {
+            const st = JSON.parse(savedStateStr);
+            if (st.savedDateStr === getNormalizedDateStr()) {
+              restoredCount = st.currentCycleCount || 0;
+              if (st.practicePhase) practicePhase = st.practicePhase;
+            }
+          } catch(e) {}
+        }
+        currentCycleCount = restoredCount;
         videoPausedAt = -1;
         return true;
       } catch (err) {}
@@ -1511,14 +1532,6 @@
       }, duration);
     }
 
-    function setMp4Speed(val) {
-      mp4Speed = val;
-      classicStorage.setItem('user_mp4_speed_preference', mp4Speed.toFixed(1));
-      video.playbackRate = mp4Speed;
-      flashSpeedToast('【跟讀快轉 ' + mp4Speed.toFixed(1) + 'x】');
-      saveCurrentAppState();
-    }
-
     function setCompareSpeed(val) {
       compareSpeed = val;
       classicStorage.setItem('user_compare_speed_preference', compareSpeed.toFixed(1));
@@ -1536,11 +1549,6 @@
         speedToastBadge.style.opacity = '0';
         setTimeout(() => { speedToastBadge.style.display = 'none'; }, 300);
       }, 3000);
-    }
-
-    function triggerMp4SpeedChange(delta) {
-      let newSpeed = Math.round((mp4Speed + delta) * 10) / 10;
-      setMp4Speed(Math.max(0.5, Math.min(2.5, newSpeed)));
     }
 
     function triggerCompareSpeedChange(delta) {
@@ -1602,7 +1610,11 @@
         videoWrap.style.display = 'flex';
 
         centerCore.scrollTop = 0;
+        
+        let speedIdx = Math.min(9, currentCycleCount);
+        mp4Speed = SPEED_STEPS[speedIdx];
         video.playbackRate = mp4Speed;
+        showToast('【' + (practicePhase === 'new_gendu' ? '新進度' : '串習複習') + '跟讀：第 ' + (currentCycleCount + 1) + '/10 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 3000);
 
         const range = getActiveVideoRange();
         videoPausedAt = -1;
@@ -1649,44 +1661,27 @@
 
     function renderUI() {
       try {
-          slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
-          const btnOffering = document.getElementById('btn-offering');
-          if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+        slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
+        const btnOffering = document.getElementById('btn-offering');
+        if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
+        slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
+
+        if (practicePhase === 'completed') {
           slotR2.innerHTML = '<button class="square-btn" id="btn-repeat-again" style="background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); border-color: #BFDBFE; color: #FFFFFF;">再練<br>一遍</button>';
-          slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
-
-        slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
-        slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+          const btnRepeatAgain = document.getElementById('btn-repeat-again');
+          if (btnRepeatAgain) btnRepeatAgain.addEventListener('click', handleRepeatAgainClick);
+        } else {
+          slotR2.innerHTML = '';
+        }
 
         slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
-
-        const btnSpeedDown = document.getElementById('btn-speed-down');
-        if (btnSpeedDown) {
-          btnSpeedDown.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
-            else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
-          });
-        }
 
         const btnGendu = document.getElementById('btn-gendu');
         if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
 
-        const btnRepeatAgain = document.getElementById('btn-repeat-again');
-        if (btnRepeatAgain) btnRepeatAgain.addEventListener('click', handleRepeatAgainClick);
-
         const btnRecord = document.getElementById('btn-record');
         if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
-
-        const btnSpeedUp = document.getElementById('btn-speed-up');
-        if (btnSpeedUp) {
-          btnSpeedUp.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
-            else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
-          });
-        }
 
         updateModeButtonsStyle();
       } catch (err) {}
@@ -1800,16 +1795,10 @@
       triggerAppFullscreen();
       practicePhase = 'new_gendu';
       currentCycleCount = 0;
+      classicStorage.removeItem('INDEPENDENT_UNLOCKED_DATE_V971');
+      classicStorage.removeItem('APP_SAVED_STATE_V971');
       setCoreMode('mode2');
-      const range = getActiveVideoRange();
-      if (range.valid) {
-        video.currentTime = range.start;
-        video.play().then(() => {
-          updateModeButtonsStyle();
-          startMp4PrecisionCheck();
-          showToast('🔄 已為您重新開始練習今日定課與串習', 3000);
-        }).catch(() => {});
-      }
+      showToast('🔄 已為您重新開始練習今日定課與串習（共10遍，速度漸進提升）', 4000);
     }
 
     async function handleRecordModeClick() {
@@ -1918,9 +1907,8 @@
         video.pause();
       }
 
-      const settings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}');
-      const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
-      const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
+      const newRepeat = DEFAULT_REPEAT_NEW;
+      const cRepeat = DEFAULT_REPEAT_CUMULATIVE;
       const hasCumulative = cRepeat > 0 && currentDayPlan && currentDayPlan.cStart && currentDayPlan.cEnd;
 
       currentCycleCount++;
@@ -1930,15 +1918,13 @@
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < newRepeat) {
           showToast(`✅ 新進度跟讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
-          const range = getActiveVideoRange();
-          if (range.valid) { video.currentTime = range.start; }
-          setTimeout(() => { handleGenduClick(); }, 500);
+          setCoreMode('mode2');
         } else {
           if (hasCumulative) {
             practicePhase = 'cumulative_gendu';
             currentCycleCount = 0;
-            setCoreMode('mode2');
-            showToast("🎉 新進度圓滿！\n準備進入串習複習跟讀...", 4000);
+            showToast("🎉 新進度 10 遍圓滿！\n準備進入串習複習跟讀...", 4000);
+            setTimeout(() => { setCoreMode('mode2'); }, 1500);
           } else {
             practicePhase = 'completed';
             classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
@@ -1950,15 +1936,13 @@
       } else if (practicePhase === 'cumulative_gendu') {
         if (currentCycleCount < cRepeat) {
           showToast(`✅ 串習複習跟讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
-          const range = getActiveVideoRange();
-          if (range.valid) { video.currentTime = range.start; }
-          setTimeout(() => { handleGenduClick(); }, 500);
+          setCoreMode('mode2');
         } else {
           practicePhase = 'completed';
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
-          showToast("🎉 今日串習跟讀全部圓滿！隨喜功德", 6000);
+          showToast("🎉 今日串習跟讀 10 遍全部圓滿！隨喜功德", 6000);
         }
       }
       saveCurrentAppState();
