@@ -492,6 +492,27 @@
     }
     .btn-color-offering:active { transform: scale(0.90); opacity: 0.85; }
 
+    .btn-color-repeat {
+      width: 62px !important;
+      height: 62px !important;
+      border-radius: 14px !important;
+      border: 2.5px solid #F6AD55 !important;
+      background: linear-gradient(135deg, #ED8936 0%, #DD6B20 100%) !important;
+      color: #FFFAF0 !important;
+      font-size: 13px !important;
+      font-weight: 900 !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85) !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.15;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .btn-color-repeat:active { transform: scale(0.90); opacity: 0.85; }
+
     @keyframes offeringGlowPulse {
       0%   { box-shadow: 0 0 10px rgba(245, 158, 11, 0.7); transform: scale(1); }
       50%  { box-shadow: 0 0 25px rgba(245, 158, 11, 1); transform: scale(1.04); }
@@ -517,10 +538,6 @@
       scroll-behavior: smooth;
       touch-action: pan-y;
     }
-
-    #guide-stage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: block; }
-    #guide-line { position: absolute; height: 6px; background-color: #00E676; border-radius: 3px; box-shadow: 0 0 10px rgba(0, 230, 118, 0.9); display: none; }
-    #red-dot { position: absolute; width: min(22px, 6vh); height: min(22px, 6vh); background: radial-gradient(circle, #FF5252 20%, #FF1744 100%); border: 2.5px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 12px rgba(255, 23, 68, 0.8); transform: translate(-50%, -50%); display: none; }
 
     #pdf-container-wrap { position: relative; width: 100%; background-color: #FAFAFA; display: none; justify-content: center; }
     #pdf-canvas { display: block; width: 100% !important; height: auto !important; image-rendering: -webkit-optimize-contrast; transform: translateZ(0); cursor: pointer; }
@@ -675,11 +692,6 @@
     </div>
 
     <div id="center-core">
-      <div id="guide-stage">
-        <div id="guide-line"></div>
-        <div id="red-dot"></div>
-      </div>
-
       <div id="pdf-container-wrap">
         <canvas id="pdf-canvas"></canvas>
       </div>
@@ -756,9 +768,6 @@
     let mp4Speed = parseFloat(classicStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
 
-    let pdfSpeed = parseFloat(classicStorage.getItem('user_pdf_speed_preference') || '1.0');
-    if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
-
     let compareSpeed = parseFloat(classicStorage.getItem('user_compare_speed_preference') || '1.0');
     if (isNaN(compareSpeed) || compareSpeed < 0.5 || compareSpeed > 2.5) compareSpeed = 1.0;
 
@@ -771,9 +780,6 @@
     const restoreDescText = document.getElementById('restore-desc-text');
 
     const centerCore = document.getElementById('center-core');
-    const guideStage = document.getElementById('guide-stage');
-    const guideLine = document.getElementById('guide-line');
-    const redDot = document.getElementById('red-dot');
 
     const pdfContainerWrap = document.getElementById('pdf-container-wrap');
     const pdfCanvas = document.getElementById('pdf-canvas');
@@ -812,13 +818,9 @@
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
 
-    let selectedDailyStep = DEFAULT_DAILY_STEP;
-
     let audioContext = null;
     let analyser = null;
     let micStream = null;
-    let vadCheckTimer = null;
-    let lastVoiceTime = 0; 
 
     let mediaRecorder = null;
     let audioChunks = [];
@@ -834,39 +836,11 @@
     let markA_Index = -1;
     let markB_Index = -1;
 
-    let isManualSelected = false;
-    let isScheduleRepeatLocked = true;
     let currentDayPlan = null; 
     let currentCycleCount = 0; 
     let videoPausedAt = -1;
 
-    let guideAnimId = null;
-    let cycleWaitTimer = null;
-    let isGuideActive = false;
-    let currentLineIndex = 0;
-
-    let currentCharIndexFloat = 0.0;
-    let lastAnimTimestamp = 0;
-    let isTransitioningLine = false;
-    let isLineHeadLocked = true;
-    let lineEndTime = 0;
-    let peakRmsAtLineEnd = 0.0;
-    let prevRms = 0.0;
-    let hasPageFlipped = false;
-    let lineActivationTimestamp = 0;
-
-    let isVoiceActive = false;
-    let isTouchingDisplay = false; 
-    let baseNoiseLevel = 0.0015;
-    let dynamicThreshold = 0.0020;
-    let calibrationSamples = [];
-    let isCalibrating = false;
-    let silentFrameCount = 0;
-
     let hasEnteredReciting = false;
-    let isUserManualScrolling = false;
-    let manualScrollTimer = null;
-
     let pendingRestoredState = null;
 
     function getNormalizedDateStr() {
@@ -878,18 +852,11 @@
       if (!hasEnteredReciting) return;
       if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') return;
 
-      if (practicePhase === 'completed') {
-        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
-      }
       const state = {
         coreMode: currentCoreMode,
         practicePhase: practicePhase,
         currentCycleCount: currentCycleCount,
         videoCurrentTime: (currentCoreMode === 'mode2' ? video.currentTime : 0),
-        currentLineIndex: currentLineIndex,
-        markA_Index: markA_Index,
-        markB_Index: markB_Index,
-        isManualSelected: isManualSelected,
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
@@ -910,9 +877,8 @@
 
         pendingRestoredState = state;
         const phaseName = getPhaseName(pendingRestoredState.practicePhase || 'new_gendu');
-        let modeDesc = '跟讀模式 (模式2)';
-        if (state.coreMode === 'mode3') modeDesc = '自讀模式 (模式3)';
-        else if (state.coreMode === 'mode4') modeDesc = '比對模式 (模式4)';
+        let modeDesc = '跟讀模式';
+        if (state.coreMode === 'mode4') modeDesc = '比對模式';
 
         restoreDescText.innerHTML = `上次背書進度：<br><strong style="color: #34D399;">${phaseName} (${modeDesc})</strong><br>準備好後請按下方按鈕回到畫面。`;
         restoreModalOverlay.style.display = 'flex';
@@ -933,10 +899,6 @@
       currentCoreMode = state.coreMode || 'mode2';
       practicePhase = state.practicePhase || 'new_gendu';
       currentCycleCount = state.currentCycleCount || 0;
-      currentLineIndex = state.currentLineIndex || 0;
-      markA_Index = state.markA_Index !== undefined ? state.markA_Index : -1;
-      markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
-      isManualSelected = state.isManualSelected || false;
 
       restoreModalOverlay.style.display = 'none';
 
@@ -944,8 +906,6 @@
         if (currentCoreMode === 'mode2') {
           setCoreMode('mode2');
           if (state.videoCurrentTime > 0) video.currentTime = state.videoCurrentTime;
-        } else if (currentCoreMode === 'mode3') {
-          setCoreMode('mode3');
         } else if (currentCoreMode === 'mode4') {
           setCoreMode('mode4');
         }
@@ -957,10 +917,8 @@
     function getPhaseName(phase) {
       switch(phase) {
         case 'new_gendu': return '新進度跟讀';
-        case 'new_zidu': return '新進度自讀';
         case 'cumulative_gendu': return '串習複習跟讀';
-        case 'cumulative_zidu': return '串習複習自讀';
-        case 'completed': return '已圓滿解鎖';
+        case 'completed': return '今日已圓滿';
         default: return '定課中';
       }
     }
@@ -975,11 +933,8 @@
       } else if (document.visibilityState === 'visible') {
         setTimeout(() => {
           handleOrientationCheck();
-          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
-            practicePhase = 'completed';
-          }
           renderUI();
-          if (currentCoreMode === 'mode3' || currentCoreMode === 'mode4') {
+          if (currentCoreMode === 'mode4') {
             setTimeout(() => {
               renderPdfOnValidDimensions();
             }, 500);
@@ -1028,7 +983,6 @@
 
     function handleReturnToCompanionCard() {
       saveCurrentAppState();
-      haltGuideRunnerImmediately();
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
@@ -1051,44 +1005,7 @@
       showToast('💤 已為您自動存檔並返回休息', 3500);
     }
 
-    centerCore.addEventListener('scroll', () => {
-      if (isGuideActive) {
-        isUserManualScrolling = true;
-        if (manualScrollTimer) clearTimeout(manualScrollTimer);
-        manualScrollTimer = setTimeout(() => {
-          isUserManualScrolling = false;
-        }, 1200);
-      }
-    }, { passive: true });
-
-    centerCore.addEventListener('touchstart', (e) => {
-      if (currentCoreMode === 'mode3' && isGuideActive) {
-        isTouchingDisplay = true;
-      }
-    }, { passive: true });
-
-    centerCore.addEventListener('touchend', (e) => {
-      if (currentCoreMode === 'mode3' && isGuideActive) {
-        isTouchingDisplay = false;
-      }
-    }, { passive: true });
-
-    centerCore.addEventListener('touchcancel', (e) => {
-      if (currentCoreMode === 'mode3' && isGuideActive) {
-        isTouchingDisplay = false;
-      }
-    }, { passive: true });
-
     recordAudioElement.addEventListener('ended', () => { renderUI(); });
-
-    function checkDailyResetOnStartup() {
-      const todayStr = getNormalizedDateStr();
-      const lastActiveDate = classicStorage.getItem('APP_ACTIVE_DATE_V971');
-      if (lastActiveDate !== todayStr) {
-        classicStorage.setItem('APP_ACTIVE_DATE_V971', todayStr);
-        isScheduleRepeatLocked = true;
-      }
-    }
 
     function handleOrientationCheck() {
       if (hasEnteredReciting) return;
@@ -1149,7 +1066,6 @@
 
     async function playStandaloneVideo(modeType, startSeekSec = 0, onEndedCallback) {
       currentCoreMode = modeType; 
-      haltGuideRunnerImmediately();
       if (video && !video.paused) video.pause();
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
@@ -1344,7 +1260,7 @@
         playStandaloneVideo('mode5', 0, () => {
           showToast('✨ 迴向圓滿，隨喜功德', 3000);
           practicePhase = 'completed';
-          setCoreMode('mode3');
+          setCoreMode('mode4');
           renderUI();
         });
       });
@@ -1486,11 +1402,7 @@
 
         classicStorage.setItem('USER_CURRENT_PROGRESS_END_V971', currentDayPlan.end.toString());
 
-        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
-          practicePhase = 'completed';
-        } else {
-          practicePhase = 'new_gendu';
-        }
+        practicePhase = 'new_gendu';
         
         const savedStateStr = classicStorage.getItem('APP_SAVED_STATE_V971');
         let restoredCount = 0;
@@ -1506,7 +1418,6 @@
         currentCycleCount = restoredCount;
 
         setupStageRange();
-        isScheduleRepeatLocked = false;
         return true;
       } catch (err) {}
       return false;
@@ -1516,21 +1427,15 @@
       if (!currentDayPlan) return;
       const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : CLASSIC_TOTAL_SENTENCES - 1));
 
-      if (practicePhase === 'new_gendu' || practicePhase === 'new_zidu') {
+      if (practicePhase === 'new_gendu') {
         markA_Index = Math.max(0, (currentDayPlan.start || 1) - 1);
         markB_Index = Math.min(maxIdx, (currentDayPlan.end || 1) - 1);
-      } else if (practicePhase === 'cumulative_gendu' || practicePhase === 'cumulative_zidu') {
+      } else if (practicePhase === 'cumulative_gendu') {
         markA_Index = Math.max(0, (currentDayPlan.cStart || 1) - 1);
         markB_Index = Math.min(maxIdx, (currentDayPlan.cEnd || 1) - 1);
       }
 
-      currentLineIndex = markA_Index;
-      currentCharIndexFloat = 0.0;
-      isLineHeadLocked = true;
       videoPausedAt = -1;
-
-      updateVisualDisplay();
-      scrollToAlignTop(markA_Index);
     }
 
     async function renderPdfOnValidDimensions() {
@@ -1646,10 +1551,6 @@
           });
 
           parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
-          guideStage.style.height = viewport.height + 'px';
-
-          updateVisualDisplay();
-          scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
       } catch(e) {}
     }
 
@@ -1710,13 +1611,6 @@
       saveCurrentAppState();
     }
 
-    function setPdfSpeed(val) {
-      pdfSpeed = val;
-      classicStorage.setItem('user_pdf_speed_preference', pdfSpeed.toFixed(1));
-      flashSpeedToast('【自讀語速 ' + pdfSpeed.toFixed(1) + 'x】');
-      saveCurrentAppState();
-    }
-
     function setCompareSpeed(val) {
       compareSpeed = val;
       classicStorage.setItem('user_compare_speed_preference', compareSpeed.toFixed(1));
@@ -1741,34 +1635,9 @@
       setMp4Speed(Math.max(0.5, Math.min(2.5, newSpeed)));
     }
 
-    function triggerPdfSpeedChange(delta) {
-      let newSpeed = Math.round((pdfSpeed + delta) * 10) / 10;
-      setPdfSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
-    }
-
     function triggerCompareSpeedChange(delta) {
       let newSpeed = Math.round((compareSpeed + delta) * 10) / 10;
       setCompareSpeed(Math.max(0.5, Math.min(2.5, newSpeed)));
-    }
-
-    function speakPrompt(text, onEnded) {
-      try {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = 'zh-TW';
-          utterance.rate = 1.1;
-          if (typeof onEnded === 'function') {
-            utterance.onend = onEnded;
-            utterance.onerror = onEnded;
-          }
-          window.speechSynthesis.speak(utterance);
-        } else {
-          if (typeof onEnded === 'function') onEnded();
-        }
-      } catch (e) {
-        if (typeof onEnded === 'function') onEnded();
-      }
     }
 
     function getActiveVideoRange() {
@@ -1807,15 +1676,9 @@
       if (audioContext && audioContext.state !== 'closed') {
         try { audioContext.suspend(); } catch (e) {}
       }
-      isVoiceActive = false;
-      isTouchingDisplay = false;
     }
 
-    function preWarmMediaRecorder() {}
-
     function setCoreMode(mode) {
-      haltGuideRunnerImmediately();
-
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
       if (recordAudioElement) recordAudioElement.pause();
@@ -1826,7 +1689,6 @@
       if (mode === 'mode2') {
         releaseMicrophoneResources();
         pdfContainerWrap.style.display = 'none';
-        guideStage.style.display = 'none';
         videoWrap.style.display = 'flex';
 
         centerCore.scrollTop = 0;
@@ -1843,13 +1705,10 @@
             }).catch(e => {});
           } catch (e) {}
         }
-      } else if (mode === 'mode3' || mode === 'mode4') {
+      } else if (mode === 'mode4') {
         video.pause();
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
-        guideStage.style.display = 'block';
-
-        if (mode === 'mode4') preWarmMediaRecorder();
 
         setTimeout(async () => {
           try {
@@ -1869,8 +1728,6 @@
 
             if (!pdfCanvas.width || !pdfCanvas.height || parsedTextLines.length === 0) {
               await renderPdfOnValidDimensions();
-            } else {
-              scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
             }
           } catch (err) {}
         }, 120);
@@ -1893,7 +1750,15 @@
         slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
         slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
-        slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
+        
+        if (practicePhase === 'completed') {
+          slotR2.innerHTML = '<button class="square-btn btn-color-repeat" id="btn-repeat">再練<br>一次</button>';
+          const btnRepeat = document.getElementById('btn-repeat');
+          if (btnRepeat) btnRepeat.addEventListener('click', handleRepeatAgain);
+        } else {
+          slotR2.innerHTML = '';
+        }
+
         slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
 
         const btnSpeedDown = document.getElementById('btn-speed-down');
@@ -1902,15 +1767,11 @@
             e.stopPropagation();
             if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
             else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
-            else triggerPdfSpeedChange(-0.1);
           });
         }
 
         const btnGendu = document.getElementById('btn-gendu');
         if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
-
-        const btnZidu = document.getElementById('btn-zidu');
-        if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
 
         const btnRecord = document.getElementById('btn-record');
         if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
@@ -1921,18 +1782,15 @@
             e.stopPropagation();
             if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
             else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
-            else triggerPdfSpeedChange(+0.1);
           });
         }
 
         updateModeButtonsStyle();
-        updateVisualDisplay();
       } catch (err) {}
     }
 
     function updateModeButtonsStyle() {
       const btnGendu = document.getElementById('btn-gendu');
-      const btnZidu = document.getElementById('btn-zidu');
       const btnRecord = document.getElementById('btn-record');
 
       const colorBlack = '#000000';
@@ -1940,11 +1798,9 @@
       const colorPurple = 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)';
 
       const isMode2 = (currentCoreMode === 'mode2');
-      const isMode3 = (currentCoreMode === 'mode3');
       const isMode4 = (currentCoreMode === 'mode4');
 
       const isGenduPlaying = isMode2 && (video && !video.paused);
-      const isZiduRunning = isMode3 && isGuideActive;
       const isRecordRunning = isMode4 && isUserRecording;
 
       if (btnGendu) {
@@ -1954,7 +1810,6 @@
               btnGendu.style.borderColor = '#BAE6FD';
               btnGendu.style.color = '#FB923C';
               btnGendu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
-              btnGendu.classList.remove('recording-flashing');
           } else {
               if (isGenduPlaying) {
                   btnGendu.style.background = colorPurple;
@@ -1966,29 +1821,6 @@
                   btnGendu.style.borderColor = '#A7F3D0';
                   btnGendu.style.color = '#FFFFFF';
                   btnGendu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
-              }
-          }
-      }
-
-      if (btnZidu) {
-          btnZidu.textContent = isZiduRunning ? '唸出聲' : '自讀';
-          if (!isMode3) {
-              btnZidu.style.background = colorBlack;
-              btnZidu.style.borderColor = '#BAE6FD';
-              btnZidu.style.color = '#FB923C';
-              btnZidu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
-              btnZidu.classList.remove('recording-flashing');
-          } else {
-              if (isZiduRunning) {
-                  btnZidu.style.background = colorPurple;
-                  btnZidu.style.borderColor = '#E9D5FF';
-                  btnZidu.style.color = '#FFFFFF';
-                  btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
-              } else {
-                  btnZidu.style.background = colorGreen;
-                  btnZidu.style.borderColor = '#A7F3D0';
-                  btnZidu.style.color = '#FFFFFF';
-                  btnZidu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
               }
           }
       }
@@ -2057,49 +1889,14 @@
       }
     }
 
-    async function handleZiduClick() {
+    function handleRepeatAgain() {
       triggerAppFullscreen();
-      if (currentCoreMode !== 'mode3') {
-          setCoreMode('mode3');
-          return;
-      }
-
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') await audioContext.resume();
-      } catch (e) {}
-
-      const micOk = await ensureMicrophoneActive();
-      if (!micOk) {
-        return;
-      }
-
-      if (isGuideActive) {
-          haltGuideRunnerImmediately();
-          saveCurrentAppState();
-      } else {
-          if (parsedTextLines.length === 0) {
-              showToast("經文處理中，請稍候", 2000);
-              return;
-          }
-
-          isGuideActive = true;
-          if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-
-          isVoiceActive = false;
-          isTouchingDisplay = false;
-          isTransitioningLine = false;
-          hasPageFlipped = false;
-          isLineHeadLocked = true;
-          currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
-          currentCharIndexFloat = 0.0;
-          lastVoiceTime = performance.now();
-
-          startGuideRunner();
-          updateModeButtonsStyle();
-          saveCurrentAppState();
-      }
+      practicePhase = 'new_gendu';
+      currentCycleCount = 0;
+      setupStageRange();
+      setCoreMode('mode2');
+      showToast('🔄 已為您重新開始今日定課與串習！', 3000);
+      renderUI();
     }
 
     async function handleRecordModeClick() {
@@ -2150,8 +1947,6 @@
     function handleCycleCompletion() {
       if (currentCoreMode === 'mode2') {
         video.pause();
-      } else if (currentCoreMode === 'mode3') {
-        haltGuideRunnerImmediately();
       }
 
       const newRepeat = DEFAULT_REPEAT_NEW;
@@ -2170,22 +1965,6 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          practicePhase = 'new_zidu';
-          currentCycleCount = 0;
-          setupStageRange();
-
-          setCoreMode('mode3');
-          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
-            handleZiduClick();
-          });
-          showToast("🎉 新進度跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
-        }
-      } else if (practicePhase === 'new_zidu') {
-        if (currentCycleCount < newRepeat) {
-          showToast(`✅ 新進度自讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
-          setupStageRange();
-          handleZiduClick();
-        } else {
           if (hasCumulative) {
             practicePhase = 'cumulative_gendu';
             currentCycleCount = 0;
@@ -2200,7 +1979,6 @@
             showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
           } else {
             practicePhase = 'completed';
-            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
             renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿");
@@ -2215,24 +1993,7 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          practicePhase = 'cumulative_zidu';
-          currentCycleCount = 0;
-          setupStageRange();
-
-          setCoreMode('mode3');
-          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
-            handleZiduClick();
-          });
-          showToast("🎉 串習複習跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
-        }
-      } else if (practicePhase === 'cumulative_zidu') {
-        if (currentCycleCount < cRepeat) {
-          showToast(`✅ 串習複習自讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
-          setupStageRange();
-          handleZiduClick();
-        } else {
           practicePhase = 'completed';
-          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿");
@@ -2408,13 +2169,6 @@
       requestAnimationFrame(animateCoinRain);
     }
 
-    function updateVisualDisplay() {
-      if (!isGuideActive && currentCoreMode === 'mode3') {
-        guideLine.style.display = 'none';
-        redDot.style.display = 'none';
-      }
-    }
-
     async function ensureMicrophoneActive() {
       if (micStream) return true;
       try {
@@ -2425,101 +2179,12 @@
         micStream = await getUserMediaWithTimeout({
           audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
         }, 6000);
-
-        const source = audioContext.createMediaStreamSource(micStream);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.04;
-        source.connect(analyser);
-
-        isCalibrating = true;
-        calibrationSamples = [];
-        setTimeout(() => {
-          if (calibrationSamples.length > 0) {
-            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
-            baseNoiseLevel = sum / calibrationSamples.length;
-            dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
-          }
-          isCalibrating = false;
-        }, 350);
-
-        lastVoiceTime = performance.now();
-        startSharedVadLoop();
         return true;
       } catch (err) {
         showToast("⚠️ 麥克風回應逾時或未授權，已自動解除鎖定", 4000);
         releaseMicrophoneResources();
         return false;
       }
-    }
-
-    let vadDataArray = null;
-    function startSharedVadLoop() {
-      if (vadCheckTimer) return;
-      vadDataArray = new Float32Array(analyser.frequencyBinCount);
-
-      function loop() {
-        if (currentCoreMode !== 'mode3' && currentCoreMode !== 'mode4') {
-          vadCheckTimer = null;
-          return;
-        }
-
-        if (analyser) {
-          analyser.getFloatTimeDomainData(vadDataArray);
-          let sumSquares = 0.0;
-          for (let i = 0; i < vadDataArray.length; i++) {
-            const val = vadDataArray[i];
-            sumSquares += val * val;
-          }
-          const rms = Math.sqrt(sumSquares / vadDataArray.length);
-
-          if (isCalibrating) calibrationSamples.push(rms);
-
-          const deltaRms = rms - prevRms;
-          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
-
-          if (hasVoiceEnergy) {
-            lastVoiceTime = performance.now();
-            silentFrameCount = 0;
-            if (!isVoiceActive && isGuideActive) {
-              isVoiceActive = true;
-              updateModeButtonsStyle();
-            }
-          } else {
-            silentFrameCount++;
-            if (silentFrameCount >= 24) {
-              if (isVoiceActive) {
-                isVoiceActive = false;
-                updateModeButtonsStyle();
-              }
-            }
-          }
-
-          if (isGuideActive) {
-            const timeSinceLineStart = performance.now() - lineActivationTimestamp;
-            const isInsideCooldown = (timeSinceLineStart < 120);
-
-            if (isLineHeadLocked && !isInsideCooldown && (deltaRms > (dynamicThreshold * 0.25) || isTouchingDisplay)) {
-              isLineHeadLocked = false;
-            }
-
-            if (isTransitioningLine) {
-              const elapsed = performance.now() - lineEndTime;
-              if (elapsed > 40 && (deltaRms > (dynamicThreshold * 0.40) || isTouchingDisplay)) {
-                proceedToNextLineImmediately();
-              } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70) && !isTouchingDisplay) {
-                proceedToNextLineImmediately();
-              } else if (elapsed >= 200) {
-                proceedToNextLineImmediately();
-              }
-            }
-          }
-
-          prevRms = rms;
-        }
-        vadCheckTimer = requestAnimationFrame(loop);
-      }
-      vadCheckTimer = requestAnimationFrame(loop);
     }
 
     async function toggleReliableRecordAction() {
@@ -2546,7 +2211,6 @@
 
     function togglePlaybackAction() {
       if (!recordedAudioBlobUrl) return;
-      if (isGuideActive) haltGuideRunnerImmediately();
 
       if (recordAudioElement.paused) {
         recordAudioElement.playbackRate = compareSpeed;
@@ -2688,197 +2352,6 @@
 
     btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
 
-    function haltGuideRunnerImmediately() {
-      isGuideActive = false;
-      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-      guideLine.style.display = 'none';
-      redDot.style.display = 'none';
-      updateModeButtonsStyle();
-    }
-
-    function startGuideRunner() {
-      if (parsedTextLines.length === 0) return;
-      guideStage.style.height = Math.max(centerCore.scrollHeight, 2500) + 'px';
-      scrollToAlignTop(currentLineIndex);
-      setupActiveLine(currentLineIndex, currentCharIndexFloat);
-      lastAnimTimestamp = performance.now();
-      if (guideAnimId) cancelAnimationFrame(guideAnimId);
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function scrollToAlignTop(idx) {
-      if (isUserManualScrolling) return; 
-      const line = parsedTextLines[idx];
-      if (line) {
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const displayTop = line.topGlobal * scaleY;
-        const targetTop = Math.max(0, displayTop - 18);
-
-        if (isAppleDevice) {
-          const viewportTop = centerCore.scrollTop;
-          const viewportBottom = viewportTop + centerCore.clientHeight;
-          if (displayTop < viewportTop || (line.bottomGlobal * scaleY) > viewportBottom) {
-            centerCore.scrollTo({ top: targetTop, behavior: 'smooth' });
-          }
-        } else {
-          centerCore.scrollTop = targetTop;
-        }
-      }
-    }
-
-    function getVisibleBottomLineIndex() {
-      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
-      let lastVisibleIdx = currentLineIndex;
-      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
-        if (parsedTextLines[i].underLineY <= viewportBottom - 16) lastVisibleIdx = i;
-        else break;
-      }
-      return lastVisibleIdx;
-    }
-
-    function checkAndTriggerPageFlip() {
-      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
-      if (markA_Index !== -1 && markB_Index !== -1) {
-        const lineA = parsedTextLines[markA_Index];
-        const lineB = parsedTextLines[markB_Index];
-        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) return;
-      }
-      const nextIndex = currentLineIndex + 1;
-      if (markB_Index !== -1 && nextIndex > markB_Index) return;
-
-      if (nextIndex < parsedTextLines.length) {
-        const nextLine = parsedTextLines[nextIndex];
-        if (nextLine.underLineY > (viewportBottom - 18)) scrollToAlignTop(nextIndex);
-      }
-    }
-
-    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
-      if (!line) return 0;
-      if (!line.charItems || line.charItems.length === 0) return line.x0;
-      const items = line.charItems;
-      const totalChars = items.length;
-      if (charProgressFloat <= 0) return items[0].x0;
-      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
-
-      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
-      const intraCharFraction = charProgressFloat - charIdx;
-      const item = items[charIdx];
-      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
-    }
-
-    function setupActiveLine(idx, initCurrent = 0.0) {
-      if (markB_Index !== -1 && idx > markB_Index) { handleCycleCompletion(); return; }
-      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
-
-      const line = parsedTextLines[idx];
-      currentCharIndexFloat = 0.0;
-      isLineHeadLocked = true;
-      lineActivationTimestamp = performance.now();
-
-      if (isGuideActive) {
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const scaleX = canvasRect.width / pdfCanvas.width;
-
-        guideLine.style.top = (line.underLineY * scaleY) + 'px';
-        guideLine.style.left = (line.x0 * scaleX) + 'px';
-        guideLine.style.width = ((line.x1 - line.x0) * scaleX) + 'px';
-        
-        const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
-        redDot.style.top = (line.underLineY * scaleY) + 'px';
-        redDot.style.left = (rawX * scaleX) + 'px';
-
-        guideLine.style.display = 'block';
-        redDot.style.display = 'block';
-      }
-      isTransitioningLine = false;
-    }
-
-    function stepGuideMovement(now) {
-      if (!isGuideActive || isTransitioningLine) return;
-      let delta = now - lastAnimTimestamp;
-      if (delta <= 0 || delta > 120) delta = 16.6;
-      lastAnimTimestamp = now;
-
-      const curLine = parsedTextLines[currentLineIndex];
-      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
-      const inertiaStartIndex = Math.max(1, totalChars - 2);
-      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
-
-      if (isVoiceActive || isTouchingDisplay || isInTailZone) {
-        const charPerMs = (2.8 * pdfSpeed) / 1000;
-        if (isLineHeadLocked) {
-          if (currentCharIndexFloat < 0.5) {
-            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
-          }
-        } else {
-          currentCharIndexFloat += charPerMs * delta;
-        }
-        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
-      }
-
-      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
-        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
-        if (!isCurrentLineAtTargetEnd) {
-          const visibleBottomIdx = getVisibleBottomLineIndex();
-          if (currentLineIndex === visibleBottomIdx) {
-            checkAndTriggerPageFlip();
-            hasPageFlipped = true;
-          }
-        }
-      }
-
-      if (currentCharIndexFloat >= totalChars) {
-        currentCharIndexFloat = totalChars;
-        if (curLine) {
-          const canvasRect = pdfCanvas.getBoundingClientRect();
-          const scaleY = canvasRect.height / pdfCanvas.height;
-          const scaleX = canvasRect.width / pdfCanvas.width;
-          const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
-          redDot.style.left = (rawX * scaleX) + 'px';
-          redDot.style.top = (curLine.underLineY * scaleY) + 'px';
-        }
-
-        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
-        const nextIndex = currentLineIndex + 1;
-        if (markB_Index !== -1 && nextIndex > markB_Index) { handleCycleCompletion(); return; }
-        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
-
-        isTransitioningLine = true;
-        lineEndTime = performance.now();
-        peakRmsAtLineEnd = prevRms;
-        guideLine.style.display = 'none';
-        return;
-      }
-
-      if (curLine) {
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const scaleX = canvasRect.width / pdfCanvas.width;
-        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
-        redDot.style.left = (rawX * scaleX) + 'px';
-        redDot.style.top = (curLine.underLineY * scaleY) + 'px';
-      }
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function proceedToNextLineImmediately() {
-      if (!isTransitioningLine || !isGuideActive) return;
-      const nextIndex = currentLineIndex + 1;
-      if (markB_Index !== -1 && nextIndex > markB_Index) {
-        handleCycleCompletion();
-        return;
-      }
-      hasPageFlipped = false;
-      currentLineIndex = nextIndex;
-      setupActiveLine(currentLineIndex, 0.0);
-      lastAnimTimestamp = performance.now();
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
     let cardTexts = {};
     let textKeys = [];
 
@@ -2953,7 +2426,6 @@
       }
 
       await prefetchSentenceCountOnStartup();
-      checkDailyResetOnStartup();
 
       let targetDay = getRealTargetDay();
       classicStorage.setItem('CURRENT_SCHEDULE_DAY_V971', targetDay.toString());
