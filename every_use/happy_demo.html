@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V99-10</title>
+  <title>歡喜背書V991</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -3002,6 +3002,7 @@
       }
     }
 
+    let cardDayTimer = null;
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
@@ -3012,6 +3013,19 @@
       }
       triggerFireworks(showToastFlag);
       loadRandomCardData();
+
+      const dayStr = String(window.CURRENT_TARGET_DAY || 22).padStart(3, '0');
+      const btnDays = document.getElementById('btn-card-days');
+      if (btnDays) {
+        btnDays.textContent = dayStr;
+      }
+
+      if (cardDayTimer) clearTimeout(cardDayTimer);
+      cardDayTimer = setTimeout(() => {
+        if (btnDays) {
+          btnDays.textContent = '皈依祈求';
+        }
+      }, 3000);
     }
 
     function triggerOfferingCoinRain() {
@@ -3749,7 +3763,7 @@
 
       if (btnDays) {
         btnDays.style.display = 'inline-block';
-        btnDays.textContent = `堅持第 ${targetDay} 天`;
+        btnDays.textContent = '皈依祈求';
         btnDays.onclick = handleDayBtnClick;
       }
 
