@@ -194,7 +194,6 @@
       opacity: 1;
     }
 
-    /* 📌【V986】智慧防溢出與不遮擋尺寸：確保 1200x675 圖片完整呈現、絕不被上下裁切 */
     .companion-wrapper {
       position: relative;
       display: inline-block;
@@ -218,11 +217,18 @@
       transform: scale(1);
     }
 
+    /* 右下角乾淨標籤（無黑框、無背景、向上移至 bottom: 24% 避免碰到按鈕） */
+    /* 【V971】將綠色 ID 塞在紅框下方（bottom: 14%）、按鈕上方 */
+    /* 【V971】綠色 ID 剛好塞在紅框下方（bottom: 15%）、按鈕上方 */
     .bottom-right-badge {
       display: none !important;
     }
 
-    /* 📌【V986】無紅框乾淨文字容器 */
+    /* 
+      【V971 黃金邊界版文字容器】：
+      左 29%, 右 5%, 頂部上移至 2.5%, 無邊框
+    */
+    /* 【V971】加入紅色文字框以便觀察邊界，並將底部上移至 bottom: 22% 閃過綠色 ID */
     .card-text-container {
       position: absolute;
       top: 2%;
@@ -235,6 +241,9 @@
       background: transparent;
     }
 
+    .companion-wrapper {
+      transition: opacity 0.3s ease-in-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
     .companion-wrapper.fade-out {
       opacity: 0.2;
     }
@@ -552,25 +561,24 @@
       overflow: hidden;
     }
 
-    /* 📌【V986】精簡提示訊息位置：下移至 72% 避免擋在螢幕正中間 */
     #schedule-toast {
       display: none;
       position: fixed;
-      top: 72%;
+      top: 50%;
       left: 50%;
-      transform: translate(-50%, 0);
+      transform: translate(-50%, -50%);
       background: rgba(15, 23, 42, 0.98);
       color: #38BDF8;
       border: 3px solid #10B981;
-      padding: 14px 24px;
+      padding: 16px 26px;
       border-radius: 20px;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 900;
       z-index: 100000;
       box-shadow: 0 12px 35px rgba(0, 0, 0, 0.9);
       pointer-events: none;
       transition: opacity 0.3s ease;
-      text-align: center;
+      text-align: left;
       line-height: 1.55;
       max-width: 95vw;
     }
@@ -795,7 +803,7 @@
     #btn-cancel-offering { background: #F1F5F9; color: #475569; }
 
     #leaderboard-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 15, 29, 0.92); z-index: 1000; justify-content: center; align-items: center; padding: 10px 14px; }
-    .leaderboard-card { background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%); border: 2px solid #FBBF24; color: #FFFFFF; border-radius: 20px; width: 96vw; height: 94vh; padding: 12px 18px; display: flex; flex-direction: column; justify-content: space-between; }
+    .leaderboard-card { background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%); border: 2px solid #F59E0B; color: #FFFFFF; border-radius: 20px; width: 96vw; height: 94vh; padding: 12px 18px; display: flex; flex-direction: column; justify-content: space-between; }
     .leaderboard-header { text-align: center; font-size: 20px; font-weight: 900; color: #FBBF24; }
     .rank-wrap { display: flex; flex-direction: row; gap: 14px; width: 100%; flex: 1; align-items: stretch; margin: 8px 0; }
     .rank-section { flex: 1; background: rgba(30, 41, 59, 0.7); border: 1.5px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 10px 16px; display: flex; flex-direction: column; justify-content: space-between; }
@@ -829,10 +837,10 @@
 
   <div id="companion-overlay">
     <div class="companion-wrapper" id="cardStage">
-      <!-- 右下角標籤（僅 ID，無黑框背景） -->
-      <div class="bottom-right-badge" id="bottomRightBadge"></div>
+      <!-- 右下角標籤（僅 ID，無黑框背景，向上移至 bottom: 24%） -->
+      <!-- 已移除獨立浮動 ID 標籤 -->
 
-      <!-- 動態文字容器 (無紅框) -->
+      <!-- 動態文字容器 (無紅框，上移至 top: 2.5%) -->
       <div class="card-text-container" id="textContainer">
         <div class="card-title" id="cardTitle">載入中...</div>
         <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
@@ -844,6 +852,7 @@
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
         <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">堅持第 22 天</button>
+        <!-- 第五個按鈕：LINE 截圖分享 -->
         <button class="btn-card-line" onclick="shareScreenshotToLine()">LINE</button>
       </div>
     </div>
@@ -851,7 +860,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (V986)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v973)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -903,7 +912,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【V986 載入中】...</div>
+  <div id="schedule-toast">📦 【v973 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1129,13 +1138,13 @@
 
     function isIndependentModeUnlocked() {
       if (practicePhase === 'completed') return true;
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V986');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
       if (!savedStr) return false;
       try {
         const savedState = JSON.parse(savedStr);
         return savedState.savedDateStr === getNormalizedDateStr() &&
           savedState.practicePhase === 'completed' &&
-          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V986') === getNormalizedDateStr();
+          classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr();
       } catch (e) {
         return false;
       }
@@ -1146,7 +1155,7 @@
       if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') return;
 
       if (practicePhase === 'completed') {
-        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V986', getNormalizedDateStr());
+        classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
       }
       const state = {
         coreMode: currentCoreMode,
@@ -1160,18 +1169,18 @@
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
-      classicStorage.setItem('APP_SAVED_STATE_V986', JSON.stringify(state));
+      classicStorage.setItem('APP_SAVED_STATE_V971', JSON.stringify(state));
     }
 
     function checkAndPrepareRestoreState() {
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V986');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
       if (!savedStr) return false;
       try {
         const state = JSON.parse(savedStr);
         const todayStr = getNormalizedDateStr();
 
         if (state.savedDateStr !== todayStr) {
-          classicStorage.removeItem('APP_SAVED_STATE_V986');
+          classicStorage.removeItem('APP_SAVED_STATE_V971');
           return false;
         }
 
@@ -1185,7 +1194,7 @@
         restoreModalOverlay.style.display = 'flex';
         return true;
       } catch(e) {
-        classicStorage.removeItem('APP_SAVED_STATE_V986');
+        classicStorage.removeItem('APP_SAVED_STATE_V971');
         return false;
       }
     }
@@ -1242,7 +1251,7 @@
       } else if (document.visibilityState === 'visible') {
         setTimeout(() => {
           handleOrientationCheck();
-          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V986') === getNormalizedDateStr()) {
+          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
             practicePhase = 'completed';
           }
           renderUI();
@@ -1350,9 +1359,9 @@
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
-      const lastActiveDate = classicStorage.getItem('APP_ACTIVE_DATE_V986');
+      const lastActiveDate = classicStorage.getItem('APP_ACTIVE_DATE_V971');
       if (lastActiveDate !== todayStr) {
-        classicStorage.setItem('APP_ACTIVE_DATE_V986', todayStr);
+        classicStorage.setItem('APP_ACTIVE_DATE_V971', todayStr);
         isScheduleRepeatLocked = true;
       }
     }
@@ -1446,12 +1455,7 @@
     }
 
     async function playTeacherGuideAndRecite() {
-      try {
-        await Promise.race([
-          preWarmMicrophonePermission(),
-          new Promise(resolve => setTimeout(resolve, 1500))
-        ]);
-      } catch (e) {}
+      await preWarmMicrophonePermission();
 
       triggerAppFullscreen();
       companionOverlay.style.opacity = '0';
@@ -1459,7 +1463,7 @@
       companionOverlay.style.display = 'none';
 
       hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V986', getNormalizedDateStr());
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
@@ -1467,14 +1471,9 @@
 
       playStandaloneVideo('mode1', 0, async () => {
         showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
-        try {
-          await Promise.race([
-            loadAllAssetsSmartSync(),
-            new Promise(resolve => setTimeout(resolve, 3000))
-          ]);
-        } catch (e) {}
+        await loadAllAssetsSmartSync();
 
-        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V986');
+        const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
         if (savedStr) {
           try {
             const state = JSON.parse(savedStr);
@@ -1491,12 +1490,7 @@
     }
 
     async function closeCompanionCard() {
-      try {
-        await Promise.race([
-          preWarmMicrophonePermission(),
-          new Promise(resolve => setTimeout(resolve, 1500))
-        ]);
-      } catch (e) {}
+      await preWarmMicrophonePermission();
 
       triggerAppFullscreen();
       companionOverlay.style.opacity = '0';
@@ -1504,20 +1498,15 @@
       companionOverlay.style.display = 'none';
 
       hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V986', getNormalizedDateStr());
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
       triggerAppFullscreen();
 
-      try {
-        await Promise.race([
-          loadAllAssetsSmartSync(),
-          new Promise(resolve => setTimeout(resolve, 3000))
-        ]);
-      } catch (e) {}
+      await loadAllAssetsSmartSync();
 
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V986');
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
       if (savedStr) {
         try {
           const state = JSON.parse(savedStr);
@@ -1539,7 +1528,7 @@
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V986');
+      const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
       if (saved !== null) return parseInt(saved, 10);
       return 0;
     }
@@ -1563,7 +1552,7 @@
       } else if (urlParams.get('day')) {
         targetDay = parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V986');
+        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V971');
         if (currentSchedDay) {
           targetDay = parseInt(currentSchedDay, 10) || 1;
         } else {
@@ -1594,7 +1583,7 @@
       } else if (urlParams.get('day')) {
         return parseInt(urlParams.get('day'), 10) || 1;
       } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V986');
+        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V971');
         if (currentSchedDay) {
           return parseInt(currentSchedDay, 10) || 1;
         }
@@ -1603,7 +1592,7 @@
     }
 
     function openScheduleModal() {
-      const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V986') || '{}');
+      const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
       const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
@@ -1713,10 +1702,10 @@
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
 
-      classicStorage.setItem('USER_CURRENT_PROGRESS_END_V986', testCompleted.toString());
+      classicStorage.setItem('USER_CURRENT_PROGRESS_END_V971', testCompleted.toString());
 
       const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
-      classicStorage.setItem('USER_SCHEDULE_SETTINGS_V986', JSON.stringify(settings));
+      classicStorage.setItem('USER_SCHEDULE_SETTINGS_V971', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
@@ -1738,14 +1727,14 @@
 
     async function prefetchSentenceCountOnStartup() {
       const timestamp = Date.now();
-      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V986');
+      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V971');
       try {
         const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
           if (Array.isArray(freshSent) && freshSent.length > 0) {
             scriptureData = freshSent;
-            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V986', JSON.stringify(freshSent));
+            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V971', JSON.stringify(freshSent));
           }
         }
       } catch (e) {}
@@ -1763,9 +1752,9 @@
       if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
       if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
 
-      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V986') || CLASSIC_TOTAL_SENTENCES > 0) {
+      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971') || CLASSIC_TOTAL_SENTENCES > 0) {
         let savedSchedule = null;
-        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V986') || 'null'); } catch (e) {}
+        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971') || 'null'); } catch (e) {}
         const scheduleNeedsResize = !Array.isArray(savedSchedule) ||
           savedSchedule.length === 0 ||
           savedSchedule.some(item => Number(item.end) > CLASSIC_TOTAL_SENTENCES) ||
@@ -1773,7 +1762,7 @@
         
         if (scheduleNeedsResize) {
           let savedSettings = {};
-          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V986') || '{}'); } catch (e) {}
+          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}'); } catch (e) {}
           generateAlgorithmicSchedule({
             totalSentences: CLASSIC_TOTAL_SENTENCES,
             dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
@@ -1854,7 +1843,7 @@
         simDay++;
       }
 
-      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V986', JSON.stringify(scheduleList));
+      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V971', JSON.stringify(scheduleList));
     }
 
     function applyScheduleToState(prefixMsg = "") {
@@ -1862,7 +1851,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V986');
+        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
@@ -1870,7 +1859,7 @@
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V986') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
+          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
           currentCycleCount = 0;
           return false;
         }
@@ -1879,15 +1868,16 @@
         currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
         if (!currentDayPlan) currentDayPlan = scheduleData[0];
 
-        classicStorage.setItem('USER_CURRENT_PROGRESS_END_V986', currentDayPlan.end.toString());
+        classicStorage.setItem('USER_CURRENT_PROGRESS_END_V971', currentDayPlan.end.toString());
 
-        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V986') === getNormalizedDateStr()) {
+        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
           practicePhase = 'completed';
         } else {
           practicePhase = 'new_gendu';
         }
         
-        const savedStateStr = classicStorage.getItem('APP_SAVED_STATE_V986');
+        // 📌【V983修正】：若當天已有存檔進度與遍數，保留其計數避免被重置歸零
+        const savedStateStr = classicStorage.getItem('APP_SAVED_STATE_V971');
         let restoredCount = 0;
         if (savedStateStr) {
           try {
@@ -2709,7 +2699,7 @@
         haltGuideRunnerImmediately();
       }
 
-      const settings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V986') || '{}');
+      const settings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}');
       const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
       const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
       const hasCumulative = cRepeat > 0 && currentDayPlan.cStart && currentDayPlan.cEnd;
@@ -2720,7 +2710,7 @@
 
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < newRepeat) {
-          showToast(`✅ 新進度跟讀：第 ${currentCycleCount} 遍`, 2000);
+          showToast(`✅ 新進度跟讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
@@ -2740,7 +2730,7 @@
         if (currentCycleCount < newRepeat) {
           setupStageRange();
           if (currentCycleCount === 1) {
-            showToast(`✅ 新進度自讀：第 ${currentCycleCount} 遍`, 2000);
+            showToast(`✅ 新進度自讀完成第 1 遍`, 2000);
             speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
               handleZiduClick();
             });
@@ -2762,7 +2752,7 @@
             showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
           } else {
             practicePhase = 'completed';
-            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V986', getNormalizedDateStr());
+            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
             renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿，功能已全部解鎖");
@@ -2771,7 +2761,7 @@
         }
       } else if (practicePhase === 'cumulative_gendu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`✅ 串習複習跟讀：第 ${currentCycleCount} 遍`, 2000);
+          showToast(`✅ 串習複習跟讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
@@ -2791,7 +2781,7 @@
         if (currentCycleCount < cRepeat) {
           setupStageRange();
           if (currentCycleCount === 1) {
-            showToast(`✅ 串習複習自讀：第 ${currentCycleCount} 遍`, 2000);
+            showToast(`✅ 串習複習自讀完成第 1 遍`, 2000);
             speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
               handleZiduClick();
             });
@@ -2800,7 +2790,7 @@
           }
         } else {
           practicePhase = 'completed';
-          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V986', getNormalizedDateStr());
+          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
@@ -3014,10 +3004,10 @@
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
-      const lastToastDate = classicStorage.getItem('FIREWORKS_TOAST_DATE_V986');
+      const lastToastDate = classicStorage.getItem('FIREWORKS_TOAST_DATE_V971');
       let showToastFlag = (lastToastDate !== todayStr);
       if (showToastFlag) {
-        classicStorage.setItem('FIREWORKS_TOAST_DATE_V986', todayStr);
+        classicStorage.setItem('FIREWORKS_TOAST_DATE_V971', todayStr);
       }
       triggerFireworks(showToastFlag);
       loadRandomCardData();
@@ -3689,6 +3679,9 @@
           const cardIdInline = document.getElementById('cardIdInline');
           if (cardIdInline) cardIdInline.textContent = displayId;
 
+          // ==========================================
+          // 📌【V973 黃金字體引擎】：標題放大 (size + 6)，ID 固定 12px 靠右，納入自適應計算
+          // ==========================================
           const stageHeight = (cardStage && cardStage.clientHeight > 50) ? cardStage.clientHeight : window.innerHeight;
           const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.78;
 
@@ -3734,6 +3727,7 @@
         btnDays.onclick = handleDayBtnClick;
       }
 
+      // 確保無論第幾天，都預先載入 images_text.json 供隨時抽換或顯示右下角完整 ID
       if (Object.keys(cardTexts).length === 0) {
         try {
           const res = await fetch('images_text.json');
@@ -3747,6 +3741,7 @@
       if (targetDay <= 21) {
         const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
         if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
+        // 21天內的卡片圖片本身已內建文字，故隱藏動態文字容器與標籤，避免重複覆蓋
         if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         if (textContainer) textContainer.style.display = 'none';
       } else {
@@ -3790,7 +3785,7 @@
       checkDailyResetOnStartup();
 
       const todayStr = getNormalizedDateStr();
-      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V986');
+      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V971');
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
       
       if (btnCardSettingDynamic) {
@@ -3802,7 +3797,7 @@
       }
 
       let targetDay = getRealTargetDay();
-      classicStorage.setItem('CURRENT_SCHEDULE_DAY_V986', targetDay.toString());
+      classicStorage.setItem('CURRENT_SCHEDULE_DAY_V971', targetDay.toString());
 
       initCompanionCard(targetDay);
 
@@ -3814,34 +3809,6 @@
       compOverlay.classList.add('active');
 
       handleOrientationCheck();
-    });
-
-    // 📌【V986】滑動緊急救援監聽 (左右滑動強制解卡)
-    let rescueStartX = 0;
-    let rescueStartY = 0;
-    document.addEventListener('DOMContentLoaded', () => {
-      const compOverlay = document.getElementById('companion-overlay');
-      if (compOverlay) {
-        compOverlay.addEventListener('touchstart', (e) => {
-          if (e.touches.length === 1) {
-            rescueStartX = e.touches[0].clientX;
-            rescueStartY = e.touches[0].clientY;
-          }
-        }, { passive: true });
-
-        compOverlay.addEventListener('touchend', (e) => {
-          if (e.changedTouches.length === 1) {
-            const deltaX = e.changedTouches[0].clientX - rescueStartX;
-            const deltaY = e.changedTouches[0].clientY - rescueStartY;
-            if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-              if (compOverlay.style.display === 'flex') {
-                showToast('🛠️ 偵測到滑動，觸發緊急救援：強制進入背誦', 2000);
-                closeCompanionCard();
-              }
-            }
-          }
-        }, { passive: true });
-      }
     });
   </script>
 </body>
