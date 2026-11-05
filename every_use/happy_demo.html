@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V985</title>
+  <title>歡喜背書V987</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -229,7 +229,7 @@
       right: 4%;
       display: block;
       overflow: hidden;
-      border: 2px solid red;
+      border: none;
       background: transparent;
     }
 
@@ -2742,15 +2742,9 @@
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
+          showToast(`✅ 新進度自讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
           setupStageRange();
-          if (currentCycleCount === 1) {
-            showToast(`✅ 新進度自讀完成第 1 遍`, 2000);
-            speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
-              handleZiduClick();
-            });
-          } else {
-            handleZiduClick();
-          }
+          handleZiduClick();
         } else {
           if (hasCumulative) {
             practicePhase = 'cumulative_gendu';
@@ -2793,10 +2787,9 @@
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`✅ 串習複習自讀完成第 1 遍`, 2000);
-          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
-            handleZiduClick();
-          });
+          showToast(`✅ 串習複習自讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
+          setupStageRange();
+          handleZiduClick();
         } else {
           practicePhase = 'completed';
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
