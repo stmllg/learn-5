@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 長青版V16</title>
+  <title>歡喜背書 長青版V17</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -897,7 +897,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【長青版V16 載入中】...</div>
+  <div id="schedule-toast">📦 【長青版V17 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2706,41 +2706,26 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          practicePhase = 'new_zidu';
-          currentCycleCount = 0;
-          setupStageRange();
-
-          setCoreMode('mode3');
-          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
-            handleZiduClick();
-          });
-          showToast("🎉 新進度跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
-        }
-      } else if (practicePhase === 'new_zidu') {
-        if (currentCycleCount < newRepeat) {
-          showToast(`✅ 新進度自讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
-          setupStageRange();
-          handleZiduClick();
-        } else {
           if (hasCumulative) {
             practicePhase = 'cumulative_gendu';
             currentCycleCount = 0;
             setupStageRange();
 
             setCoreMode('mode2');
-            speakPrompt("新進度圓滿，準備進入串習複習跟讀", () => {
+            speakPrompt("新進度跟讀圓滿，準備進入串習複習跟讀", () => {
               const range = getActiveVideoRange();
               if (range.valid) { video.currentTime = range.start; }
               handleGenduClick();
             });
-            showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
+            showToast("🎉 新進度跟讀圓滿！\n即將進入串習複習跟讀...", 3000);
           } else {
             practicePhase = 'completed';
             classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
             renderUI();
+            video.pause();
             triggerSevenColoredLotusFlowerRain();
-            speakPrompt("今日定課已圓滿，功能已全部解鎖");
-            showToast("🎉 今日定課已圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
+            speakPrompt("今日定課已圓滿，隨喜功德");
+            showToast("🎉 今日定課已圓滿！\n已出現「背書供養」、「比對」與「再練一遍」按鍵", 6000);
           }
         }
       } else if (practicePhase === 'cumulative_gendu') {
@@ -2751,28 +2736,13 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          practicePhase = 'cumulative_zidu';
-          currentCycleCount = 0;
-          setupStageRange();
-
-          setCoreMode('mode3');
-          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
-            handleZiduClick();
-          });
-          showToast("🎉 串習複習跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
-        }
-      } else if (practicePhase === 'cumulative_zidu') {
-        if (currentCycleCount < cRepeat) {
-          showToast(`✅ 串習複習自讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
-          setupStageRange();
-          handleZiduClick();
-        } else {
           practicePhase = 'completed';
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
           renderUI();
+          video.pause();
           triggerSevenColoredLotusFlowerRain();
-          speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
-          showToast("🎉 今日串習與定課全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
+          speakPrompt("今日定課與串習全部圓滿，隨喜功德");
+          showToast("🎉 今日定課與串習全部圓滿！\n已出現「背書供養」、「比對」與「再練一遍」按鍵", 6000);
         }
       }
       saveCurrentAppState();
