@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書・長青版V12</title>
+  <title>歡喜背書・長青版V13</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -681,7 +681,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【長青版V12 載入中】...</div>
+  <div id="schedule-toast">📦 【長青版V13 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1414,7 +1414,7 @@
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
           currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
+          practicePhase = 'new_gendu';
           currentCycleCount = 0;
           return false;
         }
@@ -1425,24 +1425,8 @@
 
         classicStorage.setItem('USER_CURRENT_PROGRESS_END_V971', currentDayPlan.end.toString());
 
-        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
-          practicePhase = 'completed';
-        } else {
-          practicePhase = 'new_gendu';
-        }
-        
-        const savedStateStr = classicStorage.getItem('APP_SAVED_STATE_V971');
-        let restoredCount = 0;
-        if (savedStateStr) {
-          try {
-            const st = JSON.parse(savedStateStr);
-            if (st.savedDateStr === getNormalizedDateStr()) {
-              restoredCount = st.currentCycleCount || 0;
-              if (st.practicePhase) practicePhase = st.practicePhase;
-            }
-          } catch(e) {}
-        }
-        currentCycleCount = restoredCount;
+        practicePhase = 'new_gendu';
+        currentCycleCount = 0;
         videoPausedAt = -1;
         return true;
       } catch (err) {}
@@ -1669,6 +1653,7 @@
           const btnOffering = document.getElementById('btn-offering');
           if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
+          slotR2.innerHTML = '<button class="square-btn" id="btn-repeat-again" style="background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); border-color: #BFDBFE; color: #FFFFFF;">再練<br>一遍</button>';
           slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
 
         slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
@@ -1687,6 +1672,9 @@
 
         const btnGendu = document.getElementById('btn-gendu');
         if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
+
+        const btnRepeatAgain = document.getElementById('btn-repeat-again');
+        if (btnRepeatAgain) btnRepeatAgain.addEventListener('click', handleRepeatAgainClick);
 
         const btnRecord = document.getElementById('btn-record');
         if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
@@ -1805,6 +1793,22 @@
           updateModeButtonsStyle();
           showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
           saveCurrentAppState();
+      }
+    }
+
+    function handleRepeatAgainClick() {
+      triggerAppFullscreen();
+      practicePhase = 'new_gendu';
+      currentCycleCount = 0;
+      setCoreMode('mode2');
+      const range = getActiveVideoRange();
+      if (range.valid) {
+        video.currentTime = range.start;
+        video.play().then(() => {
+          updateModeButtonsStyle();
+          startMp4PrecisionCheck();
+          showToast('🔄 已為您重新開始練習今日定課與串習', 3000);
+        }).catch(() => {});
       }
     }
 
@@ -2591,7 +2595,7 @@
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong>「⋯」</strong>或<strong>「指南針/Safari圖示」</strong>），點選<strong><strong>在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong>「⋯」</strong>或<strong>「指南針/Safari圖示」</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
         } else {
           guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
         }
