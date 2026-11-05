@@ -217,18 +217,10 @@
       transform: scale(1);
     }
 
-    /* 右下角乾淨標籤（無黑框、無背景、向上移至 bottom: 24% 避免碰到按鈕） */
-    /* 【V971】將綠色 ID 塞在紅框下方（bottom: 14%）、按鈕上方 */
-    /* 【V971】綠色 ID 剛好塞在紅框下方（bottom: 15%）、按鈕上方 */
     .bottom-right-badge {
       display: none !important;
     }
 
-    /* 
-      【V971 黃金邊界版文字容器】：
-      左 29%, 右 5%, 頂部上移至 2.5%, 無邊框
-    */
-    /* 【V971】加入紅色文字框以便觀察邊界，並將底部上移至 bottom: 22% 閃過綠色 ID */
     .card-text-container {
       position: absolute;
       top: 2%;
@@ -837,10 +829,6 @@
 
   <div id="companion-overlay">
     <div class="companion-wrapper" id="cardStage">
-      <!-- 右下角標籤（僅 ID，無黑框背景，向上移至 bottom: 24%） -->
-      <!-- 已移除獨立浮動 ID 標籤 -->
-
-      <!-- 動態文字容器 (無紅框，上移至 top: 2.5%) -->
       <div class="card-text-container" id="textContainer">
         <div class="card-title" id="cardTitle">載入中...</div>
         <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
@@ -852,7 +840,6 @@
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
         <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">堅持第 22 天</button>
-        <!-- 第五個按鈕：LINE 截圖分享 -->
         <button class="btn-card-line" onclick="shareScreenshotToLine()">LINE</button>
       </div>
     </div>
@@ -860,7 +847,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v973)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v984)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -912,7 +899,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v973 載入中】...</div>
+  <div id="schedule-toast">📦 【v984 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1396,11 +1383,30 @@
       }
     }
 
+    // 💡 整合討論結果：帶有逾時保護的麥克風請求包裝
+    function getUserMediaWithTimeout(constraints, timeoutMs = 6000) {
+      return new Promise((resolve, reject) => {
+        let timer = setTimeout(() => {
+          reject(new Error('Timeout'));
+        }, timeoutMs);
+
+        navigator.mediaDevices.getUserMedia(constraints)
+          .then(stream => {
+            clearTimeout(timer);
+            resolve(stream);
+          })
+          .catch(err => {
+            clearTimeout(timer);
+            reject(err);
+          });
+      });
+    }
+
     async function preWarmMicrophonePermission() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
+        const stream = await getUserMediaWithTimeout({ 
           audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } 
-        });
+        }, 4000);
         stream.getTracks().forEach(track => track.stop());
       } catch (e) {}
     }
@@ -1456,21 +1462,66 @@
 
     async function playTeacherGuideAndRecite() {
       triggerAppFullscreen();
-      companionOverlay.style.opacity = '0';
-      companionOverlay.classList.remove('active');
-      companionOverlay.style.display = 'none';
+      const compOverlay = document.getElementById('companion-overlay');
+      compOverlay.style.opacity = '0';
+      compOverlay.classList.remove('active');
+      compOverlay.style.pointerEvents = 'none';
 
-      await preWarmMicrophonePermission();
+      setTimeout(async () => {
+        compOverlay.style.display = 'none';
+        compOverlay.style.pointerEvents = 'auto';
 
-      hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
-      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+        await preWarmMicrophonePermission();
 
+        hasEnteredReciting = true;
+        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+        const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
+        triggerAppFullscreen();
+
+        playStandaloneVideo('mode1', 0, async () => {
+          showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
+          await loadAllAssetsSmartSync();
+
+          const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
+          if (savedStr) {
+            try {
+              const state = JSON.parse(savedStr);
+              if (state.savedDateStr === getNormalizedDateStr()) {
+                pendingRestoredState = state;
+                confirmRestoreState();
+                return;
+              }
+            } catch(e) {}
+          }
+
+          setCoreMode('mode2');
+        });
+      }, 200);
+    }
+
+    async function closeCompanionCard() {
       triggerAppFullscreen();
+      
+      const compOverlay = document.getElementById('companion-overlay');
+      compOverlay.style.opacity = '0';
+      compOverlay.classList.remove('active');
+      compOverlay.style.pointerEvents = 'none'; // 瞬間切斷點擊阻擋，讓出最上層
 
-      playStandaloneVideo('mode1', 0, async () => {
-        showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
+      setTimeout(async () => {
+        compOverlay.style.display = 'none';
+        compOverlay.style.pointerEvents = 'auto';
+
+        await preWarmMicrophonePermission();
+
+        hasEnteredReciting = true;
+        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+        const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
+        triggerAppFullscreen();
+
         await loadAllAssetsSmartSync();
 
         const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
@@ -1485,43 +1536,11 @@
           } catch(e) {}
         }
 
-        setCoreMode('mode2');
-      });
-    }
-
-    async function closeCompanionCard() {
-      triggerAppFullscreen();
-      companionOverlay.style.opacity = '0';
-      companionOverlay.classList.remove('active');
-      companionOverlay.style.display = 'none';
-
-      await preWarmMicrophonePermission();
-
-      hasEnteredReciting = true;
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
-      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
-
-      triggerAppFullscreen();
-
-      await loadAllAssetsSmartSync();
-
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
-      if (savedStr) {
-        try {
-          const state = JSON.parse(savedStr);
-          if (state.savedDateStr === getNormalizedDateStr()) {
-            pendingRestoredState = state;
-            confirmRestoreState();
-            return;
-          }
-        } catch(e) {}
-      }
-
-      const hasRestore = checkAndPrepareRestoreState();
-      if (!hasRestore) {
-        setCoreMode('mode2');
-      }
+        const hasRestore = checkAndPrepareRestoreState();
+        if (!hasRestore) {
+          setCoreMode('mode2');
+        }
+      }, 200);
     }
 
     function getCurrentProgressEnd() {
@@ -1876,7 +1895,6 @@
           practicePhase = 'new_gendu';
         }
         
-        // 📌【V983修正】：若當天已有存檔進度與遍數，保留其計數避免被重置歸零
         const savedStateStr = classicStorage.getItem('APP_SAVED_STATE_V971');
         let restoredCount = 0;
         if (savedStateStr) {
@@ -1948,7 +1966,7 @@
           const textContent = await page.getTextContent();
           const items = textContent.items;
           const validSpans = [];
-          const chineseCharRegex = /[\u4e00-\u9fa5]/;
+          const chineseCharRegex = /[一-龥]/;
 
           items.forEach(it => {
             const str = it.str || '';
@@ -2077,7 +2095,8 @@
 
     function showToast(msg, duration = 6000) {
       if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
+      scheduleToast.innerHTML = msg.replace(/
+/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -2492,7 +2511,6 @@
 
       const micOk = await ensureMicrophoneActive();
       if (!micOk) {
-        showToast("⚠️ 無法取得麥克風授權，請檢查瀏覽器設定", 3000);
         return;
       }
 
@@ -2573,7 +2591,6 @@
       renderUI();
     }
 
-    // 📸 LINE 截圖分享功能：隱藏按鈕與標籤後截圖下載/複製
     async function shareScreenshotToLine() {
       triggerAppFullscreen();
 
@@ -2622,15 +2639,16 @@
           URL.revokeObjectURL(url);
 
           if (clipboardSuccess) {
-            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！
+可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 截圖已自動下載！
+請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
 
       } catch(err) {
         if (actionsRow) actionsRow.style.display = 'flex';
-        if (badge) badge.style.display = 'block';
         showToast('⚠️ 截圖失敗', 3000);
       }
     }
@@ -2724,7 +2742,8 @@
           speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
             handleZiduClick();
           });
-          showToast("🎉 新進度跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
+          showToast("🎉 新進度跟讀圓滿！
+請自己唸誦，手指放螢幕小紅點即可向前", 5000);
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
@@ -2749,14 +2768,16 @@
               if (range.valid) { video.currentTime = range.start; }
               handleGenduClick();
             });
-            showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
+            showToast("🎉 新進度圓滿！
+3秒後自動進入串習複習跟讀...", 4000);
           } else {
             practicePhase = 'completed';
             classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
             renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿，功能已全部解鎖");
-            showToast("🎉 今日定課已圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
+            showToast("🎉 今日定課已圓滿！
+左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
           }
         }
       } else if (practicePhase === 'cumulative_gendu') {
@@ -2775,7 +2796,8 @@
           speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
             handleZiduClick();
           });
-          showToast("🎉 串習複習跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
+          showToast("🎉 串習複習跟讀圓滿！
+請自己唸誦，手指放螢幕小紅點即可向前", 5000);
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
@@ -2794,7 +2816,8 @@
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
-          showToast("🎉 今日串習與定課全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
+          showToast("🎉 今日串習與定課全部圓滿！
+左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
         }
       }
       saveCurrentAppState();
@@ -3169,9 +3192,10 @@
         if (!audioContext) audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') await audioContext.resume();
 
-        micStream = await navigator.mediaDevices.getUserMedia({
+        // 💡 整合討論結果：帶有 6 秒逾時保護的麥克風請求
+        micStream = await getUserMediaWithTimeout({
           audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
-        });
+        }, 6000);
 
         const source = audioContext.createMediaStreamSource(micStream);
         analyser = audioContext.createAnalyser();
@@ -3194,6 +3218,8 @@
         startSharedVadLoop();
         return true;
       } catch (err) {
+        showToast("⚠️ 麥克風回應逾時或未授權，已自動解除鎖定", 4000);
+        releaseMicrophoneResources();
         return false;
       }
     }
@@ -3679,9 +3705,6 @@
           const cardIdInline = document.getElementById('cardIdInline');
           if (cardIdInline) cardIdInline.textContent = displayId;
 
-          // ==========================================
-          // 📌【V973 黃金字體引擎】：標題放大 (size + 6)，ID 固定 12px 靠右，納入自適應計算
-          // ==========================================
           const stageHeight = (cardStage && cardStage.clientHeight > 50) ? cardStage.clientHeight : window.innerHeight;
           const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.78;
 
@@ -3727,7 +3750,6 @@
         btnDays.onclick = handleDayBtnClick;
       }
 
-      // 確保無論第幾天，都預先載入 images_text.json 供隨時抽換或顯示右下角完整 ID
       if (Object.keys(cardTexts).length === 0) {
         try {
           const res = await fetch('images_text.json');
@@ -3741,7 +3763,6 @@
       if (targetDay <= 21) {
         const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
         if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
-        // 21天內的卡片圖片本身已內建文字，故隱藏動態文字容器與標籤，避免重複覆蓋
         if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         if (textContainer) textContainer.style.display = 'none';
       } else {
