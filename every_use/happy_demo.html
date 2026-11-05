@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V978</title>
+  <title>歡喜背書V980</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1454,8 +1454,12 @@
     }
 
     async function playTeacherGuideAndRecite() {
-      // 📌【V978修正】：在進入全螢幕前先請求麥克風與剪貼簿權限，避免系統提示框被全螢幕擋在下方導致停擺
-      await preWarmMicrophonePermission();
+      try {
+        await Promise.race([
+          preWarmMicrophonePermission(),
+          new Promise(resolve => setTimeout(resolve, 1500))
+        ]);
+      } catch (e) {}
       
       triggerAppFullscreen();
       companionOverlay.style.opacity = '0';
@@ -1471,7 +1475,12 @@
 
       playStandaloneVideo('mode1', 0, async () => {
         showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
-        await loadAllAssetsSmartSync();
+        try {
+          await Promise.race([
+            loadAllAssetsSmartSync(),
+            new Promise(resolve => setTimeout(resolve, 3000))
+          ]);
+        } catch (e) {}
 
         const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
         if (savedStr) {
@@ -1490,8 +1499,13 @@
     }
 
     async function closeCompanionCard() {
-      // 📌【V978修正】：在進入全螢幕前先請求麥克風與剪貼簿權限，避免系統提示框被全螢幕擋在下方導致停擺
-      await preWarmMicrophonePermission();
+      // 📌【V979全面防護】：非阻塞式權限預熱與逾時保護，確保絕對不會卡死
+      try {
+        await Promise.race([
+          preWarmMicrophonePermission(),
+          new Promise(resolve => setTimeout(resolve, 1500))
+        ]);
+      } catch (e) {}
 
       triggerAppFullscreen();
       companionOverlay.style.opacity = '0';
@@ -1505,7 +1519,13 @@
 
       triggerAppFullscreen();
 
-      await loadAllAssetsSmartSync();
+      // 逾時防護：若載入資產超過 3 秒強制進入
+      try {
+        await Promise.race([
+          loadAllAssetsSmartSync(),
+          new Promise(resolve => setTimeout(resolve, 3000))
+        ]);
+      } catch (e) {}
 
       const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
       if (savedStr) {
@@ -3798,6 +3818,34 @@
 
       handleOrientationCheck();
     });
+  
+    let rescueStartX = 0;
+    let rescueStartY = 0;
+    document.addEventListener('DOMContentLoaded', () => {
+      const compOverlay = document.getElementById('companion-overlay');
+      if (compOverlay) {
+        compOverlay.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 1) {
+            rescueStartX = e.touches[0].clientX;
+            rescueStartY = e.touches[0].clientY;
+          }
+        }, { passive: true });
+
+        compOverlay.addEventListener('touchend', (e) => {
+          if (e.changedTouches.length === 1) {
+            const deltaX = e.changedTouches[0].clientX - rescueStartX;
+            const deltaY = e.changedTouches[0].clientY - rescueStartY;
+            if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+              if (compOverlay.style.display === 'flex') {
+                showToast('🛠️ 偵測到單指左/右滑動，觸發緊急救援：強制進入背誦', 2000);
+                closeCompanionCard();
+              }
+            }
+          }
+        }, { passive: true });
+      }
+    });
+
   </script>
 </body>
 </html>
