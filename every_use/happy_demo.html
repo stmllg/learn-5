@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V977</title>
+  <title>歡喜背書V978</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -197,17 +197,16 @@
     .companion-wrapper {
       position: relative;
       display: inline-block;
-      width: min(95vw, calc(88vh * 1200 / 675));
+      width: 95vw;
       max-width: 1100px;
-      max-height: 88vh;
       aspect-ratio: 1200 / 675;
       background-color: #0F172A;
-      background-size: 100% 100%;
+      background-size: cover;
       background-repeat: no-repeat;
       background-position: center;
       box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
-      border-radius: 0px;
-      overflow: visible;
+      border-radius: 14px;
+      overflow: hidden;
       opacity: 0;
       transform: scale(0.96);
       transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -237,7 +236,7 @@
       right: 4%;
       display: block;
       overflow: hidden;
-      border: 2px solid red;
+      border: none;
       background: transparent;
     }
 
@@ -1455,12 +1454,13 @@
     }
 
     async function playTeacherGuideAndRecite() {
+      // 📌【V978修正】：在進入全螢幕前先請求麥克風與剪貼簿權限，避免系統提示框被全螢幕擋在下方導致停擺
+      await preWarmMicrophonePermission();
+      
       triggerAppFullscreen();
       companionOverlay.style.opacity = '0';
       companionOverlay.classList.remove('active');
       companionOverlay.style.display = 'none';
-
-      await preWarmMicrophonePermission();
 
       hasEnteredReciting = true;
       classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
@@ -1490,12 +1490,13 @@
     }
 
     async function closeCompanionCard() {
+      // 📌【V978修正】：在進入全螢幕前先請求麥克風與剪貼簿權限，避免系統提示框被全螢幕擋在下方導致停擺
+      await preWarmMicrophonePermission();
+
       triggerAppFullscreen();
       companionOverlay.style.opacity = '0';
       companionOverlay.classList.remove('active');
       companionOverlay.style.display = 'none';
-
-      await preWarmMicrophonePermission();
 
       hasEnteredReciting = true;
       classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
