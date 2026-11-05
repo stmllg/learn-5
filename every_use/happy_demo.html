@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V985</title>
+  <title>歡喜背書V986</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -847,7 +847,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v985)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v984)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -899,7 +899,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v985 載入中】...</div>
+  <div id="schedule-toast">📦 【v984 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1383,6 +1383,7 @@
       }
     }
 
+    // 💡 整合討論結果：帶有逾時保護的麥克風請求包裝
     function getUserMediaWithTimeout(constraints, timeoutMs = 6000) {
       return new Promise((resolve, reject) => {
         let timer = setTimeout(() => {
@@ -1506,7 +1507,7 @@
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
       compOverlay.classList.remove('active');
-      compOverlay.style.pointerEvents = 'none';
+      compOverlay.style.pointerEvents = 'none'; // 瞬間切斷點擊阻擋，讓出最上層
 
       setTimeout(async () => {
         compOverlay.style.display = 'none';
@@ -1965,7 +1966,7 @@
           const textContent = await page.getTextContent();
           const items = textContent.items;
           const validSpans = [];
-          const chineseCharRegex = /[一-龥]/;
+          const chineseCharRegex = /[\u4e00-\u9fa5]/;
 
           items.forEach(it => {
             const str = it.str || '';
@@ -2094,7 +2095,8 @@
 
     function showToast(msg, duration = 6000) {
       if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
+      scheduleToast.innerHTML = msg.replace(/
+/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -2637,9 +2639,11 @@
           URL.revokeObjectURL(url);
 
           if (clipboardSuccess) {
-            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！
+可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 截圖已自動下載！
+請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
 
@@ -2738,7 +2742,8 @@
           speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
             handleZiduClick();
           });
-          showToast("🎉 新進度跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
+          showToast("🎉 新進度跟讀圓滿！
+請自己唸誦，手指放螢幕小紅點即可向前", 5000);
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
@@ -2763,14 +2768,16 @@
               if (range.valid) { video.currentTime = range.start; }
               handleGenduClick();
             });
-            showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
+            showToast("🎉 新進度圓滿！
+3秒後自動進入串習複習跟讀...", 4000);
           } else {
             practicePhase = 'completed';
             classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
             renderUI();
             triggerSevenColoredLotusFlowerRain();
             speakPrompt("今日定課已圓滿，功能已全部解鎖");
-            showToast("🎉 今日定課已圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
+            showToast("🎉 今日定課已圓滿！
+左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
           }
         }
       } else if (practicePhase === 'cumulative_gendu') {
@@ -2789,21 +2796,28 @@
           speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
             handleZiduClick();
           });
-          showToast("🎉 串習複習跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
+          showToast("🎉 串習複習跟讀圓滿！
+請自己唸誦，手指放螢幕小紅點即可向前", 5000);
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`✅ 串習複習自讀完成第 1 遍`, 2000);
-          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
+          setupStageRange();
+          if (currentCycleCount === 1) {
+            showToast(`✅ 串習複習自讀完成第 1 遍`, 2000);
+            speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
+              handleZiduClick();
+            });
+          } else {
             handleZiduClick();
-          });
+          }
         } else {
           practicePhase = 'completed';
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
           renderUI();
           triggerSevenColoredLotusFlowerRain();
           speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
-          showToast("🎉 今日串習與定課全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
+          showToast("🎉 今日串習與定課全部圓滿！
+左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
         }
       }
       saveCurrentAppState();
@@ -3178,6 +3192,7 @@
         if (!audioContext) audioContext = new AudioContextClass();
         if (audioContext.state === 'suspended') await audioContext.resume();
 
+        // 💡 整合討論結果：帶有 6 秒逾時保護的麥克風請求
         micStream = await getUserMediaWithTimeout({
           audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
         }, 6000);
