@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V982</title>
+  <title>歡喜背書V984</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1875,7 +1875,20 @@
         } else {
           practicePhase = 'new_gendu';
         }
-        currentCycleCount = 0;
+        
+        // 📌【V983修正】：若當天已有存檔進度與遍數，保留其計數避免被重置歸零
+        const savedStateStr = classicStorage.getItem('APP_SAVED_STATE_V971');
+        let restoredCount = 0;
+        if (savedStateStr) {
+          try {
+            const st = JSON.parse(savedStateStr);
+            if (st.savedDateStr === getNormalizedDateStr()) {
+              restoredCount = st.currentCycleCount || 0;
+              if (st.practicePhase) practicePhase = st.practicePhase;
+            }
+          } catch(e) {}
+        }
+        currentCycleCount = restoredCount;
 
         setupStageRange();
         isScheduleRepeatLocked = false;
