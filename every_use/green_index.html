@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 長青版V17</title>
+  <title>歡喜背書 長青版V19</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -897,7 +897,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【長青版V17 載入中】...</div>
+  <div id="schedule-toast">📦 【長青版V19 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2293,33 +2293,42 @@
       renderUI();
     }
 
-    function renderUI() {
+            function renderUI() {
       try {
-        slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
-        const btnOffering = document.getElementById('btn-offering');
-        if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+        const isPlayingRecitation = (currentCoreMode === 'mode2' && video && !video.paused);
 
-        slotL2.innerHTML = '';
-        slotL3.innerHTML = '';
-        slotL4.innerHTML = '';
-        slotR4.innerHTML = '';
-
-        slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
-        slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
+        if (isPlayingRecitation || practicePhase !== 'completed') {
+          slotL1.innerHTML = '';
+          slotL2.innerHTML = '';
+          slotL3.innerHTML = '';
+          slotL4.innerHTML = '';
+          slotR1.innerHTML = '';
+          slotR2.innerHTML = '';
+          slotR3.innerHTML = '';
+          slotR4.innerHTML = '';
+          return;
+        }
 
         if (practicePhase === 'completed') {
+          slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
+          const btnOffering = document.getElementById('btn-offering');
+          if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+
+          slotL2.innerHTML = '';
+          slotL3.innerHTML = '';
+          slotL4.innerHTML = '';
+
+          slotR1.innerHTML = '';
           slotR2.innerHTML = '<button class="square-btn" id="btn-retry" style="background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); color: #FFFFFF; border-color: #BAE6FD;">再練<br>一遍</button>';
           const btnRetry = document.getElementById('btn-retry');
           if (btnRetry) btnRetry.addEventListener('click', handleRetryPractice);
-        } else {
-          slotR2.innerHTML = '';
+
+          slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
+          slotR4.innerHTML = '';
+
+          const btnRecord = document.getElementById('btn-record');
+          if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
         }
-
-        const btnGendu = document.getElementById('btn-gendu');
-        if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
-
-        const btnRecord = document.getElementById('btn-record');
-        if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
 
         updateModeButtonsStyle();
         updateVisualDisplay();
@@ -2703,8 +2712,13 @@
           showToast(`✅ 新進度跟讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
           setupStageRange();
           const range = getActiveVideoRange();
-          if (range.valid) { video.currentTime = range.start; }
-          setTimeout(() => { handleGenduClick(); }, 500);
+          if (range.valid) { 
+            video.currentTime = range.start; 
+            mp4Speed = SPEED_STEPS[Math.min(9, currentCycleCount)];
+            video.playbackRate = mp4Speed;
+            video.play().catch(e => {});
+            showToast('【跟讀第 ' + (currentCycleCount + 1) + ' 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 2000);
+          }
         } else {
           if (hasCumulative) {
             practicePhase = 'cumulative_gendu';
@@ -2714,8 +2728,12 @@
             setCoreMode('mode2');
             speakPrompt("新進度跟讀圓滿，準備進入串習複習跟讀", () => {
               const range = getActiveVideoRange();
-              if (range.valid) { video.currentTime = range.start; }
-              handleGenduClick();
+              if (range.valid) { 
+                video.currentTime = range.start; 
+                mp4Speed = SPEED_STEPS[Math.min(9, currentCycleCount)];
+                video.playbackRate = mp4Speed;
+                video.play().catch(e => {});
+              }
             });
             showToast("🎉 新進度跟讀圓滿！\n即將進入串習複習跟讀...", 3000);
           } else {
@@ -2733,8 +2751,13 @@
           showToast(`✅ 串習複習跟讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
           setupStageRange();
           const range = getActiveVideoRange();
-          if (range.valid) { video.currentTime = range.start; }
-          setTimeout(() => { handleGenduClick(); }, 500);
+          if (range.valid) { 
+            video.currentTime = range.start; 
+            mp4Speed = SPEED_STEPS[Math.min(9, currentCycleCount)];
+            video.playbackRate = mp4Speed;
+            video.play().catch(e => {});
+            showToast('【串習跟讀第 ' + (currentCycleCount + 1) + ' 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 2000);
+          }
         } else {
           practicePhase = 'completed';
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
