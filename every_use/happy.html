@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V1003</title>
+  <title>歡喜背書V1004</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -170,19 +170,18 @@
       line-height: 1.6;
     }
 
+    /* 陪伴卡全螢幕三欄式排版：完美復刻自主學習主畫面的黑邊翼與按鈕位置 */
     #companion-overlay {
       display: none;
       position: fixed;
       top: 0; left: 0;
       width: 100vw; height: 100vh; height: 100dvh;
       z-index: 20000;
-      background: rgba(4, 7, 15, 0.98);
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      background: #0B0F19;
+      flex-direction: row;
+      align-items: stretch;
       opacity: 0;
       transition: opacity 0.35s ease;
-      padding: 8px;
       box-sizing: border-box;
     }
     #companion-overlay.active {
@@ -190,18 +189,57 @@
       opacity: 1;
     }
 
-    /* 陪伴卡三欄式彈性佈局 (左右為黑邊翼，中央為卡片圖片與文字) */
+    /* 左右兩側黑邊翼（寬度與主畫面完全一致，完美容納 4 個 slot 垂直等距排列） */
+    .companion-side-wing {
+      flex-shrink: 0;
+      height: 100%;
+      background-color: #000000;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      align-items: center;
+      padding-top: 4px;
+      padding-bottom: 4px;
+      z-index: 60;
+      box-sizing: border-box;
+    }
+    #companion-left-wing { width: calc(68px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; border-right: 2px solid #1E293B; }
+    #companion-right-wing { width: calc(68px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; border-left: 2px solid #1E293B; }
+
+    .companion-slot {
+      width: 100%;
+      height: 25%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* 中間舞台區（放置陪伴卡圖片與文字框，自動等比例置中） */
+    .companion-center-stage {
+      flex: 1;
+      height: 100%;
+      background-color: #000000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
     .companion-wrapper {
       position: relative;
-      display: flex;
-      flex-direction: row;
+      display: inline-block;
       height: 96dvh;
       max-height: 98vh;
       aspect-ratio: 1200 / 675;
-      background-color: #000000;
+      background-color: #0F172A;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      background-position: center;
       box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
       border-radius: 0px;
-      overflow: hidden;
+      overflow: visible;
       opacity: 0;
       transform: scale(0.96);
       transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -211,72 +249,17 @@
       transform: scale(1);
     }
 
-    /* 左右黑邊側翼區塊 */
-    .comp-wing {
-      width: 19%;
-      background-color: #000000;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-evenly;
-      align-items: center;
-      padding: 4px;
-      z-index: 10;
-      flex-shrink: 0;
-    }
-    .comp-slot {
-      width: 100%;
-      height: 25%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* 中央圖片與文字舞台 */
-    .comp-center-stage {
-      flex: 1;
-      position: relative;
-      background-size: 100% 100%;
-      background-repeat: no-repeat;
-      background-position: center;
-      height: 100%;
-    }
-
     .bottom-right-badge {
       display: none !important;
     }
 
-    .comp-btn {
-      width: 88px;
-      padding: 10px 4px;
-      text-align: center;
-      font-size: 13px;
-      font-weight: 900;
-      border-radius: 14px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
-      cursor: pointer;
-      user-select: none;
-      transition: transform 0.15s ease-out;
-      white-space: pre-wrap;
-      line-height: 1.25;
-    }
-    .comp-btn:active {
-      transform: scale(0.95);
-    }
-
-    .comp-btn-dedication { color: #78350F; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); border: 1.5px solid #D97706; }
-    .comp-btn-setting    { color: #1E293B; background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%); border: 1.5px solid #94A3B8; }
-    .comp-btn-line       { color: #FFFFFF; background: linear-gradient(135deg, #06C755 0%, #00B900 100%); border: 1.5px solid #05B34B; }
-    .comp-btn-guide      { color: #431407; background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%); border: 1.5px solid #F97316; }
-    .comp-btn-recite     { color: #FFFFFF; background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%); border: 1.5px solid #0369A1; }
-    .comp-btn-energy     { color: #4A044E; background: linear-gradient(135deg, #FBCFE8 0%, #F472B6 100%); border: 1.5px solid #DB2777; }
-
-    /* 文字框上下左右邊界皆為 4% */
+    /* 文字框上下邊界改為 4% 以最大化垂直空間 */
     .card-text-container {
       position: absolute;
       top: 4%;
       bottom: 4%;
-      left: 6%;
-      right: 6%;
+      left: 10%;
+      right: 10%;
       display: block;
       overflow: hidden;
       border: none;
@@ -293,6 +276,7 @@
       width: 100%;
       line-height: 1.2;
       margin-bottom: 6px;
+      text-align: center;
     }
     .card-content {
       font-weight: 800;
@@ -302,6 +286,7 @@
       word-break: break-all;
       text-shadow: 0 1px 3px rgba(255,255,255,0.95);
       overflow: hidden;
+      text-align: center;
     }
     .card-id-inline {
       font-weight: 900;
@@ -638,6 +623,35 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
+    /* 陪伴卡專用側邊按鈕：尺寸與主畫面完全一致 (62px正方形) */
+    .comp-square-btn {
+      width: 62px !important;
+      height: 62px !important;
+      border-radius: 14px !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px !important;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
+      transition: transform 0.15s ease-out;
+      text-align: center;
+      line-height: 1.2;
+      white-space: pre-wrap;
+      touch-action: manipulation;
+    }
+    .comp-square-btn:active { transform: scale(0.90); opacity: 0.85; }
+
+    /* 各按鈕色彩配置（完全對應主畫面風格） */
+    .comp-btn-dedication { color: #78350F; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); border: 2.5px solid #D97706; }
+    .comp-btn-setting    { color: #1E293B; background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%); border: 2.5px solid #94A3B8; font-size: 12px !important; }
+    .comp-btn-line       { color: #FFFFFF; background: linear-gradient(135deg, #06C755 0%, #00B900 100%); border: 2.5px solid #05B34B; font-size: 11px !important; line-height: 1.15 !important; }
+    .comp-btn-guide      { color: #431407; background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%); border: 2.5px solid #F97316; }
+    .comp-btn-recite     { color: #FFFFFF; background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%); border: 2.5px solid #0369A1; }
+    .comp-btn-energy     { color: #4A044E; background: linear-gradient(135deg, #FBCFE8 0%, #F472B6 100%); border: 2.5px solid #DB2777; font-size: 11px !important; line-height: 1.15 !important; }
+
     .btn-color-offering {
       width: 62px !important;
       height: 62px !important;
@@ -811,35 +825,33 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 陪伴卡畫面：三欄式 Flexbox 佈局，按鈕安全嵌在左右黑邊翼中 -->
+  <!-- 陪伴卡畫面：採用與主畫面完全一致的三欄式排版（左右黑邊翼 + 中間卡片舞台） -->
   <div id="companion-overlay">
-    <div class="companion-wrapper" id="cardStage">
-      
-      <!-- 左側黑邊翼（放置 3 顆按鈕） -->
-      <div class="comp-wing comp-wing-left">
-        <div class="comp-slot"><button class="comp-btn comp-btn-dedication" onclick="handleCompanionDedication()">老師迴向</button></div>
-        <div class="comp-slot"><button class="comp-btn comp-btn-setting" id="btn-comp-schedule" onclick="handleCompanionSchedule()">排程設定</button></div>
-        <div class="comp-slot"><button class="comp-btn comp-btn-line" onclick="shareScreenshotToLine()">LINE分享正能量</button></div>
-        <div class="comp-slot"></div>
-      </div>
+    <!-- 左側黑邊翼（固定 68px 黑色區域，對應主畫面 slot-l1 ~ slot-l4） -->
+    <div class="companion-side-wing" id="companion-left-wing">
+      <div class="companion-slot" id="comp-slot-l1"></div>
+      <div class="companion-slot" id="comp-slot-l2"></div>
+      <div class="companion-slot" id="comp-slot-l3"></div>
+      <div class="companion-slot" id="comp-slot-l4"></div>
+    </div>
 
-      <!-- 中央舞台：顯示背景圖與文字框 -->
-      <div class="comp-center-stage" id="compCenterStage">
+    <!-- 中間卡片舞台區（背景全黑，卡片圖片自適應置中） -->
+    <div class="companion-center-stage">
+      <div class="companion-wrapper" id="cardStage">
         <div class="card-text-container" id="textContainer">
           <div class="card-title" id="cardTitle">載入中...</div>
           <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
           <div class="card-id-inline" id="cardIdInline"></div>
         </div>
       </div>
+    </div>
 
-      <!-- 右側黑邊翼（放置 3 顆按鈕） -->
-      <div class="comp-wing comp-wing-right">
-        <div class="comp-slot"><button class="comp-btn comp-btn-guide" onclick="playTeacherGuideAndRecite()">老師前行</button></div>
-        <div class="comp-slot"><button class="comp-btn comp-btn-recite" onclick="closeCompanionCard()">開始背誦</button></div>
-        <div class="comp-slot"><button class="comp-btn comp-btn-energy" id="btn-comp-energy" onclick="handleCompanionEnergy(this)">抽今日正能量</button></div>
-        <div class="comp-slot"></div>
-      </div>
-
+    <!-- 右側黑邊翼（固定 68px 黑色區域，對應主畫面 slot-r1 ~ slot-r4） -->
+    <div class="companion-side-wing" id="companion-right-wing">
+      <div class="companion-slot" id="comp-slot-r1"></div>
+      <div class="companion-slot" id="comp-slot-r2"></div>
+      <div class="companion-slot" id="comp-slot-r3"></div>
+      <div class="companion-slot" id="comp-slot-r4"></div>
     </div>
   </div>
 
@@ -1039,6 +1051,17 @@
     const slotR2 = document.getElementById('slot-r2');
     const slotR3 = document.getElementById('slot-r3');
     const slotR4 = document.getElementById('slot-r4');
+
+    /* 陪伴卡專用兩側黑邊翼 Slot 對應 */
+    const compSlotL1 = document.getElementById('comp-slot-l1');
+    const compSlotL2 = document.getElementById('comp-slot-l2');
+    const compSlotL3 = document.getElementById('comp-slot-l3');
+    const compSlotL4 = document.getElementById('comp-slot-l4');
+
+    const compSlotR1 = document.getElementById('comp-slot-r1');
+    const compSlotR2 = document.getElementById('comp-slot-r2');
+    const compSlotR3 = document.getElementById('comp-slot-r3');
+    const compSlotR4 = document.getElementById('comp-slot-r4');
 
     const offeringOverlay = document.getElementById('offering-modal-overlay');
     const inputClassId = document.getElementById('input-class-id');
@@ -1458,6 +1481,25 @@
       }
     }
 
+    // 渲染陪伴卡專用兩側黑邊翼按鈕 (精準對應主畫面位置：L1~L4, R1~R4)
+    function renderCompanionWingButtons() {
+      if (!compSlotL1) return;
+
+      // 左側 4 個 slot
+      compSlotL1.innerHTML = '<button class="comp-square-btn comp-btn-dedication" onclick="handleCompanionDedication()">老師迴向</button>';
+      compSlotL2.innerHTML = '<button class="comp-square-btn comp-btn-setting" id="btn-comp-schedule" onclick="handleCompanionSchedule()">排程設定</button>';
+      compSlotL3.innerHTML = '<button class="comp-square-btn comp-btn-line" onclick="shareScreenshotToLine()">LINE分享<br>正能量</button>';
+      compSlotL4.innerHTML = ''; // 保留空白平衡
+
+      // 右側 4 個 slot
+      compSlotR1.innerHTML = '<button class="comp-square-btn comp-btn-guide" onclick="playTeacherGuideAndRecite()">老師前行</button>';
+      compSlotR2.innerHTML = '<button class="comp-square-btn comp-btn-recite" onclick="closeCompanionCard()">開始背誦</button>';
+      compSlotR3.innerHTML = '<button class="comp-square-btn comp-btn-energy" id="btn-comp-energy" onclick="handleCompanionEnergy(this)">抽今日<br>正能量</button>';
+      compSlotR4.innerHTML = ''; // 保留空白平衡
+
+      updateCompanionScheduleButton();
+    }
+
     // 陪伴卡按鈕事件：老師前行
     async function playTeacherGuideAndRecite() {
       triggerAppFullscreen();
@@ -1604,11 +1646,13 @@
       
       triggerFireworks(showToastFlag);
 
-      btn.textContent = `堅持背書\n第${dayNum}天`;
+      btn.textContent = `堅持背書
+第${dayNum}天`;
       
       if (btn._timer) clearTimeout(btn._timer);
       btn._timer = setTimeout(() => {
-        btn.textContent = '抽今日正能量';
+        btn.textContent = '抽今日
+正能量';
       }, 3000);
     }
 
@@ -2164,7 +2208,8 @@
 
     function showToast(msg, duration = 6000) {
       if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
+      scheduleToast.innerHTML = msg.replace(/
+/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -2701,9 +2746,11 @@
           URL.revokeObjectURL(url);
 
           if (clipboardSuccess) {
-            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！
+可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 截圖已自動下載！
+請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
 
@@ -3745,7 +3792,7 @@
 
     async function loadRandomCardData() {
       await loadBackgroundConfig();
-      const compCenterStage = document.getElementById('compCenterStage');
+      const cardStage = document.getElementById('cardStage');
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const cardTitle = document.getElementById('cardTitle');
@@ -3758,7 +3805,6 @@
       const paddedImgNum = String(randomImgNum).padStart(2, '0');
       const imgPath = `images/bg_${paddedImgNum}.webp`;
 
-      const cardStage = document.getElementById('cardStage');
       if (cardStage) cardStage.classList.add('fade-out');
 
       setTimeout(() => {
@@ -3777,7 +3823,7 @@
           const cardIdInline = document.getElementById('cardIdInline');
           if (cardIdInline) cardIdInline.textContent = displayId;
 
-          const maxH = (compCenterStage ? compCenterStage.clientHeight : window.innerHeight) * 0.92;
+          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.92;
 
           let size = 38; 
           const minSize = 14; 
@@ -3796,6 +3842,7 @@
             tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
           }
 
+          // 自適應大小算出後，若 >= 22px 套用美麗字型與字距
           if (size >= 22) {
             cardContent.style.fontFamily = '"Noto Serif TC", "Songti TC", "STSong", "AR PL UMing TW", serif';
             cardContent.style.letterSpacing = '1.5px';
@@ -3808,10 +3855,8 @@
 
           if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         }
-        if (compCenterStage) {
-          compCenterStage.style.backgroundImage = `url('${imgPath}')`;
-        }
         if (cardStage) {
+          cardStage.style.backgroundImage = `url('${imgPath}')`;
           cardStage.classList.remove('fade-out');
         }
       }, 200);
@@ -3843,9 +3888,10 @@
     }, { passive: true });
 
     async function initCompanionCard(targetDay) {
+      renderCompanionWingButtons();
       await loadBackgroundConfig();
       window.CURRENT_TARGET_DAY = targetDay;
-      const compCenterStage = document.getElementById('compCenterStage');
+      const cardStage = document.getElementById('cardStage');
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const cardTitle = document.getElementById('cardTitle');
@@ -3863,7 +3909,7 @@
 
       if (targetDay <= 21) {
         const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
-        if (compCenterStage) compCenterStage.style.backgroundImage = `url('${cardFileName}')`;
+        if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
         if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         if (textContainer) textContainer.style.display = 'none';
       } else {
@@ -3883,7 +3929,7 @@
             .catch(err => {
               if (cardTitle) cardTitle.textContent = "陪伴卡載入";
               if (cardContent) cardContent.textContent = "請確認 images_text.json 是否存在";
-              if (compCenterStage) compCenterStage.style.backgroundImage = `url('images/bg_01.webp')`;
+              if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
             });
         }
       }
