@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 長青版V20</title>
+  <title>歡喜背書 長青版V21</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -897,7 +897,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【長青版V20 載入中】...</div>
+  <div id="schedule-toast">📦 【長青版V21 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2716,9 +2716,16 @@
             video.currentTime = range.start; 
             mp4Speed = SPEED_STEPS[Math.min(9, currentCycleCount)];
             video.playbackRate = mp4Speed;
-            video.play().catch(e => {});
             showToast('【跟讀第 ' + (currentCycleCount + 1) + ' 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 2000);
           }
+          setTimeout(() => {
+            if (currentCoreMode === 'mode2') {
+              const r2 = getActiveVideoRange();
+              if (r2.valid) video.currentTime = r2.start;
+              video.play().catch(e => {});
+              startMp4PrecisionCheck();
+            }
+          }, 350);
         } else {
           if (hasCumulative) {
             practicePhase = 'cumulative_gendu';
@@ -2755,9 +2762,16 @@
             video.currentTime = range.start; 
             mp4Speed = SPEED_STEPS[Math.min(9, currentCycleCount)];
             video.playbackRate = mp4Speed;
-            video.play().catch(e => {});
             showToast('【串習跟讀第 ' + (currentCycleCount + 1) + ' 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 2000);
           }
+          setTimeout(() => {
+            if (currentCoreMode === 'mode2') {
+              const r2 = getActiveVideoRange();
+              if (r2.valid) video.currentTime = r2.start;
+              video.play().catch(e => {});
+              startMp4PrecisionCheck();
+            }
+          }, 350);
         } else {
           practicePhase = 'completed';
           classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
