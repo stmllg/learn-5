@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999_1</title>
+  <title>歡喜背書V999</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -52,7 +52,7 @@
       height: 100dvh;
       background-color: #0B0F19;
       color: #FFFFFF;
-      font-family: "Microsoft JhengHei", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Serif TC", "Songti TC", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", serif;
       overflow: hidden;
       position: fixed;
       top: 0;
@@ -239,7 +239,6 @@
       opacity: 0.2;
     }
     .card-title {
-      font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
       font-weight: 900;
       color: #581C87;
       text-shadow: 0 1px 3px rgba(255,255,255,0.95);
@@ -248,7 +247,6 @@
       margin-bottom: 6px;
     }
     .card-content {
-      font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
       font-weight: 800;
       color: #0F172A;
       line-height: 1.35;
@@ -258,7 +256,6 @@
       overflow: hidden;
     }
     .card-id-inline {
-      font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
       font-weight: 900;
       color: #047857;
       text-align: right;
@@ -901,7 +898,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999_1 載入中】...</div>
+  <div id="schedule-toast">📦 【v999 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2708,6 +2705,7 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
+    // 階段轉換控制：支援語音配合提示，並在最後圓滿直接解鎖不跳確認視窗
     function handleCycleCompletion() {
       if (currentCoreMode === 'mode2') {
         video.pause();
@@ -2732,6 +2730,7 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
+          // 轉場 1：新進度跟讀 轉 新進度自讀（附語音提示）
           const promptText = "手指放螢幕也可小紅點向前，按快慢可調自己的語速";
           speakPrompt(promptText);
           showTransitionModal(
@@ -2753,6 +2752,7 @@
           handleZiduClick();
         } else {
           if (hasCumulative) {
+            // 轉場 2：新進度自讀 轉 串習定課跟讀 (程式全自動控制播放，無需手動點擊)
             showTransitionModal(
               "🎉 新進度自讀圓滿！",
               `新進度已全部圓滿。<br>接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
@@ -2785,6 +2785,7 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
+          // 轉場 3：串習定課跟讀 轉 串習定課自讀
           showTransitionModal(
             "🎉 串習複習跟讀圓滿！",
             `您已完成串習複習跟讀。<br>接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
@@ -2809,6 +2810,7 @@
       saveCurrentAppState();
     }
 
+    // 最後圓滿：直接解鎖並顯示蓮花雨與 Toast，不跳確認視窗
     function finishAllPractice() {
       try { window.speechSynthesis.cancel(); } catch(e) {}
       practicePhase = 'completed';
