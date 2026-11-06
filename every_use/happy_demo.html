@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999_5</title>
+  <title>歡喜背書V999_1</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -52,7 +52,7 @@
       height: 100dvh;
       background-color: #0B0F19;
       color: #FFFFFF;
-      font-family: "Noto Serif TC", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Songti TC", "PingFang TC", "Microsoft JhengHei", serif;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif;
       overflow: hidden;
       position: fixed;
       top: 0;
@@ -239,6 +239,7 @@
       opacity: 0.2;
     }
     .card-title {
+      font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
       font-weight: 900;
       color: #581C87;
       text-shadow: 0 1px 3px rgba(255,255,255,0.95);
@@ -247,6 +248,7 @@
       margin-bottom: 6px;
     }
     .card-content {
+      font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
       font-weight: 800;
       color: #0F172A;
       line-height: 1.35;
@@ -256,6 +258,7 @@
       overflow: hidden;
     }
     .card-id-inline {
+      font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
       font-weight: 900;
       color: #047857;
       text-align: right;
@@ -804,9 +807,6 @@
     .rank-coins { color: #F59E0B; font-weight: 900; }
     .btn-rejoice { width: 100%; height: 46px; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; font-size: 18px; font-weight: 900; border: none; border-radius: 14px; cursor: pointer; }
   </style>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -831,8 +831,7 @@
 
   <div id="companion-overlay">
     <div class="companion-wrapper" id="cardStage">
-      <canvas id="flowerCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: none; border-radius: 0px;"></canvas>
-      <div class="card-text-container" id="textContainer" style="z-index: 20; position: relative;">
+      <div class="card-text-container" id="textContainer">
         <div class="card-title" id="cardTitle">載入中...</div>
         <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
         <div class="card-id-inline" id="cardIdInline"></div>
@@ -902,9 +901,10 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999_5 載入中】...</div>
+  <div id="schedule-toast">📦 【v999_1 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
+  <canvas id="flowerCanvas"></canvas>
 
   <div id="landscape-container">
     <div class="side-wing" id="left-wing">
@@ -2708,7 +2708,6 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 階段轉換控制：支援語音配合提示，並在最後圓滿直接解鎖不跳確認視窗
     function handleCycleCompletion() {
       if (currentCoreMode === 'mode2') {
         video.pause();
@@ -2733,7 +2732,6 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          // 轉場 1：新進度跟讀 轉 新進度自讀（附語音提示）
           const promptText = "手指放螢幕也可小紅點向前，按快慢可調自己的語速";
           speakPrompt(promptText);
           showTransitionModal(
@@ -2755,7 +2753,6 @@
           handleZiduClick();
         } else {
           if (hasCumulative) {
-            // 轉場 2：新進度自讀 轉 串習定課跟讀 (程式全自動控制播放，無需手動點擊)
             showTransitionModal(
               "🎉 新進度自讀圓滿！",
               `新進度已全部圓滿。<br>接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
@@ -2788,7 +2785,6 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          // 轉場 3：串習定課跟讀 轉 串習定課自讀
           showTransitionModal(
             "🎉 串習複習跟讀圓滿！",
             `您已完成串習複習跟讀。<br>接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
@@ -2813,7 +2809,6 @@
       saveCurrentAppState();
     }
 
-    // 最後圓滿：直接解鎖並顯示蓮花雨與 Toast，不跳確認視窗
     function finishAllPractice() {
       try { window.speechSynthesis.cancel(); } catch(e) {}
       practicePhase = 'completed';
@@ -2862,9 +2857,8 @@
       if (!canvas) return;
       canvas.style.display = 'block';
       const ctx = canvas.getContext('2d');
-            const cardStageEl = document.getElementById('cardStage');
-      canvas.width = cardStageEl ? cardStageEl.clientWidth : window.innerWidth;
-      canvas.height = cardStageEl ? cardStageEl.clientHeight : window.innerHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
 
       const flowers = [];
       const lotusColors = ['#FF94B8', '#FFB300', '#F1F5F9', '#22C55E', '#C084FC', '#E11D48', '#3B82F6'];
@@ -2940,9 +2934,8 @@
       if (!canvas) return;
       canvas.style.display = 'block';
       const ctx = canvas.getContext('2d');
-            const cardStageEl = document.getElementById('cardStage');
-      canvas.width = cardStageEl ? cardStageEl.clientWidth : window.innerWidth;
-      canvas.height = cardStageEl ? cardStageEl.clientHeight : window.innerHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
 
       let startX = window.innerWidth / 2;
       let startY = window.innerHeight - 40;
@@ -3085,9 +3078,8 @@
       if (!canvas) return;
       canvas.style.display = 'block';
       const ctx = canvas.getContext('2d');
-            const cardStageEl = document.getElementById('cardStage');
-      canvas.width = cardStageEl ? cardStageEl.clientWidth : window.innerWidth;
-      canvas.height = cardStageEl ? cardStageEl.clientHeight : window.innerHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
 
       const coins = [];
       const labels = ['福', '慧'];
@@ -3717,7 +3709,6 @@
     }
 
     async function loadRandomCardData() {
-      updateCardFontStyleUI();
       await loadBackgroundConfig();
       const cardStage = document.getElementById('cardStage');
       const bottomRightBadge = document.getElementById('bottomRightBadge');
@@ -3771,7 +3762,6 @@
           }
 
           if (bottomRightBadge) bottomRightBadge.style.display = 'none';
-          updateCardFontAutoSize(size);
         }
         if (cardStage) {
           cardStage.style.backgroundImage = `url('${imgPath}')`;
@@ -3804,16 +3794,6 @@
         }
       }
     }, { passive: true });
-
-    
-    function updateCardFontAutoSize(size) {
-      const cardTitle = document.getElementById('cardTitle');
-      const cardContent = document.getElementById('cardContent');
-      // 自動切換：大於等於20用宋體，小於20用黑體
-      const fontFamily = (size >= 20) ? '"Noto Serif TC", serif' : '"Noto Sans TC", sans-serif';
-      if (cardTitle) cardTitle.style.fontFamily = fontFamily;
-      if (cardContent) cardContent.style.fontFamily = fontFamily;
-    }
 
     async function initCompanionCard(targetDay) {
       await loadBackgroundConfig();
