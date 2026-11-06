@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V998</title>
+  <title>歡喜背書V999</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -497,7 +497,7 @@
     }
     .restore-card {
       background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
-      border: 3px solid #10B981;
+      border: 3px solid #F59E0B;
       border-radius: 22px;
       max-width: 440px;
       width: 92%;
@@ -511,7 +511,7 @@
     .restore-title {
       font-size: 24px;
       font-weight: 900;
-      color: #34D399;
+      color: #FBBF24;
       letter-spacing: 2px;
     }
     .restore-desc {
@@ -521,24 +521,24 @@
       background: rgba(15, 23, 42, 0.75);
       padding: 16px;
       border-radius: 12px;
-      border: 1px dashed rgba(52, 211, 153, 0.4);
+      border: 1px dashed rgba(245, 158, 11, 0.4);
     }
     .btn-restore-confirm {
       padding: 14px 24px;
       font-size: 19px;
       font-weight: 900;
-      color: #064E3B;
-      background: linear-gradient(135deg, #A7F3D0 0%, #34D399 100%);
-      border: 2px solid #10B981;
+      color: #78350F;
+      background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%);
+      border: 2px solid #D97706;
       border-radius: 26px;
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
       cursor: pointer;
       letter-spacing: 2px;
       transition: transform 0.15s ease-out;
     }
     .btn-restore-confirm:active {
       transform: scale(0.96);
-      background: linear-gradient(135deg, #34D399 0%, #059669 100%);
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
     }
 
     #landscape-container {
@@ -846,7 +846,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v998)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v995)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -898,7 +898,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v998 載入中】...</div>
+  <div id="schedule-toast">📦 【v999 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1692,9 +1692,9 @@
         }
 
         let dayLabel = (i === 1) ? '今天' : (i === 2 ? '明天' : `第${simDay}天`);
-        let reviewStr = (simDay === 1) ? `複[---](第${rCum}遍)` : `複[${cStart}~${cEnd}](第${rCum}遍)`;
+        let reviewStr = (simDay === 1) ? `複[---](1遍)` : `複[${cStart}~${cEnd}](${rCum}遍)`;
 
-        list.push(`${dayLabel} (第${simDay}天): 新[${simStart}~${end}](第${rNew}遍) ${reviewStr}`);
+        list.push(`${dayLabel} (第${simDay}天): 新[${simStart}~${end}](${rNew}遍) ${reviewStr}`);
 
         if (end >= total) break;
         if (simDay === 1) {
@@ -2170,14 +2170,6 @@
       } catch (e) {
         if (typeof onEnded === 'function') onEnded();
       }
-    }
-
-    function stopSpeechPrompt() {
-      try {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-        }
-      } catch(e) {}
     }
 
     function getActiveVideoRange() {
@@ -2713,6 +2705,7 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
+    // 階段轉換控制：支援語音配合提示，並在最後圓滿直接解鎖不跳確認視窗
     function handleCycleCompletion() {
       if (currentCoreMode === 'mode2') {
         video.pause();
@@ -2731,41 +2724,38 @@
 
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < newRepeat) {
-          showToast(`第 ${currentCycleCount} 遍`, 2000);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          // 轉場 1：新進度跟讀 轉 新進度自讀 (附帶語音提示與自動化)
-          const promptText = "請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。按快慢可調自己的語速。";
+          // 轉場 1：新進度跟讀 轉 新進度自讀（附語音提示）
+          const promptText = "手指放螢幕也可小紅點向前，按快慢可調自己的語速";
           speakPrompt(promptText);
-
           showTransitionModal(
             "🎉 新進度跟讀圓滿！",
-            `您已完成新進度跟讀。<br>接下來將進入<strong>「新進度自讀模式」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+            `您已完成新進度跟讀。<br>接下來將進入<strong>「新進度自讀模式」</strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
-              stopSpeechPrompt();
               practicePhase = 'new_zidu';
               currentCycleCount = 0;
               setupStageRange();
               setCoreMode('mode3');
               handleZiduClick();
-            },
-            false // 預設綠色邊框
+            }
           );
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
-          showToast(`第 ${currentCycleCount} 遍`, 2000);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           handleZiduClick();
         } else {
           if (hasCumulative) {
-            // 轉場 2：新進度自讀 轉 串習定課跟讀 (自動播放影片，不需手動)
+            // 轉場 2：新進度自讀 轉 串習定課跟讀 (程式全自動控制播放，無需手動點擊)
             showTransitionModal(
               "🎉 新進度自讀圓滿！",
-              `新進度已全部圓滿。<br>接下來將進入<strong>「串習複習跟讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+              `新進度已全部圓滿。<br>接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
               () => {
                 practicePhase = 'cumulative_gendu';
                 currentCycleCount = 0;
@@ -2773,9 +2763,15 @@
                 setCoreMode('mode2');
                 const range = getActiveVideoRange();
                 if (range.valid) { video.currentTime = range.start; }
-                handleGenduClick();
-              },
-              true // 金黃色邊框
+                setTimeout(() => {
+                  video.play().then(() => {
+                    updateModeButtonsStyle();
+                    startMp4PrecisionCheck();
+                  }).catch(e => {
+                    handleGenduClick();
+                  });
+                }, 300);
+              }
             );
           } else {
             finishAllPractice();
@@ -2783,33 +2779,28 @@
         }
       } else if (practicePhase === 'cumulative_gendu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`第 ${currentCycleCount} 遍`, 2000);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          // 轉場 3：串習定課跟讀 轉 串習定課自讀 (金黃框、語音提示、按確定立即停語音並轉流程)
-          const promptText = "請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。按快慢可調自己的語速。";
-          speakPrompt(promptText);
-
+          // 轉場 3：串習定課跟讀 轉 串習定課自讀
           showTransitionModal(
             "🎉 串習複習跟讀圓滿！",
             `您已完成串習複習跟讀。<br>接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
-              stopSpeechPrompt();
               practicePhase = 'cumulative_zidu';
               currentCycleCount = 0;
               setupStageRange();
               setCoreMode('mode3');
               handleZiduClick();
-            },
-            true // 金黃色邊框
+            }
           );
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`第 ${currentCycleCount} 遍`, 2000);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           handleZiduClick();
         } else {
@@ -2819,25 +2810,20 @@
       saveCurrentAppState();
     }
 
-    // 輔助函式：處理最終全部圓滿 (無確認視窗，直接解鎖)
+    // 最後圓滿：直接解鎖並顯示蓮花雨與 Toast，不跳確認視窗
     function finishAllPractice() {
+      try { window.speechSynthesis.cancel(); } catch(e) {}
       practicePhase = 'completed';
       classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
       renderUI();
       triggerSevenColoredLotusFlowerRain();
-      showToast("🎉 今日定課與串習全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 8000);
+      showToast("🎉 今日定課與串習全部圓滿！左側已解鎖背書供養，右側已解鎖全功能自主複習。", 6000);
+      saveCurrentAppState();
     }
 
-    // 輔助函式：彈出帶有「確定」按鈕的轉場視窗 (支援金黃色邊框)
-    function showTransitionModal(titleText, descHtml, onConfirmCallback, isGoldBorder = false) {
+    function showTransitionModal(titleText, descHtml, onConfirmCallback) {
       const restoreCard = document.querySelector('.restore-card');
       if (!restoreCard) return;
-
-      if (isGoldBorder) {
-        restoreCard.style.border = '3px solid #F59E0B';
-      } else {
-        restoreCard.style.border = '3px solid #10B981';
-      }
 
       const titleEl = restoreCard.querySelector('.restore-title');
       const descEl = document.getElementById('restore-desc-text');
@@ -2851,6 +2837,7 @@
         btnEl.parentNode.replaceChild(newBtn, btnEl);
         
         newBtn.addEventListener('click', () => {
+          try { window.speechSynthesis.cancel(); } catch(e) {}
           restoreModalOverlay.style.display = 'none';
           if (typeof onConfirmCallback === 'function') {
             onConfirmCallback();
@@ -3511,10 +3498,201 @@
 
     btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
 
+    function haltGuideRunnerImmediately() {
+      isGuideActive = false;
+      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      guideLine.style.display = 'none';
+      redDot.style.display = 'none';
+      updateModeButtonsStyle();
+    }
+
+    function startGuideRunner() {
+      if (parsedTextLines.length === 0) return;
+      guideStage.style.height = Math.max(centerCore.scrollHeight, 2500) + 'px';
+      scrollToAlignTop(currentLineIndex);
+      setupActiveLine(currentLineIndex, currentCharIndexFloat);
+      lastAnimTimestamp = performance.now();
+      if (guideAnimId) cancelAnimationFrame(guideAnimId);
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function scrollToAlignTop(idx) {
+      if (isUserManualScrolling) return; 
+      const line = parsedTextLines[idx];
+      if (line) {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const displayTop = line.topGlobal * scaleY;
+        const targetTop = Math.max(0, displayTop - 18);
+
+        if (isAppleDevice) {
+          const viewportTop = centerCore.scrollTop;
+          const viewportBottom = viewportTop + centerCore.clientHeight;
+          if (displayTop < viewportTop || (line.bottomGlobal * scaleY) > viewportBottom) {
+            centerCore.scrollTo({ top: targetTop, behavior: 'smooth' });
+          }
+        } else {
+          centerCore.scrollTop = targetTop;
+        }
+      }
+    }
+
+    function getVisibleBottomLineIndex() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      let lastVisibleIdx = currentLineIndex;
+      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
+        if (parsedTextLines[i].underLineY <= viewportBottom - 16) lastVisibleIdx = i;
+        else break;
+      }
+      return lastVisibleIdx;
+    }
+
+    function checkAndTriggerPageFlip() {
+      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
+      if (markA_Index !== -1 && markB_Index !== -1) {
+        const lineA = parsedTextLines[markA_Index];
+        const lineB = parsedTextLines[markB_Index];
+        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) return;
+      }
+      const nextIndex = currentLineIndex + 1;
+      if (markB_Index !== -1 && nextIndex > markB_Index) return;
+
+      if (nextIndex < parsedTextLines.length) {
+        const nextLine = parsedTextLines[nextIndex];
+        if (nextLine.underLineY > (viewportBottom - 18)) scrollToAlignTop(nextIndex);
+      }
+    }
+
+    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
+      if (!line) return 0;
+      if (!line.charItems || line.charItems.length === 0) return line.x0;
+      const items = line.charItems;
+      const totalChars = items.length;
+      if (charProgressFloat <= 0) return items[0].x0;
+      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
+
+      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
+      const intraCharFraction = charProgressFloat - charIdx;
+      const item = items[charIdx];
+      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
+    }
+
+    function setupActiveLine(idx, initCurrent = 0.0) {
+      if (markB_Index !== -1 && idx > markB_Index) { handleCycleCompletion(); return; }
+      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+      const line = parsedTextLines[idx];
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      lineActivationTimestamp = performance.now();
+
+      if (isGuideActive) {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const scaleX = canvasRect.width / pdfCanvas.width;
+
+        guideLine.style.top = (line.underLineY * scaleY) + 'px';
+        guideLine.style.left = (line.x0 * scaleX) + 'px';
+        guideLine.style.width = ((line.x1 - line.x0) * scaleX) + 'px';
+        
+        const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
+        redDot.style.top = (line.underLineY * scaleY) + 'px';
+        redDot.style.left = (rawX * scaleX) + 'px';
+
+        guideLine.style.display = 'block';
+        redDot.style.display = 'block';
+      }
+      isTransitioningLine = false;
+    }
+
+    function stepGuideMovement(now) {
+      if (!isGuideActive || isTransitioningLine) return;
+      let delta = now - lastAnimTimestamp;
+      if (delta <= 0 || delta > 120) delta = 16.6;
+      lastAnimTimestamp = now;
+
+      const curLine = parsedTextLines[currentLineIndex];
+      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
+      const inertiaStartIndex = Math.max(1, totalChars - 2);
+      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
+
+      if (isVoiceActive || isTouchingDisplay || isInTailZone) {
+        const charPerMs = (2.8 * pdfSpeed) / 1000;
+        if (isLineHeadLocked) {
+          if (currentCharIndexFloat < 0.5) {
+            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
+          }
+        } else {
+          currentCharIndexFloat += charPerMs * delta;
+        }
+        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
+      }
+
+      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
+        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
+        if (!isCurrentLineAtTargetEnd) {
+          const visibleBottomIdx = getVisibleBottomLineIndex();
+          if (currentLineIndex === visibleBottomIdx) {
+            checkAndTriggerPageFlip();
+            hasPageFlipped = true;
+          }
+        }
+      }
+
+      if (currentCharIndexFloat >= totalChars) {
+        currentCharIndexFloat = totalChars;
+        if (curLine) {
+          const canvasRect = pdfCanvas.getBoundingClientRect();
+          const scaleY = canvasRect.height / pdfCanvas.height;
+          const scaleX = canvasRect.width / pdfCanvas.width;
+          const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+          redDot.style.left = (rawX * scaleX) + 'px';
+          redDot.style.top = (curLine.underLineY * scaleY) + 'px';
+        }
+
+        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
+        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
+        const nextIndex = currentLineIndex + 1;
+        if (markB_Index !== -1 && nextIndex > markB_Index) { handleCycleCompletion(); return; }
+        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
+
+        isTransitioningLine = true;
+        lineEndTime = performance.now();
+        peakRmsAtLineEnd = prevRms;
+        guideLine.style.display = 'none';
+        return;
+      }
+
+      if (curLine) {
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        const scaleY = canvasRect.height / pdfCanvas.height;
+        const scaleX = canvasRect.width / pdfCanvas.width;
+        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
+        redDot.style.left = (rawX * scaleX) + 'px';
+        redDot.style.top = (curLine.underLineY * scaleY) + 'px';
+      }
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
+    function proceedToNextLineImmediately() {
+      if (!isTransitioningLine || !isGuideActive) return;
+      const nextIndex = currentLineIndex + 1;
+      if (markB_Index !== -1 && nextIndex > markB_Index) {
+        handleCycleCompletion();
+        return;
+      }
+      hasPageFlipped = false;
+      currentLineIndex = nextIndex;
+      setupActiveLine(currentLineIndex, 0.0);
+      lastAnimTimestamp = performance.now();
+      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    }
+
     let cardTexts = {};
     let textKeys = [];
-    let backgroundConfig = { firstNum: 1, lastNum: 40 };
 
+    let backgroundConfig = { firstNum: 1, lastNum: 40 };
     async function loadBackgroundConfig() {
       try {
         const res = await fetch('images_config.json?t=' + Date.now());
@@ -3565,7 +3743,9 @@
           const cardIdInline = document.getElementById('cardIdInline');
           if (cardIdInline) cardIdInline.textContent = displayId;
 
+          const stageHeight = (cardStage && cardStage.clientHeight > 50) ? cardStage.clientHeight : window.innerHeight;
           const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.78;
+
           let size = 33; 
           const minSize = 14; 
 
@@ -3591,6 +3771,31 @@
         }
       }, 200);
     }
+
+    let companionSwipeStartX = 0;
+    let companionSwipeStartY = 0;
+    companionOverlay.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        companionSwipeStartX = e.touches[0].clientX;
+        companionSwipeStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    companionOverlay.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1 && !hasEnteredReciting) {
+        const deltaX = e.changedTouches[0].clientX - companionSwipeStartX;
+        const deltaY = e.changedTouches[0].clientY - companionSwipeStartY;
+        if (Math.abs(deltaX) > 80 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+          try {
+            if (document.exitFullscreen) {
+              document.exitFullscreen().catch(() => {});
+            } else if (document.webkitExitFullscreen) {
+              document.webkitExitFullscreen().catch(() => {});
+            }
+          } catch(err) {}
+        }
+      }
+    }, { passive: true });
 
     async function initCompanionCard(targetDay) {
       await loadBackgroundConfig();
@@ -3652,9 +3857,9 @@
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>「⋯」</span></strong>或<strong><span>「指南針/Safari圖示」</span></strong>），點選<strong><span>「在 Safari 中開啟」</span></strong>以獲得最佳全螢幕體驗。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
         } else {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong><span>「⋮」</span></strong>，點選<strong><span>「以預設瀏覽器開啟」</span></strong>（Chrome）。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
         }
         overlay.classList.add('active');
         return; 
