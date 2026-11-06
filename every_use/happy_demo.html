@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V1000</title>
+  <title>歡喜背書V1000-2</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -220,7 +220,49 @@
       display: none !important;
     }
 
-    /* 文字框上下左右邊界皆為 4% */
+    /* 貼齊全螢幕兩側黑色留白區域的 6 顆按鈕群組 */
+    .companion-side-group {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 25000;
+    }
+    .companion-side-left {
+      left: 12px;
+    }
+    .companion-side-right {
+      right: 12px;
+    }
+
+    .comp-btn {
+      width: 92px;
+      padding: 10px 4px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 900;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s ease-out;
+      white-space: pre-wrap;
+      line-height: 1.25;
+    }
+    .comp-btn:active {
+      transform: scale(0.95);
+    }
+
+    .comp-btn-dedication { color: #78350F; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); border: 1.5px solid #D97706; }
+    .comp-btn-setting    { color: #1E293B; background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%); border: 1.5px solid #94A3B8; }
+    .comp-btn-line       { color: #FFFFFF; background: linear-gradient(135deg, #06C755 0%, #00B900 100%); border: 1.5px solid #05B34B; }
+    .comp-btn-guide      { color: #431407; background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%); border: 1.5px solid #F97316; }
+    .comp-btn-recite     { color: #FFFFFF; background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%); border: 1.5px solid #0369A1; }
+    .comp-btn-energy     { color: #4A044E; background: linear-gradient(135deg, #FBCFE8 0%, #F472B6 100%); border: 1.5px solid #DB2777; }
+
+    /* 文字框上下邊界改為 4% 以最大化垂直空間 */
     .card-text-container {
       position: absolute;
       top: 4%;
@@ -261,49 +303,6 @@
       margin-top: 4px;
       text-shadow: 0 1px 3px rgba(255,255,255,0.95);
     }
-
-    /* 側邊按鈕群組定位 */
-    .companion-side-group {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      z-index: 30;
-    }
-    .companion-side-left {
-      left: 2%;
-    }
-    .companion-side-right {
-      right: 2%;
-    }
-
-    /* 陪伴卡側邊按鈕通用樣式 */
-    .comp-btn {
-      width: 100px;
-      padding: 10px 4px;
-      text-align: center;
-      font-size: 13px;
-      font-weight: 900;
-      border-radius: 14px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-      cursor: pointer;
-      user-select: none;
-      transition: transform 0.15s ease-out, background 0.2s ease;
-      white-space: pre-wrap;
-      line-height: 1.25;
-    }
-    .comp-btn:active {
-      transform: scale(0.95);
-    }
-
-    .comp-btn-dedication { color: #78350F; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); border: 1.5px solid #D97706; }
-    .comp-btn-setting    { color: #1E293B; background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%); border: 1.5px solid #94A3B8; }
-    .comp-btn-line       { color: #FFFFFF; background: linear-gradient(135deg, #06C755 0%, #00B900 100%); border: 1.5px solid #05B34B; }
-    .comp-btn-guide      { color: #431407; background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%); border: 1.5px solid #F97316; }
-    .comp-btn-recite     { color: #FFFFFF; background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%); border: 1.5px solid #0369A1; }
-    .comp-btn-energy     { color: #4A044E; background: linear-gradient(135deg, #FBCFE8 0%, #F472B6 100%); border: 1.5px solid #DB2777; }
 
     #schedule-modal-overlay {
       display: none;
@@ -806,30 +805,29 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
+  <!-- 陪伴卡畫面：按鈕群組置於全螢幕黑邊兩側 -->
   <div id="companion-overlay">
-    <div class="companion-wrapper" id="cardStage">
-      
-      <!-- 左側按鈕群組 (3顆) -->
-      <div class="companion-side-group companion-side-left">
-        <button class="comp-btn comp-btn-dedication" onclick="handleCompanionDedication()">老師迴向</button>
-        <button class="comp-btn comp-btn-setting" id="btn-comp-schedule" onclick="handleCompanionSchedule()">排程設定</button>
-        <button class="comp-btn comp-btn-line" onclick="shareScreenshotToLine()">LINE分享正能量</button>
-      </div>
+    <!-- 左側按鈕群組（貼齊螢幕最左側黑邊） -->
+    <div class="companion-side-group companion-side-left">
+      <button class="comp-btn comp-btn-dedication" onclick="handleCompanionDedication()">老師迴向</button>
+      <button class="comp-btn comp-btn-setting" id="btn-comp-schedule" onclick="handleCompanionSchedule()">排程設定</button>
+      <button class="comp-btn comp-btn-line" onclick="shareScreenshotToLine()">LINE分享正能量</button>
+    </div>
 
-      <!-- 中間文字容器：上下左右邊界皆為 4% -->
+    <!-- 中間陪伴卡主體 -->
+    <div class="companion-wrapper" id="cardStage">
       <div class="card-text-container" id="textContainer">
         <div class="card-title" id="cardTitle">載入中...</div>
         <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
         <div class="card-id-inline" id="cardIdInline"></div>
       </div>
+    </div>
 
-      <!-- 右側按鈕群組 (3顆) -->
-      <div class="companion-side-group companion-side-right">
-        <button class="comp-btn comp-btn-guide" onclick="playTeacherGuideAndRecite()">老師前行</button>
-        <button class="comp-btn comp-btn-recite" onclick="closeCompanionCard()">開始背誦</button>
-        <button class="comp-btn comp-btn-energy" id="btn-comp-energy" onclick="handleCompanionEnergy(this)">抽今日正能量</button>
-      </div>
-
+    <!-- 右側按鈕群組（貼齊螢幕最右側黑邊） -->
+    <div class="companion-side-group companion-side-right">
+      <button class="comp-btn comp-btn-guide" onclick="playTeacherGuideAndRecite()">老師前行</button>
+      <button class="comp-btn comp-btn-recite" onclick="closeCompanionCard()">開始背誦</button>
+      <button class="comp-btn comp-btn-energy" id="btn-comp-energy" onclick="handleCompanionEnergy(this)">抽今日正能量</button>
     </div>
   </div>
 
@@ -1294,12 +1292,12 @@
 
       const targetDay = getRealTargetDay();
       initCompanionCard(targetDay);
+      updateCompanionScheduleButton();
 
       hasEnteredReciting = false;
       companionOverlay.style.display = 'flex';
       companionOverlay.style.opacity = '1';
       companionOverlay.classList.add('active');
-      updateCompanionScheduleButton();
       showToast('💤 已為您自動存檔並返回休息', 3500);
     }
 
@@ -1448,6 +1446,7 @@
       }
     }
 
+    // 陪伴卡按鈕事件：老師前行
     async function playTeacherGuideAndRecite() {
       triggerAppFullscreen();
       const compOverlay = document.getElementById('companion-overlay');
@@ -1488,6 +1487,7 @@
       }, 200);
     }
 
+    // 陪伴卡按鈕事件：開始背誦
     async function closeCompanionCard() {
       triggerAppFullscreen();
       
@@ -1529,10 +1529,30 @@
       }, 200);
     }
 
+    // 陪伴卡按鈕事件：老師迴向
+    function handleCompanionDedication() {
+      triggerAppFullscreen();
+      const compOverlay = document.getElementById('companion-overlay');
+      compOverlay.style.opacity = '0';
+      compOverlay.classList.remove('active');
+      
+      setTimeout(() => {
+        compOverlay.style.display = 'none';
+        playStandaloneVideo('mode5', 0, () => {
+          showToast('✨ 迴向圓滿，隨喜功德', 3000);
+          practicePhase = 'completed';
+          setCoreMode('mode3');
+          renderUI();
+        });
+      }, 200);
+    }
+
+    // 陪伴卡按鈕事件：排程設定 (一天只能設定一次，過後鎖定)
     function updateCompanionScheduleButton() {
       const todayStr = getNormalizedDateStr();
       const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V971');
       const btnSchedule = document.getElementById('btn-comp-schedule');
+      
       if (btnSchedule) {
         if (settingUsedDate === todayStr) {
           btnSchedule.textContent = '🔒 排程鎖定';
@@ -1548,6 +1568,7 @@
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
       const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V971');
+      
       if (settingUsedDate === todayStr) {
         showToast('⚠️ 今日排程已經鎖定，明天才能再次設定', 3000);
         return;
@@ -1555,27 +1576,11 @@
       openScheduleModal();
     }
 
-    function handleCompanionDedication() {
-      triggerAppFullscreen();
-      const compOverlay = document.getElementById('companion-overlay');
-      compOverlay.style.opacity = '0';
-      compOverlay.classList.remove('active');
-      compOverlay.style.pointerEvents = 'none';
-
-      setTimeout(() => {
-        compOverlay.style.display = 'none';
-        compOverlay.style.pointerEvents = 'auto';
-        playStandaloneVideo('mode5', 0, () => {
-          showToast('✨ 迴向圓滿，隨喜功德', 3000);
-          practicePhase = 'completed';
-          setCoreMode('mode3');
-          renderUI();
-        });
-      }, 200);
-    }
-
+    // 陪伴卡按鈕事件：抽今日正能量 (放煙火、換隨機卡片與金句、按鈕文字變動3秒)
     function handleCompanionEnergy(btn) {
       triggerAppFullscreen();
+      loadRandomCardData();
+
       const dayNum = String(window.CURRENT_TARGET_DAY || getRealTargetDay()).padStart(3, '0');
       
       const todayStr = getNormalizedDateStr();
@@ -1588,6 +1593,7 @@
       triggerFireworks(showToastFlag);
 
       btn.textContent = `堅持背書\n第${dayNum}天`;
+      
       if (btn._timer) clearTimeout(btn._timer);
       btn._timer = setTimeout(() => {
         btn.textContent = '抽今日正能量';
@@ -2146,7 +2152,8 @@
 
     function showToast(msg, duration = 6000) {
       if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
+      scheduleToast.innerHTML = msg.replace(/
+/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -2645,11 +2652,8 @@
       triggerAppFullscreen();
 
       const cardStage = document.getElementById('cardStage');
-      const sideGroups = document.querySelectorAll('.companion-side-group');
-
       if (!cardStage) return;
 
-      sideGroups.forEach(g => g.style.display = 'none');
       showToast('📸 正在產生精美截圖...', 2000);
 
       await new Promise(resolve => setTimeout(resolve, 400));
@@ -2663,8 +2667,6 @@
         });
 
         canvas.toBlob(async (blob) => {
-          sideGroups.forEach(g => g.style.display = 'flex');
-
           if (!blob) {
             showToast('⚠️ 截圖產生失敗', 3000);
             return;
@@ -2695,7 +2697,6 @@
         }, 'image/png', 0.95);
 
       } catch(err) {
-        sideGroups.forEach(g => g.style.display = 'flex');
         showToast('⚠️ 截圖失敗', 3000);
       }
     }
@@ -3734,9 +3735,11 @@
     async function loadRandomCardData() {
       await loadBackgroundConfig();
       const cardStage = document.getElementById('cardStage');
+      const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const cardTitle = document.getElementById('cardTitle');
       const cardContent = document.getElementById('cardContent');
+      if (bottomRightBadge) bottomRightBadge.style.display = 'block';
       if (textContainer) textContainer.style.display = 'block';
 
       const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
@@ -3762,9 +3765,9 @@
           const cardIdInline = document.getElementById('cardIdInline');
           if (cardIdInline) cardIdInline.textContent = displayId;
 
-          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.90;
+          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.92;
 
-          let size = 35; 
+          let size = 38; 
           const minSize = 14; 
 
           cardContent.style.fontSize = size + "px";
@@ -3780,6 +3783,19 @@
             if (cardIdInline) cardIdInline.style.fontSize = "12px";
             tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
           }
+
+          // 自適應大小算出後，若 >= 22px 套用美麗字型與字距
+          if (size >= 22) {
+            cardContent.style.fontFamily = '"Noto Serif TC", "Songti TC", "STSong", "AR PL UMing TW", serif';
+            cardContent.style.letterSpacing = '1.5px';
+            cardTitle.style.fontFamily = '"Noto Serif TC", "Songti TC", "STSong", serif';
+          } else {
+            cardContent.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Noto Sans TC", "Microsoft JhengHei", sans-serif';
+            cardContent.style.letterSpacing = 'normal';
+            cardTitle.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Noto Sans TC", sans-serif';
+          }
+
+          if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         }
         if (cardStage) {
           cardStage.style.backgroundImage = `url('${imgPath}')`;
@@ -3817,6 +3833,7 @@
       await loadBackgroundConfig();
       window.CURRENT_TARGET_DAY = targetDay;
       const cardStage = document.getElementById('cardStage');
+      const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const cardTitle = document.getElementById('cardTitle');
       const cardContent = document.getElementById('cardContent');
@@ -3834,8 +3851,10 @@
       if (targetDay <= 21) {
         const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
         if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
+        if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         if (textContainer) textContainer.style.display = 'none';
       } else {
+        if (bottomRightBadge) bottomRightBadge.style.display = 'block';
         if (textContainer) textContainer.style.display = 'block';
 
         if (Object.keys(cardTexts).length > 0) {
@@ -3855,7 +3874,6 @@
             });
         }
       }
-      updateCompanionScheduleButton();
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -3874,6 +3892,8 @@
 
       await prefetchSentenceCountOnStartup();
       checkDailyResetOnStartup();
+
+      updateCompanionScheduleButton();
 
       let targetDay = getRealTargetDay();
       classicStorage.setItem('CURRENT_SCHEDULE_DAY_V971', targetDay.toString());
