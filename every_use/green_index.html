@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 長青版V21</title>
+  <title>歡喜背書 長青版V22</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -887,6 +887,17 @@
     </div>
   </div>
 
+  
+  <div id="transition-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; z-index: 35000; background: rgba(4, 7, 15, 0.94); backdrop-filter: blur(8px); flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+    <div style="background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%); border: 3px solid #38BDF8; border-radius: 22px; max-width: 440px; width: 92%; padding: 28px 24px; box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9); text-align: center; display: flex; flex-direction: column; gap: 18px;">
+      <div style="font-size: 24px; font-weight: 900; color: #38BDF8; letter-spacing: 2px;">🎉 新進度跟讀 10 遍圓滿</div>
+      <div style="font-size: 17px; line-height: 1.6; color: #E2E8F0; background: rgba(15, 23, 42, 0.75); padding: 16px; border-radius: 12px; border: 1px dashed rgba(56, 189, 248, 0.4);">
+        恭喜完成今日新進度跟讀！<br>請準備好後點擊下方按鈕，開始進行「串習複習跟讀」。
+      </div>
+      <button style="padding: 14px 24px; font-size: 19px; font-weight: 900; color: #0F172A; background: linear-gradient(135deg, #7DD3FC 0%, #38BDF8 100%); border: 2px solid #0284C7; border-radius: 26px; box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4); cursor: pointer; letter-spacing: 2px;" onclick="confirmStartCumulativePractice()">🙏 準備好了，開始串習複習</button>
+    </div>
+  </div>
+
   <div id="restore-modal-overlay">
     <div class="restore-card">
       <div class="restore-title">🙏 隨喜回來・繼續精進</div>
@@ -897,7 +908,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【長青版V21 載入中】...</div>
+  <div id="schedule-toast">📦 【長青版V22 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1172,6 +1183,14 @@
         classicStorage.removeItem('APP_SAVED_STATE_V971');
         return false;
       }
+    }
+
+    
+    function confirmStartCumulativePractice() {
+      document.getElementById('transition-modal-overlay').style.display = 'none';
+      setupStageRange();
+      setCoreMode('mode2');
+      showToast('🚀 開始進行串習複習跟讀', 3000);
     }
 
     function confirmRestoreState() {
@@ -2730,19 +2749,10 @@
           if (hasCumulative) {
             practicePhase = 'cumulative_gendu';
             currentCycleCount = 0;
-            setupStageRange();
-
-            setCoreMode('mode2');
-            speakPrompt("新進度跟讀圓滿，準備進入串習複習跟讀", () => {
-              const range = getActiveVideoRange();
-              if (range.valid) { 
-                video.currentTime = range.start; 
-                mp4Speed = SPEED_STEPS[Math.min(9, currentCycleCount)];
-                video.playbackRate = mp4Speed;
-                video.play().catch(e => {});
-              }
-            });
-            showToast("🎉 新進度跟讀圓滿！\n即將進入串習複習跟讀...", 3000);
+            video.pause();
+            speakPrompt("新進度跟讀圓滿，請按按鈕進入串習複習跟讀");
+            document.getElementById('transition-modal-overlay').style.display = 'flex';
+            showToast("🎉 新進度跟讀圓滿！\n請點擊畫面按鈕開始串習複習", 5000);
           } else {
             practicePhase = 'completed';
             classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
