@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 長青版V27</title>
+  <title>歡喜背書 長青版V28</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -908,7 +908,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【長青版V27 載入中】...</div>
+  <div id="schedule-toast">📦 【長青版V28 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1004,6 +1004,9 @@
 
     let mp4Speed = parseFloat(classicStorage.getItem('user_mp4_speed_preference') || '1.0');
     if (isNaN(mp4Speed) || mp4Speed < 0.5 || mp4Speed > 2.5) mp4Speed = 1.0;
+
+    let userSpeedOffset = parseFloat(classicStorage.getItem('user_speed_offset') || '0.0');
+    if (isNaN(userSpeedOffset)) userSpeedOffset = 0.0;
 
     let pdfSpeed = parseFloat(classicStorage.getItem('user_pdf_speed_preference') || '1.0');
     if (isNaN(pdfSpeed) || pdfSpeed < 0.5 || pdfSpeed > 2.5) pdfSpeed = 1.0;
@@ -2115,6 +2118,28 @@
 
     
     const SPEED_STEPS = [0.80, 0.84, 0.89, 0.93, 0.98, 1.02, 1.07, 1.11, 1.16, 1.20];
+    function getCurrentCycleSpeed(cycleIdx) {
+      const baseSteps = [0.80, 0.84, 0.89, 0.93, 0.98, 1.02, 1.07, 1.11, 1.16, 1.20];
+      let raw = baseSteps[Math.min(9, cycleIdx)] + userSpeedOffset;
+      return Math.max(0.8, Math.min(1.5, raw));
+    }
+
+    function adjustGlobalSpeedOffset(delta) {
+      userSpeedOffset = Math.round((userSpeedOffset + delta) * 100) / 100;
+      // Clamp offset so max speed at cycle 9 doesn't exceed 1.5 and min speed at cycle 0 doesn't go below 0.8
+      // baseSteps[0] is 0.80 -> min offset is 0.0 (since 0.80 + 0 = 0.80)
+      // baseSteps[9] is 1.20 -> max offset is 0.30 (since 1.20 + 0.30 = 1.50)
+      userSpeedOffset = Math.max(0.0, Math.min(0.30, userSpeedOffset));
+      classicStorage.setItem('user_speed_offset', userSpeedOffset.toFixed(2));
+
+      if (currentCoreMode === 'mode2' && video && !video.paused) {
+        mp4Speed = getCurrentCycleSpeed(currentCycleCount);
+        video.playbackRate = mp4Speed;
+      }
+      flashSpeedToast('【語速微調 ' + (userSpeedOffset >= 0 ? '+' : '') + Math.round(userSpeedOffset * 100) + '% (當前: ' + getCurrentCycleSpeed(currentCycleCount).toFixed(2) + 'x)】');
+      saveCurrentAppState();
+    }
+
 
     function handleRetryPractice() {
       triggerAppFullscreen();
@@ -2255,7 +2280,7 @@
         videoWrap.style.display = 'flex';
 
         centerCore.scrollTop = 0;
-        mp4Speed = SPEED_STEPS[Math.min(9, currentCycleCount)];
+        mp4Speed = getCurrentCycleSpeed(currentCycleCount);
         video.playbackRate = mp4Speed;
         showToast('【跟讀第 ' + (currentCycleCount + 1) + ' 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 2000);
 
@@ -2311,15 +2336,22 @@
       try {
         const isPlayingRecitation = (currentCoreMode === 'mode2' && video && !video.paused);
 
+        // Always render Left 4 (減慢) and Right 4 (加快) for speed control
+        slotL4.innerHTML = '<button class="square-btn btn-color-speed-down" id="btn-slow" style="background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); color: #CCFBF1; border-color: #5EEAD4;">減慢</button>';
+        const btnSlow = document.getElementById('btn-slow');
+        if (btnSlow) btnSlow.onclick = () => adjustGlobalSpeedOffset(-0.05);
+
+        slotR4.innerHTML = '<button class="square-btn btn-color-speed-up" id="btn-fast" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #ECFDF5; border-color: #A7F3D0;">加快</button>';
+        const btnFast = document.getElementById('btn-fast');
+        if (btnFast) btnFast.onclick = () => adjustGlobalSpeedOffset(0.05);
+
         if (isPlayingRecitation || practicePhase !== 'completed') {
           slotL1.innerHTML = '';
           slotL2.innerHTML = '';
           slotL3.innerHTML = '';
-          slotL4.innerHTML = '';
           slotR1.innerHTML = '';
           slotR2.innerHTML = '';
           slotR3.innerHTML = '';
-          slotR4.innerHTML = '';
           return;
         }
 
@@ -2720,7 +2752,7 @@
           const range = getActiveVideoRange();
           if (range.valid) { 
             video.currentTime = range.start; 
-            mp4Speed = SPEED_STEPS[Math.min(9, currentCycleCount)];
+            mp4Speed = getCurrentCycleSpeed(currentCycleCount);
             video.playbackRate = mp4Speed;
             showToast('【跟讀第 ' + (currentCycleCount + 1) + ' 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 2000);
           }
@@ -2757,7 +2789,7 @@
           const range = getActiveVideoRange();
           if (range.valid) { 
             video.currentTime = range.start; 
-            mp4Speed = SPEED_STEPS[Math.min(9, currentCycleCount)];
+            mp4Speed = getCurrentCycleSpeed(currentCycleCount);
             video.playbackRate = mp4Speed;
             showToast('【串習跟讀第 ' + (currentCycleCount + 1) + ' 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 2000);
           }
