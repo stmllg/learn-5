@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 長青版V25</title>
+  <title>歡喜背書 長青版V26</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -908,7 +908,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【長青版V25 載入中】...</div>
+  <div id="schedule-toast">📦 【長青版V26 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1822,10 +1822,14 @@
       const step = settings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = settings.repeatNew;
       const rCum = settings.repeatCum;
-      const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
-      const scheduleList = [];
-
+      
       let currentDay = getCurrentActiveDayNumber();
+      let testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
+      if (testCompleted === 0 && currentDay > 1) {
+        testCompleted = (currentDay === 2) ? 1 : Math.min(total, 1 + (currentDay - 2) * step);
+      }
+      
+      const scheduleList = [];
       let simDay = currentDay;
       let simStart = Math.min(total, testCompleted + 1);
       if (simDay === 1) simStart = 1;
