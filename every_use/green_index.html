@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書 長青版V28</title>
+  <title>歡喜背書 長青版V29</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -908,7 +908,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【長青版V28 載入中】...</div>
+  <div id="schedule-toast">📦 【長青版V29 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2121,15 +2121,14 @@
     function getCurrentCycleSpeed(cycleIdx) {
       const baseSteps = [0.80, 0.84, 0.89, 0.93, 0.98, 1.02, 1.07, 1.11, 1.16, 1.20];
       let raw = baseSteps[Math.min(9, cycleIdx)] + userSpeedOffset;
-      return Math.max(0.8, Math.min(1.5, raw));
+      return Math.max(0.8, Math.min(2.0, raw));
     }
 
     function adjustGlobalSpeedOffset(delta) {
       userSpeedOffset = Math.round((userSpeedOffset + delta) * 100) / 100;
-      // Clamp offset so max speed at cycle 9 doesn't exceed 1.5 and min speed at cycle 0 doesn't go below 0.8
-      // baseSteps[0] is 0.80 -> min offset is 0.0 (since 0.80 + 0 = 0.80)
-      // baseSteps[9] is 1.20 -> max offset is 0.30 (since 1.20 + 0.30 = 1.50)
-      userSpeedOffset = Math.max(0.0, Math.min(0.30, userSpeedOffset));
+      // Clamp offset so max speed at cycle 9 doesn't exceed 2.0 and min speed at cycle 0 doesn't go below 0.8
+      // baseSteps[9] is 1.20 -> max offset is 0.80 (since 1.20 + 0.80 = 2.00)
+      userSpeedOffset = Math.max(0.0, Math.min(0.80, userSpeedOffset));
       classicStorage.setItem('user_speed_offset', userSpeedOffset.toFixed(2));
 
       if (currentCoreMode === 'mode2' && video && !video.paused) {
@@ -2282,7 +2281,7 @@
         centerCore.scrollTop = 0;
         mp4Speed = getCurrentCycleSpeed(currentCycleCount);
         video.playbackRate = mp4Speed;
-        showToast('【跟讀第 ' + (currentCycleCount + 1) + ' 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 2000);
+        showToast(`第 ${currentCycleCount + 1} 遍`, 1500);
 
         const range = getActiveVideoRange();
         videoPausedAt = -1;
@@ -2747,14 +2746,14 @@
 
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < newRepeat) {
-          showToast(`✅ 新進度跟讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { 
             video.currentTime = range.start; 
             mp4Speed = getCurrentCycleSpeed(currentCycleCount);
             video.playbackRate = mp4Speed;
-            showToast('【跟讀第 ' + (currentCycleCount + 1) + ' 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 2000);
+            showToast(`第 ${currentCycleCount + 1} 遍`, 1500);
           }
           setTimeout(() => {
             if (currentCoreMode === 'mode2') {
@@ -2784,14 +2783,14 @@
         }
       } else if (practicePhase === 'cumulative_gendu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`✅ 串習複習跟讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { 
             video.currentTime = range.start; 
             mp4Speed = getCurrentCycleSpeed(currentCycleCount);
             video.playbackRate = mp4Speed;
-            showToast('【串習跟讀第 ' + (currentCycleCount + 1) + ' 遍 (速度 ' + mp4Speed.toFixed(2) + 'x)】', 2000);
+            showToast(`第 ${currentCycleCount + 1} 遍`, 1500);
           }
           setTimeout(() => {
             if (currentCoreMode === 'mode2') {
