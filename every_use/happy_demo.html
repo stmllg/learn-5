@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V996</title>
+  <title>歡喜背書V994</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -846,7 +846,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v985)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v994)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -898,7 +898,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v985 載入中】...</div>
+  <div id="schedule-toast">📦 【v994 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -982,13 +982,13 @@
 
     const classicStorage = {
       getItem(key) {
-        try { return localStorage.getItem(NAMESPACE_KEY + '::' + key); } catch(e) { return null; }
+        return localStorage.getItem(NAMESPACE_KEY + '::' + key);
       },
       setItem(key, value) {
-        try { localStorage.setItem(NAMESPACE_KEY + '::' + key, value); } catch(e) {}
+        localStorage.setItem(NAMESPACE_KEY + '::' + key, value);
       },
       removeItem(key) {
-        try { localStorage.removeItem(NAMESPACE_KEY + '::' + key); } catch(e) {}
+        localStorage.removeItem(NAMESPACE_KEY + '::' + key);
       }
     };
 
@@ -2705,6 +2705,7 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
+    // 階段轉換控制：改用彈出視窗讓使用者自主決定何時前往下一個流程
     function handleCycleCompletion() {
       if (currentCoreMode === 'mode2') {
         video.pause();
@@ -2729,15 +2730,18 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          practicePhase = 'new_zidu';
-          currentCycleCount = 0;
-          setupStageRange();
-
-          setCoreMode('mode3');
-          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
-            handleZiduClick();
-          });
-          showToast("🎉 新進度跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
+          // 轉場 1：新進度跟讀 轉 新進度自讀
+          showTransitionModal(
+            "🎉 新進度跟讀圓滿！",
+            `您已完成新進度跟讀（共 ${newRepeat} 遍）。<br>接下來將進入<strong>「新進度自讀模式」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+            () => {
+              practicePhase = 'new_zidu';
+              currentCycleCount = 0;
+              setupStageRange();
+              setCoreMode('mode3');
+              handleZiduClick();
+            }
+          );
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
@@ -2746,24 +2750,22 @@
           handleZiduClick();
         } else {
           if (hasCumulative) {
-            practicePhase = 'cumulative_gendu';
-            currentCycleCount = 0;
-            setupStageRange();
-
-            setCoreMode('mode2');
-            speakPrompt("新進度圓滿，準備進入串習複習跟讀", () => {
-              const range = getActiveVideoRange();
-              if (range.valid) { video.currentTime = range.start; }
-              handleGenduClick();
-            });
-            showToast("🎉 新進度圓滿！\n3秒後自動進入串習複習跟讀...", 4000);
+            // 轉場 2：新進度自讀 轉 串習定課跟讀
+            showTransitionModal(
+              "🎉 新進度自讀圓滿！",
+              `新進度已全部圓滿。<br>接下來將進入<strong>「串習複習跟讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+              () => {
+                practicePhase = 'cumulative_gendu';
+                currentCycleCount = 0;
+                setupStageRange();
+                setCoreMode('mode2');
+                const range = getActiveVideoRange();
+                if (range.valid) { video.currentTime = range.start; }
+                handleGenduClick();
+              }
+            );
           } else {
-            practicePhase = 'completed';
-            classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
-            renderUI();
-            triggerSevenColoredLotusFlowerRain();
-            speakPrompt("今日定課已圓滿，功能已全部解鎖");
-            showToast("🎉 今日定課已圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
+            finishAllPractice();
           }
         }
       } else if (practicePhase === 'cumulative_gendu') {
@@ -2774,15 +2776,18 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          practicePhase = 'cumulative_zidu';
-          currentCycleCount = 0;
-          setupStageRange();
-
-          setCoreMode('mode3');
-          speakPrompt("請自己唸誦，如果不方便出聲可以直接把手指放螢幕也可以小紅點向前。", () => {
-            handleZiduClick();
-          });
-          showToast("🎉 串習複習跟讀圓滿！\n請自己唸誦，手指放螢幕小紅點即可向前", 5000);
+          // 轉場 3：串習定課跟讀 轉 串習定課自讀
+          showTransitionModal(
+            "🎉 串習複習跟讀圓滿！",
+            `您已完成串習複習跟讀（共 ${cRepeat} 遍）。<br>接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+            () => {
+              practicePhase = 'cumulative_zidu';
+              currentCycleCount = 0;
+              setupStageRange();
+              setCoreMode('mode3');
+              handleZiduClick();
+            }
+          );
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
@@ -2790,15 +2795,48 @@
           setupStageRange();
           handleZiduClick();
         } else {
-          practicePhase = 'completed';
-          classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
-          renderUI();
-          triggerSevenColoredLotusFlowerRain();
-          speakPrompt("今日串習與定課全部圓滿，功能已全部解鎖");
-          showToast("🎉 今日串習與定課全部圓滿！\n左側已解鎖背書供養，右側已解鎖全功能自主複習與快慢調整", 6000);
+          finishAllPractice();
         }
       }
       saveCurrentAppState();
+    }
+
+    function finishAllPractice() {
+      practicePhase = 'completed';
+      classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
+      renderUI();
+      triggerSevenColoredLotusFlowerRain();
+      showTransitionModal(
+        "🎉 今日定課與串習全部圓滿！",
+        `太隨喜您的精進了！今日功德已圓滿。<br>左側已解鎖<strong>「背書供養」</strong>，右側已解鎖<strong>「全功能自主複習與快慢調整」</strong>。<br><br>請點擊下方按鈕確認。`,
+        () => {}
+      );
+    }
+
+    function showTransitionModal(titleText, descHtml, onConfirmCallback) {
+      const restoreCard = document.querySelector('.restore-card');
+      if (!restoreCard) return;
+
+      const titleEl = restoreCard.querySelector('.restore-title');
+      const descEl = document.getElementById('restore-desc-text');
+      const btnEl = restoreCard.querySelector('.btn-restore-confirm');
+
+      if (titleEl) titleEl.innerHTML = titleText;
+      if (descEl) descEl.innerHTML = descHtml;
+      if (btnEl) {
+        btnEl.textContent = "🙏 確 定，進入下一個流程";
+        const newBtn = btnEl.cloneNode(true);
+        btnEl.parentNode.replaceChild(newBtn, btnEl);
+        
+        newBtn.addEventListener('click', () => {
+          restoreModalOverlay.style.display = 'none';
+          if (typeof onConfirmCallback === 'function') {
+            onConfirmCallback();
+          }
+        });
+      }
+
+      restoreModalOverlay.style.display = 'flex';
     }
 
     function handleMp4CycleEnd(range) {
@@ -3209,16 +3247,7 @@
         startSharedVadLoop();
         return true;
       } catch (err) {
-        // 自動退出全螢幕，確保瀏覽器授權對話框順利彈出
-        try {
-          if (document.exitFullscreen) {
-            document.exitFullscreen().catch(() => {});
-          } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen().catch(() => {});
-          }
-        } catch(e) {}
-        showToast("⚠️ 麥克風等待授權逾時
-已為您退出全螢幕，請點擊允許麥克風", 5000);
+        showToast("⚠️ 麥克風回應逾時或未授權，已自動解除鎖定", 4000);
         releaseMicrophoneResources();
         return false;
       }
@@ -3734,7 +3763,6 @@
       }, 200);
     }
 
-    
     let companionSwipeStartX = 0;
     let companionSwipeStartY = 0;
     companionOverlay.addEventListener('touchstart', (e) => {
@@ -3820,7 +3848,7 @@
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong>「⋯」</strong>或<strong>「指南針/Safari圖示」</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
         } else {
           guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
         }
