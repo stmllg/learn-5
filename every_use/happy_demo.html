@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999</title>
+  <title>歡喜背書V1000</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -220,21 +220,19 @@
       display: none !important;
     }
 
+    /* 文字框上下左右邊界皆為 4% */
     .card-text-container {
       position: absolute;
-      top: 2%;
-      bottom: 12%;
-      left: 27%;
-      right: 4%;
+      top: 4%;
+      bottom: 4%;
+      left: 21%;
+      right: 21%;
       display: block;
       overflow: hidden;
       border: none;
       background: transparent;
     }
 
-    .companion-wrapper {
-      transition: opacity 0.3s ease-in-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
     .companion-wrapper.fade-out {
       opacity: 0.2;
     }
@@ -264,66 +262,48 @@
       text-shadow: 0 1px 3px rgba(255,255,255,0.95);
     }
 
-    .companion-actions-row {
+    /* 側邊按鈕群組定位 */
+    .companion-side-group {
       position: absolute;
-      bottom: 3%;
-      left: 5%;
-      right: 5%;
+      top: 50%;
+      transform: translateY(-50%);
       display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
+      flex-direction: column;
+      gap: 10px;
       z-index: 30;
-      background: none;
-      border: none;
-      padding: 0;
-      backdrop-filter: none;
+    }
+    .companion-side-left {
+      left: 2%;
+    }
+    .companion-side-right {
+      right: 2%;
     }
 
-    .companion-actions-row button {
-      flex: 0 1 auto;
-      min-width: 100px;
-      padding: 10px 16px;
+    /* 陪伴卡側邊按鈕通用樣式 */
+    .comp-btn {
+      width: 100px;
+      padding: 10px 4px;
       text-align: center;
-      white-space: nowrap;
-      font-size: clamp(13px, 2.0vh, 17px);
+      font-size: 13px;
       font-weight: 900;
-      border-radius: 26px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
       cursor: pointer;
       user-select: none;
-      transition: transform 0.15s ease-out;
+      transition: transform 0.15s ease-out, background 0.2s ease;
+      white-space: pre-wrap;
+      line-height: 1.25;
+    }
+    .comp-btn:active {
+      transform: scale(0.95);
     }
 
-    .btn-card-orange {
-      color: #431407;
-      background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%);
-      border: 1.5px solid #F97316;
-    }
-    .btn-card-orange:active {
-      transform: scale(0.95);
-      background: linear-gradient(135deg, #FDBA74 0%, #FB923C 100%);
-    }
-
-    .btn-card-setting {
-      color: #1E293B;
-      background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%);
-      border: 1.5px solid #94A3B8;
-    }
-    .btn-card-setting:active {
-      transform: scale(0.95);
-      background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
-    }
-
-    .btn-card-line {
-      color: #FFFFFF;
-      background: linear-gradient(135deg, #06C755 0%, #00B900 100%);
-      border: 1.5px solid #05B34B;
-    }
-    .btn-card-line:active {
-      transform: scale(0.95);
-      background: linear-gradient(135deg, #00B900 0%, #049B3C 100%);
-    }
+    .comp-btn-dedication { color: #78350F; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); border: 1.5px solid #D97706; }
+    .comp-btn-setting    { color: #1E293B; background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%); border: 1.5px solid #94A3B8; }
+    .comp-btn-line       { color: #FFFFFF; background: linear-gradient(135deg, #06C755 0%, #00B900 100%); border: 1.5px solid #05B34B; }
+    .comp-btn-guide      { color: #431407; background: linear-gradient(135deg, #FFEDD5 0%, #FDBA74 100%); border: 1.5px solid #F97316; }
+    .comp-btn-recite     { color: #FFFFFF; background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%); border: 1.5px solid #0369A1; }
+    .comp-btn-energy     { color: #4A044E; background: linear-gradient(135deg, #FBCFE8 0%, #F472B6 100%); border: 1.5px solid #DB2777; }
 
     #schedule-modal-overlay {
       display: none;
@@ -828,25 +808,34 @@
 
   <div id="companion-overlay">
     <div class="companion-wrapper" id="cardStage">
+      
+      <!-- 左側按鈕群組 (3顆) -->
+      <div class="companion-side-group companion-side-left">
+        <button class="comp-btn comp-btn-dedication" onclick="handleCompanionDedication()">老師迴向</button>
+        <button class="comp-btn comp-btn-setting" id="btn-comp-schedule" onclick="handleCompanionSchedule()">排程設定</button>
+        <button class="comp-btn comp-btn-line" onclick="shareScreenshotToLine()">LINE分享正能量</button>
+      </div>
+
+      <!-- 中間文字容器：上下左右邊界皆為 4% -->
       <div class="card-text-container" id="textContainer">
         <div class="card-title" id="cardTitle">載入中...</div>
         <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
         <div class="card-id-inline" id="cardIdInline"></div>
       </div>
 
-      <div class="companion-actions-row" id="companionActionsRow">
-        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
-        <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
-        <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
-        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">堅持第 22 天</button>
-        <button class="btn-card-line" onclick="shareScreenshotToLine()">LINE</button>
+      <!-- 右側按鈕群組 (3顆) -->
+      <div class="companion-side-group companion-side-right">
+        <button class="comp-btn comp-btn-guide" onclick="playTeacherGuideAndRecite()">老師前行</button>
+        <button class="comp-btn comp-btn-recite" onclick="closeCompanionCard()">開始背誦</button>
+        <button class="comp-btn comp-btn-energy" id="btn-comp-energy" onclick="handleCompanionEnergy(this)">抽今日正能量</button>
       </div>
+
     </div>
   </div>
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v995)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1000)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -898,7 +887,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999 載入中】...</div>
+  <div id="schedule-toast">📦 【v1000 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1310,6 +1299,7 @@
       companionOverlay.style.display = 'flex';
       companionOverlay.style.opacity = '1';
       companionOverlay.classList.add('active');
+      updateCompanionScheduleButton();
       showToast('💤 已為您自動存檔並返回休息', 3500);
     }
 
@@ -1473,8 +1463,7 @@
 
         hasEnteredReciting = true;
         classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
-        const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+        updateCompanionScheduleButton();
 
         triggerAppFullscreen();
 
@@ -1515,8 +1504,7 @@
 
         hasEnteredReciting = true;
         classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
-        const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+        updateCompanionScheduleButton();
 
         triggerAppFullscreen();
 
@@ -1539,6 +1527,71 @@
           setCoreMode('mode2');
         }
       }, 200);
+    }
+
+    function updateCompanionScheduleButton() {
+      const todayStr = getNormalizedDateStr();
+      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V971');
+      const btnSchedule = document.getElementById('btn-comp-schedule');
+      if (btnSchedule) {
+        if (settingUsedDate === todayStr) {
+          btnSchedule.textContent = '🔒 排程鎖定';
+          btnSchedule.style.opacity = '0.6';
+        } else {
+          btnSchedule.textContent = '⚙️ 排程設定';
+          btnSchedule.style.opacity = '1';
+        }
+      }
+    }
+
+    function handleCompanionSchedule() {
+      triggerAppFullscreen();
+      const todayStr = getNormalizedDateStr();
+      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V971');
+      if (settingUsedDate === todayStr) {
+        showToast('⚠️ 今日排程已經鎖定，明天才能再次設定', 3000);
+        return;
+      }
+      openScheduleModal();
+    }
+
+    function handleCompanionDedication() {
+      triggerAppFullscreen();
+      const compOverlay = document.getElementById('companion-overlay');
+      compOverlay.style.opacity = '0';
+      compOverlay.classList.remove('active');
+      compOverlay.style.pointerEvents = 'none';
+
+      setTimeout(() => {
+        compOverlay.style.display = 'none';
+        compOverlay.style.pointerEvents = 'auto';
+        playStandaloneVideo('mode5', 0, () => {
+          showToast('✨ 迴向圓滿，隨喜功德', 3000);
+          practicePhase = 'completed';
+          setCoreMode('mode3');
+          renderUI();
+        });
+      }, 200);
+    }
+
+    function handleCompanionEnergy(btn) {
+      triggerAppFullscreen();
+      const dayNum = String(window.CURRENT_TARGET_DAY || getRealTargetDay()).padStart(3, '0');
+      
+      const todayStr = getNormalizedDateStr();
+      const lastToastDate = classicStorage.getItem('FIREWORKS_TOAST_DATE_V971');
+      let showToastFlag = (lastToastDate !== todayStr);
+      if (showToastFlag) {
+        classicStorage.setItem('FIREWORKS_TOAST_DATE_V971', todayStr);
+      }
+      
+      triggerFireworks(showToastFlag);
+
+      btn.textContent = `堅持背書\n第${dayNum}天`;
+      if (btn._timer) clearTimeout(btn._timer);
+      btn._timer = setTimeout(() => {
+        btn.textContent = '抽今日正能量';
+      }, 3000);
     }
 
     function getCurrentProgressEnd() {
@@ -2591,13 +2644,12 @@
     async function shareScreenshotToLine() {
       triggerAppFullscreen();
 
-      const actionsRow = document.getElementById('companionActionsRow');
       const cardStage = document.getElementById('cardStage');
+      const sideGroups = document.querySelectorAll('.companion-side-group');
 
       if (!cardStage) return;
 
-      if (actionsRow) actionsRow.style.display = 'none';
-
+      sideGroups.forEach(g => g.style.display = 'none');
       showToast('📸 正在產生精美截圖...', 2000);
 
       await new Promise(resolve => setTimeout(resolve, 400));
@@ -2611,7 +2663,7 @@
         });
 
         canvas.toBlob(async (blob) => {
-          if (actionsRow) actionsRow.style.display = 'flex';
+          sideGroups.forEach(g => g.style.display = 'flex');
 
           if (!blob) {
             showToast('⚠️ 截圖產生失敗', 3000);
@@ -2643,7 +2695,7 @@
         }, 'image/png', 0.95);
 
       } catch(err) {
-        if (actionsRow) actionsRow.style.display = 'flex';
+        sideGroups.forEach(g => g.style.display = 'flex');
         showToast('⚠️ 截圖失敗', 3000);
       }
     }
@@ -2705,7 +2757,6 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 階段轉換控制：支援語音配合提示，並在最後圓滿直接解鎖不跳確認視窗
     function handleCycleCompletion() {
       if (currentCoreMode === 'mode2') {
         video.pause();
@@ -2730,7 +2781,6 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          // 轉場 1：新進度跟讀 轉 新進度自讀（附語音提示）
           const promptText = "手指放螢幕也可小紅點向前，按快慢可調自己的語速";
           speakPrompt(promptText);
           showTransitionModal(
@@ -2752,7 +2802,6 @@
           handleZiduClick();
         } else {
           if (hasCumulative) {
-            // 轉場 2：新進度自讀 轉 串習定課跟讀 (程式全自動控制播放，無需手動點擊)
             showTransitionModal(
               "🎉 新進度自讀圓滿！",
               `新進度已全部圓滿。<br>接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
@@ -2785,7 +2834,6 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          // 轉場 3：串習定課跟讀 轉 串習定課自讀
           showTransitionModal(
             "🎉 串習複習跟讀圓滿！",
             `您已完成串習複習跟讀。<br>接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
@@ -2810,7 +2858,6 @@
       saveCurrentAppState();
     }
 
-    // 最後圓滿：直接解鎖並顯示蓮花雨與 Toast，不跳確認視窗
     function finishAllPractice() {
       try { window.speechSynthesis.cancel(); } catch(e) {}
       practicePhase = 'completed';
@@ -3047,32 +3094,6 @@
       if (showToastFlag) {
         showToast(`🎆 為自己第 ${window.CURRENT_TARGET_DAY || 22} 天的堅持放一場燦爛煙火，隨喜功德！`, 3000);
       }
-    }
-
-    let cardDayTimer = null;
-    function handleDayBtnClick() {
-      triggerAppFullscreen();
-      const todayStr = getNormalizedDateStr();
-      const lastToastDate = classicStorage.getItem('FIREWORKS_TOAST_DATE_V971');
-      let showToastFlag = (lastToastDate !== todayStr);
-      if (showToastFlag) {
-        classicStorage.setItem('FIREWORKS_TOAST_DATE_V971', todayStr);
-      }
-      triggerFireworks(showToastFlag);
-      loadRandomCardData();
-
-      const dayStr = String(window.CURRENT_TARGET_DAY || 22).padStart(3, '0');
-      const btnDays = document.getElementById('btn-card-days');
-      if (btnDays) {
-        btnDays.textContent = dayStr;
-      }
-
-      if (cardDayTimer) clearTimeout(cardDayTimer);
-      cardDayTimer = setTimeout(() => {
-        if (btnDays) {
-          btnDays.textContent = '皈依祈求';
-        }
-      }, 3000);
     }
 
     function triggerOfferingCoinRain() {
@@ -3713,11 +3734,9 @@
     async function loadRandomCardData() {
       await loadBackgroundConfig();
       const cardStage = document.getElementById('cardStage');
-      const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const cardTitle = document.getElementById('cardTitle');
       const cardContent = document.getElementById('cardContent');
-      if (bottomRightBadge) bottomRightBadge.style.display = 'block';
       if (textContainer) textContainer.style.display = 'block';
 
       const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
@@ -3743,10 +3762,9 @@
           const cardIdInline = document.getElementById('cardIdInline');
           if (cardIdInline) cardIdInline.textContent = displayId;
 
-          const stageHeight = (cardStage && cardStage.clientHeight > 50) ? cardStage.clientHeight : window.innerHeight;
-          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.78;
+          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.90;
 
-          let size = 33; 
+          let size = 35; 
           const minSize = 14; 
 
           cardContent.style.fontSize = size + "px";
@@ -3762,8 +3780,6 @@
             if (cardIdInline) cardIdInline.style.fontSize = "12px";
             tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
           }
-
-          if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         }
         if (cardStage) {
           cardStage.style.backgroundImage = `url('${imgPath}')`;
@@ -3801,17 +3817,9 @@
       await loadBackgroundConfig();
       window.CURRENT_TARGET_DAY = targetDay;
       const cardStage = document.getElementById('cardStage');
-      const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const cardTitle = document.getElementById('cardTitle');
       const cardContent = document.getElementById('cardContent');
-      const btnDays = document.getElementById('btn-card-days');
-
-      if (btnDays) {
-        btnDays.style.display = 'inline-block';
-        btnDays.textContent = '皈依祈求';
-        btnDays.onclick = handleDayBtnClick;
-      }
 
       if (Object.keys(cardTexts).length === 0) {
         try {
@@ -3826,10 +3834,8 @@
       if (targetDay <= 21) {
         const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
         if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
-        if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         if (textContainer) textContainer.style.display = 'none';
       } else {
-        if (bottomRightBadge) bottomRightBadge.style.display = 'block';
         if (textContainer) textContainer.style.display = 'block';
 
         if (Object.keys(cardTexts).length > 0) {
@@ -3849,6 +3855,7 @@
             });
         }
       }
+      updateCompanionScheduleButton();
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -3867,18 +3874,6 @@
 
       await prefetchSentenceCountOnStartup();
       checkDailyResetOnStartup();
-
-      const todayStr = getNormalizedDateStr();
-      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V971');
-      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-      
-      if (btnCardSettingDynamic) {
-        if (settingUsedDate === todayStr) {
-          btnCardSettingDynamic.style.display = 'none';
-        } else {
-          btnCardSettingDynamic.style.display = 'inline-block';
-        }
-      }
 
       let targetDay = getRealTargetDay();
       classicStorage.setItem('CURRENT_SCHEDULE_DAY_V971', targetDay.toString());
