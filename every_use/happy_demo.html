@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V994</title>
+  <title>歡喜背書V995</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -846,7 +846,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v994)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v995)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -898,7 +898,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v994 載入中】...</div>
+  <div id="schedule-toast">📦 【v995 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2705,7 +2705,7 @@
       mp4PrecisionCheckAnimId = requestAnimationFrame(check);
     }
 
-    // 階段轉換控制：改用彈出視窗讓使用者自主決定何時前往下一個流程
+    // 階段轉換控制：支援語音配合提示，並在最後圓滿直接解鎖不跳確認視窗
     function handleCycleCompletion() {
       if (currentCoreMode === 'mode2') {
         video.pause();
@@ -2724,16 +2724,18 @@
 
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < newRepeat) {
-          showToast(`✅ 新進度跟讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          // 轉場 1：新進度跟讀 轉 新進度自讀
+          // 轉場 1：新進度跟讀 轉 新進度自讀（附語音提示）
+          const promptText = "手指放螢幕也可小紅點向前，按快慢可調自己的語速";
+          speakPrompt(promptText);
           showTransitionModal(
             "🎉 新進度跟讀圓滿！",
-            `您已完成新進度跟讀（共 ${newRepeat} 遍）。<br>接下來將進入<strong>「新進度自讀模式」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+            `您已完成新進度跟讀。<br>接下來將進入<strong>「新進度自讀模式」</strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
               practicePhase = 'new_zidu';
               currentCycleCount = 0;
@@ -2745,7 +2747,7 @@
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
-          showToast(`✅ 新進度自讀完成第 ${currentCycleCount} 遍（共 ${newRepeat} 遍）`, 2000);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           handleZiduClick();
         } else {
@@ -2770,7 +2772,7 @@
         }
       } else if (practicePhase === 'cumulative_gendu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`✅ 串習複習跟讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
@@ -2779,7 +2781,7 @@
           // 轉場 3：串習定課跟讀 轉 串習定課自讀
           showTransitionModal(
             "🎉 串習複習跟讀圓滿！",
-            `您已完成串習複習跟讀（共 ${cRepeat} 遍）。<br>接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+            `您已完成串習複習跟讀。<br>接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
               practicePhase = 'cumulative_zidu';
               currentCycleCount = 0;
@@ -2791,7 +2793,7 @@
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`✅ 串習複習自讀完成第 ${currentCycleCount} 遍（共 ${cRepeat} 遍）`, 2000);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           handleZiduClick();
         } else {
@@ -2801,16 +2803,15 @@
       saveCurrentAppState();
     }
 
+    // 最後圓滿：直接解鎖並顯示蓮花雨與 Toast，不跳確認視窗
     function finishAllPractice() {
+      try { window.speechSynthesis.cancel(); } catch(e) {}
       practicePhase = 'completed';
       classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
       renderUI();
       triggerSevenColoredLotusFlowerRain();
-      showTransitionModal(
-        "🎉 今日定課與串習全部圓滿！",
-        `太隨喜您的精進了！今日功德已圓滿。<br>左側已解鎖<strong>「背書供養」</strong>，右側已解鎖<strong>「全功能自主複習與快慢調整」</strong>。<br><br>請點擊下方按鈕確認。`,
-        () => {}
-      );
+      showToast("🎉 今日定課與串習全部圓滿！左側已解鎖背書供養，右側已解鎖全功能自主複習。", 6000);
+      saveCurrentAppState();
     }
 
     function showTransitionModal(titleText, descHtml, onConfirmCallback) {
@@ -2829,6 +2830,7 @@
         btnEl.parentNode.replaceChild(newBtn, btnEl);
         
         newBtn.addEventListener('click', () => {
+          try { window.speechSynthesis.cancel(); } catch(e) {}
           restoreModalOverlay.style.display = 'none';
           if (typeof onConfirmCallback === 'function') {
             onConfirmCallback();
