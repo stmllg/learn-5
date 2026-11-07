@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.11</title>
+  <title>歡喜背書V999.12</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -855,6 +855,7 @@
     .rank-coins { color: #F59E0B; font-weight: 900; }
     .btn-rejoice { width: 100%; height: 46px; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; font-size: 18px; font-weight: 900; border: none; border-radius: 14px; cursor: pointer; }
   </style>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -958,7 +959,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.11 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.12 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -3131,7 +3132,7 @@
         actionsRow.style.display = 'none';
       }
 
-      const dayNum = window.CURRENT_TARGET_DAY || 22;
+      const dayNum = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
       const daySpan = document.getElementById('sideDayNum');
       if (daySpan) daySpan.textContent = dayNum;
 
@@ -3859,16 +3860,30 @@
           let size = 34; 
           const minSize = 14; 
 
+          const targetFont = size >= 26 
+            ? '"Noto Serif TC", "Source Han Serif TC", serif' 
+            : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
           cardContent.style.fontSize = size + "px";
           cardTitle.style.fontSize = (size + 4) + "px"; // 標題保持內文大小 + 4px
-          if (cardIdInline) cardIdInline.style.fontSize = "12px";
+          cardContent.style.fontFamily = targetFont;
+          cardTitle.style.fontFamily = targetFont;
+          if (cardIdInline) {
+            cardIdInline.style.fontSize = "12px";
+            cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+          }
 
           let tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
 
           while (tH > maxH && size > minSize) {
             size--;
+            const updatedFont = size >= 26 
+              ? '"Noto Serif TC", "Source Han Serif TC", serif' 
+              : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
             cardContent.style.fontSize = size + "px";
             cardTitle.style.fontSize = (size + 4) + "px";
+            cardContent.style.fontFamily = updatedFont;
+            cardTitle.style.fontFamily = updatedFont;
             if (cardIdInline) cardIdInline.style.fontSize = "12px";
             tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
           }
