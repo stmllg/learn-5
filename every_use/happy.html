@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>歡喜背書V1230</title>
+  <title>歡喜背書V1235</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -46,7 +46,7 @@
       user-select: none;
     }
 
-    /* V1223 防黑屏核心：使用 min-height 100vh，徹底拔除容易造成 LINE 崩潰的 position: fixed 根元素與 dvh */
+    /* V1235 防黑屏核心：使用 min-height 100vh，徹底拔除容易造成 LINE 崩潰的 position: fixed 根元素與 dvh */
     html, body {
       width: 100%;
       height: 100%;
@@ -856,7 +856,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1230)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1235)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -908,7 +908,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v1223 載入中】...</div>
+  <div id="schedule-toast">📦 【v1235 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1066,7 +1066,7 @@
 
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
-    let isSideWingsCompanionMode = false; // V1223: 追蹤是否已將 5 個按鈕放到左右邊框
+    let isSideWingsCompanionMode = false; // V1235: 追蹤是否已進入過背誦模式（決定按鈕是否永久歸位到左右黑框）
 
     let selectedDailyStep = DEFAULT_DAILY_STEP;
 
@@ -1320,8 +1320,9 @@
       initCompanionCard(targetDay);
 
       hasEnteredReciting = false;
-      isSideWingsCompanionMode = true; // 當從背書模式左右滑動返回陪伴卡時，按鈕已經歸位到左右兩邊黑框
+      isSideWingsCompanionMode = true; // ** 關鍵修復：從背書模式左右滑動回歸陪伴卡時，按鈕強制維持在左右黑框側翼，絕不落回下方！ **
       renderUI();
+
       companionOverlay.style.display = 'flex';
       companionOverlay.style.opacity = '1';
       companionOverlay.classList.add('active');
@@ -1473,7 +1474,7 @@
       }
     }
 
-    // V1223: 通用攔截器：當按下任何一個陪伴卡按鈕時，啟動側翼黑框模式，並執行對應動作
+    // V1235: 通用攔截器：當按下任何一個陪伴卡按鈕時，永久啟動側翼黑框模式（isSideWingsCompanionMode = true），並執行對應動作
     function handleAnyCompanionAction(actionCallback) {
       isSideWingsCompanionMode = true;
       
@@ -2115,8 +2116,7 @@
 
     function showToast(msg, duration = 6000) {
       if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/
-/g, '<br>');
+      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -2312,7 +2312,7 @@
         }
 
         if (isSideWingsCompanionMode) {
-          // V1223: 將本來在畫面當中的五個按鈕放到左右邊框 (左一、左二、左三、左四、右一)
+          // V1235: 將本來在畫面當中的五個按鈕放到左右邊框 (左一、左二、左三、左四、右一)
           slotL1.innerHTML = '<button class="btn-wing-companion" onclick="openScheduleModal()">⚙️<br>排程設定</button>';
           slotL2.innerHTML = '<button class="btn-wing-companion" onclick="playTeacherGuideAndRecite()">老師<br>帶前行</button>';
           slotL3.innerHTML = '<button class="btn-wing-companion" onclick="closeCompanionCard()">開始<br>背誦</button>';
@@ -2678,11 +2678,9 @@
           URL.revokeObjectURL(url);
 
           if (clipboardSuccess) {
-            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！
-可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 截圖已自動下載！
-請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
 
