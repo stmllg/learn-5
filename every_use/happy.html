@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V1017</title>
+  <title>歡喜背書V1018</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -904,7 +904,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v1017 載入中】...</div>
+  <div id="schedule-toast">📦 【v1018 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -3969,12 +3969,32 @@
         const overlay = document.getElementById('line-browser-overlay');
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        let htmlSnippet = '';
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
+          htmlSnippet = `為了確保音訊、背書辨識與完整功能順暢執行，建議使用 Safari 開啟。<br><br>請點擊畫面<strong>右上角或右下角「⋯」</strong>，選擇<strong>「在 Safari 中開啟」</strong>。`;
         } else {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
+          htmlSnippet = `為了獲得最佳的背書與語音辨識體驗，請點擊下方按鈕直接以 Chrome 瀏覽器開啟：<br><br><button onclick="openInExternalBrowser()" style="background: linear-gradient(135deg, #06C755 0%, #00B900 100%); color: #fff; border: none; padding: 12px 24px; font-size: 16px; font-weight: 900; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 15px rgba(6,199,85,0.4);">🚀 點擊此處・立即用預設瀏覽器開啟</button><br><br>或點擊右上角<strong>「⋮」</strong>選擇<strong>「以預設瀏覽器開啟」</strong>。`;
         }
+        guideContent.innerHTML = htmlSnippet;
         overlay.classList.add('active');
+        
+        // Expose helper to global scope for button click
+        window.openInExternalBrowser = function() {
+          const currentUrl = window.location.href;
+          // Android Intent URI scheme to force Chrome
+          if (!isIOS) {
+            try {
+              const cleanUrl = currentUrl.replace(/^https?:\/\//, '');
+              window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end;`;
+            } catch(e) {
+              window.open(currentUrl, '_system');
+            }
+          } else {
+            window.open(currentUrl, '_blank');
+          }
+        };
+        
         return; 
       }
 
