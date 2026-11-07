@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999_1</title>
+  <title>歡喜背書V999_2</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -194,14 +194,26 @@
       opacity: 1;
     }
 
-    /* 左右兩側黑框返回按鈕樣式 */
-    .btn-card-return {
+    /* 左右兩側黑框返回與側邊按鈕群組 */
+    .side-control-group {
       display: none;
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
       z-index: 25000;
-      padding: 14px 18px;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+    #side-left-group {
+      left: calc(12px + env(safe-area-inset-left, 0px));
+    }
+    #side-right-group {
+      right: calc(12px + env(safe-area-inset-right, 0px));
+    }
+
+    .btn-card-return {
+      padding: 14px 16px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       color: #FBBF24;
       border: 2px solid #F59E0B;
@@ -216,16 +228,32 @@
       text-orientation: upright;
       transition: transform 0.15s ease, background 0.2s ease;
     }
-    #btn-companion-return-left {
-      left: calc(12px + env(safe-area-inset-left, 0px));
-    }
-    #btn-companion-return-right {
-      right: calc(12px + env(safe-area-inset-right, 0px));
-    }
     .btn-card-return:active {
-      transform: translateY(-50%) scale(0.92);
+      transform: scale(0.92);
       background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
       color: #FFFFFF;
+    }
+
+    /* 側邊 LINE 按鈕樣式 */
+    .btn-card-line-side {
+      padding: 12px 14px;
+      background: linear-gradient(135deg, #06C755 0%, #00B900 100%);
+      color: #FFFFFF;
+      border: 2px solid #05B34B;
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8), 0 0 15px rgba(6, 199, 85, 0.3);
+      cursor: pointer;
+      user-select: none;
+      writing-mode: vertical-lr;
+      text-orientation: upright;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+    .btn-card-line-side:active {
+      transform: scale(0.92);
+      background: linear-gradient(135deg, #00B900 0%, #049B3C 100%);
     }
 
     .companion-wrapper {
@@ -350,16 +378,6 @@
     .btn-card-setting:active {
       transform: scale(0.95);
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
-    }
-
-    .btn-card-line {
-      color: #FFFFFF;
-      background: linear-gradient(135deg, #06C755 0%, #00B900 100%);
-      border: 1.5px solid #05B34B;
-    }
-    .btn-card-line:active {
-      transform: scale(0.95);
-      background: linear-gradient(135deg, #00B900 0%, #049B3C 100%);
     }
 
     #schedule-modal-overlay {
@@ -864,9 +882,15 @@
   </div>
 
   <div id="companion-overlay">
-    <!-- 左右兩側黑框返回按鍵 -->
-    <button id="btn-companion-return-left" class="btn-card-return" onclick="handleRestoreCompanionButtons()">◀ 返回</button>
-    <button id="btn-companion-return-right" class="btn-card-return" onclick="handleRestoreCompanionButtons()">返回 ▶</button>
+    <!-- 左右兩側黑框返回與側邊按鈕群組（ LINE 按鈕已移至返回鍵下方） -->
+    <div id="side-left-group" class="side-control-group">
+      <button class="btn-card-return" onclick="handleRestoreCompanionButtons()">◀ 返回</button>
+      <button class="btn-card-line-side" onclick="shareScreenshotToLine()">LINE</button>
+    </div>
+    <div id="side-right-group" class="side-control-group">
+      <button class="btn-card-return" onclick="handleRestoreCompanionButtons()">返回 ▶</button>
+      <button class="btn-card-line-side" onclick="shareScreenshotToLine()">LINE</button>
+    </div>
 
     <div class="companion-wrapper" id="cardStage">
       <div class="card-text-container" id="textContainer">
@@ -880,7 +904,6 @@
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
         <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
-        <button class="btn-card-line" onclick="shareScreenshotToLine()">LINE</button>
       </div>
     </div>
   </div>
@@ -2633,11 +2656,15 @@
       triggerAppFullscreen();
 
       const actionsRow = document.getElementById('companionActionsRow');
+      const sideLeftGroup = document.getElementById('side-left-group');
+      const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
 
       if (!cardStage) return;
 
       if (actionsRow) actionsRow.style.display = 'none';
+      if (sideLeftGroup) sideLeftGroup.style.display = 'none';
+      if (sideRightGroup) sideRightGroup.style.display = 'none';
 
       showToast('📸 正在產生精美截圖...', 2000);
 
@@ -3087,7 +3114,7 @@
 
     let cardDayTimer = null;
     
-    // 點擊「皈依祈求」：隱藏所有按鈕並顯示左右黑框返回鍵
+    // 點擊「皈依祈求」：隱藏卡片下方的按鈕，顯示左右黑框的返回鍵與 LINE 按鈕群組
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
@@ -3104,18 +3131,18 @@
         actionsRow.style.display = 'none';
       }
 
-      const btnReturnLeft = document.getElementById('btn-companion-return-left');
-      const btnReturnRight = document.getElementById('btn-companion-return-right');
-      if (btnReturnLeft) btnReturnLeft.style.display = 'block';
-      if (btnReturnRight) btnReturnRight.style.display = 'block';
+      const sideLeftGroup = document.getElementById('side-left-group');
+      const sideRightGroup = document.getElementById('side-right-group');
+      if (sideLeftGroup) sideLeftGroup.style.display = 'flex';
+      if (sideRightGroup) sideRightGroup.style.display = 'flex';
     }
 
     // 點擊返回按鍵：回到最初狀況
     function handleRestoreCompanionButtons() {
-      const btnReturnLeft = document.getElementById('btn-companion-return-left');
-      const btnReturnRight = document.getElementById('btn-companion-return-right');
-      if (btnReturnLeft) btnReturnLeft.style.display = 'none';
-      if (btnReturnRight) btnReturnRight.style.display = 'none';
+      const sideLeftGroup = document.getElementById('side-left-group');
+      const sideRightGroup = document.getElementById('side-right-group');
+      if (sideLeftGroup) sideLeftGroup.style.display = 'none';
+      if (sideRightGroup) sideRightGroup.style.display = 'none';
 
       const actionsRow = document.getElementById('companionActionsRow');
       if (actionsRow) {
