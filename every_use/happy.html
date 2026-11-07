@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.16</title>
+  <title>歡喜背書V999.15</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -195,6 +195,7 @@
       opacity: 1;
     }
 
+    /* 右側控制群組：直式排列、上下各一個按鈕 */
     .side-control-group {
       display: none;
       flex-direction: column;
@@ -267,7 +268,7 @@
       display: none !important;
     }
 
-    /* 超過22天時專用的標題與天數顯示區塊 */
+    /* 超過22天時預設的 1/3 處置中標題與天數顯示區塊 */
     .card-text-container-long-card {
       position: absolute;
       top: 25%;
@@ -285,7 +286,7 @@
     }
     .card-title-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
-      font-size: 32px !important;
+      font-size: 28px !important;
       font-weight: 900;
       color: #581C87;
       text-shadow: 0 1px 3px rgba(255,255,255,0.95);
@@ -715,17 +716,17 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 13px !important;
+      font-size: 14px !important;
       font-weight: 900;
       color: #FB923C;
-      cursor: default;
-      pointer-events: none;
+      cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
       transition: transform 0.15s ease-out, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
       text-align: center;
       line-height: 1.2;
       touch-action: manipulation;
     }
+    .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
     .btn-color-offering {
       width: 62px !important;
@@ -745,7 +746,6 @@
       text-align: center;
       line-height: 1.15;
       cursor: pointer;
-      pointer-events: auto;
       touch-action: manipulation;
       animation: offeringGlowPulse 1.8s infinite ease-in-out;
     }
@@ -757,10 +757,10 @@
       100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.7); transform: scale(1); }
     }
 
-    .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; pointer-events: auto; cursor: pointer; }
-    .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; pointer-events: auto; cursor: pointer; }
-    .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; pointer-events: auto; cursor: pointer; }
-    .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; pointer-events: auto; cursor: pointer; }
+    .btn-color-mark-a { background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%); border-color: #BAE6FD; }
+    .btn-color-mark-b { background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%); border-color: #FFEDD5; }
+    .btn-color-speed-up { background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #A7F3D0; }
+    .btn-color-speed-down { background: linear-gradient(135deg, #0D9488 0%, #0F766E 100%); border-color: #CCFBF1; }
 
     .active-mark { box-shadow: 0 0 18px #38BDF8, inset 0 0 8px #FFFFFF !important; }
 
@@ -903,21 +903,21 @@
   </div>
 
   <div id="companion-overlay">
-    <!-- 右側上下各一個按鈕群組 (LINE 分享與返回) -->
+    <!-- 右側控制群組：上下各一個按鈕（LINE 分享、返回） -->
     <div id="side-right-group" class="side-control-group">
       <button class="side-btn-full btn-side-line" onclick="shareScreenshotToLine()">LINE 分享</button>
       <button class="side-btn-full btn-side-return" onclick="handleRestoreCompanionButtons()">返回</button>
     </div>
 
     <div class="companion-wrapper" id="cardStage">
-      <!-- 支援 >21天 時專用標題與天數顯示區塊 -->
+      <!-- 超過 21 天預設顯示的 1/3 處置中區塊（標題與天數） -->
       <div class="card-text-container-long-card" id="textContainerLongCard" style="display: none;">
         <div class="card-title-long-card" id="cardTitleLong">載入中...</div>
-        <div class="card-day-long-card" id="cardDayLong">堅持背書第 022 天</div>
+        <div class="card-day-long-card" id="cardDayLong">堅持背書第 22 天</div>
       </div>
 
-      <!-- 標準卡片文字框 (<=21天 或點擊皈依祈求後) -->
-      <div class="card-text-container" id="textContainer">
+      <!-- 點擊「皈依祈求」後完全輸出的詳細文字卡片內容 -->
+      <div class="card-text-container" id="textContainer" style="display: none;">
         <div class="card-title" id="cardTitle">載入中...</div>
         <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
         <div class="card-id-inline" id="cardIdInline"></div>
@@ -926,7 +926,7 @@
       <div class="companion-actions-row" id="companionActionsRow">
         <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
-        <button class="btn-card-orange" onclick="startAutomaticRecitation()">開始背誦</button>
+        <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
         <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
       </div>
     </div>
@@ -1582,12 +1582,12 @@
             } catch(e) {}
           }
 
-          startAutomaticWorkflow();
+          setCoreMode('mode2');
         });
       }, 200);
     }
 
-    async function startAutomaticRecitation() {
+    async function closeCompanionCard() {
       triggerAppFullscreen();
       
       const compOverlay = document.getElementById('companion-overlay');
@@ -1624,28 +1624,9 @@
 
         const hasRestore = checkAndPrepareRestoreState();
         if (!hasRestore) {
-          startAutomaticWorkflow();
+          setCoreMode('mode2');
         }
       }, 200);
-    }
-
-    function startAutomaticWorkflow() {
-      if (practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu') {
-        setCoreMode('mode2');
-        const range = getActiveVideoRange();
-        if (range.valid) { video.currentTime = range.start; }
-        video.play().then(() => {
-          updateModeButtonsStyle();
-          startMp4PrecisionCheck();
-        }).catch(e => {
-          handleGenduClick();
-        });
-      } else if (practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu') {
-        setCoreMode('mode3');
-        handleZiduClick();
-      } else if (practicePhase === 'completed') {
-        setCoreMode('mode3');
-      }
     }
 
     function getCurrentProgressEnd() {
@@ -2200,8 +2181,7 @@
 
     function showToast(msg, duration = 6000) {
       if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/
-/g, '<br>');
+      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -2403,7 +2383,7 @@
 
           slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
           slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
-          slotR3.innerHTML = '<button class="square-btn btn-color-mark-b" id="btn-record" style="pointer-events: auto; cursor: pointer;">比對</button>';
+          slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
         } else {
           slotL1.innerHTML = '';
           slotL2.innerHTML = '';
@@ -2432,6 +2412,12 @@
             else triggerPdfSpeedChange(-0.1);
           });
         }
+
+        const btnGendu = document.getElementById('btn-gendu');
+        if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
+
+        const btnZidu = document.getElementById('btn-zidu');
+        if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
 
         const btnRecord = document.getElementById('btn-record');
         if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
@@ -2468,53 +2454,49 @@
       const isZiduRunning = isMode3 && isGuideActive;
       const isRecordRunning = isMode4 && isUserRecording;
 
-      const settings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}');
-      const newRepeat = settings.repeatNew || DEFAULT_REPEAT_NEW;
-      const cRepeat = settings.repeatCum !== undefined ? settings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
-
-      let genduLabel = '跟讀';
-      let ziduLabel = '自讀';
-
-      if (practicePhase === 'new_gendu') {
-        genduLabel = `跟讀<br>${currentCycleCount + 1}/${newRepeat}`;
-      } else if (practicePhase === 'new_zidu') {
-        ziduLabel = `自讀<br>${currentCycleCount + 1}/${newRepeat}`;
-      } else if (practicePhase === 'cumulative_gendu') {
-        genduLabel = `串習跟<br>${currentCycleCount + 1}/${cRepeat}`;
-      } else if (practicePhase === 'cumulative_zidu') {
-        ziduLabel = `串習自<br>${currentCycleCount + 1}/${cRepeat}`;
-      } else if (practicePhase === 'completed') {
-        genduLabel = '跟讀';
-        ziduLabel = '自讀';
-      }
-
       if (btnGendu) {
-          btnGendu.innerHTML = genduLabel;
-          if (isMode2) {
-              btnGendu.style.background = colorPurple;
-              btnGendu.style.borderColor = '#E9D5FF';
-              btnGendu.style.color = '#FFFFFF';
-              btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
-          } else {
+          btnGendu.textContent = isGenduPlaying ? '跟著唸' : '跟讀';
+          if (!isMode2) {
               btnGendu.style.background = colorBlack;
               btnGendu.style.borderColor = '#BAE6FD';
               btnGendu.style.color = '#FB923C';
               btnGendu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+              btnGendu.classList.remove('recording-flashing');
+          } else {
+              if (isGenduPlaying) {
+                  btnGendu.style.background = colorPurple;
+                  btnGendu.style.borderColor = '#E9D5FF';
+                  btnGendu.style.color = '#FFFFFF';
+                  btnGendu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
+              } else {
+                  btnGendu.style.background = colorGreen;
+                  btnGendu.style.borderColor = '#A7F3D0';
+                  btnGendu.style.color = '#FFFFFF';
+                  btnGendu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+              }
           }
       }
 
       if (btnZidu) {
-          btnZidu.innerHTML = ziduLabel;
-          if (isMode3) {
-              btnZidu.style.background = colorPurple;
-              btnZidu.style.borderColor = '#E9D5FF';
-              btnZidu.style.color = '#FFFFFF';
-              btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
-          } else {
+          btnZidu.textContent = isZiduRunning ? '唸出聲' : '自讀';
+          if (!isMode3) {
               btnZidu.style.background = colorBlack;
               btnZidu.style.borderColor = '#BAE6FD';
               btnZidu.style.color = '#FB923C';
               btnZidu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+              btnZidu.classList.remove('recording-flashing');
+          } else {
+              if (isZiduRunning) {
+                  btnZidu.style.background = colorPurple;
+                  btnZidu.style.borderColor = '#E9D5FF';
+                  btnZidu.style.color = '#FFFFFF';
+                  btnZidu.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
+              } else {
+                  btnZidu.style.background = colorGreen;
+                  btnZidu.style.borderColor = '#A7F3D0';
+                  btnZidu.style.color = '#FFFFFF';
+                  btnZidu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
+              }
           }
       }
 
@@ -2551,24 +2533,56 @@
 
     function handleGenduClick() {
       triggerAppFullscreen();
+      if (!isIndependentModeUnlocked() && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
+        showToast("⚠️ 目前為自讀階段，請依照語音與紅點引導唸誦", 3000);
+        return;
+      }
+      
       if (currentCoreMode !== 'mode2') {
           setCoreMode('mode2');
           return;
       }
-      const range = getActiveVideoRange();
-      if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 3000); return; }
-      video.currentTime = range.start;
-      video.play().then(() => {
+      
+      if (video.paused) {
+          const range = getActiveVideoRange();
+          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 3000); return; }
+          
+          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
+              video.currentTime = videoPausedAt;
+          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
+              video.currentTime = range.start;
+          }
+
+          video.play().then(() => {
+              updateModeButtonsStyle();
+              startMp4PrecisionCheck();
+              saveCurrentAppState();
+          }).catch((err) => {
+              video.currentTime = range.start;
+              video.play().then(() => {
+                  updateModeButtonsStyle();
+                  startMp4PrecisionCheck();
+              }).catch((retryErr) => {
+                  updateModeButtonsStyle();
+                  showToast('⚠️ 跟讀影片無法播放', 6000);
+              });
+          });
+      } else {
+          video.pause();
+          videoPausedAt = video.currentTime;
           updateModeButtonsStyle();
-          startMp4PrecisionCheck();
+          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
           saveCurrentAppState();
-      }).catch((err) => {
-          showToast('⚠️ 跟讀影片無法播放', 6000);
-      });
+      }
     }
 
     async function handleZiduClick() {
       triggerAppFullscreen();
+      if (!isIndependentModeUnlocked() && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
+        showToast("⚠️ 請先完成跟讀，系統將自動帶您進入自讀階段", 3000);
+        return;
+      }
+
       if (currentCoreMode !== 'mode3') {
           setCoreMode('mode3');
           return;
@@ -2585,26 +2599,31 @@
         return;
       }
 
-      if (parsedTextLines.length === 0) {
-          showToast("經文處理中，請稍候", 2000);
-          return;
+      if (isGuideActive) {
+          haltGuideRunnerImmediately();
+          saveCurrentAppState();
+      } else {
+          if (parsedTextLines.length === 0) {
+              showToast("經文處理中，請稍候", 2000);
+              return;
+          }
+
+          isGuideActive = true;
+          if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+
+          isVoiceActive = false;
+          isTouchingDisplay = false;
+          isTransitioningLine = false;
+          hasPageFlipped = false;
+          isLineHeadLocked = true;
+          currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
+          currentCharIndexFloat = 0.0;
+          lastVoiceTime = performance.now();
+
+          startGuideRunner();
+          updateModeButtonsStyle();
+          saveCurrentAppState();
       }
-
-      isGuideActive = true;
-      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-
-      isVoiceActive = false;
-      isTouchingDisplay = false;
-      isTransitioningLine = false;
-      hasPageFlipped = false;
-      isLineHeadLocked = true;
-      currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
-      currentCharIndexFloat = 0.0;
-      lastVoiceTime = performance.now();
-
-      startGuideRunner();
-      updateModeButtonsStyle();
-      saveCurrentAppState();
     }
 
     async function handleRecordModeClick() {
@@ -2708,11 +2727,9 @@
           URL.revokeObjectURL(url);
 
           if (clipboardSuccess) {
-            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！
-可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 截圖已自動下載！
-請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
 
@@ -2795,11 +2812,10 @@
       currentCycleCount++;
       const earned = calculateSentenceCount();
       addCoins(earned);
-      updateModeButtonsStyle();
 
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < newRepeat) {
-          showToast(`跟讀第 ${currentCycleCount}/${newRepeat} 遍`, 1500);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
@@ -2821,7 +2837,7 @@
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
-          showToast(`自讀第 ${currentCycleCount}/${newRepeat} 遍`, 1500);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           handleZiduClick();
         } else {
@@ -2852,7 +2868,7 @@
         }
       } else if (practicePhase === 'cumulative_gendu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`串習跟讀第 ${currentCycleCount}/${cRepeat} 遍`, 1500);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
@@ -2872,7 +2888,7 @@
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`串習自讀第 ${currentCycleCount}/${cRepeat} 遍`, 1500);
+          showToast(`第 ${currentCycleCount} 遍`, 1500);
           setupStageRange();
           handleZiduClick();
         } else {
@@ -3120,7 +3136,7 @@
       }
     }
 
-    // 點擊「皈依祈求」：放煙火、顯示右側控制項、將卡片從簡易版切換為完全輸出模式
+    // 點擊「皈依祈求」：隱藏下方按鈕、顯示右側群組，並將 22 天後的畫面由簡化版切換為「完全輸出」詳細內容
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
@@ -3130,13 +3146,6 @@
         classicStorage.setItem('FIREWORKS_TOAST_DATE_V971', todayStr);
       }
       triggerFireworks(showToastFlag);
-
-      // 隱藏 1/3 簡易顯示區塊，顯示完整內容容器
-      const textContainerLong = document.getElementById('textContainerLongCard');
-      const textContainer = document.getElementById('textContainer');
-      if (textContainerLong) textContainerLong.style.display = 'none';
-      if (textContainer) textContainer.style.display = 'block';
-
       loadRandomCardData();
 
       const actionsRow = document.getElementById('companionActionsRow');
@@ -3146,9 +3155,21 @@
 
       const sideRightGroup = document.getElementById('side-right-group');
       if (sideRightGroup) sideRightGroup.style.display = 'flex';
+
+      const textContainerLong = document.getElementById('textContainerLongCard');
+      const textContainer = document.getElementById('textContainer');
+      if (textContainerLong) textContainerLong.style.display = 'none';
+      if (textContainer) {
+        textContainer.style.border = 'none';
+        textContainer.style.boxShadow = 'none';
+        textContainer.style.borderRadius = '0';
+        textContainer.style.padding = '0';
+        textContainer.style.background = 'transparent';
+        textContainer.style.display = 'block';
+      }
     }
 
-    // 點擊返回按鍵：復原陪伴卡初始狀態（若天數 > 21 恢復為只顯示標題與天數）
+    // 點擊返回按鍵：復原所有狀態
     function handleRestoreCompanionButtons() {
       const sideRightGroup = document.getElementById('side-right-group');
       if (sideRightGroup) sideRightGroup.style.display = 'none';
@@ -3813,7 +3834,6 @@
       const textContainer = document.getElementById('textContainer');
       const cardTitle = document.getElementById('cardTitle');
       const cardContent = document.getElementById('cardContent');
-
       if (bottomRightBadge) bottomRightBadge.style.display = 'block';
       if (textContainer) textContainer.style.display = 'block';
 
@@ -3831,7 +3851,7 @@
 
           let titleText = selectedData.title;
           let rawContent = selectedData.content;
-          if (titleText.length > 18) titleText = titleText.substring(0, 18);
+          if (titleText.length > 16) titleText = titleText.substring(0, 16);
 
           if (cardTitle) cardTitle.textContent = titleText;
           if (cardContent) cardContent.textContent = rawContent;
@@ -3914,6 +3934,8 @@
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const textContainerLong = document.getElementById('textContainerLongCard');
+      const cardTitle = document.getElementById('cardTitle');
+      const cardContent = document.getElementById('cardContent');
       const cardTitleLong = document.getElementById('cardTitleLong');
       const cardDayLong = document.getElementById('cardDayLong');
       const btnDays = document.getElementById('btn-card-days');
@@ -3944,17 +3966,20 @@
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
 
         if (Object.keys(cardTexts).length > 0) {
-          // 隨機抽選一則標題
           const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
           const selectedData = cardTexts[randomTextKey];
-          let titleText = selectedData.title;
+          let titleText = selectedData.title || '';
           if (titleText.length > 18) titleText = titleText.substring(0, 18);
-
-          if (cardTitleLong) cardTitleLong.textContent = titleText;
-          if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
 
           if (textContainer) textContainer.style.display = 'none';
           if (textContainerLong) textContainerLong.style.display = 'flex';
+          if (cardTitleLong) cardTitleLong.textContent = titleText;
+          if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+
+          const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
+          const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+          const paddedImgNum = String(randomImgNum).padStart(2, '0');
+          if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
         } else {
           fetch('images_text.json')
             .then(res => res.json())
@@ -3963,16 +3988,20 @@
               textKeys = Object.keys(cardTexts);
               const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
               const selectedData = cardTexts[randomTextKey];
-              let titleText = selectedData.title;
-              if (cardTitleLong) cardTitleLong.textContent = titleText;
-              if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+              let titleText = selectedData.title || '';
 
               if (textContainer) textContainer.style.display = 'none';
               if (textContainerLong) textContainerLong.style.display = 'flex';
+              if (cardTitleLong) cardTitleLong.textContent = titleText;
+              if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+              if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
             })
             .catch(err => {
+              if (textContainer) textContainer.style.display = 'none';
+              if (textContainerLong) textContainerLong.style.display = 'flex';
               if (cardTitleLong) cardTitleLong.textContent = "陪伴卡載入";
               if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+              if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
             });
         }
       }
