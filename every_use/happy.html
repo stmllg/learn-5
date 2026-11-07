@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V1205</title>
+  <title>歡喜背書V1220</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -268,7 +268,34 @@
     }
 
     .companion-actions-row {
-      display: none !important;
+      position: absolute;
+      bottom: 3%;
+      left: 5%;
+      right: 5%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      z-index: 30;
+      background: none;
+      border: none;
+      padding: 0;
+      backdrop-filter: none;
+    }
+
+    .companion-actions-row button {
+      flex: 0 1 auto;
+      min-width: 100px;
+      padding: 10px 16px;
+      text-align: center;
+      white-space: nowrap;
+      font-size: clamp(13px, 2.0vh, 17px);
+      font-weight: 900;
+      border-radius: 26px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s ease-out;
     }
 
     .btn-card-orange {
@@ -577,37 +604,14 @@
       align-items: center;
       padding-top: 4px;
       padding-bottom: 4px;
-      z-index: 70000;
+      z-index: 60;
       box-sizing: border-box;
-      position: relative;
+      transition: width 0.3s ease, opacity 0.3s ease;
     }
-    #left-wing { width: calc(85px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 6px); padding-right: 6px; }
-    #right-wing { width: calc(85px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 6px); padding-left: 6px; }
+    #left-wing { width: calc(68px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; }
+    #right-wing { width: calc(68px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; }
 
-    .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; z-index: 70001; }
-
-    /* 調整側翼按鈕大小與排版，確保在黑框內完美呈現不被遮擋 */
-    .side-wing button {
-      width: 76px !important;
-      height: 56px !important;
-      min-width: 76px !important;
-      min-height: 56px !important;
-      max-width: 78px !important;
-      font-size: 13px !important;
-      font-weight: 900 !important;
-      border-radius: 12px !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      justify-content: center !important;
-      text-align: center !important;
-      line-height: 1.15 !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.9) !important;
-      z-index: 70002 !important;
-      padding: 2px 4px !important;
-      white-space: normal !important;
-      word-break: break-all !important;
-    }
+    .slot { width: 100%; height: 25%; display: flex; align-items: center; justify-content: center; position: relative; }
 
     .circle-btn {
       width: 54px !important;
@@ -651,6 +655,27 @@
       touch-action: manipulation;
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
+
+    .btn-wing-companion {
+      width: 62px !important;
+      height: 62px !important;
+      border-radius: 14px !important;
+      border: 2.5px solid #38BDF8 !important;
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%) !important;
+      color: #38BDF8 !important;
+      font-size: 12px !important;
+      font-weight: 900 !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.2;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
+      touch-action: manipulation;
+    }
+    .btn-wing-companion:active { transform: scale(0.90); opacity: 0.85; }
 
     .btn-color-offering {
       width: 62px !important;
@@ -703,7 +728,6 @@
       border-right: 2px solid #1E293B;
       scroll-behavior: smooth;
       touch-action: pan-y;
-      z-index: 10;
     }
 
     #guide-stage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: block; }
@@ -833,12 +857,20 @@
         <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
         <div class="card-id-inline" id="cardIdInline"></div>
       </div>
+
+      <div class="companion-actions-row" id="companionActionsRow">
+        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="handleAnyCompanionAction(openScheduleModal)" style="display: none;">⚙️ 排程設定</button>
+        <button class="btn-card-orange" onclick="handleAnyCompanionAction(playTeacherGuideAndRecite)">老師帶前行</button>
+        <button class="btn-card-orange" onclick="handleAnyCompanionAction(closeCompanionCard)">開始背誦</button>
+        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleAnyCompanionAction(handleDayBtnClick)">皈依祈求</button>
+        <button class="btn-card-line" onclick="handleAnyCompanionAction(shareScreenshotToLine)">LINE</button>
+      </div>
     </div>
   </div>
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v995)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1220)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -890,7 +922,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v1205 載入中】...</div>
+  <div id="schedule-toast">📦 【v1220 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -926,15 +958,6 @@
       <div class="slot" id="slot-r3"></div>
       <div class="slot" id="slot-r4"></div>
     </div>
-  </div>
-
-  <!-- 用於存放未歸位前的 5 個按鈕容器 -->
-  <div id="hidden-buttons-pool" style="display: none;">
-    <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()">⚙️ 排程設定</button>
-    <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
-    <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
-    <button id="btn-card-days" class="btn-card-setting" style="background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
-    <button class="btn-card-line" onclick="shareScreenshotToLine()">LINE</button>
   </div>
 
   <div id="offering-modal-overlay">
@@ -1057,6 +1080,7 @@
 
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
+    let isSideWingsCompanionMode = false; // V1220: 追蹤是否已將 5 個按鈕放到左右邊框
 
     let selectedDailyStep = DEFAULT_DAILY_STEP;
 
@@ -1153,6 +1177,7 @@
         markA_Index: markA_Index,
         markB_Index: markB_Index,
         isManualSelected: isManualSelected,
+        isSideWingsCompanionMode: isSideWingsCompanionMode,
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
@@ -1200,6 +1225,7 @@
       markA_Index = state.markA_Index !== undefined ? state.markA_Index : -1;
       markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
       isManualSelected = state.isManualSelected || false;
+      isSideWingsCompanionMode = state.isSideWingsCompanionMode || false;
 
       restoreModalOverlay.style.display = 'none';
 
@@ -1308,9 +1334,6 @@
       initCompanionCard(targetDay);
 
       hasEnteredReciting = false;
-      
-      moveCompanionButtonsToWings();
-
       companionOverlay.style.display = 'flex';
       companionOverlay.style.opacity = '1';
       companionOverlay.classList.add('active');
@@ -1462,68 +1485,47 @@
       }
     }
 
-    async function playTeacherGuideAndRecite() {
-      triggerAppFullscreen();
-      const compOverlay = document.getElementById('companion-overlay');
-      compOverlay.style.opacity = '0';
-      compOverlay.classList.remove('active');
-      compOverlay.style.pointerEvents = 'none';
-
-      setTimeout(async () => {
-        compOverlay.style.display = 'none';
-        compOverlay.style.pointerEvents = 'auto';
-
-        await preWarmMicrophonePermission();
-
-        hasEnteredReciting = true;
-        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
-        const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
-
-        triggerAppFullscreen();
-
-        playStandaloneVideo('mode1', 0, async () => {
-          showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
-          await loadAllAssetsSmartSync();
-
-          const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
-          if (savedStr) {
-            try {
-              const state = JSON.parse(savedStr);
-              if (state.savedDateStr === getNormalizedDateStr()) {
-                pendingRestoredState = state;
-                confirmRestoreState();
-                return;
-              }
-            } catch(e) {}
-          }
-
-          setCoreMode('mode2');
-        });
-      }, 200);
-    }
-
-    async function closeCompanionCard() {
-      triggerAppFullscreen();
+    // V1220: 通用攔截器：當按下任何一個陪伴卡按鈕時，啟動側翼黑框模式，並執行對應動作
+    function handleAnyCompanionAction(actionCallback) {
+      isSideWingsCompanionMode = true;
       
       const compOverlay = document.getElementById('companion-overlay');
-      compOverlay.style.opacity = '0';
-      compOverlay.classList.remove('active');
-      compOverlay.style.pointerEvents = 'none';
-
-      setTimeout(async () => {
-        compOverlay.style.display = 'none';
-        compOverlay.style.pointerEvents = 'auto';
-
-        await preWarmMicrophonePermission();
-
+      if (compOverlay) {
+        compOverlay.style.opacity = '0';
+        compOverlay.classList.remove('active');
+        compOverlay.style.pointerEvents = 'none';
+        setTimeout(async () => {
+          compOverlay.style.display = 'none';
+          compOverlay.style.pointerEvents = 'auto';
+          hasEnteredReciting = true;
+          renderUI();
+          
+          if (typeof actionCallback === 'function') {
+            await actionCallback();
+          }
+        }, 200);
+      } else {
         hasEnteredReciting = true;
-        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
-        const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+        renderUI();
+        if (typeof actionCallback === 'function') {
+          actionCallback();
+        }
+      }
+      saveCurrentAppState();
+    }
 
-        triggerAppFullscreen();
+    async function playTeacherGuideAndRecite() {
+      triggerAppFullscreen();
+      await preWarmMicrophonePermission();
 
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
+      triggerAppFullscreen();
+
+      playStandaloneVideo('mode1', 0, async () => {
+        showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
         await loadAllAssetsSmartSync();
 
         const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
@@ -1538,11 +1540,38 @@
           } catch(e) {}
         }
 
-        const hasRestore = checkAndPrepareRestoreState();
-        if (!hasRestore) {
-          setCoreMode('mode2');
-        }
-      }, 200);
+        setCoreMode('mode2');
+      });
+    }
+
+    async function closeCompanionCard() {
+      triggerAppFullscreen();
+      await preWarmMicrophonePermission();
+
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
+      triggerAppFullscreen();
+
+      await loadAllAssetsSmartSync();
+
+      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
+      if (savedStr) {
+        try {
+          const state = JSON.parse(savedStr);
+          if (state.savedDateStr === getNormalizedDateStr()) {
+            pendingRestoredState = state;
+            confirmRestoreState();
+            return;
+          }
+        } catch(e) {}
+      }
+
+      const hasRestore = checkAndPrepareRestoreState();
+      if (!hasRestore) {
+        setCoreMode('mode2');
+      }
     }
 
     function getCurrentProgressEnd() {
@@ -1905,6 +1934,7 @@
             if (st.savedDateStr === getNormalizedDateStr()) {
               restoredCount = st.currentCycleCount || 0;
               if (st.practicePhase) practicePhase = st.practicePhase;
+              if (st.isSideWingsCompanionMode !== undefined) isSideWingsCompanionMode = st.isSideWingsCompanionMode;
             }
           } catch(e) {}
         }
@@ -1953,7 +1983,7 @@
           pdfCanvas.width = 0;
           pdfCanvas.height = 0;
 
-          const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 170);
+          const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
           const pageRotation = page.rotate || 0;
           const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
           const pageScale = availableWidth / unscaledViewport.width;
@@ -2288,65 +2318,78 @@
 
     function renderUI() {
       try {
-        if (isIndependentModeUnlocked()) {
-          slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
-          const btnOffering = document.getElementById('btn-offering');
-          if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+        if (isSideWingsCompanionMode) {
+          // V1220: 將本來在畫面當中的五個按鈕放到左右邊框 (左一、左二、左三、左四、右一)
+          slotL1.innerHTML = '<button class="btn-wing-companion" onclick="openScheduleModal()">⚙️<br>排程設定</button>';
+          slotL2.innerHTML = '<button class="btn-wing-companion" onclick="playTeacherGuideAndRecite()">老師<br>帶前行</button>';
+          slotL3.innerHTML = '<button class="btn-wing-companion" onclick="closeCompanionCard()">開始<br>背誦</button>';
+          slotL4.innerHTML = '<button class="btn-wing-companion" onclick="handleDayBtnClick()">皈依<br>祈求</button>';
+          slotR1.innerHTML = '<button class="btn-wing-companion" style="background: linear-gradient(135deg, #06C755 0%, #00B900 100%) !important; border-color: #A7F3D0 !important; color: #FFFFFF !important;" onclick="shareScreenshotToLine()">💬<br>LINE</button>';
 
-          const textA = isSelectingMarkA ? '請點句' : '起句';
-          const textB = isSelectingMarkB ? '請點句' : '終句';
-          const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
-          const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
-
-          slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
-          slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
-          slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
-        } else {
-          slotL1.innerHTML = '';
-          slotL2.innerHTML = '';
-          slotL3.innerHTML = '';
+          slotR2.innerHTML = '';
           slotR3.innerHTML = '';
-        }
+          slotR4.innerHTML = '';
+        } else {
+          if (isIndependentModeUnlocked()) {
+            slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
+            const btnOffering = document.getElementById('btn-offering');
+            if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
-        slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
-        slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+            const textA = isSelectingMarkA ? '請點句' : '起句';
+            const textB = isSelectingMarkB ? '請點句' : '終句';
+            const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+            const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
 
-        slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
-        slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
+            slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
+            slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
+            slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
+          } else {
+            slotL1.innerHTML = '';
+            slotL2.innerHTML = '';
+            slotL3.innerHTML = '';
+            slotR3.innerHTML = '';
+          }
 
-        const btnMarkA = document.getElementById('btn-mark-a');
-        if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
+          slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
+          slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
-        const btnMarkB = document.getElementById('btn-mark-b');
-        if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
+          slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
+          slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
 
-        const btnSpeedDown = document.getElementById('btn-speed-down');
-        if (btnSpeedDown) {
-          btnSpeedDown.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
-            else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
-            else triggerPdfSpeedChange(-0.1);
-          });
-        }
+          const btnMarkA = document.getElementById('btn-mark-a');
+          if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
 
-        const btnGendu = document.getElementById('btn-gendu');
-        if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
+          const btnMarkB = document.getElementById('btn-mark-b');
+          if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
 
-        const btnZidu = document.getElementById('btn-zidu');
-        if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
+          const btnSpeedDown = document.getElementById('btn-speed-down');
+          if (btnSpeedDown) {
+            btnSpeedDown.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
+              else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
+              else triggerPdfSpeedChange(-0.1);
+            });
+          }
 
-        const btnRecord = document.getElementById('btn-record');
-        if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
+          const btnGendu = document.getElementById('btn-gendu');
+          if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
 
-        const btnSpeedUp = document.getElementById('btn-speed-up');
-        if (btnSpeedUp) {
-          btnSpeedUp.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
-            else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
-            else triggerPdfSpeedChange(+0.1);
-          });
+          const btnZidu = document.getElementById('btn-zidu');
+          if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
+
+          const btnRecord = document.getElementById('btn-record');
+          if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
+
+          const btnSpeedUp = document.getElementById('btn-speed-up');
+          if (btnSpeedUp) {
+            btnSpeedUp.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
+              else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
+              else triggerPdfSpeedChange(+0.1);
+            });
+          }
         }
 
         updateModeButtonsStyle();
@@ -2355,6 +2398,7 @@
     }
 
     function updateModeButtonsStyle() {
+      if (isSideWingsCompanionMode) return;
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
       const btnRecord = document.getElementById('btn-record');
@@ -2596,8 +2640,12 @@
     async function shareScreenshotToLine() {
       triggerAppFullscreen();
 
+      const actionsRow = document.getElementById('companionActionsRow');
       const cardStage = document.getElementById('cardStage');
+
       if (!cardStage) return;
+
+      if (actionsRow) actionsRow.style.display = 'none';
 
       showToast('📸 正在產生精美截圖...', 2000);
 
@@ -2612,6 +2660,8 @@
         });
 
         canvas.toBlob(async (blob) => {
+          if (actionsRow) actionsRow.style.display = 'flex';
+
           if (!blob) {
             showToast('⚠️ 截圖產生失敗', 3000);
             return;
@@ -2644,6 +2694,7 @@
         }, 'image/png', 0.95);
 
       } catch(err) {
+        if (actionsRow) actionsRow.style.display = 'flex';
         showToast('⚠️ 截圖失敗', 3000);
       }
     }
@@ -2752,7 +2803,7 @@
           if (hasCumulative) {
             showTransitionModal(
               "🎉 新進度自讀圓滿！",
-              `新進度已全部圓滿。<br>接下來將進入<strong><span>〈串習複習跟讀〉</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+              `新進度已全部圓滿。<br>接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
               () => {
                 practicePhase = 'cumulative_gendu';
                 currentCycleCount = 0;
@@ -3793,22 +3844,6 @@
       }
     }, { passive: true });
 
-    // 自動將隱藏池中的 5 個按鈕直接放入左右黑框的指定 slot 中，且只搬移一次以防閃爍
-    function moveCompanionButtonsToWings() {
-      const settingBtn = document.getElementById('btn-card-setting-dynamic');
-      const pool = document.getElementById('hidden-buttons-pool');
-      if (!pool) return;
-
-      const buttons = pool.querySelectorAll('button');
-      if (buttons.length >= 5) {
-        if (slotL1.children.length === 0) slotL1.appendChild(buttons[0]); // 排程設定
-        if (slotL2.children.length === 0) slotL2.appendChild(buttons[1]); // 老師帶前行
-        if (slotL3.children.length === 0) slotL3.appendChild(buttons[2]); // 開始背誦
-        if (slotL4.children.length === 0) slotL4.appendChild(buttons[3]); // 皈依祈求
-        if (slotR1.children.length === 0) slotR1.appendChild(buttons[4]); // LINE
-      }
-    }
-
     async function initCompanionCard(targetDay) {
       await loadBackgroundConfig();
       window.CURRENT_TARGET_DAY = targetDay;
@@ -3822,7 +3857,7 @@
       if (btnDays) {
         btnDays.style.display = 'inline-block';
         btnDays.textContent = '皈依祈求';
-        btnDays.onclick = handleDayBtnClick;
+        btnDays.onclick = () => handleAnyCompanionAction(handleDayBtnClick);
       }
 
       if (Object.keys(cardTexts).length === 0) {
@@ -3896,9 +3931,6 @@
       classicStorage.setItem('CURRENT_SCHEDULE_DAY_V971', targetDay.toString());
 
       initCompanionCard(targetDay);
-
-      // 一載入就立刻把按鈕安全放到黑框中，不閃爍也不被遮擋
-      moveCompanionButtonsToWings();
 
       const compWrapper = document.querySelector('.companion-wrapper');
       if (compWrapper) compWrapper.classList.add('ready');
