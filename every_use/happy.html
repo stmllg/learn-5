@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>歡喜背書V1222</title>
+  <title>歡喜背書V1223</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -46,7 +46,7 @@
       user-select: none;
     }
 
-    /* V1222 防黑屏佈局：使用 min-height 100vh 與標準 flex，避免 LINE 瀏覽器 dvh/fixed 渲染崩潰 */
+    /* V1223 防黑屏核心：使用 min-height 100vh，徹底拔除容易造成 LINE 崩潰的 position: fixed 根元素與 dvh */
     html, body {
       width: 100%;
       height: 100%;
@@ -54,7 +54,7 @@
       background-color: #0B0F19;
       color: #FFFFFF;
       font-family: "Microsoft JhengHei", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif;
-      overflow: hidden;
+      overflow-x: hidden;
     }
 
     #line-browser-overlay {
@@ -856,7 +856,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1222)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1223)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -908,7 +908,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v1222 載入中】...</div>
+  <div id="schedule-toast">📦 【v1223 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1066,7 +1066,7 @@
 
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
-    let isSideWingsCompanionMode = false; // V1222: 追蹤是否已將 5 個按鈕放到左右邊框
+    let isSideWingsCompanionMode = false; // V1223: 追蹤是否已將 5 個按鈕放到左右邊框
 
     let selectedDailyStep = DEFAULT_DAILY_STEP;
 
@@ -1471,7 +1471,7 @@
       }
     }
 
-    // V1222: 通用攔截器：當按下任何一個陪伴卡按鈕時，啟動側翼黑框模式，並執行對應動作
+    // V1223: 通用攔截器：當按下任何一個陪伴卡按鈕時，啟動側翼黑框模式，並執行對應動作
     function handleAnyCompanionAction(actionCallback) {
       isSideWingsCompanionMode = true;
       
@@ -2305,7 +2305,7 @@
     function renderUI() {
       try {
         if (isSideWingsCompanionMode) {
-          // V1222: 將本來在畫面當中的五個按鈕放到左右邊框 (左一、左二、左三、左四、右一)
+          // V1223: 將本來在畫面當中的五個按鈕放到左右邊框 (左一、左二、左三、左四、右一)
           slotL1.innerHTML = '<button class="btn-wing-companion" onclick="openScheduleModal()">⚙️<br>排程設定</button>';
           slotL2.innerHTML = '<button class="btn-wing-companion" onclick="playTeacherGuideAndRecite()">老師<br>帶前行</button>';
           slotL3.innerHTML = '<button class="btn-wing-companion" onclick="closeCompanionCard()">開始<br>背誦</button>';
@@ -2631,7 +2631,7 @@
 
       if (!cardStage) return;
 
-      if (actionsRow) actionsRow.style.display = 'none';
+      if (actionsRow) actionsRow.style.display = 'flex';
 
       showToast('📸 正在產生精美截圖...', 2000);
 
