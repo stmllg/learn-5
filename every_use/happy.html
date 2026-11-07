@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.7</title>
+  <title>歡喜背書V999.8</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -252,6 +252,29 @@
     .btn-card-line-side:active {
       transform: scale(0.92);
       background: linear-gradient(135deg, #00B900 0%, #049B3C 100%);
+    }
+
+    /* 抽今日正能量按鈕專用樣式（金黃高質感） */
+    .btn-card-energy-side {
+      padding: 12px 14px;
+      background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%);
+      color: #78350F;
+      border: 2px solid #D97706;
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8), 0 0 15px rgba(245, 158, 11, 0.3);
+      cursor: pointer;
+      user-select: none;
+      writing-mode: vertical-lr;
+      text-orientation: upright;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+    .btn-card-energy-side:active {
+      transform: scale(0.92);
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #FFFFFF;
     }
 
     .companion-wrapper {
@@ -879,14 +902,14 @@
   </div>
 
   <div id="companion-overlay">
-    <!-- 左右兩側黑框返回與側邊按鈕群組 -->
+    <!-- 左右兩側黑框返回與側邊按鈕群組 (右側改為抽正能量按鈕) -->
     <div id="side-left-group" class="side-control-group">
       <button class="btn-card-return" onclick="handleRestoreCompanionButtons()">◀ 返回</button>
       <button class="btn-card-line-side" onclick="shareScreenshotToLine()">LINE</button>
     </div>
     <div id="side-right-group" class="side-control-group">
       <button class="btn-card-return" onclick="handleRestoreCompanionButtons()">返回 ▶</button>
-      <button class="btn-card-line-side" onclick="shareScreenshotToLine()">LINE</button>
+      <button class="btn-card-energy-side" onclick="handleDrawEnergyClick()">抽正能量</button>
     </div>
 
     <div class="companion-wrapper" id="cardStage">
@@ -959,7 +982,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.7 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.8 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2677,6 +2700,8 @@
 
         canvas.toBlob(async (blob) => {
           if (actionsRow) actionsRow.style.display = 'flex';
+          if (sideLeftGroup) sideLeftGroup.style.display = 'flex';
+          if (sideRightGroup) sideRightGroup.style.display = 'flex';
 
           if (!blob) {
             showToast('⚠️ 截圖產生失敗', 3000);
@@ -2709,6 +2734,8 @@
 
       } catch(err) {
         if (actionsRow) actionsRow.style.display = 'flex';
+        if (sideLeftGroup) sideLeftGroup.style.display = 'flex';
+        if (sideRightGroup) sideRightGroup.style.display = 'flex';
         showToast('⚠️ 截圖失敗', 3000);
       }
     }
@@ -2798,7 +2825,7 @@
           speakPrompt(promptText);
           showTransitionModal(
             "🎉 新進度跟讀圓滿！",
-            `您已完成新進度跟讀。<br>接下來將進入<strong>「新進度自讀模式」</strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
+            `您已完成新進度跟讀。<br>接下來將進入<strong><span>「新進度自讀模式」</span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
               practicePhase = 'new_zidu';
               currentCycleCount = 0;
@@ -3141,6 +3168,14 @@
         textContainer.style.borderRadius = '12px';
         textContainer.style.padding = '8px';
       }
+    }
+
+    // 點擊「抽正能量」：重新放煙火並重新抽卡與隨機文字輸出
+    function handleDrawEnergyClick() {
+      triggerAppFullscreen();
+      triggerFireworks(false);
+      loadRandomCardData();
+      showToast("✨ 抽正能量成功！新祝福已送達！", 2500);
     }
 
     // 點擊返回按鍵：復原所有狀態與移除紅框
