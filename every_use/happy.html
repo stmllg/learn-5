@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.10</title>
+  <title>歡喜背書V999.110</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -254,6 +254,7 @@
       background: linear-gradient(135deg, #00B900 0%, #049B3C 100%);
     }
 
+    /* 抽今日正能量按鈕專用樣式（金黃高質感） */
     .btn-card-energy-side {
       padding: 12px 14px;
       background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%);
@@ -315,13 +316,12 @@
       background: transparent;
       transition: border 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease;
     }
-
-    /* active-red-border 樣式類別 */
     .card-text-container.active-red-border {
       border: 3px solid #EF4444 !important;
-      box-shadow: 0 0 25px rgba(239, 68, 68, 0.8);
       border-radius: 12px;
-      padding: 8px;
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.7);
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.92);
     }
 
     .companion-wrapper.fade-out {
@@ -889,13 +889,6 @@
 </head>
 <body>
 
-  <!-- 左右黑框控制按鈕群組 (左側：返回+LINE，右側：返回+抽正能量) -->
-  <button id="btn-companion-return-left" class="btn-card-return" onclick="handleRestoreCompanionButtons()" style="display: none; position: absolute; left: calc(8px + env(safe-area-inset-left, 0px)); top: 35%;">◀ 返回</button>
-  <button id="btn-companion-line-left" class="btn-card-line-side" onclick="shareScreenshotToLine()" style="display: none; position: absolute; left: calc(8px + env(safe-area-inset-left, 0px)); top: 68%;">L<br>I<br>N<br>E</button>
-
-  <button id="btn-companion-return-right" class="btn-card-return" onclick="handleRestoreCompanionButtons()" style="display: none; position: absolute; right: calc(8px + env(safe-area-inset-right, 0px)); top: 35%;">返回 ▶</button>
-  <button id="btn-companion-energy-right" class="btn-card-energy-side" onclick="handleDrawEnergyClick()" style="display: none; position: absolute; right: calc(8px + env(safe-area-inset-right, 0px)); top: 68%;">抽<br>正<br>能<br>量</button>
-
   <div id="standalone-video-overlay">
     <video id="standalone-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
   </div>
@@ -916,6 +909,16 @@
   </div>
 
   <div id="companion-overlay">
+    <!-- 左右兩側黑框返回與側邊按鈕群組 (右側改為抽正能量按鈕) -->
+    <div id="side-left-group" class="side-control-group">
+      <button class="btn-card-return" onclick="handleRestoreCompanionButtons()">◀ 返回</button>
+      <button class="btn-card-line-side" onclick="shareScreenshotToLine()">LINE</button>
+    </div>
+    <div id="side-right-group" class="side-control-group">
+      <button class="btn-card-return" onclick="handleRestoreCompanionButtons()">返回 ▶</button>
+      <button class="btn-card-energy-side" onclick="handleDrawEnergyClick()">抽正能量</button>
+    </div>
+
     <div class="companion-wrapper" id="cardStage">
       <div class="card-text-container" id="textContainer">
         <div class="card-title" id="cardTitle">載入中...</div>
@@ -928,7 +931,6 @@
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
         <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
-        <button class="btn-card-line" onclick="shareScreenshotToLine()">LINE</button>
       </div>
     </div>
   </div>
@@ -987,7 +989,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.9 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.10 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -3143,7 +3145,7 @@
 
     let cardDayTimer = null;
     
-    // 點擊「皈依祈求」：隱藏下方按鈕，顯示左右側控制項，並加上 active-red-border 紅色邊框
+    // 點擊「皈依祈求」：隱藏下方按鈕，顯示左右側控制項，並用紅色框標示文字框範圍
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
@@ -3160,35 +3162,31 @@
         actionsRow.style.display = 'none';
       }
 
+      const sideLeftGroup = document.getElementById('side-left-group');
+      const sideRightGroup = document.getElementById('side-right-group');
+      if (sideLeftGroup) sideLeftGroup.style.display = 'flex';
+      if (sideRightGroup) sideRightGroup.style.display = 'flex';
+
       const textContainer = document.getElementById('textContainer');
       if (textContainer) {
         textContainer.classList.add('active-red-border');
       }
-
-      document.getElementById('btn-companion-return-left').style.display = 'block';
-      document.getElementById('btn-companion-line-left').style.display = 'block';
-      document.getElementById('btn-companion-return-right').style.display = 'block';
-      document.getElementById('btn-companion-energy-right').style.display = 'block';
     }
 
-    // 點擊「抽正能量」：重新放煙火並重新抽卡與隨機文字輸出 (維持紅框)
+    // 點擊「抽正能量」：重新放煙火並重新抽卡與隨機文字輸出
     function handleDrawEnergyClick() {
       triggerAppFullscreen();
       triggerFireworks(false);
       loadRandomCardData();
-      const textContainer = document.getElementById('textContainer');
-      if (textContainer) {
-        textContainer.classList.add('active-red-border');
-      }
       showToast("✨ 抽正能量成功！新祝福已送達！", 2500);
     }
 
-    // 點擊返回按鍵：復原所有狀態與移除 active-red-border 紅框
+    // 點擊返回按鍵：復原所有狀態與移除紅框
     function handleRestoreCompanionButtons() {
-      document.getElementById('btn-companion-return-left').style.display = 'none';
-      document.getElementById('btn-companion-line-left').style.display = 'none';
-      document.getElementById('btn-companion-return-right').style.display = 'none';
-      document.getElementById('btn-companion-energy-right').style.display = 'none';
+      const sideLeftGroup = document.getElementById('side-left-group');
+      const sideRightGroup = document.getElementById('side-right-group');
+      if (sideLeftGroup) sideLeftGroup.style.display = 'none';
+      if (sideRightGroup) sideRightGroup.style.display = 'none';
 
       const actionsRow = document.getElementById('companionActionsRow');
       if (actionsRow) {
@@ -3875,13 +3873,13 @@
           if (cardIdInline) cardIdInline.textContent = displayId;
 
           const stageHeight = (cardStage && cardStage.clientHeight > 50) ? cardStage.clientHeight : window.innerHeight;
-          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94; // 配合上下 3% 邊界調整最大可用高度
+          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94 - 28; // 扣掉 28px 緩衝區給 ID 顯示，避免被砍掉
 
           let size = 34; 
           const minSize = 14; 
 
           cardContent.style.fontSize = size + "px";
-          cardTitle.style.fontSize = (size + 4) + "px"; // 標題為內文大小 +4px
+          cardTitle.style.fontSize = (size + 4) + "px"; // 標題保持內文大小 + 4px
           if (cardIdInline) cardIdInline.style.fontSize = "12px";
 
           let tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
