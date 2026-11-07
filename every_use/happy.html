@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.14</title>
+  <title>歡喜背書V999.15</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -195,6 +195,7 @@
       opacity: 1;
     }
 
+    /* 右側控制群組：直式排列、上下各一個按鈕 */
     .side-control-group {
       display: none;
       flex-direction: column;
@@ -267,6 +268,42 @@
       display: none !important;
     }
 
+    /* 超過22天時預設的 1/3 處置中標題與天數顯示區塊 */
+    .card-text-container-long-card {
+      position: absolute;
+      top: 25%;
+      left: 27%;
+      right: 4%;
+      height: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+      overflow: visible;
+      background: transparent;
+    }
+    .card-title-long-card {
+      font-family: "Noto Serif TC", "Songti TC", serif;
+      font-size: 28px !important;
+      font-weight: 900;
+      color: #581C87;
+      text-shadow: 0 1px 3px rgba(255,255,255,0.95);
+      line-height: 1.3;
+      width: 100%;
+    }
+    .card-day-long-card {
+      font-family: "Noto Serif TC", "Songti TC", serif;
+      font-size: 28px !important;
+      font-weight: 900;
+      color: #047857;
+      text-shadow: 0 1px 3px rgba(255,255,255,0.95);
+      letter-spacing: 2px;
+      width: 100%;
+    }
+
+    /* 標準卡片文字框 */
     .card-text-container {
       position: absolute;
       top: 3%;
@@ -866,16 +903,21 @@
   </div>
 
   <div id="companion-overlay">
-    <!-- 左右兩側黑框控制群組（已移除天數按鈕與抽正能量按鈕） -->
-    <div id="side-left-group" class="side-control-group">
-      <button class="side-btn-full btn-side-line" onclick="shareScreenshotToLine()">LINE 分享</button>
-    </div>
+    <!-- 右側控制群組：上下各一個按鈕（LINE 分享、返回） -->
     <div id="side-right-group" class="side-control-group">
+      <button class="side-btn-full btn-side-line" onclick="shareScreenshotToLine()">LINE 分享</button>
       <button class="side-btn-full btn-side-return" onclick="handleRestoreCompanionButtons()">返回</button>
     </div>
 
     <div class="companion-wrapper" id="cardStage">
-      <div class="card-text-container" id="textContainer">
+      <!-- 超過 21 天預設顯示的 1/3 處置中區塊（標題與天數） -->
+      <div class="card-text-container-long-card" id="textContainerLongCard" style="display: none;">
+        <div class="card-title-long-card" id="cardTitleLong">載入中...</div>
+        <div class="card-day-long-card" id="cardDayLong">堅持背書第 22 天</div>
+      </div>
+
+      <!-- 點擊「皈依祈求」後完全輸出的詳細文字卡片內容 -->
+      <div class="card-text-container" id="textContainer" style="display: none;">
         <div class="card-title" id="cardTitle">載入中...</div>
         <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
         <div class="card-id-inline" id="cardIdInline"></div>
@@ -2638,14 +2680,12 @@
       triggerAppFullscreen();
 
       const actionsRow = document.getElementById('companionActionsRow');
-      const sideLeftGroup = document.getElementById('side-left-group');
       const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
 
       if (!cardStage) return;
 
       if (actionsRow) actionsRow.style.display = 'none';
-      if (sideLeftGroup) sideLeftGroup.style.display = 'none';
       if (sideRightGroup) sideRightGroup.style.display = 'none';
 
       showToast('📸 正在產生精美截圖...', 2000);
@@ -2662,7 +2702,6 @@
 
         canvas.toBlob(async (blob) => {
           if (actionsRow) actionsRow.style.display = 'flex';
-          if (sideLeftGroup) sideLeftGroup.style.display = 'flex';
           if (sideRightGroup) sideRightGroup.style.display = 'flex';
 
           if (!blob) {
@@ -2696,7 +2735,6 @@
 
       } catch(err) {
         if (actionsRow) actionsRow.style.display = 'flex';
-        if (sideLeftGroup) sideLeftGroup.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
         showToast('⚠️ 截圖失敗', 3000);
       }
@@ -3098,7 +3136,7 @@
       }
     }
 
-    // 點擊「皈依祈求」：隱藏下方按鈕，顯示左右側控制項並完全顯示完整卡片內容（如 V999.13）
+    // 點擊「皈依祈求」：隱藏下方按鈕、顯示右側群組，並將 22 天後的畫面由簡化版切換為「完全輸出」詳細內容
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
@@ -3115,12 +3153,12 @@
         actionsRow.style.display = 'none';
       }
 
-      const sideLeftGroup = document.getElementById('side-left-group');
       const sideRightGroup = document.getElementById('side-right-group');
-      if (sideLeftGroup) sideLeftGroup.style.display = 'flex';
       if (sideRightGroup) sideRightGroup.style.display = 'flex';
 
+      const textContainerLong = document.getElementById('textContainerLongCard');
       const textContainer = document.getElementById('textContainer');
+      if (textContainerLong) textContainerLong.style.display = 'none';
       if (textContainer) {
         textContainer.style.border = 'none';
         textContainer.style.boxShadow = 'none';
@@ -3133,9 +3171,7 @@
 
     // 點擊返回按鍵：復原所有狀態
     function handleRestoreCompanionButtons() {
-      const sideLeftGroup = document.getElementById('side-left-group');
       const sideRightGroup = document.getElementById('side-right-group');
-      if (sideLeftGroup) sideLeftGroup.style.display = 'none';
       if (sideRightGroup) sideRightGroup.style.display = 'none';
 
       const actionsRow = document.getElementById('companionActionsRow');
@@ -3143,18 +3179,16 @@
         actionsRow.style.display = 'flex';
       }
 
-      const btnDays = document.getElementById('btn-card-days');
-      if (btnDays) {
-        btnDays.textContent = '皈依祈求';
-      }
-
+      const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
+      const textContainerLong = document.getElementById('textContainerLongCard');
       const textContainer = document.getElementById('textContainer');
-      if (textContainer) {
-        textContainer.style.border = 'none';
-        textContainer.style.boxShadow = 'none';
-        textContainer.style.borderRadius = '0';
-        textContainer.style.padding = '0';
-        textContainer.style.background = 'transparent';
+
+      if (targetDay > 21) {
+        if (textContainer) textContainer.style.display = 'none';
+        if (textContainerLong) textContainerLong.style.display = 'flex';
+      } else {
+        if (textContainerLong) textContainerLong.style.display = 'none';
+        if (textContainer) textContainer.style.display = 'block';
       }
     }
 
@@ -3899,8 +3933,11 @@
       const cardStage = document.getElementById('cardStage');
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
+      const textContainerLong = document.getElementById('textContainerLongCard');
       const cardTitle = document.getElementById('cardTitle');
       const cardContent = document.getElementById('cardContent');
+      const cardTitleLong = document.getElementById('cardTitleLong');
+      const cardDayLong = document.getElementById('cardDayLong');
       const btnDays = document.getElementById('btn-card-days');
 
       if (btnDays) {
@@ -3924,23 +3961,46 @@
         if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
         if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         if (textContainer) textContainer.style.display = 'none';
+        if (textContainerLong) textContainerLong.style.display = 'none';
       } else {
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
-        if (textContainer) textContainer.style.display = 'block';
 
         if (Object.keys(cardTexts).length > 0) {
-          loadRandomCardData();
+          const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
+          const selectedData = cardTexts[randomTextKey];
+          let titleText = selectedData.title || '';
+          if (titleText.length > 18) titleText = titleText.substring(0, 18);
+
+          if (textContainer) textContainer.style.display = 'none';
+          if (textContainerLong) textContainerLong.style.display = 'flex';
+          if (cardTitleLong) cardTitleLong.textContent = titleText;
+          if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+
+          const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
+          const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+          const paddedImgNum = String(randomImgNum).padStart(2, '0');
+          if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
         } else {
           fetch('images_text.json')
             .then(res => res.json())
             .then(data => {
               cardTexts = data;
               textKeys = Object.keys(cardTexts);
-              loadRandomCardData();
+              const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
+              const selectedData = cardTexts[randomTextKey];
+              let titleText = selectedData.title || '';
+
+              if (textContainer) textContainer.style.display = 'none';
+              if (textContainerLong) textContainerLong.style.display = 'flex';
+              if (cardTitleLong) cardTitleLong.textContent = titleText;
+              if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+              if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
             })
             .catch(err => {
-              if (cardTitle) cardTitle.textContent = "陪伴卡載入";
-              if (cardContent) cardContent.textContent = "請確認 images_text.json 是否存在";
+              if (textContainer) textContainer.style.display = 'none';
+              if (textContainerLong) textContainerLong.style.display = 'flex';
+              if (cardTitleLong) cardTitleLong.textContent = "陪伴卡載入";
+              if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
               if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
             });
         }
