@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V1018</title>
+  <title>歡喜背書V10118</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -170,7 +170,6 @@
       line-height: 1.6;
     }
 
-    /* 陪伴卡全螢幕三欄式排版：完美復刻自主學習主畫面的黑邊翼與按鈕位置 */
     #companion-overlay {
       display: flex;
       position: fixed;
@@ -186,7 +185,6 @@
       display: flex;
     }
 
-    /* 左右兩側黑邊翼（寬度與主畫面完全一致，完美容納 4 個 slot 垂直等距排列） */
     .companion-side-wing {
       flex-shrink: 0;
       height: 100%;
@@ -212,7 +210,6 @@
       position: relative;
     }
 
-    /* 中間舞台區（放置陪伴卡圖片與文字框，自動等比例置中） */
     .companion-center-stage {
       flex: 1;
       height: 100%;
@@ -239,15 +236,11 @@
       overflow: visible;
       opacity: 1;
     }
-    .companion-wrapper.ready {
-      
-    }
 
     .bottom-right-badge {
       display: none !important;
     }
 
-    /* 文字框上下邊界改為 4% 以最大化垂直空間 */
     .card-text-container {
       position: absolute;
       top: 4%;
@@ -617,7 +610,6 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 陪伴卡專用側邊按鈕：尺寸與主畫面完全一致 (62px正方形) */
     .comp-square-btn {
       width: 62px !important;
       height: 62px !important;
@@ -638,7 +630,6 @@
     }
     .comp-square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 各按鈕色彩配置（完全對應主畫面風格） */
     .comp-btn-dedication { color: #78350F; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); border: 2.5px solid #D97706; }
     .comp-btn-setting    { color: #1E293B; background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%); border: 2.5px solid #94A3B8; font-size: 12px !important; }
     .comp-btn-line       { color: #FFFFFF; background: linear-gradient(135deg, #06C755 0%, #00B900 100%); border: 2.5px solid #05B34B; font-size: 11px !important; line-height: 1.15 !important; }
@@ -807,7 +798,7 @@
   <div id="line-browser-overlay">
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
-      <div class="line-guide-content">
+      <div class="line-guide-content" id="line-browser-guide-text">
         請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
       </div>
     </div>
@@ -819,9 +810,7 @@
     <div class="rotate-hint-subtitle">靜心進入經文天地 ｜ 以獲最佳誦讀視野</div>
   </div>
 
-  <!-- 陪伴卡畫面：採用與主畫面完全一致的三欄式排版（左右黑邊翼 + 中間卡片舞台） -->
   <div id="companion-overlay">
-    <!-- 左側黑邊翼（固定 68px 黑色區域，對應主畫面 slot-l1 ~ slot-l4） -->
     <div class="companion-side-wing" id="companion-left-wing">
       <div class="companion-slot" id="comp-slot-l1"></div>
       <div class="companion-slot" id="comp-slot-l2"></div>
@@ -829,7 +818,6 @@
       <div class="companion-slot" id="comp-slot-l4"></div>
     </div>
 
-    <!-- 中間卡片舞台區（背景全黑，卡片圖片自適應置中） -->
     <div class="companion-center-stage">
       <div class="companion-wrapper" id="cardStage">
         <div class="card-text-container" id="textContainer">
@@ -841,7 +829,6 @@
       </div>
     </div>
 
-    <!-- 右側黑邊翼（固定 68px 黑色區域，對應主畫面 slot-r1 ~ slot-r4） -->
     <div class="companion-side-wing" id="companion-right-wing">
       <div class="companion-slot" id="comp-slot-r1"></div>
       <div class="companion-slot" id="comp-slot-r2"></div>
@@ -852,7 +839,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1004)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1018)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -1047,7 +1034,6 @@
     const slotR3 = document.getElementById('slot-r3');
     const slotR4 = document.getElementById('slot-r4');
 
-    /* 陪伴卡專用兩側黑邊翼 Slot 對應 */
     const compSlotL1 = document.getElementById('comp-slot-l1');
     const compSlotL2 = document.getElementById('comp-slot-l2');
     const compSlotL3 = document.getElementById('comp-slot-l3');
@@ -1073,7 +1059,6 @@
 
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
-
     let selectedDailyStep = DEFAULT_DAILY_STEP;
 
     let audioContext = null;
@@ -1476,26 +1461,22 @@
       }
     }
 
-    // 渲染陪伴卡專用兩側黑邊翼按鈕 (精準對應主畫面位置：L1~L4, R1~R4)
     function renderCompanionWingButtons() {
       if (!compSlotL1) return;
 
-      // 左側 4 個 slot
       compSlotL1.innerHTML = '<button class="comp-square-btn comp-btn-dedication" onclick="handleCompanionDedication()">老師迴向</button>';
       compSlotL2.innerHTML = '<button class="comp-square-btn comp-btn-setting" id="btn-comp-schedule" onclick="handleCompanionSchedule()">排程設定</button>';
       compSlotL3.innerHTML = '<button class="comp-square-btn comp-btn-line" onclick="shareScreenshotToLine()">LINE分享<br>正能量</button>';
-      compSlotL4.innerHTML = ''; // 保留空白平衡
+      compSlotL4.innerHTML = '';
 
-      // 右側 4 個 slot
       compSlotR1.innerHTML = '<button class="comp-square-btn comp-btn-guide" onclick="playTeacherGuideAndRecite()">老師前行</button>';
       compSlotR2.innerHTML = '<button class="comp-square-btn comp-btn-recite" onclick="closeCompanionCard()">開始背誦</button>';
       compSlotR3.innerHTML = '<button class="comp-square-btn comp-btn-energy" id="btn-comp-energy" onclick="handleCompanionEnergy(this)">抽今日<br>正能量</button>';
-      compSlotR4.innerHTML = ''; // 保留空白平衡
+      compSlotR4.innerHTML = '';
 
       updateCompanionScheduleButton();
     }
 
-    // 陪伴卡按鈕事件：老師前行
     async function playTeacherGuideAndRecite() {
       triggerAppFullscreen();
       const compOverlay = document.getElementById('companion-overlay');
@@ -1536,7 +1517,6 @@
       }, 200);
     }
 
-    // 陪伴卡按鈕事件：開始背誦
     async function closeCompanionCard() {
       triggerAppFullscreen();
       
@@ -1578,7 +1558,6 @@
       }, 200);
     }
 
-    // 陪伴卡按鈕事件：老師迴向
     function handleCompanionDedication() {
       triggerAppFullscreen();
       const compOverlay = document.getElementById('companion-overlay');
@@ -1596,7 +1575,6 @@
       }, 200);
     }
 
-    // 陪伴卡按鈕事件：排程設定 (一天只能設定一次，過後鎖定)
     function updateCompanionScheduleButton() {
       const todayStr = getNormalizedDateStr();
       const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V971');
@@ -1625,7 +1603,6 @@
       openScheduleModal();
     }
 
-    // 陪伴卡按鈕事件：抽今日正能量 (放煙火、換隨機卡片與金句、按鈕文字變動3秒)
     function handleCompanionEnergy(btn) {
       triggerAppFullscreen();
       loadRandomCardData();
@@ -2201,8 +2178,7 @@
 
     function showToast(msg, duration = 6000) {
       if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/
-/g, '<br>');
+      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -3806,10 +3782,7 @@
       if (cardStage) cardStage.classList.add('fade-out');
 
       setTimeout(() => {
-        if (textKeys.length === 0) {
-          cardTexts = { "card_01": { "id": "card_01", "title": "心無旁鶩・專注當下", "content": "每日持誦・定心安神\n穩健邁向圓滿成就" }, "card_02": { "id": "card_02", "title": "菩提心如金礦", "content": "如果能找到金礦，這一生乃至後世的子孫都不愁吃喝；如果可以發起菩提心，我們生生世世便可擁有所有的美好！\n新生-心之勇士232" } };
-          textKeys = Object.keys(cardTexts);
-        }
+        textKeys = Object.keys(cardTexts);
         if (textKeys.length > 0) {
           const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
           const selectedData = cardTexts[randomTextKey];
@@ -3844,7 +3817,6 @@
             tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
           }
 
-          // 自適應大小算出後，若 >= 22px 套用美麗字型與字距
           if (size >= 22) {
             cardContent.style.fontFamily = '"Noto Serif TC", "Songti TC", "STSong", "AR PL UMing TW", serif';
             cardContent.style.letterSpacing = '1.5px';
@@ -3889,7 +3861,7 @@
       }
     }, { passive: true });
 
-        async function initCompanionCard(targetDay) {
+    async function initCompanionCard(targetDay) {
       renderCompanionWingButtons();
       window.CURRENT_TARGET_DAY = targetDay;
       const cardStage = document.getElementById('cardStage');
@@ -3918,7 +3890,6 @@
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
         if (textContainer) textContainer.style.display = 'block';
         if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
-        // Immediately load a random card from memory fallback so text appears instantly without waiting for fetch
         textKeys = Object.keys(cardTexts);
         if (textKeys.length > 0) {
           const randomKey = textKeys[Math.floor(Math.random() * textKeys.length)];
@@ -3930,7 +3901,6 @@
         }
       }
 
-      // Fully dynamic background async fetch with absolute URL resolution to prevent LINE WebView relative path issues
       setTimeout(async () => {
         try {
           const jsonUrl = new URL('images_text.json', window.location.href).href;
@@ -3967,7 +3937,7 @@
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
-        const guideContent = overlay.querySelector('.line-guide-content');
+        const guideContent = document.getElementById('line-browser-guide-text');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         
         let htmlSnippet = '';
@@ -3976,13 +3946,11 @@
         } else {
           htmlSnippet = `為了獲得最佳的背書與語音辨識體驗，請點擊下方按鈕直接以 Chrome 瀏覽器開啟：<br><br><button onclick="openInExternalBrowser()" style="background: linear-gradient(135deg, #06C755 0%, #00B900 100%); color: #fff; border: none; padding: 12px 24px; font-size: 16px; font-weight: 900; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 15px rgba(6,199,85,0.4);">🚀 點擊此處・立即用預設瀏覽器開啟</button><br><br>或點擊右上角<strong>「⋮」</strong>選擇<strong>「以預設瀏覽器開啟」</strong>。`;
         }
-        guideContent.innerHTML = htmlSnippet;
+        if (guideContent) guideContent.innerHTML = htmlSnippet;
         overlay.classList.add('active');
         
-        // Expose helper to global scope for button click
         window.openInExternalBrowser = function() {
           const currentUrl = window.location.href;
-          // Android Intent URI scheme to force Chrome
           if (!isIOS) {
             try {
               const cleanUrl = currentUrl.replace(/^https?:\/\//, '');
@@ -3994,7 +3962,6 @@
             window.open(currentUrl, '_blank');
           }
         };
-        
         return; 
       }
 
