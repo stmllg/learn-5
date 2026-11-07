@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V1201</title>
+  <title>歡喜背書V1202</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -327,6 +327,27 @@
       transform: scale(0.95);
       background: linear-gradient(135deg, #00B900 0%, #049B3C 100%);
     }
+
+    .btn-wing-companion {
+      width: 62px !important;
+      height: 62px !important;
+      border-radius: 14px !important;
+      border: 2.5px solid #38BDF8 !important;
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%) !important;
+      color: #38BDF8 !important;
+      font-size: 12px !important;
+      font-weight: 900 !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.2;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
+      touch-action: manipulation;
+    }
+    .btn-wing-companion:active { transform: scale(0.90); opacity: 0.85; }
 
     #schedule-modal-overlay {
       display: none;
@@ -841,7 +862,7 @@
         <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
-        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">堅持第 22 天</button>
+        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
         <button class="btn-card-line" onclick="shareScreenshotToLine()">LINE</button>
       </div>
     </div>
@@ -849,7 +870,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v995)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1202)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -901,7 +922,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v1201 載入中】...</div>
+  <div id="schedule-toast">📦 【v1202 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1310,8 +1331,6 @@
       initCompanionCard(targetDay);
 
       hasEnteredReciting = false;
-      
-      // 當返回陪伴卡時，直接將 5 個按鈕放到左右黑框部分
       moveCompanionButtonsToWings();
 
       companionOverlay.style.display = 'flex';
@@ -2100,8 +2119,7 @@
 
     function showToast(msg, duration = 6000) {
       if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/
-/g, '<br>');
+      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -2599,15 +2617,10 @@
     async function shareScreenshotToLine() {
       triggerAppFullscreen();
 
-      const actionsRow = document.getElementById('companionActionsRow');
       const cardStage = document.getElementById('cardStage');
-
       if (!cardStage) return;
 
-      if (actionsRow) actionsRow.style.display = 'none';
-
       showToast('📸 正在產生精美截圖...', 2000);
-
       await new Promise(resolve => setTimeout(resolve, 400));
 
       try {
@@ -2619,8 +2632,6 @@
         });
 
         canvas.toBlob(async (blob) => {
-          if (actionsRow) actionsRow.style.display = 'flex';
-
           if (!blob) {
             showToast('⚠️ 截圖產生失敗', 3000);
             return;
@@ -2644,16 +2655,13 @@
           URL.revokeObjectURL(url);
 
           if (clipboardSuccess) {
-            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！
-可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 截圖已自動下載！
-請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
 
       } catch(err) {
-        if (actionsRow) actionsRow.style.display = 'flex';
         showToast('⚠️ 截圖失敗', 3000);
       }
     }
@@ -3803,26 +3811,22 @@
       }
     }, { passive: true });
 
-    // 自動將陪伴卡的 5 個按鈕移到左右黑框部分 (左一、左二、左三、左四、右一)
     function moveCompanionButtonsToWings() {
       const actionsRow = document.getElementById('companionActionsRow');
       if (!actionsRow) return;
 
-      // 取得原本 5 個按鈕
       const settingBtn = document.getElementById('btn-card-setting-dynamic');
-      const teacherBtn = actionsRow.querySelector('button:nth-child(2)'); // 老師帶前行
-      const startBtn = actionsRow.querySelector('button:nth-child(3)');   // 開始背誦
-      const daysBtn = document.getElementById('btn-card-days');           // 皈依祈求 / 堅持天數
-      const lineBtn = document.querySelector('.btn-card-line');           // LINE
+      const teacherBtn = actionsRow.querySelector('button:nth-child(2)');
+      const startBtn = actionsRow.querySelector('button:nth-child(3)');
+      const daysBtn = document.getElementById('btn-card-days');
+      const lineBtn = document.querySelector('.btn-card-line');
 
-      // 放到左右側翼 (slot-l1, slot-l2, slot-l3, slot-l4, slot-r1)
       if (settingBtn) slotL1.appendChild(settingBtn);
       if (teacherBtn) slotL2.appendChild(teacherBtn);
       if (startBtn) slotL3.appendChild(startBtn);
       if (daysBtn) slotL4.appendChild(daysBtn);
       if (lineBtn) slotR1.appendChild(lineBtn);
 
-      // 隱藏原本的 actionsRow
       actionsRow.style.display = 'none';
     }
 
@@ -3923,10 +3927,12 @@
 
       handleOrientationCheck();
 
-      // ** V1201 新功能：進來後經過 1 秒（1000ms），自動將按鈕移至左右黑框，避開 LINE 瀏覽器初始遮擋 **
-      setTimeout(() => {
-        moveCompanionButtonsToWings();
-      }, 1000);
+      // ** V1202 安全載入監聽：確保 DOM 與圖片背景完全載入後再安全移動按鈕，徹底防止 LINE 瀏覽器黑屏 **
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          moveCompanionButtonsToWings();
+        }, 300);
+      });
     });
   </script>
 </body>
