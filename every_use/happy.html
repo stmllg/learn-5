@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V1010</title>
+  <title>歡喜背書V1011</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -170,7 +170,7 @@
       line-height: 1.6;
     }
 
-    /* 陪伴卡全螢幕三欄式排版：完美復刻自主學習主畫面的黑邊翼與按鈕位置 */
+    /* 陪伴卡全螢幕三欄式排版：左右黑邊翼 + 中間卡片舞台 */
     #companion-overlay {
       display: flex;
       position: fixed;
@@ -186,7 +186,7 @@
       display: flex;
     }
 
-    /* 左右兩側黑邊翼（寬度與主畫面完全一致，完美容納 4 個 slot 垂直等距排列） */
+    /* 左右兩側黑邊翼 */
     .companion-side-wing {
       flex-shrink: 0;
       height: 100%;
@@ -212,7 +212,7 @@
       position: relative;
     }
 
-    /* 中間舞台區（放置陪伴卡圖片與文字框，自動等比例置中） */
+    /* 中間舞台區 */
     .companion-center-stage {
       flex: 1;
       height: 100%;
@@ -239,15 +239,11 @@
       overflow: visible;
       opacity: 1;
     }
-    .companion-wrapper.ready {
-      
-    }
 
     .bottom-right-badge {
       display: none !important;
     }
 
-    /* 文字框上下邊界改為 4% 以最大化垂直空間 */
     .card-text-container {
       position: absolute;
       top: 4%;
@@ -260,9 +256,6 @@
       background: transparent;
     }
 
-    .companion-wrapper.fade-out {
-      opacity: 0.2;
-    }
     .card-title {
       font-weight: 900;
       color: #581C87;
@@ -617,7 +610,6 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 陪伴卡專用側邊按鈕：尺寸與主畫面完全一致 (62px正方形) */
     .comp-square-btn {
       width: 62px !important;
       height: 62px !important;
@@ -638,7 +630,6 @@
     }
     .comp-square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    /* 各按鈕色彩配置（完全對應主畫面風格） */
     .comp-btn-dedication { color: #78350F; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); border: 2.5px solid #D97706; }
     .comp-btn-setting    { color: #1E293B; background: linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%); border: 2.5px solid #94A3B8; font-size: 12px !important; }
     .comp-btn-line       { color: #FFFFFF; background: linear-gradient(135deg, #06C755 0%, #00B900 100%); border: 2.5px solid #05B34B; font-size: 11px !important; line-height: 1.15 !important; }
@@ -851,7 +842,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1004)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1011)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -903,7 +894,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v1010 載入中】...</div>
+  <div id="schedule-toast">📦 【v1011 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2200,8 +2191,7 @@
 
     function showToast(msg, duration = 6000) {
       if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/
-/g, '<br>');
+      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -3801,7 +3791,7 @@
 
       setTimeout(() => {
         if (textKeys.length === 0) {
-          cardTexts = { "card_01": { "id": "card_01", "title": "心無旁鶩・專注當下", "content": "每日持誦・定心安神\n穩健邁向圓滿成就" }, "card_02": { "id": "card_02", "title": "菩提心如金礦", "content": "如果能找到金礦，這一生乃至後世的子孫都不愁吃喝；如果可以發起菩提心，我們生生世世便可擁有所有的美好！\n新生-心之勇士232" } };
+          cardTexts = { "card_01": { "id": "card_01", "title": "心無旁鶩・專注當下", "content": "每日持誦・定心安神\n穩健邁向圓滿成就" }, "card_02": { "id": "card_02", "title": "菩提心如金礦", "content": "如果能找到金礦，這一生乃至後世的子孫都不愁吃喝；如果可以發起菩提心，我們生生世世便可擁有所有的美好！\n希望新生-心之勇士232" } };
           textKeys = Object.keys(cardTexts);
         }
         if (textKeys.length > 0) {
@@ -3838,7 +3828,6 @@
             tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
           }
 
-          // 自適應大小算出後，若 >= 22px 套用美麗字型與字距
           if (size >= 22) {
             cardContent.style.fontFamily = '"Noto Serif TC", "Songti TC", "STSong", "AR PL UMing TW", serif';
             cardContent.style.letterSpacing = '1.5px';
