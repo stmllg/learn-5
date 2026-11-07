@@ -228,12 +228,6 @@
       opacity: 0.9;
     }
 
-    .btn-side-day {
-      background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%);
-      color: #78350F;
-      border: 2px solid #D97706;
-      font-size: 15px;
-    }
     .btn-side-line {
       background: linear-gradient(135deg, #06C755 0%, #00B900 100%);
       color: #FFFFFF;
@@ -245,12 +239,6 @@
       color: #FBBF24;
       border: 2px solid #F59E0B;
       font-size: 16px;
-    }
-    .btn-side-energy {
-      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-      color: #FFFFFF;
-      border: 2px solid #B45309;
-      font-size: 15px;
     }
 
     .companion-wrapper {
@@ -279,42 +267,6 @@
       display: none !important;
     }
 
-    /* 超過22天時專用的 1/3 處置中標題與天數顯示區塊 */
-    .card-text-container-long-card {
-      position: absolute;
-      top: 25%;
-      left: 27%;
-      right: 4%;
-      height: 50%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      gap: 16px;
-      overflow: visible;
-      background: transparent;
-    }
-    .card-title-long-card {
-      font-family: "Noto Serif TC", "Songti TC", serif;
-      font-size: 28px !important;
-      font-weight: 900;
-      color: #581C87;
-      text-shadow: 0 1px 3px rgba(255,255,255,0.95);
-      line-height: 1.3;
-      width: 100%;
-    }
-    .card-day-long-card {
-      font-family: "Noto Serif TC", "Songti TC", serif;
-      font-size: 28px !important;
-      font-weight: 900;
-      color: #047857;
-      text-shadow: 0 1px 3px rgba(255,255,255,0.95);
-      letter-spacing: 2px;
-      width: 100%;
-    }
-
-    /* 標準卡片文字框 (<=21天) */
     .card-text-container {
       position: absolute;
       top: 3%;
@@ -914,23 +866,15 @@
   </div>
 
   <div id="companion-overlay">
+    <!-- 左右兩側黑框控制群組（已移除天數按鈕與抽正能量按鈕） -->
     <div id="side-left-group" class="side-control-group">
-      <button class="side-btn-full btn-side-day" onclick="handleDayBtnClick()">堅持背書第 <span id="sideDayNum">22</span> 天</button>
       <button class="side-btn-full btn-side-line" onclick="shareScreenshotToLine()">LINE 分享</button>
     </div>
     <div id="side-right-group" class="side-control-group">
       <button class="side-btn-full btn-side-return" onclick="handleRestoreCompanionButtons()">返回</button>
-      <button class="side-btn-full btn-side-energy" onclick="handleDrawEnergyClick()">抽正能量</button>
     </div>
 
     <div class="companion-wrapper" id="cardStage">
-      <!-- 支援 >21天 時專用 1/3 處置中標題與天數顯示 -->
-      <div class="card-text-container-long-card" id="textContainerLongCard" style="display: none;">
-        <div class="card-title-long-card" id="cardTitleLong">載入中...</div>
-        <div class="card-day-long-card" id="cardDayLong">堅持背書第 22 天</div>
-      </div>
-
-      <!-- 標準卡片文字框 (<=21天) -->
       <div class="card-text-container" id="textContainer">
         <div class="card-title" id="cardTitle">載入中...</div>
         <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
@@ -3154,9 +3098,7 @@
       }
     }
 
-    let cardDayTimer = null;
-    
-    // 點擊「皈依祈求」：隱藏下方按鈕，顯示左右側控制項
+    // 點擊「皈依祈求」：隱藏下方按鈕，顯示左右側控制項並完全顯示完整卡片內容（如 V999.13）
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
@@ -3173,22 +3115,20 @@
         actionsRow.style.display = 'none';
       }
 
-      const dayNum = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
-      const daySpan = document.getElementById('sideDayNum');
-      if (daySpan) daySpan.textContent = dayNum;
-
       const sideLeftGroup = document.getElementById('side-left-group');
       const sideRightGroup = document.getElementById('side-right-group');
       if (sideLeftGroup) sideLeftGroup.style.display = 'flex';
       if (sideRightGroup) sideRightGroup.style.display = 'flex';
-    }
 
-    // 點擊「抽正能量」：重新放煙火並重新抽卡與隨機文字輸出
-    function handleDrawEnergyClick() {
-      triggerAppFullscreen();
-      triggerFireworks(false);
-      loadRandomCardData();
-      showToast("✨ 抽正能量成功！新祝福已送達！", 2500);
+      const textContainer = document.getElementById('textContainer');
+      if (textContainer) {
+        textContainer.style.border = 'none';
+        textContainer.style.boxShadow = 'none';
+        textContainer.style.borderRadius = '0';
+        textContainer.style.padding = '0';
+        textContainer.style.background = 'transparent';
+        textContainer.style.display = 'block';
+      }
     }
 
     // 點擊返回按鍵：復原所有狀態
@@ -3206,6 +3146,15 @@
       const btnDays = document.getElementById('btn-card-days');
       if (btnDays) {
         btnDays.textContent = '皈依祈求';
+      }
+
+      const textContainer = document.getElementById('textContainer');
+      if (textContainer) {
+        textContainer.style.border = 'none';
+        textContainer.style.boxShadow = 'none';
+        textContainer.style.borderRadius = '0';
+        textContainer.style.padding = '0';
+        textContainer.style.background = 'transparent';
       }
     }
 
@@ -3849,13 +3798,10 @@
       const cardStage = document.getElementById('cardStage');
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
-      const textContainerLong = document.getElementById('textContainerLongCard');
       const cardTitle = document.getElementById('cardTitle');
       const cardContent = document.getElementById('cardContent');
-      const cardTitleLong = document.getElementById('cardTitleLong');
-      const cardDayLong = document.getElementById('cardDayLong');
-
       if (bottomRightBadge) bottomRightBadge.style.display = 'block';
+      if (textContainer) textContainer.style.display = 'block';
 
       const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
       const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
@@ -3870,62 +3816,47 @@
           const selectedData = cardTexts[randomTextKey];
 
           let titleText = selectedData.title;
-          if (titleText.length > 18) titleText = titleText.substring(0, 18);
+          let rawContent = selectedData.content;
+          if (titleText.length > 16) titleText = titleText.substring(0, 16);
 
-          const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
+          if (cardTitle) cardTitle.textContent = titleText;
+          if (cardContent) cardContent.textContent = rawContent;
 
-          if (targetDay > 21) {
-            // 超過22天：隱藏正常內容區塊，啟用專用 1/3 處置中標題與天數顯示 (字型大小 28px)
-            if (textContainer) textContainer.style.display = 'none';
-            if (textContainerLong) textContainerLong.style.display = 'flex';
+          const displayId = selectedData.id || randomTextKey;
+          const cardIdInline = document.getElementById('cardIdInline');
+          if (cardIdInline) cardIdInline.textContent = displayId;
 
-            if (cardTitleLong) cardTitleLong.textContent = titleText;
-            if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
-          } else {
-            // <=21天：正常顯示完整內容卡片
-            if (textContainerLong) textContainerLong.style.display = 'none';
-            if (textContainer) textContainer.style.display = 'block';
+          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94 - 28;
 
-            let rawContent = selectedData.content;
-            if (cardTitle) cardTitle.textContent = titleText;
-            if (cardContent) cardContent.textContent = rawContent;
+          let size = 34; 
+          const minSize = 14; 
 
-            const displayId = selectedData.id || randomTextKey;
-            const cardIdInline = document.getElementById('cardIdInline');
-            if (cardIdInline) cardIdInline.textContent = displayId;
+          const targetFont = size >= 26 
+            ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+            : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
 
-            const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94 - 28;
+          cardContent.style.fontSize = size + "px";
+          cardTitle.style.fontSize = (size + 4) + "px";
+          cardContent.style.fontFamily = targetFont;
+          cardTitle.style.fontFamily = targetFont;
+          if (cardIdInline) {
+            cardIdInline.style.fontSize = "12px";
+            cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+          }
 
-            let size = 34; 
-            const minSize = 14; 
+          let tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
 
-            const targetFont = size >= 26 
+          while (tH > maxH && size > minSize) {
+            size--;
+            const updatedFont = size >= 26 
               ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
               : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-
             cardContent.style.fontSize = size + "px";
             cardTitle.style.fontSize = (size + 4) + "px";
-            cardContent.style.fontFamily = targetFont;
-            cardTitle.style.fontFamily = targetFont;
-            if (cardIdInline) {
-              cardIdInline.style.fontSize = "12px";
-              cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-            }
-
-            let tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
-
-            while (tH > maxH && size > minSize) {
-              size--;
-              const updatedFont = size >= 26 
-                ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
-                : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-              cardContent.style.fontSize = size + "px";
-              cardTitle.style.fontSize = (size + 4) + "px";
-              cardContent.style.fontFamily = updatedFont;
-              cardTitle.style.fontFamily = updatedFont;
-              if (cardIdInline) cardIdInline.style.fontSize = "12px";
-              tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
-            }
+            cardContent.style.fontFamily = updatedFont;
+            cardTitle.style.fontFamily = updatedFont;
+            if (cardIdInline) cardIdInline.style.fontSize = "12px";
+            tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
           }
 
           if (bottomRightBadge) bottomRightBadge.style.display = 'none';
@@ -3968,11 +3899,8 @@
       const cardStage = document.getElementById('cardStage');
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
-      const textContainerLong = document.getElementById('textContainerLongCard');
       const cardTitle = document.getElementById('cardTitle');
       const cardContent = document.getElementById('cardContent');
-      const cardTitleLong = document.getElementById('cardTitleLong');
-      const cardDayLong = document.getElementById('cardDayLong');
       const btnDays = document.getElementById('btn-card-days');
 
       if (btnDays) {
@@ -3996,9 +3924,9 @@
         if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
         if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         if (textContainer) textContainer.style.display = 'none';
-        if (textContainerLong) textContainerLong.style.display = 'none';
       } else {
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
+        if (textContainer) textContainer.style.display = 'block';
 
         if (Object.keys(cardTexts).length > 0) {
           loadRandomCardData();
@@ -4011,8 +3939,8 @@
               loadRandomCardData();
             })
             .catch(err => {
-              if (cardTitleLong) cardTitleLong.textContent = "陪伴卡載入";
-              if (cardDayLong) cardDayLong.textContent = "請確認 images_text.json 是否存在";
+              if (cardTitle) cardTitle.textContent = "陪伴卡載入";
+              if (cardContent) cardContent.textContent = "請確認 images_text.json 是否存在";
               if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
             });
         }
@@ -4025,9 +3953,9 @@
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>）,點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
         } else {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>,點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
         }
         overlay.classList.add('active');
         return; 
