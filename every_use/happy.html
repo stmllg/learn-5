@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V1200</title>
+  <title>歡喜背書V1201</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -656,27 +656,6 @@
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
 
-    .btn-wing-companion {
-      width: 62px !important;
-      height: 62px !important;
-      border-radius: 14px !important;
-      border: 2.5px solid #38BDF8 !important;
-      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%) !important;
-      color: #38BDF8 !important;
-      font-size: 12px !important;
-      font-weight: 900 !important;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      line-height: 1.2;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
-      touch-action: manipulation;
-    }
-    .btn-wing-companion:active { transform: scale(0.90); opacity: 0.85; }
-
     .btn-color-offering {
       width: 62px !important;
       height: 62px !important;
@@ -859,10 +838,10 @@
       </div>
 
       <div class="companion-actions-row" id="companionActionsRow">
-        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
+        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
-        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
+        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">堅持第 22 天</button>
         <button class="btn-card-line" onclick="shareScreenshotToLine()">LINE</button>
       </div>
     </div>
@@ -870,7 +849,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1200)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v995)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -922,7 +901,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v1200 載入中】...</div>
+  <div id="schedule-toast">📦 【v1201 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1080,7 +1059,6 @@
 
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
-    let isSideWingsCompanionMode = false; // V1200: 追蹤是否已將 5 個按鈕放到左右邊框
 
     let selectedDailyStep = DEFAULT_DAILY_STEP;
 
@@ -1177,7 +1155,6 @@
         markA_Index: markA_Index,
         markB_Index: markB_Index,
         isManualSelected: isManualSelected,
-        isSideWingsCompanionMode: isSideWingsCompanionMode,
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
@@ -1225,7 +1202,6 @@
       markA_Index = state.markA_Index !== undefined ? state.markA_Index : -1;
       markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
       isManualSelected = state.isManualSelected || false;
-      isSideWingsCompanionMode = state.isSideWingsCompanionMode || false;
 
       restoreModalOverlay.style.display = 'none';
 
@@ -1334,6 +1310,10 @@
       initCompanionCard(targetDay);
 
       hasEnteredReciting = false;
+      
+      // 當返回陪伴卡時，直接將 5 個按鈕放到左右黑框部分
+      moveCompanionButtonsToWings();
+
       companionOverlay.style.display = 'flex';
       companionOverlay.style.opacity = '1';
       companionOverlay.classList.add('active');
@@ -1928,7 +1908,6 @@
             if (st.savedDateStr === getNormalizedDateStr()) {
               restoredCount = st.currentCycleCount || 0;
               if (st.practicePhase) practicePhase = st.practicePhase;
-              if (st.isSideWingsCompanionMode !== undefined) isSideWingsCompanionMode = st.isSideWingsCompanionMode;
             }
           } catch(e) {}
         }
@@ -2121,7 +2100,8 @@
 
     function showToast(msg, duration = 6000) {
       if (!scheduleToast) return;
-      scheduleToast.innerHTML = msg.replace(/\n/g, '<br>');
+      scheduleToast.innerHTML = msg.replace(/
+/g, '<br>');
       scheduleToast.style.display = 'block';
       scheduleToast.style.opacity = '1';
       clearTimeout(scheduleToast._timer);
@@ -2311,78 +2291,65 @@
 
     function renderUI() {
       try {
-        if (isSideWingsCompanionMode) {
-          // V1200: 將本來在畫面當中的五個按鈕放到左右邊框 (左一、左二、左三、左四、右一)
-          slotL1.innerHTML = '<button class="btn-wing-companion" onclick="openScheduleModal()">⚙️<br>排程設定</button>';
-          slotL2.innerHTML = '<button class="btn-wing-companion" onclick="playTeacherGuideAndRecite()">老師<br>帶前行</button>';
-          slotL3.innerHTML = '<button class="btn-wing-companion" onclick="closeCompanionCard()">開始<br>背誦</button>';
-          slotL4.innerHTML = '<button class="btn-wing-companion" onclick="handleDayBtnClick()">皈依<br>祈求</button>';
-          slotR1.innerHTML = '<button class="btn-wing-companion" style="background: linear-gradient(135deg, #06C755 0%, #00B900 100%) !important; border-color: #A7F3D0 !important; color: #FFFFFF !important;" onclick="shareScreenshotToLine()">💬<br>LINE</button>';
+        if (isIndependentModeUnlocked()) {
+          slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
+          const btnOffering = document.getElementById('btn-offering');
+          if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
 
-          slotR2.innerHTML = '';
-          slotR3.innerHTML = '';
-          slotR4.innerHTML = '';
+          const textA = isSelectingMarkA ? '請點句' : '起句';
+          const textB = isSelectingMarkB ? '請點句' : '終句';
+          const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+          const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+
+          slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
+          slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
+          slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
         } else {
-          if (isIndependentModeUnlocked()) {
-            slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
-            const btnOffering = document.getElementById('btn-offering');
-            if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+          slotL1.innerHTML = '';
+          slotL2.innerHTML = '';
+          slotL3.innerHTML = '';
+          slotR3.innerHTML = '';
+        }
 
-            const textA = isSelectingMarkA ? '請點句' : '起句';
-            const textB = isSelectingMarkB ? '請點句' : '終句';
-            const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
-            const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+        slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
+        slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
-            slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
-            slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
-            slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
-          } else {
-            slotL1.innerHTML = '';
-            slotL2.innerHTML = '';
-            slotL3.innerHTML = '';
-            slotR3.innerHTML = '';
-          }
+        slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
+        slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
 
-          slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
-          slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+        const btnMarkA = document.getElementById('btn-mark-a');
+        if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
 
-          slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
-          slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
+        const btnMarkB = document.getElementById('btn-mark-b');
+        if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
 
-          const btnMarkA = document.getElementById('btn-mark-a');
-          if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
+        const btnSpeedDown = document.getElementById('btn-speed-down');
+        if (btnSpeedDown) {
+          btnSpeedDown.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
+            else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
+            else triggerPdfSpeedChange(-0.1);
+          });
+        }
 
-          const btnMarkB = document.getElementById('btn-mark-b');
-          if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
+        const btnGendu = document.getElementById('btn-gendu');
+        if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
 
-          const btnSpeedDown = document.getElementById('btn-speed-down');
-          if (btnSpeedDown) {
-            btnSpeedDown.addEventListener('click', (e) => {
-              e.stopPropagation();
-              if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
-              else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
-              else triggerPdfSpeedChange(-0.1);
-            });
-          }
+        const btnZidu = document.getElementById('btn-zidu');
+        if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
 
-          const btnGendu = document.getElementById('btn-gendu');
-          if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
+        const btnRecord = document.getElementById('btn-record');
+        if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
 
-          const btnZidu = document.getElementById('btn-zidu');
-          if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
-
-          const btnRecord = document.getElementById('btn-record');
-          if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
-
-          const btnSpeedUp = document.getElementById('btn-speed-up');
-          if (btnSpeedUp) {
-            btnSpeedUp.addEventListener('click', (e) => {
-              e.stopPropagation();
-              if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
-              else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
-              else triggerPdfSpeedChange(+0.1);
-            });
-          }
+        const btnSpeedUp = document.getElementById('btn-speed-up');
+        if (btnSpeedUp) {
+          btnSpeedUp.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
+            else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
+            else triggerPdfSpeedChange(+0.1);
+          });
         }
 
         updateModeButtonsStyle();
@@ -2391,7 +2358,6 @@
     }
 
     function updateModeButtonsStyle() {
-      if (isSideWingsCompanionMode) return;
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
       const btnRecord = document.getElementById('btn-record');
@@ -2678,9 +2644,11 @@
           URL.revokeObjectURL(url);
 
           if (clipboardSuccess) {
-            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！
+可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 截圖已自動下載！
+請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
 
@@ -3089,24 +3057,6 @@
     let cardDayTimer = null;
     function handleDayBtnClick() {
       triggerAppFullscreen();
-      
-      // V1200: 當點擊「皈依祈求」按鈕後，將 5 個核心功能按鈕放到左右邊框部分 (左一~左四, 右一)
-      isSideWingsCompanionMode = true;
-      
-      const compOverlay = document.getElementById('companion-overlay');
-      if (compOverlay) {
-        compOverlay.style.opacity = '0';
-        compOverlay.classList.remove('active');
-        compOverlay.style.pointerEvents = 'none';
-        setTimeout(() => {
-          compOverlay.style.display = 'none';
-          compOverlay.style.pointerEvents = 'auto';
-          hasEnteredReciting = true;
-          renderUI();
-          setCoreMode('mode2');
-        }, 200);
-      }
-
       const todayStr = getNormalizedDateStr();
       const lastToastDate = classicStorage.getItem('FIREWORKS_TOAST_DATE_V971');
       let showToastFlag = (lastToastDate !== todayStr);
@@ -3115,11 +3065,20 @@
       }
       triggerFireworks(showToastFlag);
       loadRandomCardData();
-      saveCurrentAppState();
-    }
 
-    function enterRecitingFromWings() {
-      closeCompanionCard();
+      const dayNum = window.CURRENT_TARGET_DAY || 22;
+      const dayStr = String(dayNum).padStart(3, '0');
+      const btnDays = document.getElementById('btn-card-days');
+      if (btnDays) {
+        btnDays.textContent = `堅持第 ${dayStr} 天`;
+      }
+
+      if (cardDayTimer) clearTimeout(cardDayTimer);
+      cardDayTimer = setTimeout(() => {
+        if (btnDays) {
+          btnDays.textContent = '皈依祈求';
+        }
+      }, 3000);
     }
 
     function triggerOfferingCoinRain() {
@@ -3844,6 +3803,29 @@
       }
     }, { passive: true });
 
+    // 自動將陪伴卡的 5 個按鈕移到左右黑框部分 (左一、左二、左三、左四、右一)
+    function moveCompanionButtonsToWings() {
+      const actionsRow = document.getElementById('companionActionsRow');
+      if (!actionsRow) return;
+
+      // 取得原本 5 個按鈕
+      const settingBtn = document.getElementById('btn-card-setting-dynamic');
+      const teacherBtn = actionsRow.querySelector('button:nth-child(2)'); // 老師帶前行
+      const startBtn = actionsRow.querySelector('button:nth-child(3)');   // 開始背誦
+      const daysBtn = document.getElementById('btn-card-days');           // 皈依祈求 / 堅持天數
+      const lineBtn = document.querySelector('.btn-card-line');           // LINE
+
+      // 放到左右側翼 (slot-l1, slot-l2, slot-l3, slot-l4, slot-r1)
+      if (settingBtn) slotL1.appendChild(settingBtn);
+      if (teacherBtn) slotL2.appendChild(teacherBtn);
+      if (startBtn) slotL3.appendChild(startBtn);
+      if (daysBtn) slotL4.appendChild(daysBtn);
+      if (lineBtn) slotR1.appendChild(lineBtn);
+
+      // 隱藏原本的 actionsRow
+      actionsRow.style.display = 'none';
+    }
+
     async function initCompanionCard(targetDay) {
       await loadBackgroundConfig();
       window.CURRENT_TARGET_DAY = targetDay;
@@ -3940,6 +3922,11 @@
       compOverlay.classList.add('active');
 
       handleOrientationCheck();
+
+      // ** V1201 新功能：進來後經過 1 秒（1000ms），自動將按鈕移至左右黑框，避開 LINE 瀏覽器初始遮擋 **
+      setTimeout(() => {
+        moveCompanionButtonsToWings();
+      }, 1000);
     });
   </script>
 </body>
