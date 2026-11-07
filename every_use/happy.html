@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999_2</title>
+  <title>歡喜背書V999.5</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -194,7 +194,6 @@
       opacity: 1;
     }
 
-    /* 左右兩側黑框返回與側邊按鈕群組 */
     .side-control-group {
       display: none;
       position: absolute;
@@ -234,7 +233,6 @@
       color: #FFFFFF;
     }
 
-    /* 側邊 LINE 按鈕樣式 */
     .btn-card-line-side {
       padding: 12px 14px;
       background: linear-gradient(135deg, #06C755 0%, #00B900 100%);
@@ -292,11 +290,9 @@
       overflow: hidden;
       border: none;
       background: transparent;
+      transition: border 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease;
     }
 
-    .companion-wrapper {
-      transition: opacity 0.3s ease-in-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
     .companion-wrapper.fade-out {
       opacity: 0.2;
     }
@@ -882,7 +878,7 @@
   </div>
 
   <div id="companion-overlay">
-    <!-- 左右兩側黑框返回與側邊按鈕群組（ LINE 按鈕已移至返回鍵下方） -->
+    <!-- 左右兩側黑框返回與側邊按鈕群組 -->
     <div id="side-left-group" class="side-control-group">
       <button class="btn-card-return" onclick="handleRestoreCompanionButtons()">◀ 返回</button>
       <button class="btn-card-line-side" onclick="shareScreenshotToLine()">LINE</button>
@@ -962,7 +958,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999_1 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.5 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -3114,7 +3110,7 @@
 
     let cardDayTimer = null;
     
-    // 點擊「皈依祈求」：隱藏卡片下方的按鈕，顯示左右黑框的返回鍵與 LINE 按鈕群組
+    // 點擊「皈依祈求」：隱藏下方按鈕，顯示左右側控制項，並用紅色框標示文字框範圍
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
@@ -3135,9 +3131,18 @@
       const sideRightGroup = document.getElementById('side-right-group');
       if (sideLeftGroup) sideLeftGroup.style.display = 'flex';
       if (sideRightGroup) sideRightGroup.style.display = 'flex';
+
+      // 標示醒目紅色邊框於文字框範圍
+      const textContainer = document.getElementById('textContainer');
+      if (textContainer) {
+        textContainer.style.border = '3px solid #EF4444';
+        textContainer.style.boxShadow = '0 0 25px rgba(239, 68, 68, 0.8)';
+        textContainer.style.borderRadius = '12px';
+        textContainer.style.padding = '8px';
+      }
     }
 
-    // 點擊返回按鍵：回到最初狀況
+    // 點擊返回按鍵：復原所有狀態與移除紅框
     function handleRestoreCompanionButtons() {
       const sideLeftGroup = document.getElementById('side-left-group');
       const sideRightGroup = document.getElementById('side-right-group');
@@ -3152,6 +3157,15 @@
       const btnDays = document.getElementById('btn-card-days');
       if (btnDays) {
         btnDays.textContent = '皈依祈求';
+      }
+
+      // 移除紅色邊框
+      const textContainer = document.getElementById('textContainer');
+      if (textContainer) {
+        textContainer.style.border = 'none';
+        textContainer.style.boxShadow = 'none';
+        textContainer.style.borderRadius = '0';
+        textContainer.style.padding = '0';
       }
     }
 
