@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999_1</title>
+  <title>歡喜背書V999.15</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -181,9 +181,10 @@
       z-index: 20000;
       background: rgba(4, 7, 15, 0.94);
       backdrop-filter: blur(8px);
-      flex-direction: column;
+      flex-direction: row;
       justify-content: center;
       align-items: center;
+      gap: 12px;
       opacity: 0;
       transition: opacity 0.35s ease;
       padding: 8px;
@@ -192,6 +193,53 @@
     #companion-overlay.active {
       display: flex;
       opacity: 1;
+    }
+
+    /* 右側控制群組：直式排列、上下各一個按鈕 */
+    .side-control-group {
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: stretch;
+      height: 96dvh;
+      max-height: 98vh;
+      width: 72px;
+      gap: 12px;
+    }
+
+    .side-btn-full {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      writing-mode: vertical-lr;
+      text-orientation: upright;
+      font-weight: 900;
+      border-radius: 14px;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8);
+      transition: transform 0.15s ease, opacity 0.2s ease;
+      letter-spacing: 2px;
+    }
+    .side-btn-full:active {
+      transform: scale(0.95);
+      opacity: 0.9;
+    }
+
+    .btn-side-line {
+      background: linear-gradient(135deg, #06C755 0%, #00B900 100%);
+      color: #FFFFFF;
+      border: 2px solid #05B34B;
+      font-size: 16px;
+    }
+    .btn-side-return {
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+      color: #FBBF24;
+      border: 2px solid #F59E0B;
+      font-size: 16px;
     }
 
     .companion-wrapper {
@@ -220,21 +268,55 @@
       display: none !important;
     }
 
+    /* 超過22天時預設的 1/3 處置中標題與天數顯示區塊 */
+    .card-text-container-long-card {
+      position: absolute;
+      top: 25%;
+      left: 27%;
+      right: 4%;
+      height: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+      overflow: visible;
+      background: transparent;
+    }
+    .card-title-long-card {
+      font-family: "Noto Serif TC", "Songti TC", serif;
+      font-size: 28px !important;
+      font-weight: 900;
+      color: #581C87;
+      text-shadow: 0 1px 3px rgba(255,255,255,0.95);
+      line-height: 1.3;
+      width: 100%;
+    }
+    .card-day-long-card {
+      font-family: "Noto Serif TC", "Songti TC", serif;
+      font-size: 28px !important;
+      font-weight: 900;
+      color: #047857;
+      text-shadow: 0 1px 3px rgba(255,255,255,0.95);
+      letter-spacing: 2px;
+      width: 100%;
+    }
+
+    /* 標準卡片文字框 */
     .card-text-container {
       position: absolute;
-      top: 2%;
-      bottom: 12%;
+      top: 3%;
+      bottom: 3%;
       left: 27%;
       right: 4%;
       display: block;
       overflow: hidden;
       border: none;
       background: transparent;
+      transition: border 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease;
     }
 
-    .companion-wrapper {
-      transition: opacity 0.3s ease-in-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
     .companion-wrapper.fade-out {
       opacity: 0.2;
     }
@@ -316,16 +398,6 @@
     .btn-card-setting:active {
       transform: scale(0.95);
       background: linear-gradient(135deg, #CBD5E1 0%, #94A3B8 100%);
-    }
-
-    .btn-card-line {
-      color: #FFFFFF;
-      background: linear-gradient(135deg, #06C755 0%, #00B900 100%);
-      border: 1.5px solid #05B34B;
-    }
-    .btn-card-line:active {
-      transform: scale(0.95);
-      background: linear-gradient(135deg, #00B900 0%, #049B3C 100%);
     }
 
     #schedule-modal-overlay {
@@ -807,6 +879,7 @@
     .rank-coins { color: #F59E0B; font-weight: 900; }
     .btn-rejoice { width: 100%; height: 46px; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; font-size: 18px; font-weight: 900; border: none; border-radius: 14px; cursor: pointer; }
   </style>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -830,8 +903,21 @@
   </div>
 
   <div id="companion-overlay">
+    <!-- 右側控制群組：上下各一個按鈕（LINE 分享、返回） -->
+    <div id="side-right-group" class="side-control-group">
+      <button class="side-btn-full btn-side-line" onclick="shareScreenshotToLine()">LINE 分享</button>
+      <button class="side-btn-full btn-side-return" onclick="handleRestoreCompanionButtons()">返回</button>
+    </div>
+
     <div class="companion-wrapper" id="cardStage">
-      <div class="card-text-container" id="textContainer">
+      <!-- 超過 21 天預設顯示的 1/3 處置中區塊（標題與天數） -->
+      <div class="card-text-container-long-card" id="textContainerLongCard" style="display: none;">
+        <div class="card-title-long-card" id="cardTitleLong">載入中...</div>
+        <div class="card-day-long-card" id="cardDayLong">堅持背書第 22 天</div>
+      </div>
+
+      <!-- 點擊「皈依祈求」後完全輸出的詳細文字卡片內容 -->
+      <div class="card-text-container" id="textContainer" style="display: none;">
         <div class="card-title" id="cardTitle">載入中...</div>
         <div class="card-content" id="cardContent">請稍候，正在讀取外部資料...</div>
         <div class="card-id-inline" id="cardIdInline"></div>
@@ -841,8 +927,7 @@
         <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
-        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">堅持第 22 天</button>
-        <button class="btn-card-line" onclick="shareScreenshotToLine()">LINE</button>
+        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
       </div>
     </div>
   </div>
@@ -901,7 +986,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999_1 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.14 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2595,11 +2680,13 @@
       triggerAppFullscreen();
 
       const actionsRow = document.getElementById('companionActionsRow');
+      const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
 
       if (!cardStage) return;
 
       if (actionsRow) actionsRow.style.display = 'none';
+      if (sideRightGroup) sideRightGroup.style.display = 'none';
 
       showToast('📸 正在產生精美截圖...', 2000);
 
@@ -2615,6 +2702,7 @@
 
         canvas.toBlob(async (blob) => {
           if (actionsRow) actionsRow.style.display = 'flex';
+          if (sideRightGroup) sideRightGroup.style.display = 'flex';
 
           if (!blob) {
             showToast('⚠️ 截圖產生失敗', 3000);
@@ -2647,6 +2735,7 @@
 
       } catch(err) {
         if (actionsRow) actionsRow.style.display = 'flex';
+        if (sideRightGroup) sideRightGroup.style.display = 'flex';
         showToast('⚠️ 截圖失敗', 3000);
       }
     }
@@ -2736,7 +2825,7 @@
           speakPrompt(promptText);
           showTransitionModal(
             "🎉 新進度跟讀圓滿！",
-            `您已完成新進度跟讀。<br>接下來將進入<strong>「新進度自讀模式」</strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
+            `您已完成新進度跟讀。<br>接下來將進入<strong><span>「新進度自讀模式」</span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
               practicePhase = 'new_zidu';
               currentCycleCount = 0;
@@ -3047,7 +3136,7 @@
       }
     }
 
-    let cardDayTimer = null;
+    // 點擊「皈依祈求」：隱藏下方按鈕、顯示右側群組，並將 22 天後的畫面由簡化版切換為「完全輸出」詳細內容
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
@@ -3059,19 +3148,48 @@
       triggerFireworks(showToastFlag);
       loadRandomCardData();
 
-      const dayNum = window.CURRENT_TARGET_DAY || 22;
-      const dayStr = String(dayNum).padStart(3, '0');
-      const btnDays = document.getElementById('btn-card-days');
-      if (btnDays) {
-        btnDays.textContent = `堅持第 ${dayStr} 天`;
+      const actionsRow = document.getElementById('companionActionsRow');
+      if (actionsRow) {
+        actionsRow.style.display = 'none';
       }
 
-      if (cardDayTimer) clearTimeout(cardDayTimer);
-      cardDayTimer = setTimeout(() => {
-        if (btnDays) {
-          btnDays.textContent = '皈依祈求';
-        }
-      }, 3000);
+      const sideRightGroup = document.getElementById('side-right-group');
+      if (sideRightGroup) sideRightGroup.style.display = 'flex';
+
+      const textContainerLong = document.getElementById('textContainerLongCard');
+      const textContainer = document.getElementById('textContainer');
+      if (textContainerLong) textContainerLong.style.display = 'none';
+      if (textContainer) {
+        textContainer.style.border = 'none';
+        textContainer.style.boxShadow = 'none';
+        textContainer.style.borderRadius = '0';
+        textContainer.style.padding = '0';
+        textContainer.style.background = 'transparent';
+        textContainer.style.display = 'block';
+      }
+    }
+
+    // 點擊返回按鍵：復原所有狀態
+    function handleRestoreCompanionButtons() {
+      const sideRightGroup = document.getElementById('side-right-group');
+      if (sideRightGroup) sideRightGroup.style.display = 'none';
+
+      const actionsRow = document.getElementById('companionActionsRow');
+      if (actionsRow) {
+        actionsRow.style.display = 'flex';
+      }
+
+      const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
+      const textContainerLong = document.getElementById('textContainerLongCard');
+      const textContainer = document.getElementById('textContainer');
+
+      if (targetDay > 21) {
+        if (textContainer) textContainer.style.display = 'none';
+        if (textContainerLong) textContainerLong.style.display = 'flex';
+      } else {
+        if (textContainerLong) textContainerLong.style.display = 'none';
+        if (textContainer) textContainer.style.display = 'block';
+      }
     }
 
     function triggerOfferingCoinRain() {
@@ -3742,22 +3860,35 @@
           const cardIdInline = document.getElementById('cardIdInline');
           if (cardIdInline) cardIdInline.textContent = displayId;
 
-          const stageHeight = (cardStage && cardStage.clientHeight > 50) ? cardStage.clientHeight : window.innerHeight;
-          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.78;
+          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94 - 28;
 
-          let size = 33; 
+          let size = 34; 
           const minSize = 14; 
 
+          const targetFont = size >= 26 
+            ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+            : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
           cardContent.style.fontSize = size + "px";
-          cardTitle.style.fontSize = (size + 6) + "px";
-          if (cardIdInline) cardIdInline.style.fontSize = "12px";
+          cardTitle.style.fontSize = (size + 4) + "px";
+          cardContent.style.fontFamily = targetFont;
+          cardTitle.style.fontFamily = targetFont;
+          if (cardIdInline) {
+            cardIdInline.style.fontSize = "12px";
+            cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+          }
 
           let tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
 
           while (tH > maxH && size > minSize) {
             size--;
+            const updatedFont = size >= 26 
+              ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+              : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
             cardContent.style.fontSize = size + "px";
-            cardTitle.style.fontSize = (size + 6) + "px";
+            cardTitle.style.fontSize = (size + 4) + "px";
+            cardContent.style.fontFamily = updatedFont;
+            cardTitle.style.fontFamily = updatedFont;
             if (cardIdInline) cardIdInline.style.fontSize = "12px";
             tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
           }
@@ -3802,8 +3933,11 @@
       const cardStage = document.getElementById('cardStage');
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
+      const textContainerLong = document.getElementById('textContainerLongCard');
       const cardTitle = document.getElementById('cardTitle');
       const cardContent = document.getElementById('cardContent');
+      const cardTitleLong = document.getElementById('cardTitleLong');
+      const cardDayLong = document.getElementById('cardDayLong');
       const btnDays = document.getElementById('btn-card-days');
 
       if (btnDays) {
@@ -3827,23 +3961,46 @@
         if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
         if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         if (textContainer) textContainer.style.display = 'none';
+        if (textContainerLong) textContainerLong.style.display = 'none';
       } else {
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
-        if (textContainer) textContainer.style.display = 'block';
 
         if (Object.keys(cardTexts).length > 0) {
-          loadRandomCardData();
+          const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
+          const selectedData = cardTexts[randomTextKey];
+          let titleText = selectedData.title || '';
+          if (titleText.length > 18) titleText = titleText.substring(0, 18);
+
+          if (textContainer) textContainer.style.display = 'none';
+          if (textContainerLong) textContainerLong.style.display = 'flex';
+          if (cardTitleLong) cardTitleLong.textContent = titleText;
+          if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+
+          const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
+          const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+          const paddedImgNum = String(randomImgNum).padStart(2, '0');
+          if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
         } else {
           fetch('images_text.json')
             .then(res => res.json())
             .then(data => {
               cardTexts = data;
               textKeys = Object.keys(cardTexts);
-              loadRandomCardData();
+              const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
+              const selectedData = cardTexts[randomTextKey];
+              let titleText = selectedData.title || '';
+
+              if (textContainer) textContainer.style.display = 'none';
+              if (textContainerLong) textContainerLong.style.display = 'flex';
+              if (cardTitleLong) cardTitleLong.textContent = titleText;
+              if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+              if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
             })
             .catch(err => {
-              if (cardTitle) cardTitle.textContent = "陪伴卡載入";
-              if (cardContent) cardContent.textContent = "請確認 images_text.json 是否存在";
+              if (textContainer) textContainer.style.display = 'none';
+              if (textContainerLong) textContainerLong.style.display = 'flex';
+              if (cardTitleLong) cardTitleLong.textContent = "陪伴卡載入";
+              if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
               if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
             });
         }
