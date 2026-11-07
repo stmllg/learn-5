@@ -2,8 +2,8 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>歡喜背書V1235</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>歡喜背書V999_1</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -46,22 +46,24 @@
       user-select: none;
     }
 
-    /* V1235 防黑屏核心：使用 min-height 100vh，徹底拔除容易造成 LINE 崩潰的 position: fixed 根元素與 dvh */
     html, body {
-      width: 100%;
-      height: 100%;
-      min-height: 100vh;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
       background-color: #0B0F19;
       color: #FFFFFF;
       font-family: "Microsoft JhengHei", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif;
-      overflow-x: hidden;
+      overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
     }
 
     #line-browser-overlay {
       display: none;
       position: fixed;
       top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      width: 100vw; height: 100vh; height: 100dvh;
       z-index: 100000;
       background: rgba(4, 7, 15, 0.94);
       backdrop-filter: blur(8px);
@@ -111,8 +113,11 @@
     #portrait-blocker-overlay {
       display: none;
       position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
       background: radial-gradient(circle at center, #1E293B 0%, #080D1A 100%);
       z-index: 99999;
       flex-direction: column;
@@ -172,7 +177,7 @@
       display: none;
       position: fixed;
       top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      width: 100vw; height: 100vh; height: 100dvh;
       z-index: 20000;
       background: rgba(4, 7, 15, 0.94);
       backdrop-filter: blur(8px);
@@ -189,11 +194,45 @@
       opacity: 1;
     }
 
+    /* 左右兩側黑框返回按鈕樣式 */
+    .btn-card-return {
+      display: none;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 25000;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+      color: #FBBF24;
+      border: 2px solid #F59E0B;
+      border-radius: 16px;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8), 0 0 15px rgba(245, 158, 11, 0.3);
+      cursor: pointer;
+      user-select: none;
+      writing-mode: vertical-lr;
+      text-orientation: upright;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+    #btn-companion-return-left {
+      left: calc(12px + env(safe-area-inset-left, 0px));
+    }
+    #btn-companion-return-right {
+      right: calc(12px + env(safe-area-inset-right, 0px));
+    }
+    .btn-card-return:active {
+      transform: translateY(-50%) scale(0.92);
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #FFFFFF;
+    }
+
     .companion-wrapper {
       position: relative;
       display: inline-block;
-      height: 86vh;
-      max-height: 92vh;
+      height: 96dvh;
+      max-height: 98vh;
       aspect-ratio: 1200 / 675;
       background-color: #0F172A;
       background-size: 100% 100%;
@@ -227,6 +266,9 @@
       background: transparent;
     }
 
+    .companion-wrapper {
+      transition: opacity 0.3s ease-in-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
     .companion-wrapper.fade-out {
       opacity: 0.2;
     }
@@ -324,7 +366,7 @@
       display: none;
       position: fixed;
       top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      width: 100vw; height: 100vh; height: 100dvh;
       z-index: 40000;
       background: rgba(4, 7, 15, 0.94);
       backdrop-filter: blur(8px);
@@ -480,7 +522,7 @@
       display: none;
       position: fixed;
       top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      width: 100vw; height: 100vh; height: 100dvh;
       z-index: 30000;
       background: rgba(4, 7, 15, 0.94);
       backdrop-filter: blur(8px);
@@ -539,6 +581,7 @@
     #landscape-container {
       width: 100vw;
       height: 100vh;
+      height: 100dvh;
       display: flex;
       flex-direction: row;
       align-items: stretch;
@@ -597,6 +640,7 @@
       padding-bottom: 4px;
       z-index: 60;
       box-sizing: border-box;
+      transition: width 0.3s ease, opacity 0.3s ease;
     }
     #left-wing { width: calc(68px + env(safe-area-inset-left, 0px)); padding-left: env(safe-area-inset-left, 4px); padding-right: 4px; }
     #right-wing { width: calc(68px + env(safe-area-inset-right, 0px)); padding-right: env(safe-area-inset-right, 0px); padding-left: 4px; }
@@ -645,27 +689,6 @@
       touch-action: manipulation;
     }
     .square-btn:active { transform: scale(0.90); opacity: 0.85; }
-
-    .btn-wing-companion {
-      width: 62px !important;
-      height: 62px !important;
-      border-radius: 14px !important;
-      border: 2.5px solid #38BDF8 !important;
-      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%) !important;
-      color: #38BDF8 !important;
-      font-size: 12px !important;
-      font-weight: 900 !important;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      line-height: 1.2;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
-      touch-action: manipulation;
-    }
-    .btn-wing-companion:active { transform: scale(0.90); opacity: 0.85; }
 
     .btn-color-offering {
       width: 62px !important;
@@ -731,8 +754,10 @@
 
     #video-container-wrap {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background-color: #000000;
       display: flex;
       justify-content: center;
@@ -745,7 +770,7 @@
       display: none;
       position: fixed;
       top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      width: 100vw; height: 100vh; height: 100dvh;
       background-color: #000000;
       z-index: 999999;
       justify-content: center;
@@ -760,8 +785,10 @@
     #flowerCanvas {
       display: none;
       position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
       pointer-events: none;
       z-index: 999999;
     }
@@ -837,6 +864,10 @@
   </div>
 
   <div id="companion-overlay">
+    <!-- 左右兩側黑框返回按鍵 -->
+    <button id="btn-companion-return-left" class="btn-card-return" onclick="handleRestoreCompanionButtons()">◀ 返回</button>
+    <button id="btn-companion-return-right" class="btn-card-return" onclick="handleRestoreCompanionButtons()">返回 ▶</button>
+
     <div class="companion-wrapper" id="cardStage">
       <div class="card-text-container" id="textContainer">
         <div class="card-title" id="cardTitle">載入中...</div>
@@ -845,18 +876,18 @@
       </div>
 
       <div class="companion-actions-row" id="companionActionsRow">
-        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="handleAnyCompanionAction(openScheduleModal)" style="display: none;">⚙️ 排程設定</button>
-        <button class="btn-card-orange" onclick="handleAnyCompanionAction(playTeacherGuideAndRecite)">老師帶前行</button>
-        <button class="btn-card-orange" onclick="handleAnyCompanionAction(closeCompanionCard)">開始背誦</button>
-        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleAnyCompanionAction(handleDayBtnClick)">皈依祈求</button>
-        <button class="btn-card-line" onclick="handleAnyCompanionAction(shareScreenshotToLine)">LINE</button>
+        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
+        <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
+        <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
+        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
+        <button class="btn-card-line" onclick="shareScreenshotToLine()">LINE</button>
       </div>
     </div>
   </div>
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1235)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v995)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -908,7 +939,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v1235 載入中】...</div>
+  <div id="schedule-toast">📦 【v999_1 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1066,7 +1097,6 @@
 
     let currentCoreMode = 'mode2'; 
     let practicePhase = 'new_gendu'; 
-    let isSideWingsCompanionMode = false; // V1235: 追蹤是否已進入過背誦模式（決定按鈕是否永久歸位到左右黑框）
 
     let selectedDailyStep = DEFAULT_DAILY_STEP;
 
@@ -1163,7 +1193,6 @@
         markA_Index: markA_Index,
         markB_Index: markB_Index,
         isManualSelected: isManualSelected,
-        isSideWingsCompanionMode: isSideWingsCompanionMode,
         savedDateStr: getNormalizedDateStr(),
         timestamp: Date.now()
       };
@@ -1211,7 +1240,6 @@
       markA_Index = state.markA_Index !== undefined ? state.markA_Index : -1;
       markB_Index = state.markB_Index !== undefined ? state.markB_Index : -1;
       isManualSelected = state.isManualSelected || false;
-      isSideWingsCompanionMode = state.isSideWingsCompanionMode || false;
 
       restoreModalOverlay.style.display = 'none';
 
@@ -1320,9 +1348,6 @@
       initCompanionCard(targetDay);
 
       hasEnteredReciting = false;
-      isSideWingsCompanionMode = true; // ** 關鍵修復：從背書模式左右滑動回歸陪伴卡時，按鈕強制維持在左右黑框側翼，絕不落回下方！ **
-      renderUI();
-
       companionOverlay.style.display = 'flex';
       companionOverlay.style.opacity = '1';
       companionOverlay.classList.add('active');
@@ -1474,47 +1499,68 @@
       }
     }
 
-    // V1235: 通用攔截器：當按下任何一個陪伴卡按鈕時，永久啟動側翼黑框模式（isSideWingsCompanionMode = true），並執行對應動作
-    function handleAnyCompanionAction(actionCallback) {
-      isSideWingsCompanionMode = true;
-      
-      const compOverlay = document.getElementById('companion-overlay');
-      if (compOverlay) {
-        compOverlay.style.opacity = '0';
-        compOverlay.classList.remove('active');
-        compOverlay.style.pointerEvents = 'none';
-        setTimeout(async () => {
-          compOverlay.style.display = 'none';
-          compOverlay.style.pointerEvents = 'auto';
-          hasEnteredReciting = true;
-          renderUI();
-          
-          if (typeof actionCallback === 'function') {
-            await actionCallback();
-          }
-        }, 200);
-      } else {
-        hasEnteredReciting = true;
-        renderUI();
-        if (typeof actionCallback === 'function') {
-          actionCallback();
-        }
-      }
-      saveCurrentAppState();
-    }
-
     async function playTeacherGuideAndRecite() {
       triggerAppFullscreen();
-      await preWarmMicrophonePermission();
+      const compOverlay = document.getElementById('companion-overlay');
+      compOverlay.style.opacity = '0';
+      compOverlay.classList.remove('active');
+      compOverlay.style.pointerEvents = 'none';
 
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
-      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+      setTimeout(async () => {
+        compOverlay.style.display = 'none';
+        compOverlay.style.pointerEvents = 'auto';
 
+        await preWarmMicrophonePermission();
+
+        hasEnteredReciting = true;
+        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+        const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
+        triggerAppFullscreen();
+
+        playStandaloneVideo('mode1', 0, async () => {
+          showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
+          await loadAllAssetsSmartSync();
+
+          const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
+          if (savedStr) {
+            try {
+              const state = JSON.parse(savedStr);
+              if (state.savedDateStr === getNormalizedDateStr()) {
+                pendingRestoredState = state;
+                confirmRestoreState();
+                return;
+              }
+            } catch(e) {}
+          }
+
+          setCoreMode('mode2');
+        });
+      }, 200);
+    }
+
+    async function closeCompanionCard() {
       triggerAppFullscreen();
+      
+      const compOverlay = document.getElementById('companion-overlay');
+      compOverlay.style.opacity = '0';
+      compOverlay.classList.remove('active');
+      compOverlay.style.pointerEvents = 'none';
 
-      playStandaloneVideo('mode1', 0, async () => {
-        showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
+      setTimeout(async () => {
+        compOverlay.style.display = 'none';
+        compOverlay.style.pointerEvents = 'auto';
+
+        await preWarmMicrophonePermission();
+
+        hasEnteredReciting = true;
+        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+        const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
+        triggerAppFullscreen();
+
         await loadAllAssetsSmartSync();
 
         const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
@@ -1529,38 +1575,11 @@
           } catch(e) {}
         }
 
-        setCoreMode('mode2');
-      });
-    }
-
-    async function closeCompanionCard() {
-      triggerAppFullscreen();
-      await preWarmMicrophonePermission();
-
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
-      const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
-
-      triggerAppFullscreen();
-
-      await loadAllAssetsSmartSync();
-
-      const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
-      if (savedStr) {
-        try {
-          const state = JSON.parse(savedStr);
-          if (state.savedDateStr === getNormalizedDateStr()) {
-            pendingRestoredState = state;
-            confirmRestoreState();
-            return;
-          }
-        } catch(e) {}
-      }
-
-      const hasRestore = checkAndPrepareRestoreState();
-      if (!hasRestore) {
-        setCoreMode('mode2');
-      }
+        const hasRestore = checkAndPrepareRestoreState();
+        if (!hasRestore) {
+          setCoreMode('mode2');
+        }
+      }, 200);
     }
 
     function getCurrentProgressEnd() {
@@ -1923,7 +1942,6 @@
             if (st.savedDateStr === getNormalizedDateStr()) {
               restoredCount = st.currentCycleCount || 0;
               if (st.practicePhase) practicePhase = st.practicePhase;
-              if (st.isSideWingsCompanionMode !== undefined) isSideWingsCompanionMode = st.isSideWingsCompanionMode;
             }
           } catch(e) {}
         }
@@ -2306,83 +2324,65 @@
 
     function renderUI() {
       try {
-        const actionsRow = document.getElementById('companionActionsRow');
-        if (actionsRow) {
-          actionsRow.style.display = isSideWingsCompanionMode ? 'none' : 'flex';
+        if (isIndependentModeUnlocked()) {
+          slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
+          const btnOffering = document.getElementById('btn-offering');
+          if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+
+          const textA = isSelectingMarkA ? '請點句' : '起句';
+          const textB = isSelectingMarkB ? '請點句' : '終句';
+          const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+          const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+
+          slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
+          slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
+          slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
+        } else {
+          slotL1.innerHTML = '';
+          slotL2.innerHTML = '';
+          slotL3.innerHTML = '';
+          slotR3.innerHTML = '';
         }
 
-        if (isSideWingsCompanionMode) {
-          // V1235: 將本來在畫面當中的五個按鈕放到左右邊框 (左一、左二、左三、左四、右一)
-          slotL1.innerHTML = '<button class="btn-wing-companion" onclick="openScheduleModal()">⚙️<br>排程設定</button>';
-          slotL2.innerHTML = '<button class="btn-wing-companion" onclick="playTeacherGuideAndRecite()">老師<br>帶前行</button>';
-          slotL3.innerHTML = '<button class="btn-wing-companion" onclick="closeCompanionCard()">開始<br>背誦</button>';
-          slotL4.innerHTML = '<button class="btn-wing-companion" onclick="handleDayBtnClick()">皈依<br>祈求</button>';
-          slotR1.innerHTML = '<button class="btn-wing-companion" style="background: linear-gradient(135deg, #06C755 0%, #00B900 100%) !important; border-color: #A7F3D0 !important; color: #FFFFFF !important;" onclick="shareScreenshotToLine()">💬<br>LINE</button>';
+        slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
+        slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
 
-          slotR2.innerHTML = '';
-          slotR3.innerHTML = '';
-          slotR4.innerHTML = '';
-        } else {
-          if (isIndependentModeUnlocked()) {
-            slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
-            const btnOffering = document.getElementById('btn-offering');
-            if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+        slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
+        slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
 
-            const textA = isSelectingMarkA ? '請點句' : '起句';
-            const textB = isSelectingMarkB ? '請點句' : '終句';
-            const styleA = isSelectingMarkA ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
-            const styleB = isSelectingMarkB ? 'background: linear-gradient(135deg, #9333EA 0%, #7E22CE 100%) !important; border-color: #E9D5FF !important; animation: recordingPulseStrong 0.9s infinite ease-in-out;' : '';
+        const btnMarkA = document.getElementById('btn-mark-a');
+        if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
 
-            slotL2.innerHTML = `<button class="circle-btn btn-color-mark-a" id="btn-mark-a" style="${styleA}">${textA}</button>`;
-            slotL3.innerHTML = `<button class="circle-btn btn-color-mark-b" id="btn-mark-b" style="${styleB}">${textB}</button>`;
-            slotR3.innerHTML = '<button class="square-btn" id="btn-record">比對</button>';
-          } else {
-            slotL1.innerHTML = '';
-            slotL2.innerHTML = '';
-            slotL3.innerHTML = '';
-            slotR3.innerHTML = '';
-          }
+        const btnMarkB = document.getElementById('btn-mark-b');
+        if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
 
-          slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
-          slotR4.innerHTML = '<button class="circle-btn btn-color-speed-up" id="btn-speed-up" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">快+</button>';
+        const btnSpeedDown = document.getElementById('btn-speed-down');
+        if (btnSpeedDown) {
+          btnSpeedDown.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
+            else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
+            else triggerPdfSpeedChange(-0.1);
+          });
+        }
 
-          slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
-          slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
+        const btnGendu = document.getElementById('btn-gendu');
+        if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
 
-          const btnMarkA = document.getElementById('btn-mark-a');
-          if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
+        const btnZidu = document.getElementById('btn-zidu');
+        if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
 
-          const btnMarkB = document.getElementById('btn-mark-b');
-          if (btnMarkB) btnMarkB.addEventListener('click', handleMarkBClick);
+        const btnRecord = document.getElementById('btn-record');
+        if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
 
-          const btnSpeedDown = document.getElementById('btn-speed-down');
-          if (btnSpeedDown) {
-            btnSpeedDown.addEventListener('click', (e) => {
-              e.stopPropagation();
-              if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
-              else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
-              else triggerPdfSpeedChange(-0.1);
-            });
-          }
-
-          const btnGendu = document.getElementById('btn-gendu');
-          if (btnGendu) btnGendu.addEventListener('click', handleGenduClick);
-
-          const btnZidu = document.getElementById('btn-zidu');
-          if (btnZidu) btnZidu.addEventListener('click', handleZiduClick);
-
-          const btnRecord = document.getElementById('btn-record');
-          if (btnRecord) btnRecord.addEventListener('click', handleRecordModeClick);
-
-          const btnSpeedUp = document.getElementById('btn-speed-up');
-          if (btnSpeedUp) {
-            btnSpeedUp.addEventListener('click', (e) => {
-              e.stopPropagation();
-              if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
-              else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
-              else triggerPdfSpeedChange(+0.1);
-            });
-          }
+        const btnSpeedUp = document.getElementById('btn-speed-up');
+        if (btnSpeedUp) {
+          btnSpeedUp.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
+            else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
+            else triggerPdfSpeedChange(+0.1);
+          });
         }
 
         updateModeButtonsStyle();
@@ -2391,7 +2391,6 @@
     }
 
     function updateModeButtonsStyle() {
-      if (isSideWingsCompanionMode) return;
       const btnGendu = document.getElementById('btn-gendu');
       const btnZidu = document.getElementById('btn-zidu');
       const btnRecord = document.getElementById('btn-record');
@@ -2638,7 +2637,7 @@
 
       if (!cardStage) return;
 
-      if (actionsRow) actionsRow.style.display = 'flex';
+      if (actionsRow) actionsRow.style.display = 'none';
 
       showToast('📸 正在產生精美截圖...', 2000);
 
@@ -3087,6 +3086,8 @@
     }
 
     let cardDayTimer = null;
+    
+    // 點擊「皈依祈求」：隱藏所有按鈕並顯示左右黑框返回鍵
     function handleDayBtnClick() {
       triggerAppFullscreen();
       const todayStr = getNormalizedDateStr();
@@ -3098,19 +3099,33 @@
       triggerFireworks(showToastFlag);
       loadRandomCardData();
 
-      const dayNum = window.CURRENT_TARGET_DAY || 22;
-      const dayStr = String(dayNum).padStart(3, '0');
-      const btnDays = document.getElementById('btn-card-days');
-      if (btnDays) {
-        btnDays.textContent = `堅持第 ${dayStr} 天`;
+      const actionsRow = document.getElementById('companionActionsRow');
+      if (actionsRow) {
+        actionsRow.style.display = 'none';
       }
 
-      if (cardDayTimer) clearTimeout(cardDayTimer);
-      cardDayTimer = setTimeout(() => {
-        if (btnDays) {
-          btnDays.textContent = '皈依祈求';
-        }
-      }, 3000);
+      const btnReturnLeft = document.getElementById('btn-companion-return-left');
+      const btnReturnRight = document.getElementById('btn-companion-return-right');
+      if (btnReturnLeft) btnReturnLeft.style.display = 'block';
+      if (btnReturnRight) btnReturnRight.style.display = 'block';
+    }
+
+    // 點擊返回按鍵：回到最初狀況
+    function handleRestoreCompanionButtons() {
+      const btnReturnLeft = document.getElementById('btn-companion-return-left');
+      const btnReturnRight = document.getElementById('btn-companion-return-right');
+      if (btnReturnLeft) btnReturnLeft.style.display = 'none';
+      if (btnReturnRight) btnReturnRight.style.display = 'none';
+
+      const actionsRow = document.getElementById('companionActionsRow');
+      if (actionsRow) {
+        actionsRow.style.display = 'flex';
+      }
+
+      const btnDays = document.getElementById('btn-card-days');
+      if (btnDays) {
+        btnDays.textContent = '皈依祈求';
+      }
     }
 
     function triggerOfferingCoinRain() {
@@ -3848,7 +3863,7 @@
       if (btnDays) {
         btnDays.style.display = 'inline-block';
         btnDays.textContent = '皈依祈求';
-        btnDays.onclick = () => handleAnyCompanionAction(handleDayBtnClick);
+        btnDays.onclick = handleDayBtnClick;
       }
 
       if (Object.keys(cardTexts).length === 0) {
