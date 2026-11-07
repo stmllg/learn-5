@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V1202</title>
+  <title>歡喜背書V1203</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -870,7 +870,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1202)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v1203)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -922,7 +922,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v1202 載入中】...</div>
+  <div id="schedule-toast">📦 【v1203 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2770,7 +2770,7 @@
           if (hasCumulative) {
             showTransitionModal(
               "🎉 新進度自讀圓滿！",
-              `新進度已全部圓滿。<br>接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+              `新進度已全部圓滿。<br>接下來將進入<strong><span><span>「串習複習跟讀」</span></span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
               () => {
                 practicePhase = 'cumulative_gendu';
                 currentCycleCount = 0;
@@ -3811,6 +3811,7 @@
       }
     }, { passive: true });
 
+    // V1203：直接將 5 個按鈕精準搬到左右側翼 (slot-l1 ~ slot-l4, slot-r1)
     function moveCompanionButtonsToWings() {
       const actionsRow = document.getElementById('companionActionsRow');
       if (!actionsRow) return;
@@ -3821,11 +3822,29 @@
       const daysBtn = document.getElementById('btn-card-days');
       const lineBtn = document.querySelector('.btn-card-line');
 
-      if (settingBtn) slotL1.appendChild(settingBtn);
-      if (teacherBtn) slotL2.appendChild(teacherBtn);
-      if (startBtn) slotL3.appendChild(startBtn);
-      if (daysBtn) slotL4.appendChild(daysBtn);
-      if (lineBtn) slotR1.appendChild(lineBtn);
+      if (settingBtn) {
+        settingBtn.className = 'btn-wing-companion';
+        slotL1.appendChild(settingBtn);
+      }
+      if (teacherBtn) {
+        teacherBtn.className = 'btn-wing-companion';
+        slotL2.appendChild(teacherBtn);
+      }
+      if (startBtn) {
+        startBtn.className = 'btn-wing-companion';
+        slotL3.appendChild(startBtn);
+      }
+      if (daysBtn) {
+        daysBtn.className = 'btn-wing-companion';
+        slotL4.appendChild(daysBtn);
+      }
+      if (lineBtn) {
+        lineBtn.className = 'btn-wing-companion';
+        lineBtn.style.background = 'linear-gradient(135deg, #06C755 0%, #00B900 100%)';
+        lineBtn.style.borderColor = '#A7F3D0';
+        lineBtn.style.color = '#FFFFFF';
+        slotR1.appendChild(lineBtn);
+      }
 
       actionsRow.style.display = 'none';
     }
@@ -3927,11 +3946,13 @@
 
       handleOrientationCheck();
 
-      // ** V1202 安全載入監聽：確保 DOM 與圖片背景完全載入後再安全移動按鈕，徹底防止 LINE 瀏覽器黑屏 **
+      // ** V1203 雙重防護：載入後立即與視窗載入完成時強制移動按鈕至黑框 **
+      setTimeout(() => {
+        moveCompanionButtonsToWings();
+      }, 500);
+
       window.addEventListener('load', () => {
-        setTimeout(() => {
-          moveCompanionButtonsToWings();
-        }, 300);
+        moveCompanionButtonsToWings();
       });
     });
   </script>
