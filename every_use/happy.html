@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.26</title>
+  <title>歡喜背書V999.27</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -920,6 +920,7 @@
       <div class="companion-actions-row" id="companionActionsRow">
         <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
+        <button id="btn-card-offering-dynamic" class="btn-card-orange" onclick="handleOfferingClick()" style="display: none; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FEF3C7; border: 1.5px solid #FDE68A;">背書供養</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
         <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
       </div>
@@ -980,7 +981,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.26 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.27 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2416,10 +2417,17 @@
 
     function renderUI() {
       try {
+        const btnOfferingDynamic = document.getElementById('btn-card-offering-dynamic');
+        if (btnOfferingDynamic) {
+          if (isIndependentModeUnlocked()) {
+            btnOfferingDynamic.style.display = 'inline-block';
+          } else {
+            btnOfferingDynamic.style.display = 'none';
+          }
+        }
+
         if (isIndependentModeUnlocked()) {
-          slotL1.innerHTML = '<button class="square-btn btn-color-offering" id="btn-offering">背書<br>供養</button>';
-          const btnOffering = document.getElementById('btn-offering');
-          if (btnOffering) btnOffering.addEventListener('click', handleOfferingClick);
+          slotL1.innerHTML = '';
 
           const textA = isSelectingMarkA ? '請點句' : '起句';
           const textB = isSelectingMarkB ? '請點句' : '終句';
@@ -4083,6 +4091,15 @@
       classicStorage.setItem('CURRENT_SCHEDULE_DAY_V971', targetDay.toString());
 
       initCompanionCard(targetDay);
+
+      const btnOfferingDynamic = document.getElementById('btn-card-offering-dynamic');
+      if (btnOfferingDynamic) {
+        if (isIndependentModeUnlocked()) {
+          btnOfferingDynamic.style.display = 'inline-block';
+        } else {
+          btnOfferingDynamic.style.display = 'none';
+        }
+      }
 
       const compWrapper = document.querySelector('.companion-wrapper');
       if (compWrapper) compWrapper.classList.add('ready');
