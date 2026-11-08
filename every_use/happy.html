@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.23</title>
+  <title>歡喜背書V999.24</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -980,7 +980,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.23 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.24 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1761,7 +1761,7 @@
       renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum, testCompleted: testCompleted }));
     }
 
-    function generateTempScheduleList(settings) {
+        function generateTempScheduleList(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
       const step = settings.dailyStep;
       const rNew = settings.repeatNew;
@@ -1771,18 +1771,33 @@
 
       let currentDay = getCurrentActiveDayNumber();
       let simDay = currentDay;
-      let simStart = Math.min(total, testCompleted + 1);
+      let simStart = testCompleted + 1;
       if (simDay === 1) simStart = 1;
 
       for (let i = 1; i <= 5; i++) {
-        let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
-        let cStart = null, cEnd = null, cRepeat = 0;
+        let dayLabel = (i === 1) ? '今天' : (i === 2 ? '明天' : `第${simDay}天`);
+        
+        if (simStart > total) {
+          list.push(`${dayLabel} (第${simDay}天): 今日定課已圓滿 ｜ 全局串習[1~${total}](${rCum}遍)`);
+        } else {
+          let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
+          let cStart = 1, cEnd = end, cRepeat = rCum;
+          if (simDay === 1) {
+            cStart = null; cEnd = null; cRepeat = 0;
+          }
+          let reviewStr = (simDay === 1) ? `複[---](1遍)` : `複[${cStart}~${cEnd}](${rCum}遍)`;
+          list.push(`${dayLabel} (第${simDay}天): 新[${simStart}~${end}](${rNew}遍) ${reviewStr}`);
 
-        if (simDay > 1) {
-          cStart = 1;
-          cEnd = end;
-          cRepeat = rCum;
+          if (end >= total) {
+            simStart = total + 1;
+          } else {
+            simStart = end + 1;
+          }
         }
+        simDay++;
+      }
+      return list;
+    }
 
         let dayLabel = (i === 1) ? '今天' : (i === 2 ? '明天' : `第${simDay}天`);
         let reviewStr = (simDay === 1) ? `複[---](1遍)` : `複[${cStart}~${cEnd}](${rCum}遍)`;
@@ -1911,7 +1926,7 @@
       applyScheduleToState("");
     }
 
-    function generateAlgorithmicSchedule(settings) {
+        function generateAlgorithmicSchedule(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
       const step = settings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = settings.repeatNew;
@@ -1921,18 +1936,52 @@
 
       let currentDay = getCurrentActiveDayNumber();
       let simDay = currentDay;
-      let simStart = Math.min(total, testCompleted + 1);
+      let simStart = testCompleted + 1;
       if (simDay === 1) simStart = 1;
 
       for (let dayIdx = 1; dayIdx <= 100; dayIdx++) {
-        let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
-        let cStart = null, cEnd = null, cRepeat = 0;
+        if (simStart > total) {
+          // 已學完所有句數，今日定課直接跳過，以後每天只有播放全部句子的串習課程
+          scheduleList.push({
+            day: simDay,
+            start: null,
+            end: null,
+            repeat: 0,
+            cStart: 1,
+            cEnd: total,
+            cRepeat: rCum
+          });
+        } else {
+          let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
+          let cStart = null, cEnd = null, cRepeat = 0;
 
-        if (simDay > 1) {
-          cStart = 1;
-          cEnd = end;
-          cRepeat = rCum;
+          if (simDay > 1) {
+            cStart = 1;
+            cEnd = end;
+            cRepeat = rCum;
+          }
+
+          scheduleList.push({
+            day: simDay,
+            start: simStart,
+            end: end,
+            repeat: rNew,
+            cStart: cStart,
+            cEnd: cEnd,
+            cRepeat: cRepeat
+          });
+
+          if (end >= total) {
+            simStart = total + 1;
+          } else {
+            simStart = end + 1;
+          }
         }
+        simDay++;
+      }
+
+      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V971', JSON.stringify(scheduleList));
+    }
 
         if (simStart > total) {
           scheduleList.push({
