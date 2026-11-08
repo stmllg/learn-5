@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.25</title>
+  <title>歡喜背書V999.26</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -980,7 +980,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.25 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.26 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2040,8 +2040,13 @@
       if (!currentDayPlan) return;
       const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : CLASSIC_TOTAL_SENTENCES - 1));
 
-      if (!currentDayPlan.start || currentDayPlan.start > CLASSIC_TOTAL_SENTENCES) {
-        practicePhase = 'cumulative_gendu';
+      if (practicePhase === 'cumulative_zidu') {
+        markA_Index = Math.max(0, (currentDayPlan.cStart || 1) - 1);
+        markB_Index = Math.min(maxIdx, (currentDayPlan.cEnd || 1) - 1);
+      } else if (!currentDayPlan.start || currentDayPlan.start > CLASSIC_TOTAL_SENTENCES) {
+        if (practicePhase !== 'cumulative_zidu') {
+          practicePhase = 'cumulative_gendu';
+        }
         markA_Index = 0;
         markB_Index = maxIdx;
       } else if (practicePhase === 'new_gendu' || practicePhase === 'new_zidu') {
