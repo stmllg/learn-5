@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.34</title>
+  <title>歡喜背書V999.341</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -281,7 +281,6 @@
       gap: 16px;
       overflow: visible;
       background: transparent;
-      transition: opacity 0.6s ease;
     }
     .card-title-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
@@ -312,7 +311,7 @@
       overflow: hidden;
       border: none;
       background: transparent;
-      transition: opacity 0.6s ease;
+      transition: border 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease;
     }
 
     .companion-wrapper.fade-out {
@@ -3153,8 +3152,13 @@
 
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
-        cardStage.style.transition = 'opacity 1.2s ease';
+        // 先瞬間設為 0，然後延遲 300ms 後淡入 (fade in) 顯示背景圖與文字
+        cardStage.style.transition = 'none';
         cardStage.style.opacity = '0';
+        setTimeout(() => {
+          cardStage.style.transition = 'opacity 1.5s ease';
+          cardStage.style.opacity = '1';
+        }, 300);
       }
 
       const actionsRow = document.getElementById('companionActionsRow');
@@ -3169,29 +3173,37 @@
     function handleRestoreCompanionButtons() {
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
-        cardStage.style.transition = 'opacity 0.6s ease';
-        cardStage.style.opacity = '1';
+        // 返回時淡出 (fade out) 背景圖及文字
+        cardStage.style.transition = 'opacity 0.8s ease';
+        cardStage.style.opacity = '0';
       }
 
-      const sideRightGroup = document.getElementById('side-right-group');
-      if (sideRightGroup) sideRightGroup.style.display = 'none';
+      setTimeout(() => {
+        const sideRightGroup = document.getElementById('side-right-group');
+        if (sideRightGroup) sideRightGroup.style.display = 'none';
 
-      const actionsRow = document.getElementById('companionActionsRow');
-      if (actionsRow) {
-        actionsRow.style.display = 'flex';
-      }
+        const actionsRow = document.getElementById('companionActionsRow');
+        if (actionsRow) {
+          actionsRow.style.display = 'flex';
+        }
 
-      const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
-      const textContainerLong = document.getElementById('textContainerLongCard');
-      const textContainer = document.getElementById('textContainer');
+        const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
+        const textContainerLong = document.getElementById('textContainerLongCard');
+        const textContainer = document.getElementById('textContainer');
 
-      if (targetDay > 21) {
-        if (textContainer) textContainer.style.display = 'none';
-        if (textContainerLong) textContainerLong.style.display = 'flex';
-      } else {
-        if (textContainerLong) textContainerLong.style.display = 'none';
-        if (textContainer) textContainer.style.display = 'block';
-      }
+        if (targetDay > 21) {
+          if (textContainer) textContainer.style.display = 'none';
+          if (textContainerLong) textContainerLong.style.display = 'flex';
+        } else {
+          if (textContainerLong) textContainerLong.style.display = 'none';
+          if (textContainer) textContainer.style.display = 'block';
+        }
+
+        if (cardStage) {
+          cardStage.style.transition = 'opacity 0.5s ease';
+          cardStage.style.opacity = '1';
+        }
+      }, 700);
     }
 
     function triggerOfferingCoinRain() {
@@ -4015,7 +4027,7 @@
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示<strong>「<span>⋯</span>」</strong>或<strong>指南針/Safari圖示</strong>，點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
         } else {
           guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
         }
