@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.20</title>
+  <title>歡喜背書V999.21</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -980,7 +980,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.20 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.21 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1294,7 +1294,7 @@
           setCoreMode('mode4');
         }
         renderUI();
-        showToast('✨ 已回到上次進度，請開始精進', 4000);
+        showToast('已回到上次進度', 4000);
       });
     }
 
@@ -1392,7 +1392,7 @@
       companionOverlay.style.display = 'flex';
       companionOverlay.style.opacity = '1';
       companionOverlay.classList.add('active');
-      showToast('💤 已為您自動存檔並返回休息', 3500);
+      showToast('自動存檔 暫止息力', 3500);
     }
 
     centerCore.addEventListener('scroll', () => {
@@ -1624,19 +1624,15 @@
     }
 
     function getCurrentProgressEnd() {
-      // 1. 若記憶體中已有排程當日終點，優先採用
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
       
-      // 2. 檢查 localStorage 中是否存有上次進度
       const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
       if (saved !== null && saved !== '' && saved !== '0') {
         return parseInt(saved, 10);
       }
       
-      // 3. 【快取清除防護修復】若無快取紀錄，根據網址的 start 日期與今天日期 (targetDay) 做判定
-      // 不管是否有更改過排程，我們用最低的補給他，每天一句數量即可 (targetDay - 1)，不用從第一句開始。
       const targetDay = getRealTargetDay();
       if (targetDay > 1) {
         return Math.min(CLASSIC_TOTAL_SENTENCES, targetDay - 1);
@@ -1819,7 +1815,7 @@
 
       generateAlgorithmicSchedule(settings);
       closeScheduleModal();
-      showToast('✨ 排程參數已更新，並以指定已學進度重新計算完成！', 4000);
+      showToast('明早首度開啟才能再更改！', 4000);
       applyScheduleToState('');
     }
 
@@ -1968,7 +1964,6 @@
         }
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
-          // 若無排程，強制重新生成一次以套用快取防護帶入的進度
           let savedSettings = {};
           try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}'); } catch (e) {}
           generateAlgorithmicSchedule({
@@ -2683,7 +2678,7 @@
       if (currentCoreMode !== 'mode3') setCoreMode('mode3');
       isSelectingMarkA = true;
       isSelectingMarkB = false;
-      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
+      showToast("點兩下設定起點句", 4000);
       renderUI();
     }
 
@@ -2692,7 +2687,7 @@
       if (currentCoreMode !== 'mode3') setCoreMode('mode3');
       isSelectingMarkB = true;
       isSelectingMarkA = false;
-      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
+      showToast("點兩下設定終點句", 4000);
       renderUI();
     }
 
@@ -2844,8 +2839,8 @@
           const promptText = "手指放螢幕也可小紅點向前，按快慢可調自己的語速";
           speakPrompt(promptText);
           showTransitionModal(
-            "🎉 新進度跟讀圓滿！",
-            `您已完成新進度跟讀。<br>接下來將進入<strong><span>「新進度自讀模式」</span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
+            "新進度自讀",
+            `接下來將進入<strong><span>「新進度自讀模式」</span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
               practicePhase = 'new_zidu';
               currentCycleCount = 0;
@@ -2863,8 +2858,8 @@
         } else {
           if (hasCumulative) {
             showTransitionModal(
-              "🎉 新進度自讀圓滿！",
-              `新進度已全部圓滿。<br>接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+              "串習複習跟讀",
+              `接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
               () => {
                 practicePhase = 'cumulative_gendu';
                 currentCycleCount = 0;
@@ -2895,8 +2890,8 @@
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
           showTransitionModal(
-            "🎉 串習複習跟讀圓滿！",
-            `您已完成串習複習跟讀。<br>接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
+            "串習複習自讀",
+            `接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
               practicePhase = 'cumulative_zidu';
               currentCycleCount = 0;
@@ -2924,7 +2919,7 @@
       classicStorage.setItem('INDEPENDENT_UNLOCKED_DATE_V971', getNormalizedDateStr());
       renderUI();
       triggerSevenColoredLotusFlowerRain();
-      showToast("🎉 今日定課與串習全部圓滿！左側已解鎖背書供養，右側已解鎖全功能自主複習。", 6000);
+      speakPrompt("今日定課與串習圓滿！已解鎖全功能可自主學習。"); showToast("今日定課與串習圓滿！已解鎖全功能可自主學習。", 6000);
       saveCurrentAppState();
     }
 
@@ -3152,7 +3147,7 @@
       requestAnimationFrame(animateFireworks);
 
       if (showToastFlag) {
-        showToast(`🎆 為自己第 ${window.CURRENT_TARGET_DAY || 22} 天的堅持放一場燦爛煙火，隨喜功德！`, 3000);
+        showToast(`堅持第 ${window.CURRENT_TARGET_DAY || 22} 天，同遊星海`, 3000);
       }
     }
 
@@ -3291,738 +3286,6 @@
       }
 
       requestAnimationFrame(animateCoinRain);
-    }
-
-    function renderMarkerLine(lineElement, lineObj) {
-      if (!lineObj) return;
-      if (!isAppleDevice) {
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const localY = lineObj.underLineY * scaleY;
-
-        lineElement.style.top = localY + 'px';
-        lineElement.style.left = lineObj.x0 + 'px';
-        lineElement.style.width = (lineObj.x1 - lineObj.x0) + 'px';
-        lineElement.style.display = 'block';
-        return;
-      }
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-      const scaleY = canvasRect.height / pdfCanvas.height;
-      const scaleX = canvasRect.width / pdfCanvas.width;
-
-      lineElement.style.top = (lineObj.underLineY * scaleY) + 'px';
-      lineElement.style.left = (lineObj.x0 * scaleX) + 'px';
-      lineElement.style.width = ((lineObj.x1 - lineObj.x0) * scaleX) + 'px';
-      lineElement.style.display = 'block';
-    }
-
-    function updateVisualDisplay() {
-      if (currentCoreMode === 'mode3' || currentCoreMode === 'mode4') {
-        if (markA_Index !== -1 && parsedTextLines[markA_Index]) {
-          const btnMarkADom = document.getElementById('btn-mark-a');
-          if (btnMarkADom) btnMarkADom.classList.add('active-mark');
-          renderMarkerLine(markALine, parsedTextLines[markA_Index]);
-        } else {
-          markALine.style.display = 'none';
-        }
-
-        if (markB_Index !== -1 && parsedTextLines[markB_Index]) {
-          const btnMarkBDom = document.getElementById('btn-mark-b');
-          if (btnMarkBDom) btnMarkBDom.classList.add('active-mark');
-          renderMarkerLine(markBLine, parsedTextLines[markB_Index]);
-        } else {
-          markBLine.style.display = 'none';
-        }
-      }
-
-      if (!isGuideActive && currentCoreMode === 'mode3') {
-        guideLine.style.display = 'none';
-        redDot.style.display = 'none';
-      }
-    }
-
-    function getLineIndexAtClientPoint(clientX, clientY) {
-      if (parsedTextLines.length === 0) return 0;
-      let closestIdx = 0, minDiff = Infinity;
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-
-      for (let i = 0; i < parsedTextLines.length; i++) {
-        const line = parsedTextLines[i];
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const lineScreenY = canvasRect.top + (line.underLineY * scaleY);
-        const diff = Math.abs(lineScreenY - clientY);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = i;
-        }
-      }
-      return closestIdx;
-    }
-
-    async function ensureMicrophoneActive() {
-      if (micStream) return true;
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') await audioContext.resume();
-
-        micStream = await getUserMediaWithTimeout({
-          audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
-        }, 6000);
-
-        const source = audioContext.createMediaStreamSource(micStream);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.04;
-        source.connect(analyser);
-
-        isCalibrating = true;
-        calibrationSamples = [];
-        setTimeout(() => {
-          if (calibrationSamples.length > 0) {
-            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
-            baseNoiseLevel = sum / calibrationSamples.length;
-            dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
-          }
-          isCalibrating = false;
-        }, 350);
-
-        lastVoiceTime = performance.now();
-        startSharedVadLoop();
-        return true;
-      } catch (err) {
-        showToast("⚠️ 麥克風回應逾時或未授權，已自動解除鎖定", 4000);
-        releaseMicrophoneResources();
-        return false;
-      }
-    }
-
-    let vadDataArray = null;
-    function startSharedVadLoop() {
-      if (vadCheckTimer) return;
-      vadDataArray = new Float32Array(analyser.frequencyBinCount);
-
-      function loop() {
-        if (currentCoreMode !== 'mode3' && currentCoreMode !== 'mode4') {
-          vadCheckTimer = null;
-          return;
-        }
-
-        if (analyser) {
-          analyser.getFloatTimeDomainData(vadDataArray);
-          let sumSquares = 0.0;
-          for (let i = 0; i < vadDataArray.length; i++) {
-            const val = vadDataArray[i];
-            sumSquares += val * val;
-          }
-          const rms = Math.sqrt(sumSquares / vadDataArray.length);
-
-          if (isCalibrating) calibrationSamples.push(rms);
-
-          const deltaRms = rms - prevRms;
-          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
-
-          if (hasVoiceEnergy) {
-            lastVoiceTime = performance.now();
-            silentFrameCount = 0;
-            if (!isVoiceActive && isGuideActive) {
-              isVoiceActive = true;
-              updateModeButtonsStyle();
-            }
-          } else {
-            silentFrameCount++;
-            if (silentFrameCount >= 24) {
-              if (isVoiceActive) {
-                isVoiceActive = false;
-                updateModeButtonsStyle();
-              }
-            }
-          }
-
-          if (isGuideActive) {
-            const timeSinceLineStart = performance.now() - lineActivationTimestamp;
-            const isInsideCooldown = (timeSinceLineStart < 120);
-
-            if (isLineHeadLocked && !isInsideCooldown && (deltaRms > (dynamicThreshold * 0.25) || isTouchingDisplay)) {
-              isLineHeadLocked = false;
-            }
-
-            if (isTransitioningLine) {
-              const elapsed = performance.now() - lineEndTime;
-              if (elapsed > 40 && (deltaRms > (dynamicThreshold * 0.40) || isTouchingDisplay)) {
-                proceedToNextLineImmediately();
-              } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70) && !isTouchingDisplay) {
-                proceedToNextLineImmediately();
-              } else if (elapsed >= 200) {
-                proceedToNextLineImmediately();
-              }
-            }
-          }
-
-          prevRms = rms;
-        }
-        vadCheckTimer = requestAnimationFrame(loop);
-      }
-      vadCheckTimer = requestAnimationFrame(loop);
-    }
-
-    async function toggleReliableRecordAction() {
-      const ok = await ensureMicrophoneActive();
-      if (!ok) return;
-
-      audioChunks = [];
-      mediaRecorder = new MediaRecorder(micStream);
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.push(e.data);
-      };
-      mediaRecorder.onstop = () => {
-        const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
-        const recordedBlob = new Blob(audioChunks, options);
-        recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
-        recordAudioElement.src = recordedAudioBlobUrl;
-        recordAudioElement.playbackRate = compareSpeed;
-        renderUI();
-      };
-      mediaRecorder.start(); 
-      isUserRecording = true;
-      renderUI();
-    }
-
-    function togglePlaybackAction() {
-      if (!recordedAudioBlobUrl) return;
-      if (isGuideActive) haltGuideRunnerImmediately();
-
-      if (recordAudioElement.paused) {
-        recordAudioElement.playbackRate = compareSpeed;
-        recordAudioElement.play().then(() => renderUI()).catch(() => {});
-      } else {
-        recordAudioElement.pause();
-        renderUI();
-      }
-    }
-
-    function handleOfferingClick() {
-      triggerFireworks(false);
-      const displayCoinsCount = document.getElementById('display-coins-count');
-      const inputClassId = document.getElementById('input-class-id');
-      const inputUserName = document.getElementById('input-user-name');
-      const offeringOverlay = document.getElementById('offering-modal-overlay');
-
-      if (displayCoinsCount) displayCoinsCount.textContent = (classicStorage.getItem('user_accumulated_coins') || '0') + ' 枚';
-      if (inputClassId) inputClassId.value = classicStorage.getItem('user_class_id') || '';
-      if (inputUserName) inputUserName.value = classicStorage.getItem('user_profile_name') || '';
-      if (offeringOverlay) offeringOverlay.style.display = 'flex';
-    }
-
-    function getStoredCoins() {
-      return parseInt(classicStorage.getItem('user_accumulated_coins') || '0', 10);
-    }
-    function addCoins(amount) {
-      const total = getStoredCoins() + amount;
-      classicStorage.setItem('user_accumulated_coins', total.toString());
-      saveCurrentAppState();
-      return total;
-    }
-    function resetCoins() {
-      classicStorage.setItem('user_accumulated_coins', '0');
-      saveCurrentAppState();
-    }
-    function calculateSentenceCount() {
-      if (parsedTextLines.length === 0) return 1;
-      const start = (markA_Index !== -1) ? markA_Index : 0;
-      const end = (markB_Index !== -1) ? markB_Index : (parsedTextLines.length - 1);
-      return Math.max(1, Math.abs(end - start) + 1);
-    }
-
-    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
-
-    btnConfirmOffering.addEventListener('click', () => {
-      const classId = inputClassId.value.trim();
-      const userName = inputUserName.value.trim();
-
-      if (!classId || !userName) {
-        alert("請輸入班號與姓名！");
-        return;
-      }
-
-      classicStorage.setItem('user_class_id', classId);
-      classicStorage.setItem('user_profile_name', userName);
-
-      const coinsToOffer = getStoredCoins();
-      if (coinsToOffer <= 0) {
-        alert("目前福慧幣為 0 枚，請先精進背誦！");
-        return;
-      }
-
-      btnConfirmOffering.disabled = true;
-      btnConfirmOffering.textContent = '連線供養中...';
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const startDateParam = urlParams.get('start') || '';
-      const groupParam = urlParams.get('group') || '';
-      const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
-
-      let isDone = false;
-      let timeoutTimer = null;
-      let scriptTag = null;
-
-      function cleanup() {
-        if (timeoutTimer) clearTimeout(timeoutTimer);
-        delete window[callbackName];
-        if (scriptTag && scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
-      }
-
-      function handleFailure(message) {
-        if (isDone) return;
-        isDone = true;
-        cleanup();
-        btnConfirmOffering.disabled = false;
-        btnConfirmOffering.textContent = '確認供養';
-        showToast(message, 5000);
-      }
-
-      function handleSuccess(data) {
-        if (isDone) return;
-        if (!data || !Array.isArray(data.todayTop3) || !Array.isArray(data.totalTop3)) {
-          handleFailure('未取得完整排行榜資料，請稍後重試');
-          return;
-        }
-        isDone = true;
-        cleanup();
-        resetCoins();
-        displayCoinsCount.textContent = '0 枚';
-        offeringOverlay.style.display = 'none';
-        btnConfirmOffering.disabled = false;
-        btnConfirmOffering.textContent = '確認供養';
-        renderLeaderboards(data, classId, userName, coinsToOffer);
-        leaderboardOverlay.style.display = 'flex';
-        
-        triggerOfferingCoinRain();
-      }
-
-      timeoutTimer = setTimeout(() => { handleFailure('連線逾時，請稍後重試'); }, 20000);
-      window[callbackName] = (res) => handleSuccess(res);
-
-      scriptTag = document.createElement('script');
-      scriptTag.async = true;
-      scriptTag.crossOrigin = 'anonymous';
-      scriptTag.src = `${APPS_SCRIPT_URL}?classId=${encodeURIComponent(classId)}&userName=${encodeURIComponent(userName)}&coins=${coinsToOffer}&classicId=${encodeURIComponent(CURRENT_CLASSIC_ID)}&startDate=${encodeURIComponent(startDateParam)}&groupName=${encodeURIComponent(groupParam)}&callback=${callbackName}&t=${Date.now()}`;
-      scriptTag.onerror = () => { handleFailure('連線失敗，請檢查網路'); };
-      document.body.appendChild(scriptTag);
-    });
-
-    function renderLeaderboards(data, curClass, curName, curCoins) {
-      const medals = ['🥇', '🥈', '🥉'];
-      function buildListHtml(list) {
-        const fullList = (list && Array.isArray(list)) ? [...list] : [];
-        while (fullList.length < 3) fullList.push({ isPlaceholder: true });
-        return fullList.slice(0, 3).map((item, idx) => {
-          const medal = medals[idx] || `第${idx + 1}名`;
-          if (item.isPlaceholder) {
-            return `<div class="rank-item"><span>${medal} <i style="color:#94A3B8;">虛位以待</i></span><span class="rank-coins">--</span></div>`;
-          }
-          const displayName = item.maskName || item.name || curName;
-          const displayClass = item.classId ? `(${item.classId})` : '';
-          const coinsVal = (typeof item.coins === 'number') ? item.coins : curCoins;
-          return `<div class="rank-item"><span>${medal} ${displayName} <small style="color:#94A3B8;">${displayClass}</small></span><span class="rank-coins">${coinsVal} 枚</span></div>`;
-        }).join('');
-      }
-      todayRankList.innerHTML = buildListHtml(data ? data.todayTop3 : null);
-      totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
-    }
-
-    btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
-
-    function haltGuideRunnerImmediately() {
-      isGuideActive = false;
-      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-      guideLine.style.display = 'none';
-      redDot.style.display = 'none';
-      updateModeButtonsStyle();
-    }
-
-    function startGuideRunner() {
-      if (parsedTextLines.length === 0) return;
-      guideStage.style.height = Math.max(centerCore.scrollHeight, 2500) + 'px';
-      scrollToAlignTop(currentLineIndex);
-      setupActiveLine(currentLineIndex, currentCharIndexFloat);
-      lastAnimTimestamp = performance.now();
-      if (guideAnimId) cancelAnimationFrame(guideAnimId);
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function scrollToAlignTop(idx) {
-      if (isUserManualScrolling) return; 
-      const line = parsedTextLines[idx];
-      if (line) {
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const displayTop = line.topGlobal * scaleY;
-        const targetTop = Math.max(0, displayTop - 18);
-
-        if (isAppleDevice) {
-          const viewportTop = centerCore.scrollTop;
-          const viewportBottom = viewportTop + centerCore.clientHeight;
-          if (displayTop < viewportTop || (line.bottomGlobal * scaleY) > viewportBottom) {
-            centerCore.scrollTo({ top: targetTop, behavior: 'smooth' });
-          }
-        } else {
-          centerCore.scrollTop = targetTop;
-        }
-      }
-    }
-
-    function getVisibleBottomLineIndex() {
-      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
-      let lastVisibleIdx = currentLineIndex;
-      for (let i = currentLineIndex; i < parsedTextLines.length; i++) {
-        if (parsedTextLines[i].underLineY <= viewportBottom - 16) lastVisibleIdx = i;
-        else break;
-      }
-      return lastVisibleIdx;
-    }
-
-    function checkAndTriggerPageFlip() {
-      const viewportBottom = centerCore.scrollTop + centerCore.clientHeight;
-      if (markA_Index !== -1 && markB_Index !== -1) {
-        const lineA = parsedTextLines[markA_Index];
-        const lineB = parsedTextLines[markB_Index];
-        if (lineA && lineB && (lineB.underLineY - lineA.topGlobal) <= (centerCore.clientHeight - 30)) return;
-      }
-      const nextIndex = currentLineIndex + 1;
-      if (markB_Index !== -1 && nextIndex > markB_Index) return;
-
-      if (nextIndex < parsedTextLines.length) {
-        const nextLine = parsedTextLines[nextIndex];
-        if (nextLine.underLineY > (viewportBottom - 18)) scrollToAlignTop(nextIndex);
-      }
-    }
-
-    function getLinePhysicalXByCharProgress(line, charProgressFloat) {
-      if (!line) return 0;
-      if (!line.charItems || line.charItems.length === 0) return line.x0;
-      const items = line.charItems;
-      const totalChars = items.length;
-      if (charProgressFloat <= 0) return items[0].x0;
-      if (charProgressFloat >= totalChars) return items[totalChars - 1].x1;
-
-      const charIdx = Math.min(totalChars - 1, Math.floor(charProgressFloat));
-      const intraCharFraction = charProgressFloat - charIdx;
-      const item = items[charIdx];
-      return item.x0 + (item.x1 - item.x0) * intraCharFraction;
-    }
-
-    function setupActiveLine(idx, initCurrent = 0.0) {
-      if (markB_Index !== -1 && idx > markB_Index) { handleCycleCompletion(); return; }
-      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
-
-      const line = parsedTextLines[idx];
-      currentCharIndexFloat = 0.0;
-      isLineHeadLocked = true;
-      lineActivationTimestamp = performance.now();
-
-      if (isGuideActive) {
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const scaleX = canvasRect.width / pdfCanvas.width;
-
-        guideLine.style.top = (line.underLineY * scaleY) + 'px';
-        guideLine.style.left = (line.x0 * scaleX) + 'px';
-        guideLine.style.width = ((line.x1 - line.x0) * scaleX) + 'px';
-        
-        const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
-        redDot.style.top = (line.underLineY * scaleY) + 'px';
-        redDot.style.left = (rawX * scaleX) + 'px';
-
-        guideLine.style.display = 'block';
-        redDot.style.display = 'block';
-      }
-      isTransitioningLine = false;
-    }
-
-    function stepGuideMovement(now) {
-      if (!isGuideActive || isTransitioningLine) return;
-      let delta = now - lastAnimTimestamp;
-      if (delta <= 0 || delta > 120) delta = 16.6;
-      lastAnimTimestamp = now;
-
-      const curLine = parsedTextLines[currentLineIndex];
-      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
-      const inertiaStartIndex = Math.max(1, totalChars - 2);
-      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
-
-      if (isVoiceActive || isTouchingDisplay || isInTailZone) {
-        const charPerMs = (2.8 * pdfSpeed) / 1000;
-        if (isLineHeadLocked) {
-          if (currentCharIndexFloat < 0.5) {
-            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
-          }
-        } else {
-          currentCharIndexFloat += charPerMs * delta;
-        }
-        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
-      }
-
-      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
-        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
-        if (!isCurrentLineAtTargetEnd) {
-          const visibleBottomIdx = getVisibleBottomLineIndex();
-          if (currentLineIndex === visibleBottomIdx) {
-            checkAndTriggerPageFlip();
-            hasPageFlipped = true;
-          }
-        }
-      }
-
-      if (currentCharIndexFloat >= totalChars) {
-        currentCharIndexFloat = totalChars;
-        if (curLine) {
-          const canvasRect = pdfCanvas.getBoundingClientRect();
-          const scaleY = canvasRect.height / pdfCanvas.height;
-          const scaleX = canvasRect.width / pdfCanvas.width;
-          const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
-          redDot.style.left = (rawX * scaleX) + 'px';
-          redDot.style.top = (curLine.underLineY * scaleY) + 'px';
-        }
-
-        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
-        const nextIndex = currentLineIndex + 1;
-        if (markB_Index !== -1 && nextIndex > markB_Index) { handleCycleCompletion(); return; }
-        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
-
-        isTransitioningLine = true;
-        lineEndTime = performance.now();
-        peakRmsAtLineEnd = prevRms;
-        guideLine.style.display = 'none';
-        return;
-      }
-
-      if (curLine) {
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const scaleX = canvasRect.width / pdfCanvas.width;
-        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
-        redDot.style.left = (rawX * scaleX) + 'px';
-        redDot.style.top = (curLine.underLineY * scaleY) + 'px';
-      }
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function proceedToNextLineImmediately() {
-      if (!isTransitioningLine || !isGuideActive) return;
-      const nextIndex = currentLineIndex + 1;
-      if (markB_Index !== -1 && nextIndex > markB_Index) {
-        handleCycleCompletion();
-        return;
-      }
-      hasPageFlipped = false;
-      currentLineIndex = nextIndex;
-      setupActiveLine(currentLineIndex, 0.0);
-      lastAnimTimestamp = performance.now();
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    let cardTexts = {};
-    let textKeys = [];
-
-    let backgroundConfig = { firstNum: 1, lastNum: 40 };
-    async function loadBackgroundConfig() {
-      try {
-        const res = await fetch('images_config.json?t=' + Date.now());
-        if (res.ok) {
-          const cfg = await res.json();
-          if (cfg && cfg.first && cfg.last) {
-            const mF = cfg.first.match(/\d+/);
-            const mL = cfg.last.match(/\d+/);
-            if (mF && mL) {
-              backgroundConfig.firstNum = parseInt(mF[0], 10);
-              backgroundConfig.lastNum = parseInt(mL[0], 10);
-            }
-          }
-        }
-      } catch (e) {}
-    }
-
-    async function loadRandomCardData() {
-      await loadBackgroundConfig();
-      const cardStage = document.getElementById('cardStage');
-      const bottomRightBadge = document.getElementById('bottomRightBadge');
-      const textContainer = document.getElementById('textContainer');
-      const cardTitle = document.getElementById('cardTitle');
-      const cardContent = document.getElementById('cardContent');
-      if (bottomRightBadge) bottomRightBadge.style.display = 'block';
-      if (textContainer) textContainer.style.display = 'block';
-
-      const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
-      const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
-      const paddedImgNum = String(randomImgNum).padStart(2, '0');
-      const imgPath = `images/bg_${paddedImgNum}.webp`;
-
-      if (cardStage) cardStage.classList.add('fade-out');
-
-      setTimeout(() => {
-        if (textKeys.length > 0) {
-          const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
-          const selectedData = cardTexts[randomTextKey];
-
-          let titleText = selectedData.title;
-          let rawContent = selectedData.content;
-          if (titleText.length > 16) titleText = titleText.substring(0, 16);
-
-          if (cardTitle) cardTitle.textContent = titleText;
-          if (cardContent) cardContent.textContent = rawContent;
-
-          const displayId = selectedData.id || randomTextKey;
-          const cardIdInline = document.getElementById('cardIdInline');
-          if (cardIdInline) cardIdInline.textContent = displayId;
-
-          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94 - 28;
-
-          let size = 34; 
-          const minSize = 14; 
-
-          const targetFont = size >= 30 
-            ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
-            : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-
-          cardContent.style.fontSize = size + "px";
-          cardTitle.style.fontSize = (size + 4) + "px";
-          cardContent.style.fontFamily = targetFont;
-          cardTitle.style.fontFamily = targetFont;
-          if (cardIdInline) {
-            cardIdInline.style.fontSize = "12px";
-            cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-          }
-
-          let tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
-
-          while (tH > maxH && size > minSize) {
-            size--;
-            const updatedFont = size >= 30 
-              ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
-              : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-            cardContent.style.fontSize = size + "px";
-            cardTitle.style.fontSize = (size + 4) + "px";
-            cardContent.style.fontFamily = updatedFont;
-            cardTitle.style.fontFamily = updatedFont;
-            if (cardIdInline) cardIdInline.style.fontSize = "12px";
-            tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
-          }
-
-          if (bottomRightBadge) bottomRightBadge.style.display = 'none';
-        }
-        if (cardStage) {
-          cardStage.style.backgroundImage = `url('${imgPath}')`;
-          cardStage.classList.remove('fade-out');
-        }
-      }, 200);
-    }
-
-    let companionSwipeStartX = 0;
-    let companionSwipeStartY = 0;
-    companionOverlay.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        companionSwipeStartX = e.touches[0].clientX;
-        companionSwipeStartY = e.touches[0].clientY;
-      }
-    }, { passive: true });
-
-    companionOverlay.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length === 1 && !hasEnteredReciting) {
-        const deltaX = e.changedTouches[0].clientX - companionSwipeStartX;
-        const deltaY = e.changedTouches[0].clientY - companionSwipeStartY;
-        if (Math.abs(deltaX) > 80 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-          try {
-            if (document.exitFullscreen) {
-              document.exitFullscreen().catch(() => {});
-            } else if (document.webkitExitFullscreen) {
-              document.webkitExitFullscreen().catch(() => {});
-            }
-          } catch(err) {}
-        }
-      }
-    }, { passive: true });
-
-    async function initCompanionCard(targetDay) {
-      await loadBackgroundConfig();
-      window.CURRENT_TARGET_DAY = targetDay;
-      const cardStage = document.getElementById('cardStage');
-      const bottomRightBadge = document.getElementById('bottomRightBadge');
-      const textContainer = document.getElementById('textContainer');
-      const textContainerLong = document.getElementById('textContainerLongCard');
-      const cardTitle = document.getElementById('cardTitle');
-      const cardContent = document.getElementById('cardContent');
-      const cardTitleLong = document.getElementById('cardTitleLong');
-      const cardDayLong = document.getElementById('cardDayLong');
-      const btnDays = document.getElementById('btn-card-days');
-
-      if (btnDays) {
-        btnDays.style.display = 'inline-block';
-        btnDays.textContent = '皈依祈求';
-        btnDays.onclick = handleDayBtnClick;
-      }
-
-      if (Object.keys(cardTexts).length === 0) {
-        try {
-          const res = await fetch('images_text.json');
-          if (res.ok) {
-            cardTexts = await res.json();
-            textKeys = Object.keys(cardTexts);
-          }
-        } catch(e) {}
-      }
-
-      if (targetDay <= 21) {
-        const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
-        if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
-        if (bottomRightBadge) bottomRightBadge.style.display = 'none';
-        if (textContainer) textContainer.style.display = 'none';
-        if (textContainerLong) textContainerLong.style.display = 'none';
-      } else {
-        if (bottomRightBadge) bottomRightBadge.style.display = 'block';
-
-        if (Object.keys(cardTexts).length > 0) {
-          const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
-          const selectedData = cardTexts[randomTextKey];
-          let titleText = selectedData.title || '';
-          if (titleText.length > 18) titleText = titleText.substring(0, 18);
-
-          if (textContainer) textContainer.style.display = 'none';
-          if (textContainerLong) textContainerLong.style.display = 'flex';
-          if (cardTitleLong) cardTitleLong.textContent = titleText;
-          if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
-
-          const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
-          const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
-          const paddedImgNum = String(randomImgNum).padStart(2, '0');
-          if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
-        } else {
-          fetch('images_text.json')
-            .then(res => res.json())
-            .then(data => {
-              cardTexts = data;
-              textKeys = Object.keys(cardTexts);
-              const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
-              const selectedData = cardTexts[randomTextKey];
-              let titleText = selectedData.title || '';
-
-              if (textContainer) textContainer.style.display = 'none';
-              if (textContainerLong) textContainerLong.style.display = 'flex';
-              if (cardTitleLong) cardTitleLong.textContent = titleText;
-              if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
-              if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
-            })
-            .catch(err => {
-              if (textContainer) textContainer.style.display = 'none';
-              if (textContainerLong) textContainerLong.style.display = 'flex';
-              if (cardTitleLong) cardTitleLong.textContent = "陪伴卡載入";
-              if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
-              if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
-            });
-        }
-      }
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
