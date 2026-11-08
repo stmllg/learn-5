@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.32</title>
+  <title>歡喜背書V999.34</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -281,6 +281,7 @@
       gap: 16px;
       overflow: visible;
       background: transparent;
+      transition: opacity 0.6s ease;
     }
     .card-title-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
@@ -311,7 +312,7 @@
       overflow: hidden;
       border: none;
       background: transparent;
-      transition: border 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease;
+      transition: opacity 0.6s ease;
     }
 
     .companion-wrapper.fade-out {
@@ -981,7 +982,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.32 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.34 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -3067,7 +3068,7 @@
       requestAnimationFrame(animateLotusRain);
     }
 
-    function triggerFireworks(showToastFlag = false) {
+    function triggerStarSea(showToastFlag = false) {
       const canvas = document.getElementById('flowerCanvas');
       if (!canvas) return;
       canvas.style.display = 'block';
@@ -3075,113 +3076,68 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      let startX = window.innerWidth / 2;
-      let startY = window.innerHeight - 40;
-
-      const targetX = startX + (Math.random() - 0.5) * 160;
-      const targetY = window.innerHeight * 0.2 + Math.random() * (window.innerHeight * 0.25);
-
-      let firework = {
-        x: startX,
-        y: startY,
-        targetX: targetX,
-        targetY: targetY,
-        speed: 14,
-        angle: Math.atan2(targetY - startY, targetX - startX),
-        exploded: false
-      };
-
-      let particles = [];
-      const colors = ['#FF94B8', '#FFB300', '#34D399', '#38BDF8', '#C084FC', '#F43F5E', '#FBBF24', '#FFFFFF'];
-
-      function explode() {
-        const particleCount = 80;
-        for (let i = 0; i < particleCount; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 7 + 2;
-          particles.push({
-            x: firework.targetX,
-            y: firework.targetY,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            size: Math.random() * 7 + 5,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            alpha: 1.0,
-            decay: Math.random() * 0.012 + 0.008,
-            shape: Math.random() > 0.4 ? 'flower' : 'circle'
-          });
-        }
+      const stars = [];
+      const starColors = ['#FFFFFF', '#38BDF8', '#FBBF24', '#C084FC', '#34D399', '#FFE4E6'];
+      for (let i = 0; i < 180; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: Math.random() * 2.5 + 0.8,
+          color: starColors[Math.floor(Math.random() * starColors.length)],
+          alpha: Math.random() * 0.7 + 0.3,
+          twinkleSpeed: Math.random() * 0.03 + 0.01,
+          driftX: (Math.random() - 0.5) * 0.3,
+          driftY: (Math.random() - 0.5) * 0.3
+        });
       }
 
       let startTime = performance.now();
-      const duration = 3200;
+      const duration = 6000;
 
-      function animateFireworks(now) {
+      function animateStarSea(now) {
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (!firework.exploded) {
-          let dx = firework.targetX - firework.x;
-          let dy = firework.targetY - firework.y;
-          firework.x += Math.cos(firework.angle) * firework.speed;
-          firework.y += Math.sin(firework.angle) * firework.speed;
+        // Draw deep cosmic background tint
+        ctx.fillStyle = 'rgba(4, 7, 15, 0.25)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          ctx.fillStyle = '#FEF08A';
-          ctx.beginPath();
-          ctx.arc(firework.x, firework.y, 5, 0, Math.PI * 2);
-          ctx.fill();
+        stars.forEach(s => {
+          s.alpha += s.twinkleSpeed * (Math.random() > 0.5 ? 1 : -1);
+          if (s.alpha > 1) s.alpha = 1;
+          if (s.alpha < 0.2) s.alpha = 0.2;
 
-          if (Math.abs(dx) < 18 && Math.abs(dy) < 18) {
-            firework.exploded = true;
-            explode();
-          }
-        }
+          s.x += s.driftX;
+          s.y += s.driftY;
 
-        particles.forEach(p => {
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vy += 0.10;
-          p.vx *= 0.97;
-          p.alpha -= p.decay;
-          if (p.alpha < 0) p.alpha = 0;
+          if (s.x < 0) s.x = canvas.width;
+          if (s.x > canvas.width) s.x = 0;
+          if (s.y < 0) s.y = canvas.height;
+          if (s.y > canvas.height) s.y = 0;
 
           ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.globalAlpha = p.alpha;
-
-          if (p.shape === 'flower') {
-            ctx.fillStyle = p.color;
-            for (let j = 0; j < 5; j++) {
-              const angle = (j * 2 * Math.PI) / 5;
-              ctx.beginPath();
-              ctx.arc(Math.cos(angle) * (p.size * 0.4), Math.sin(angle) * (p.size * 0.4), p.size * 0.45, 0, Math.PI * 2);
-              ctx.fill();
-            }
-            ctx.fillStyle = '#FFFFFF';
-            ctx.beginPath();
-            ctx.arc(0, 0, p.size * 0.25, 0, Math.PI * 2);
-            ctx.fill();
-          } else {
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(0, 0, p.size, 0, Math.PI * 2);
-            ctx.fill();
-          }
+          ctx.globalAlpha = s.alpha;
+          ctx.fillStyle = s.color;
+          ctx.shadowBlur = s.radius * 3;
+          ctx.shadowColor = s.color;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+          ctx.fill();
           ctx.restore();
         });
 
         if (elapsed < duration) {
-          requestAnimationFrame(animateFireworks);
+          requestAnimationFrame(animateStarSea);
         } else {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           canvas.style.display = 'none';
         }
       }
 
-      requestAnimationFrame(animateFireworks);
+      requestAnimationFrame(animateStarSea);
 
       if (showToastFlag) {
-        showToast(`🎆 為自己第 ${window.CURRENT_TARGET_DAY || 22} 天的堅持放一場燦爛煙火，隨喜功德！`, 3000);
+        showToast(`✨ 祈求皈依・同遊星海・第 ${window.CURRENT_TARGET_DAY || 22} 天圓滿`, 3500);
       }
     }
 
@@ -3193,8 +3149,13 @@
       if (showToastFlag) {
         classicStorage.setItem('FIREWORKS_TOAST_DATE_V971', todayStr);
       }
-      triggerFireworks(showToastFlag);
-      loadRandomCardData();
+      triggerStarSea(showToastFlag);
+
+      const cardStage = document.getElementById('cardStage');
+      if (cardStage) {
+        cardStage.style.transition = 'opacity 1.2s ease';
+        cardStage.style.opacity = '0';
+      }
 
       const actionsRow = document.getElementById('companionActionsRow');
       if (actionsRow) {
@@ -3203,21 +3164,15 @@
 
       const sideRightGroup = document.getElementById('side-right-group');
       if (sideRightGroup) sideRightGroup.style.display = 'flex';
-
-      const textContainerLong = document.getElementById('textContainerLongCard');
-      const textContainer = document.getElementById('textContainer');
-      if (textContainerLong) textContainerLong.style.display = 'none';
-      if (textContainer) {
-        textContainer.style.border = 'none';
-        textContainer.style.boxShadow = 'none';
-        textContainer.style.borderRadius = '0';
-        textContainer.style.padding = '0';
-        textContainer.style.background = 'transparent';
-        textContainer.style.display = 'block';
-      }
     }
 
     function handleRestoreCompanionButtons() {
+      const cardStage = document.getElementById('cardStage');
+      if (cardStage) {
+        cardStage.style.transition = 'opacity 0.6s ease';
+        cardStage.style.opacity = '1';
+      }
+
       const sideRightGroup = document.getElementById('side-right-group');
       if (sideRightGroup) sideRightGroup.style.display = 'none';
 
@@ -4060,7 +4015,7 @@
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示<strong>「<span>⋯</span>」</strong>或<strong>指南針/Safari圖示</strong>，點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
         } else {
           guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
         }
