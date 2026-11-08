@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.221</title>
+  <title>歡喜背書V999.23</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -980,7 +980,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.22 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.23 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1934,21 +1934,34 @@
           cRepeat = rCum;
         }
 
-        scheduleList.push({
-          day: simDay,
-          start: simStart,
-          end: end,
-          repeat: rNew,
-          cStart: cStart,
-          cEnd: cEnd,
-          cRepeat: cRepeat
-        });
-
-        if (end >= total) break;
-        if (simDay === 1) {
-          simStart = 2;
+        if (simStart > total) {
+          scheduleList.push({
+            day: simDay,
+            start: null,
+            end: null,
+            repeat: 0,
+            cStart: 1,
+            cEnd: total,
+            cRepeat: rCum
+          });
         } else {
-          simStart = Math.min(total, end + 1);
+          scheduleList.push({
+            day: simDay,
+            start: simStart,
+            end: end,
+            repeat: rNew,
+            cStart: cStart,
+            cEnd: cEnd,
+            cRepeat: cRepeat
+          });
+        }
+
+        if (end >= total && simStart <= total) {
+          simStart = total + 1;
+        } else if (simStart > total) {
+          simStart = total + 1;
+        } else {
+          simStart = Math.min(total + 1, end + 1);
         }
         simDay++;
       }
@@ -1996,6 +2009,8 @@
 
         if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
           practicePhase = 'completed';
+        } else if (!currentDayPlan.start || currentDayPlan.start > CLASSIC_TOTAL_SENTENCES) {
+          practicePhase = 'cumulative_gendu';
         } else {
           practicePhase = 'new_gendu';
         }
@@ -2024,7 +2039,11 @@
       if (!currentDayPlan) return;
       const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : CLASSIC_TOTAL_SENTENCES - 1));
 
-      if (practicePhase === 'new_gendu' || practicePhase === 'new_zidu') {
+      if (!currentDayPlan.start || currentDayPlan.start > CLASSIC_TOTAL_SENTENCES) {
+        practicePhase = 'cumulative_gendu';
+        markA_Index = 0;
+        markB_Index = maxIdx;
+      } else if (practicePhase === 'new_gendu' || practicePhase === 'new_zidu') {
         markA_Index = Math.max(0, (currentDayPlan.start || 1) - 1);
         markB_Index = Math.min(maxIdx, (currentDayPlan.end || 1) - 1);
       } else if (practicePhase === 'cumulative_gendu' || practicePhase === 'cumulative_zidu') {
