@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.24</title>
+  <title>歡喜背書V999.25</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -980,7 +980,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.24 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.25 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1761,7 +1761,7 @@
       renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum, testCompleted: testCompleted }));
     }
 
-        function generateTempScheduleList(settings) {
+    function generateTempScheduleList(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
       const step = settings.dailyStep;
       const rNew = settings.repeatNew;
@@ -1793,22 +1793,6 @@
           } else {
             simStart = end + 1;
           }
-        }
-        simDay++;
-      }
-      return list;
-    }
-
-        let dayLabel = (i === 1) ? '今天' : (i === 2 ? '明天' : `第${simDay}天`);
-        let reviewStr = (simDay === 1) ? `複[---](1遍)` : `複[${cStart}~${cEnd}](${rCum}遍)`;
-
-        list.push(`${dayLabel} (第${simDay}天): 新[${simStart}~${end}](${rNew}遍) ${reviewStr}`);
-
-        if (end >= total) break;
-        if (simDay === 1) {
-          simStart = 2;
-        } else {
-          simStart = Math.min(total, end + 1);
         }
         simDay++;
       }
@@ -1926,7 +1910,7 @@
       applyScheduleToState("");
     }
 
-        function generateAlgorithmicSchedule(settings) {
+    function generateAlgorithmicSchedule(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
       const step = settings.dailyStep || DEFAULT_DAILY_STEP;
       const rNew = settings.repeatNew;
@@ -1941,7 +1925,6 @@
 
       for (let dayIdx = 1; dayIdx <= 100; dayIdx++) {
         if (simStart > total) {
-          // 已學完所有句數，今日定課直接跳過，以後每天只有播放全部句子的串習課程
           scheduleList.push({
             day: simDay,
             start: null,
@@ -1983,41 +1966,6 @@
       classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V971', JSON.stringify(scheduleList));
     }
 
-        if (simStart > total) {
-          scheduleList.push({
-            day: simDay,
-            start: null,
-            end: null,
-            repeat: 0,
-            cStart: 1,
-            cEnd: total,
-            cRepeat: rCum
-          });
-        } else {
-          scheduleList.push({
-            day: simDay,
-            start: simStart,
-            end: end,
-            repeat: rNew,
-            cStart: cStart,
-            cEnd: cEnd,
-            cRepeat: cRepeat
-          });
-        }
-
-        if (end >= total && simStart <= total) {
-          simStart = total + 1;
-        } else if (simStart > total) {
-          simStart = total + 1;
-        } else {
-          simStart = Math.min(total + 1, end + 1);
-        }
-        simDay++;
-      }
-
-      classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V971', JSON.stringify(scheduleList));
-    }
-
     function applyScheduleToState(prefixMsg = "") {
       if (isManualSelected) return false;
 
@@ -2045,7 +1993,13 @@
 
         if (!scheduleData || !Array.isArray(scheduleData) || scheduleData.length === 0) {
           currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          practicePhase = (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) ? 'completed' : 'new_gendu';
+          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
+          practicePhase = 'completed';
+        } else if (!currentDayPlan.start || currentDayPlan.start > CLASSIC_TOTAL_SENTENCES) {
+          practicePhase = 'cumulative_gendu';
+        } else {
+          practicePhase = 'new_gendu';
+        }
           currentCycleCount = 0;
           return false;
         }
@@ -2058,8 +2012,6 @@
 
         if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
           practicePhase = 'completed';
-        } else if (!currentDayPlan.start || currentDayPlan.start > CLASSIC_TOTAL_SENTENCES) {
-          practicePhase = 'cumulative_gendu';
         } else {
           practicePhase = 'new_gendu';
         }
@@ -2751,7 +2703,7 @@
       if (currentCoreMode !== 'mode3') setCoreMode('mode3');
       isSelectingMarkA = true;
       isSelectingMarkB = false;
-      showToast("點兩下設定起點句", 4000);
+      showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
       renderUI();
     }
 
@@ -2760,7 +2712,7 @@
       if (currentCoreMode !== 'mode3') setCoreMode('mode3');
       isSelectingMarkB = true;
       isSelectingMarkA = false;
-      showToast("點兩下設定終點句", 4000);
+      showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
       renderUI();
     }
 
@@ -2912,8 +2864,8 @@
           const promptText = "手指放螢幕也可小紅點向前，按快慢可調自己的語速";
           speakPrompt(promptText);
           showTransitionModal(
-            "新進度自讀模式",
-            `💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
+            "🎉 新進度跟讀圓滿！",
+            `您已完成新進度跟讀。<br>接下來將進入<strong><span>「新進度自讀模式」</span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
               practicePhase = 'new_zidu';
               currentCycleCount = 0;
@@ -2931,8 +2883,8 @@
         } else {
           if (hasCumulative) {
             showTransitionModal(
-              "串習複習跟讀",
-              `請準備好後點擊下方按鈕開始。`,
+              "🎉 新進度自讀圓滿！",
+              `新進度已全部圓滿。<br>接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
               () => {
                 practicePhase = 'cumulative_gendu';
                 currentCycleCount = 0;
@@ -3459,7 +3411,7 @@
         startSharedVadLoop();
         return true;
       } catch (err) {
-        showToast("滑兩下去允許麥克風", 4000);
+        showToast("⚠️ 麥克風回應逾時或未授權，已自動解除鎖定", 4000);
         releaseMicrophoneResources();
         return false;
       }
