@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.17</title>
+  <title>歡喜背書V999.18</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -627,15 +627,15 @@
     #schedule-toast {
       display: none;
       position: fixed;
-      top: 78%;
+      top: 65%;
       left: 50%;
       transform: translate(-50%, -50%);
       background: rgba(15, 23, 42, 0.98);
       color: #38BDF8;
-      border: 3px solid #10B981;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 14px;
+      border: 3.5px solid #10B981;
+      padding: 14px 28px;
+      border-radius: 24px;
+      font-size: 26px;
       font-weight: 900;
       z-index: 100000;
       box-shadow: 0 12px 35px rgba(0, 0, 0, 0.9);
@@ -928,7 +928,7 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v997)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v996)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
@@ -980,7 +980,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.17 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.19 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1624,15 +1624,19 @@
     }
 
     function getCurrentProgressEnd() {
+      // 1. 若記憶體中已有排程當日終點，優先採用
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
       
+      // 2. 檢查 localStorage 中是否存有上次進度
       const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
       if (saved !== null && saved !== '' && saved !== '0') {
         return parseInt(saved, 10);
       }
       
+      // 3. 【快取清除防護修復】若無快取紀錄，根據網址的 start 日期與今天日期 (targetDay) 做判定
+      // 不管是否有更改過排程，我們用最低的補給他，每天一句數量即可 (targetDay - 1)，不用從第一句開始。
       const targetDay = getRealTargetDay();
       if (targetDay > 1) {
         return Math.min(CLASSIC_TOTAL_SENTENCES, targetDay - 1);
@@ -1964,6 +1968,7 @@
         }
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
+          // 若無排程，強制重新生成一次以套用快取防護帶入的進度
           let savedSettings = {};
           try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}'); } catch (e) {}
           generateAlgorithmicSchedule({
@@ -2547,10 +2552,8 @@
 
     function handleGenduClick() {
       triggerAppFullscreen();
-      // 【V999.17 嚴格互鎖防護】跟讀模式互鎖檢查
-      const canGendu = isIndependentModeUnlocked() || practicePhase === 'new_gendu' || practicePhase === 'cumulative_gendu';
-      if (!canGendu) {
-        showToast("⚠️ 目前為自讀階段，請依照語音與紅點引導唸誦", 3000);
+      if (!isIndependentModeUnlocked() && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
+        showToast("⚠️ 請先跟著讀完遍數", 3000);
         return;
       }
       
@@ -2594,10 +2597,8 @@
 
     async function handleZiduClick() {
       triggerAppFullscreen();
-      // 【V999.17 嚴格互鎖防護】自讀模式互鎖檢查：當處於 new_gendu 或 cumulative_gendu 時，嚴禁切換至自讀
-      const canZidu = isIndependentModeUnlocked() || practicePhase === 'new_zidu' || practicePhase === 'cumulative_zidu';
-      if (!canZidu) {
-        showToast("⚠️ 請先完成跟讀，系統將自動帶您進入自讀階段", 3000);
+      if (!isIndependentModeUnlocked() && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
+        showToast("⚠️ 請先跟著讀完遍數", 3000);
         return;
       }
 
@@ -2833,7 +2834,7 @@
 
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < newRepeat) {
-          showToast(`第 ${currentCycleCount} 遍`, 1500);
+          showToast(`第 ${currentCycleCount} 遍`, 2500);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
@@ -2855,7 +2856,7 @@
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
-          showToast(`第 ${currentCycleCount} 遍`, 1500);
+          showToast(`第 ${currentCycleCount} 遍`, 2500);
           setupStageRange();
           handleZiduClick();
         } else {
@@ -2886,7 +2887,7 @@
         }
       } else if (practicePhase === 'cumulative_gendu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`第 ${currentCycleCount} 遍`, 1500);
+          showToast(`第 ${currentCycleCount} 遍`, 2500);
           setupStageRange();
           const range = getActiveVideoRange();
           if (range.valid) { video.currentTime = range.start; }
@@ -2906,7 +2907,7 @@
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
-          showToast(`第 ${currentCycleCount} 遍`, 1500);
+          showToast(`第 ${currentCycleCount} 遍`, 2500);
           setupStageRange();
           handleZiduClick();
         } else {
@@ -3881,7 +3882,7 @@
           let size = 34; 
           const minSize = 14; 
 
-          const targetFont = size >= 26 
+          const targetFont = size >= 30 
             ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
             : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
 
@@ -3898,7 +3899,7 @@
 
           while (tH > maxH && size > minSize) {
             size--;
-            const updatedFont = size >= 26 
+            const updatedFont = size >= 30 
               ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
               : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
             cardContent.style.fontSize = size + "px";
