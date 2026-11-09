@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.43</title>
+  <title>歡喜背書V999.44</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -981,7 +981,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.43 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.44 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1542,6 +1542,7 @@
     }
 
     async function playTeacherGuideAndRecite() {
+      markFirstCardSeen();
       triggerAppFullscreen();
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
@@ -1582,7 +1583,15 @@
       }, 200);
     }
 
-    async function closeCompanionCard() {
+    async 
+    function markFirstCardSeen() {
+      if (window.HAS_SEEN_FIRST_CARD === false) {
+        classicStorage.setItem('FIRST_LAUNCH_SHOWN_DATE_V971', getNormalizedDateStr());
+        window.HAS_SEEN_FIRST_CARD = true;
+      }
+    }
+
+    function closeCompanionCard() {
       triggerAppFullscreen();
       
       const compOverlay = document.getElementById('companion-overlay');
@@ -3133,6 +3142,7 @@
     }
 
     function handleDayBtnClick() {
+      markFirstCardSeen();
       triggerAppFullscreen();
       triggerStarSea(false);
       showToast('御信樂風望星海', 3500);
@@ -3820,6 +3830,21 @@
       } catch (e) {}
     }
 
+    
+    let masterQuotesObj = {};
+    let masterQuotesKeys = [];
+
+    async function loadMasterQuotesJson() {
+      if (masterQuotesKeys.length > 0) return;
+      try {
+        const res = await fetch('日常師父法語_格式化.json?t=' + Date.now());
+        if (res.ok) {
+          masterQuotesObj = await res.json();
+          masterQuotesKeys = Object.keys(masterQuotesObj);
+        }
+      } catch(e) {}
+    }
+
     async function loadRandomCardData() {
       await loadBackgroundConfig();
       const cardStage = document.getElementById('cardStage');
@@ -3924,6 +3949,7 @@
 
     async function initCompanionCard(targetDay) {
       await loadBackgroundConfig();
+      await loadMasterQuotesJson();
       window.CURRENT_TARGET_DAY = targetDay;
       const cardStage = document.getElementById('cardStage');
       const bottomRightBadge = document.getElementById('bottomRightBadge');
@@ -3941,6 +3967,40 @@
         btnDays.onclick = handleDayBtnClick;
       }
 
+      const todayStr = getNormalizedDateStr();
+      const lastShownDate = classicStorage.getItem('FIRST_LAUNCH_SHOWN_DATE_V971');
+      const isFirstLaunchToday = (targetDay <= 21 && lastShownDate !== todayStr);
+
+      if (isFirstLaunchToday) {
+        // 21天內的首日第一次開啟：顯示固定卡片圖檔
+        const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
+        if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
+        if (bottomRightBadge) bottomRightBadge.style.display = 'none';
+        if (textContainer) textContainer.style.display = 'none';
+        if (textContainerLong) textContainerLong.style.display = 'none';
+        window.HAS_SEEN_FIRST_CARD = false;
+      } else {
+        // 21天內的後續開啟，或22天後：直接顯示「日常師父法語」隨機內文與天數
+        window.HAS_SEEN_FIRST_CARD = true;
+        if (bottomRightBadge) bottomRightBadge.style.display = 'block';
+
+        if (masterQuotesKeys.length > 0) {
+          const randomKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
+          const item = masterQuotesObj[randomKey];
+          let quoteText = item.title || item.content || '';
+
+          if (textContainer) textContainer.style.display = 'none';
+          if (textContainerLong) textContainerLong.style.display = 'flex';
+          if (cardTitleLong) cardTitleLong.textContent = quoteText;
+          if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+
+          const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
+          const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+          const paddedImgNum = String(randomImgNum).padStart(2, '0');
+          if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
+        }
+      }
+    }
       if (Object.keys(cardTexts).length === 0) {
         try {
           const res = await fetch('images_text.json');
