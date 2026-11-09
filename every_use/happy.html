@@ -275,13 +275,12 @@
       right: 3%;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: space-between;
       align-items: stretch;
-      overflow: hidden;
-      border: none;
-      background: transparent;
+      overflow: visible;
+      border: 3px solid red;
+      background: rgba(255, 0, 0, 0.03);
       padding: 8px;
-      gap: 4px;
     }
     .card-title-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
@@ -909,7 +908,7 @@
     <div class="companion-wrapper" id="cardStage">
       <div class="card-text-container-long-card" id="textContainerLongCard" style="display: none;">
         <div id="longCardHeader" style="text-align: left; font-weight: 900; color: #581C87; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-bottom: 2px;">師父法語</div>
-        <div id="longCardContent" style="text-align: left; font-weight: 800; color: #0F172A; white-space: pre-wrap; word-break: break-all; text-shadow: 0 1px 3px rgba(255,255,255,0.95); flex: 1; overflow: visible; line-height: 1.35;">載入中...</div>
+        <div id="longCardContent" style="text-align: left; font-weight: 800; color: #0F172A; white-space: pre-wrap; word-break: break-all; text-shadow: 0 1px 3px rgba(255,255,255,0.95); flex: 1; overflow: hidden; line-height: 1.35;">載入中...</div>
         <div id="longCardFooter" style="text-align: center; font-weight: 900; color: #047857; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-top: 2px;">堅持背書第 22 天</div>
       </div>
 
@@ -983,7 +982,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.65 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.64 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2872,7 +2871,7 @@
           speakPrompt(promptText);
           showTransitionModal(
             "🎉 新進度跟讀圓滿！",
-            `您已完成新進度跟讀。<br>接下來將進入<strong><span>「新進度自讀模式」</span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
+            `您已完成新進度跟讀。<br>接下來將進入<strong><span><span>「新進度自讀模式」</span></span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
               practicePhase = 'new_zidu';
               currentCycleCount = 0;
@@ -3875,12 +3874,16 @@
       const paddedImgNum = String(randomImgNum).padStart(2, '0');
       const imgPath = `images/bg_${paddedImgNum}.webp`;
 
+      console.log(`[DEBUG_LOG] 皈依祈求抽卡 -> 背景編號: bg_${paddedImgNum}.webp`);
+
       if (cardStage) cardStage.classList.add('fade-out');
 
       setTimeout(() => {
         if (textKeys.length > 0) {
           const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
           const selectedData = cardTexts[randomTextKey];
+
+          console.log(`[DEBUG_LOG] 皈依祈求抽卡 -> images_text.json 句子編號/Key: ${randomTextKey}`, selectedData);
 
           let titleText = selectedData.title;
           let rawContent = selectedData.content;
@@ -3974,6 +3977,12 @@
           const item = masterQuotesObj[randomKey];
           let quoteText = item.content || '';
 
+          const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
+          const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+          const paddedImgNum = String(randomImgNum).padStart(2, '0');
+
+          console.log(`[DEBUG_LOG] 首頁長卡載入 -> 背景編號: bg_${paddedImgNum}.webp | teacher_text 句子編號/Key: ${randomKey}`, item);
+
           if (textContainer) textContainer.style.display = 'none';
           if (textContainerLong) textContainerLong.style.display = 'flex';
           
@@ -3989,18 +3998,34 @@
             longFooter.style.textAlign = 'center';
           }
 
-          // 嚴格依據 scrollHeight 真實內容高度檢測，從 34px 開始以 -1px 平順級距向下遞減至 14px
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
+              const maxH = (textContainerLong ? textContainerLong.clientHeight : 380) - 16;
               let size = 34;
               const minSize = 14;
 
-              if (textContainerLong) {
-                textContainerLong.style.overflow = 'hidden';
+              let targetFont = size >= 30 
+                ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+              if (longHeader) {
+                longHeader.style.fontSize = (size + 2) + "px";
+                longHeader.style.fontFamily = targetFont;
+              }
+              if (longContent) {
+                longContent.style.fontSize = size + "px";
+                longContent.style.fontFamily = targetFont;
+              }
+              if (longFooter) {
+                longFooter.style.fontSize = "16px";
+                longFooter.style.fontFamily = targetFont;
               }
 
-              while (size >= minSize) {
-                let targetFont = size >= 26 
+              let tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+
+              while (tH > maxH && size > minSize) {
+                size--;
+                targetFont = size >= 30 
                   ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
                   : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
 
@@ -4014,25 +4039,14 @@
                 }
                 if (longFooter) {
                   longFooter.style.fontSize = "16px";
-                  longFooter.style.textAlign = "center";
-                  longFooter.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+                  longFooter.style.fontFamily = targetFont;
                 }
 
-                // 檢查 scrollHeight 是否超過 clientHeight
-                if (textContainerLong && textContainerLong.scrollHeight <= textContainerLong.clientHeight) {
-                  break;
-                }
-                if (size === minSize) {
-                  break;
-                }
-                size--;
+                tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
               }
             });
           });
 
-          const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
-          const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
-          const paddedImgNum = String(randomImgNum).padStart(2, '0');
           if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
         }
       }
@@ -4044,7 +4058,7 @@
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>，點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
         } else {
           guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
         }
@@ -4082,7 +4096,7 @@
 
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.display = 'flex';
-      compOverlay.classList.add('active');
+      companionOverlay.classList.add('active');
 
       handleOrientationCheck();
     });
