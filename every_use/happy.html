@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.42</title>
+  <title>歡喜背書V999.43</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -981,7 +981,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.42 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.43 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2727,61 +2727,32 @@
 
         async function shareScreenshotToLine() {
       triggerAppFullscreen();
-
       const actionsRow = document.getElementById('companionActionsRow');
       const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
-
       if (!cardStage) return;
-
       if (actionsRow) actionsRow.style.display = 'none';
       if (sideRightGroup) sideRightGroup.style.display = 'none';
-
       showToast('📸 正在產生上下並列精美截圖...', 2500);
-
       const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
-
       try {
-        // 1. 抓取第一張：陪伴卡 (Companion Card)
         await initCompanionCard(targetDay);
         await new Promise(r => setTimeout(r, 300));
-        const canvas1 = await html2canvas(cardStage, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: null,
-          logging: false
-        });
-
-        // 2. 抓取第二張：新希新生 (希望新生法語卡)
+        const canvas1 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
         await loadRandomCardData();
         await new Promise(r => setTimeout(r, 400));
-        const canvas2 = await html2canvas(cardStage, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: null,
-          logging: false
-        });
-
-        // 3. 上下並列組合成一張新 Canvas (寬度相同，高度為兩倍)
+        const canvas2 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
         combinedCanvas.height = canvas1.height + canvas2.height;
         const ctx = combinedCanvas.getContext('2d');
-
         ctx.drawImage(canvas1, 0, 0);
         ctx.drawImage(canvas2, 0, canvas1.height);
-
-        // 還原為隨機法語卡片畫面
         loadRandomCardData();
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
-
         combinedCanvas.toBlob(async (blob) => {
-          if (!blob) {
-            showToast('⚠️ 截圖產生失敗', 3000);
-            return;
-          }
-
+          if (!blob) { showToast('⚠️ 截圖產生失敗', 3000); return; }
           let clipboardSuccess = false;
           try {
             if (navigator.clipboard && window.ClipboardItem) {
@@ -2789,7 +2760,6 @@
               clipboardSuccess = true;
             }
           } catch(e) {}
-
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -2798,16 +2768,12 @@
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
-
           if (clipboardSuccess) {
-            showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！
-可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 上下並列截圖已自動下載！
-請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 上下並列截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
-
       } catch(err) {
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
