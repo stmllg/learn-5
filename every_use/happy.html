@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.56</title>
+  <title>歡喜背書V999.58</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -269,10 +269,10 @@
 
     .card-text-container-long-card {
       position: absolute;
-      top: 10%;
-      bottom: 22%;
-      left: 27%;
-      right: 4%;
+      top: 4%;
+      bottom: 14%;
+      left: 22%;
+      right: 3%;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -280,7 +280,7 @@
       overflow: hidden;
       border: 3px solid red;
       background: rgba(255, 0, 0, 0.03);
-      padding: 10px;
+      padding: 12px;
     }
     .card-title-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
@@ -908,7 +908,7 @@
     <div class="companion-wrapper" id="cardStage">
       <div class="card-text-container-long-card" id="textContainerLongCard" style="display: none;">
         <div id="longCardHeader" style="text-align: left; font-weight: 900; color: #581C87; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-bottom: 4px;">師父法語</div>
-        <div id="longCardContent" style="text-align: center; font-weight: 800; color: #0F172A; white-space: pre-wrap; word-break: break-all; text-shadow: 0 1px 3px rgba(255,255,255,0.95); flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;">載入中...</div>
+        <div id="longCardContent" style="text-align: left; font-weight: 800; color: #0F172A; white-space: pre-wrap; word-break: break-all; text-shadow: 0 1px 3px rgba(255,255,255,0.95); flex: 1; overflow: hidden; line-height: 1.45;">載入中...</div>
         <div id="longCardFooter" style="text-align: center; font-weight: 900; color: #047857; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-top: 4px;">堅持背書第 22 天</div>
       </div>
 
@@ -982,7 +982,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.56 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.58 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -3988,39 +3988,41 @@
             longFooter.style.textAlign = 'center';
           }
 
-          // Dynamic adaptive sizing loop for long card
-          setTimeout(() => {
-            const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.70;
-            let size = 30;
-            const minSize = 14;
+          // Adaptive font sizing loop with requestAnimationFrame
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              const maxH = (textContainerLong ? textContainerLong.clientHeight : 380) - 24;
+              let size = 34;
+              const minSize = 14;
 
-            const targetFont = size >= 30 
-              ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
-              : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-
-            if (longHeader) longHeader.style.fontSize = size + "px";
-            if (longContent) {
-              longContent.style.fontSize = size + "px";
-              longContent.style.fontFamily = targetFont;
-            }
-            if (longFooter) longFooter.style.fontSize = size + "px";
-
-            let tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
-
-            while (tH > maxH && size > minSize) {
-              size--;
-              const updatedFont = size >= 30 
+              const targetFont = size >= 30 
                 ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
                 : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-              if (longHeader) longHeader.style.fontSize = size + "px";
+
+              if (longHeader) longHeader.style.fontSize = Math.round(size * 0.85) + "px";
               if (longContent) {
                 longContent.style.fontSize = size + "px";
-                longContent.style.fontFamily = updatedFont;
+                longContent.style.fontFamily = targetFont;
               }
-              if (longFooter) longFooter.style.fontSize = size + "px";
-              tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
-            }
-          }, 50);
+              if (longFooter) longFooter.style.fontSize = Math.round(size * 0.85) + "px";
+
+              let tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+
+              while (tH > maxH && size > minSize) {
+                size--;
+                const updatedFont = size >= 30 
+                  ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                  : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+                if (longHeader) longHeader.style.fontSize = Math.round(size * 0.85) + "px";
+                if (longContent) {
+                  longContent.style.fontSize = size + "px";
+                  longContent.style.fontFamily = updatedFont;
+                }
+                if (longFooter) longFooter.style.fontSize = Math.round(size * 0.85) + "px";
+                tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+              }
+            });
+          });
 
           const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
           const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
