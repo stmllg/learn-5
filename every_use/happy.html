@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.45</title>
+  <title>歡喜背書V999.48</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -981,7 +981,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.45 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.48 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1583,7 +1583,6 @@
       }, 200);
     }
 
-    async 
     function markFirstCardSeen() {
       if (window.HAS_SEEN_FIRST_CARD === false) {
         classicStorage.setItem('FIRST_LAUNCH_SHOWN_DATE_V971', getNormalizedDateStr());
@@ -1591,7 +1590,8 @@
       }
     }
 
-    function closeCompanionCard() {
+    async function closeCompanionCard() {
+      markFirstCardSeen();
       triggerAppFullscreen();
       
       const compOverlay = document.getElementById('companion-overlay');
@@ -3830,7 +3830,6 @@
       } catch (e) {}
     }
 
-    
     let masterQuotesObj = {};
     let masterQuotesKeys = [];
 
@@ -3955,8 +3954,6 @@
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const textContainerLong = document.getElementById('textContainerLongCard');
-      const cardTitle = document.getElementById('cardTitle');
-      const cardContent = document.getElementById('cardContent');
       const cardTitleLong = document.getElementById('cardTitleLong');
       const cardDayLong = document.getElementById('cardDayLong');
       const btnDays = document.getElementById('btn-card-days');
@@ -3972,7 +3969,6 @@
       const isFirstLaunchToday = (targetDay <= 21 && lastShownDate !== todayStr);
 
       if (isFirstLaunchToday) {
-        // 21天內的首日第一次開啟：顯示固定卡片圖檔
         const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
         if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
         if (bottomRightBadge) bottomRightBadge.style.display = 'none';
@@ -3980,7 +3976,6 @@
         if (textContainerLong) textContainerLong.style.display = 'none';
         window.HAS_SEEN_FIRST_CARD = false;
       } else {
-        // 21天內的後續開啟，或22天後：直接顯示「日常師父法語」隨機內文與天數
         window.HAS_SEEN_FIRST_CARD = true;
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
 
@@ -4000,8 +3995,7 @@
           if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
         }
       }
-    }
-      if (Object.keys(cardTexts).length === 0) {
+    }      if (Object.keys(cardTexts).length === 0) {
         try {
           const res = await fetch('images_text.json');
           if (res.ok) {
