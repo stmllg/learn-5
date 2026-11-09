@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.38</title>
+  <title>歡喜背書V999.39</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -627,15 +627,15 @@
     #schedule-toast {
       display: none;
       position: fixed;
-      bottom: 24px;
+      top: 65%;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translate(-50%, -50%);
       background: rgba(15, 23, 42, 0.98);
       color: #38BDF8;
       border: 3.5px solid #10B981;
-      padding: 12px 24px;
+      padding: 14px 28px;
       border-radius: 24px;
-      font-size: 22px;
+      font-size: 26px;
       font-weight: 900;
       z-index: 100000;
       box-shadow: 0 12px 35px rgba(0, 0, 0, 0.9);
@@ -920,7 +920,7 @@
       <div class="companion-actions-row" id="companionActionsRow">
         <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
-        <button id="btn-card-offering-dynamic" class="btn-card-orange" onclick="handleOfferingClick()" style="display: none; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FEF3C7; border: 1.5px solid #FDE68A;">背書供養</button>
+        <button id="btn-card-offering-dynamic" class="btn-card-orange" onclick="handleOfferingClick()" style="display: inline-block; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FEF3C7; border: 1.5px solid #FDE68A;">背書供養</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
         <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
       </div>
@@ -981,7 +981,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.38 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.39 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -3142,13 +3142,20 @@
 
     function handleDayBtnClick() {
       triggerAppFullscreen();
-      triggerStarSea(false);
-      showToast('御信樂風望星海', 3500);
+      const todayStr = getNormalizedDateStr();
+      const lastToastDate = classicStorage.getItem('FIREWORKS_TOAST_DATE_V971');
+      let showToastFlag = (lastToastDate !== todayStr);
+      if (showToastFlag) {
+        classicStorage.setItem('FIREWORKS_TOAST_DATE_V971', todayStr);
+      }
+      triggerStarSea(showToastFlag);
 
+      // 點擊皈依祈求時，載入完整的標題、內文與ID（隨機法語卡片）
       loadRandomCardData();
 
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
+        // 先瞬間設為 0，然後延遲 300ms 後淡入 (fade in) 顯示背景圖與完整文字
         cardStage.style.transition = 'none';
         cardStage.style.opacity = '0';
         setTimeout(() => {
@@ -3167,10 +3174,9 @@
     }
 
     function handleRestoreCompanionButtons() {
-      showToast('展悲智翼飛佛地', 3500);
-
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
+        // 返回時淡出 (fade out)
         cardStage.style.transition = 'opacity 0.8s ease';
         cardStage.style.opacity = '0';
       }
@@ -3184,6 +3190,7 @@
           actionsRow.style.display = 'flex';
         }
 
+        // 恢復首頁畫面：21天內顯示固定卡片圖檔，22天後顯示標題與天數
         const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
         initCompanionCard(targetDay);
 
