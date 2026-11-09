@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.41</title>
+  <title>歡喜背書V999.65</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -269,18 +269,19 @@
 
     .card-text-container-long-card {
       position: absolute;
-      top: 25%;
-      left: 27%;
-      right: 4%;
-      height: 50%;
+      top: 3%;
+      bottom: 13%;
+      left: 21%;
+      right: 3%;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      gap: 16px;
-      overflow: visible;
+      justify-content: flex-start;
+      align-items: stretch;
+      overflow: hidden;
+      border: none;
       background: transparent;
+      padding: 8px;
+      gap: 4px;
     }
     .card-title-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
@@ -907,8 +908,9 @@
 
     <div class="companion-wrapper" id="cardStage">
       <div class="card-text-container-long-card" id="textContainerLongCard" style="display: none;">
-        <div class="card-title-long-card" id="cardTitleLong">載入中...</div>
-        <div class="card-day-long-card" id="cardDayLong">堅持背書第 22 天</div>
+        <div id="longCardHeader" style="text-align: left; font-weight: 900; color: #581C87; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-bottom: 2px;">師父法語</div>
+        <div id="longCardContent" style="text-align: left; font-weight: 800; color: #0F172A; white-space: pre-wrap; word-break: break-all; text-shadow: 0 1px 3px rgba(255,255,255,0.95); flex: 1; overflow: visible; line-height: 1.35;">載入中...</div>
+        <div id="longCardFooter" style="text-align: center; font-weight: 900; color: #047857; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-top: 2px;">堅持背書第 22 天</div>
       </div>
 
       <div class="card-text-container" id="textContainer" style="display: none;">
@@ -981,7 +983,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.41 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.65 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1542,6 +1544,7 @@
     }
 
     async function playTeacherGuideAndRecite() {
+      markFirstCardSeen();
       triggerAppFullscreen();
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
@@ -1583,6 +1586,7 @@
     }
 
     async function closeCompanionCard() {
+      markFirstCardSeen();
       triggerAppFullscreen();
       
       const compOverlay = document.getElementById('companion-overlay');
@@ -2725,39 +2729,36 @@
       renderUI();
     }
 
-    async function shareScreenshotToLine() {
+        async function shareScreenshotToLine() {
       triggerAppFullscreen();
-
       const actionsRow = document.getElementById('companionActionsRow');
       const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
-
       if (!cardStage) return;
-
       if (actionsRow) actionsRow.style.display = 'none';
       if (sideRightGroup) sideRightGroup.style.display = 'none';
-
-      showToast('📸 正在產生精美截圖...', 2000);
-
-      await new Promise(resolve => setTimeout(resolve, 400));
-
+      showToast('📸 正在產生上下並列精美截圖...', 2500);
+      const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
       try {
-        const canvas = await html2canvas(cardStage, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: null,
-          logging: false
-        });
-
-        canvas.toBlob(async (blob) => {
-          if (actionsRow) actionsRow.style.display = 'flex';
-          if (sideRightGroup) sideRightGroup.style.display = 'flex';
-
-          if (!blob) {
-            showToast('⚠️ 截圖產生失敗', 3000);
-            return;
-          }
-
+        await initCompanionCard(targetDay);
+        await new Promise(r => setTimeout(r, 300));
+        const canvas1 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
+        await loadRandomCardData();
+        await new Promise(r => setTimeout(r, 400));
+        const canvas2 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
+        const combinedCanvas = document.createElement('canvas');
+        combinedCanvas.width = canvas1.width;
+        combinedCanvas.height = canvas1.height + canvas2.height + 8;
+        const ctx = combinedCanvas.getContext('2d');
+        ctx.drawImage(canvas1, 0, 0);
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(0, canvas1.height, combinedCanvas.width, 8);
+        ctx.drawImage(canvas2, 0, canvas1.height + 8);
+        loadRandomCardData();
+        if (actionsRow) actionsRow.style.display = 'flex';
+        if (sideRightGroup) sideRightGroup.style.display = 'flex';
+        combinedCanvas.toBlob(async (blob) => {
+          if (!blob) { showToast('⚠️ 截圖產生失敗', 3000); return; }
           let clipboardSuccess = false;
           try {
             if (navigator.clipboard && window.ClipboardItem) {
@@ -2765,23 +2766,20 @@
               clipboardSuccess = true;
             }
           } catch(e) {}
-
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `歡喜背書_${Date.now()}.png`;
+          a.download = `歡喜背書_上下並列_${Date.now()}.png`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
-
           if (clipboardSuccess) {
-            showToast('✨ 截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 上下並列截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
-
       } catch(err) {
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
@@ -3141,6 +3139,7 @@
     }
 
     function handleDayBtnClick() {
+      markFirstCardSeen();
       triggerAppFullscreen();
       triggerStarSea(false);
       showToast('御信樂風望星海', 3500);
@@ -3828,8 +3827,39 @@
       } catch (e) {}
     }
 
+        let masterQuotesObj = {};
+    let masterQuotesKeys = [];
+
+    async function loadMasterQuotesJson() {
+      if (masterQuotesKeys.length > 0) return;
+      try {
+        const res = await fetch('teacher_text.json?t=' + Date.now());
+        if (res.ok) {
+          masterQuotesObj = await res.json();
+          masterQuotesKeys = Object.keys(masterQuotesObj);
+        }
+      } catch(e) {}
+    }
+
+    function markFirstCardSeen() {
+      if (window.HAS_SEEN_FIRST_CARD === false) {
+        classicStorage.setItem('FIRST_LAUNCH_SHOWN_DATE_V971', getNormalizedDateStr());
+        window.HAS_SEEN_FIRST_CARD = true;
+      }
+    }
+
     async function loadRandomCardData() {
       await loadBackgroundConfig();
+      if (Object.keys(cardTexts).length === 0) {
+        try {
+          const res = await fetch('images_text.json?t=' + Date.now());
+          if (res.ok) {
+            cardTexts = await res.json();
+            textKeys = Object.keys(cardTexts);
+          }
+        } catch(e) {}
+      }
+
       const cardStage = document.getElementById('cardStage');
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
@@ -3854,10 +3884,10 @@
 
           let titleText = selectedData.title;
           let rawContent = selectedData.content;
-          if (titleText.length > 16) titleText = titleText.substring(0, 16);
+          if (titleText && titleText.length > 16) titleText = titleText.substring(0, 16);
 
-          if (cardTitle) cardTitle.textContent = titleText;
-          if (cardContent) cardContent.textContent = rawContent;
+          if (cardTitle) cardTitle.textContent = titleText || '';
+          if (cardContent) cardContent.textContent = rawContent || '';
 
           const displayId = selectedData.id || randomTextKey;
           const cardIdInline = document.getElementById('cardIdInline');
@@ -3872,28 +3902,28 @@
             ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
             : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
 
-          cardContent.style.fontSize = size + "px";
-          cardTitle.style.fontSize = (size + 4) + "px";
-          cardContent.style.fontFamily = targetFont;
-          cardTitle.style.fontFamily = targetFont;
+          if (cardContent) cardContent.style.fontSize = size + "px";
+          if (cardTitle) cardTitle.style.fontSize = (size + 4) + "px";
+          if (cardContent) cardContent.style.fontFamily = targetFont;
+          if (cardTitle) cardTitle.style.fontFamily = targetFont;
           if (cardIdInline) {
             cardIdInline.style.fontSize = "12px";
             cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
           }
 
-          let tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
+          let tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
 
           while (tH > maxH && size > minSize) {
             size--;
             const updatedFont = size >= 30 
               ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
               : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-            cardContent.style.fontSize = size + "px";
-            cardTitle.style.fontSize = (size + 4) + "px";
-            cardContent.style.fontFamily = updatedFont;
-            cardTitle.style.fontFamily = updatedFont;
+            if (cardContent) cardContent.style.fontSize = size + "px";
+            if (cardTitle) cardTitle.style.fontSize = (size + 4) + "px";
+            if (cardContent) cardContent.style.fontFamily = updatedFont;
+            if (cardTitle) cardTitle.style.fontFamily = updatedFont;
             if (cardIdInline) cardIdInline.style.fontSize = "12px";
-            tH = cardTitle.offsetHeight + cardContent.offsetHeight + (cardIdInline ? cardIdInline.offsetHeight : 0);
+            tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
           }
 
           if (bottomRightBadge) bottomRightBadge.style.display = 'none';
@@ -3905,42 +3935,17 @@
       }, 200);
     }
 
-    let companionSwipeStartX = 0;
-    let companionSwipeStartY = 0;
-    companionOverlay.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        companionSwipeStartX = e.touches[0].clientX;
-        companionSwipeStartY = e.touches[0].clientY;
-      }
-    }, { passive: true });
-
-    companionOverlay.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length === 1 && !hasEnteredReciting) {
-        const deltaX = e.changedTouches[0].clientX - companionSwipeStartX;
-        const deltaY = e.changedTouches[0].clientY - companionSwipeStartY;
-        if (Math.abs(deltaX) > 80 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-          try {
-            if (document.exitFullscreen) {
-              document.exitFullscreen().catch(() => {});
-            } else if (document.webkitExitFullscreen) {
-              document.webkitExitFullscreen().catch(() => {});
-            }
-          } catch(err) {}
-        }
-      }
-    }, { passive: true });
-
     async function initCompanionCard(targetDay) {
       await loadBackgroundConfig();
+      await loadMasterQuotesJson();
       window.CURRENT_TARGET_DAY = targetDay;
       const cardStage = document.getElementById('cardStage');
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const textContainerLong = document.getElementById('textContainerLongCard');
-      const cardTitle = document.getElementById('cardTitle');
-      const cardContent = document.getElementById('cardContent');
-      const cardTitleLong = document.getElementById('cardTitleLong');
-      const cardDayLong = document.getElementById('cardDayLong');
+      const longHeader = document.getElementById('longCardHeader');
+      const longContent = document.getElementById('longCardContent');
+      const longFooter = document.getElementById('longCardFooter');
       const btnDays = document.getElementById('btn-card-days');
 
       if (btnDays) {
@@ -3949,63 +3954,86 @@
         btnDays.onclick = handleDayBtnClick;
       }
 
-      if (Object.keys(cardTexts).length === 0) {
-        try {
-          const res = await fetch('images_text.json');
-          if (res.ok) {
-            cardTexts = await res.json();
-            textKeys = Object.keys(cardTexts);
-          }
-        } catch(e) {}
-      }
+      const todayStr = getNormalizedDateStr();
+      const lastShownDate = classicStorage.getItem('FIRST_LAUNCH_SHOWN_DATE_V971');
+      const isFirstLaunchToday = (targetDay <= 21 && lastShownDate !== todayStr);
 
-      if (targetDay <= 21) {
+      if (isFirstLaunchToday) {
         const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
         if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
         if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         if (textContainer) textContainer.style.display = 'none';
         if (textContainerLong) textContainerLong.style.display = 'none';
+        window.HAS_SEEN_FIRST_CARD = false;
       } else {
+        window.HAS_SEEN_FIRST_CARD = true;
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
 
-        if (Object.keys(cardTexts).length > 0) {
-          const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
-          const selectedData = cardTexts[randomTextKey];
-          let titleText = selectedData.title || '';
-          if (titleText.length > 18) titleText = titleText.substring(0, 18);
+        if (masterQuotesKeys.length > 0) {
+          const randomKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
+          const item = masterQuotesObj[randomKey];
+          let quoteText = item.content || '';
 
           if (textContainer) textContainer.style.display = 'none';
           if (textContainerLong) textContainerLong.style.display = 'flex';
-          if (cardTitleLong) cardTitleLong.textContent = titleText;
-          if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+          
+          if (longHeader) {
+            longHeader.textContent = '師父法語';
+            longHeader.style.textAlign = 'left';
+          }
+          if (longContent) {
+            longContent.textContent = quoteText;
+          }
+          if (longFooter) {
+            longFooter.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+            longFooter.style.textAlign = 'center';
+          }
+
+          // 嚴格依據 scrollHeight 真實內容高度檢測，從 34px 開始以 -1px 平順級距向下遞減至 14px
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              let size = 34;
+              const minSize = 14;
+
+              if (textContainerLong) {
+                textContainerLong.style.overflow = 'hidden';
+              }
+
+              while (size >= minSize) {
+                let targetFont = size >= 26 
+                  ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                  : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+                if (longHeader) {
+                  longHeader.style.fontSize = (size + 2) + "px";
+                  longHeader.style.fontFamily = targetFont;
+                }
+                if (longContent) {
+                  longContent.style.fontSize = size + "px";
+                  longContent.style.fontFamily = targetFont;
+                }
+                if (longFooter) {
+                  longFooter.style.fontSize = "16px";
+                  longFooter.style.textAlign = "center";
+                  longFooter.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+                }
+
+                // 檢查 scrollHeight 是否超過 clientHeight
+                if (textContainerLong && textContainerLong.scrollHeight <= textContainerLong.clientHeight) {
+                  break;
+                }
+                if (size === minSize) {
+                  break;
+                }
+                size--;
+              }
+            });
+          });
 
           const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
           const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
           const paddedImgNum = String(randomImgNum).padStart(2, '0');
           if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
-        } else {
-          fetch('images_text.json')
-            .then(res => res.json())
-            .then(data => {
-              cardTexts = data;
-              textKeys = Object.keys(cardTexts);
-              const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
-              const selectedData = cardTexts[randomTextKey];
-              let titleText = selectedData.title || '';
-
-              if (textContainer) textContainer.style.display = 'none';
-              if (textContainerLong) textContainerLong.style.display = 'flex';
-              if (cardTitleLong) cardTitleLong.textContent = titleText;
-              if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
-              if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
-            })
-            .catch(err => {
-              if (textContainer) textContainer.style.display = 'none';
-              if (textContainerLong) textContainerLong.style.display = 'flex';
-              if (cardTitleLong) cardTitleLong.textContent = "陪伴卡載入";
-              if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
-              if (cardStage) cardStage.style.backgroundImage = `url('images/bg_01.webp')`;
-            });
         }
       }
     }
