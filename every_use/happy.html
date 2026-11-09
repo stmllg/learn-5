@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.65</title>
+  <title>歡喜背書V999.67</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -293,12 +293,13 @@
     }
     .card-day-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
-      font-size: 28px !important;
+      font-size: 16px !important;
       font-weight: 900;
       color: #047857;
       text-shadow: 0 1px 3px rgba(255,255,255,0.95);
       letter-spacing: 2px;
       width: 100%;
+      text-align: center;
     }
 
     .card-text-container {
@@ -908,7 +909,7 @@
     <div class="companion-wrapper" id="cardStage">
       <div class="card-text-container-long-card" id="textContainerLongCard" style="display: none;">
         <div id="longCardHeader" style="text-align: left; font-weight: 900; color: #581C87; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-bottom: 2px;">師父法語</div>
-        <div id="longCardContent" style="text-align: left; font-weight: 800; color: #0F172A; white-space: pre-wrap; word-break: break-all; text-shadow: 0 1px 3px rgba(255,255,255,0.95); flex: 1; overflow: hidden; line-height: 1.35;">載入中...</div>
+        <div id="longCardContent" style="text-align: left; font-weight: 800; color: #0F172A; white-space: pre-wrap; word-break: break-all; text-shadow: 0 1px 3px rgba(255,255,255,0.95); flex: 1; overflow: visible; line-height: 1.35;">載入中...</div>
         <div id="longCardFooter" style="text-align: center; font-weight: 900; color: #047857; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-top: 2px;">堅持背書第 22 天</div>
       </div>
 
@@ -982,7 +983,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.64 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.67 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1200,6 +1201,11 @@
     let manualScrollTimer = null;
 
     let pendingRestoredState = null;
+    let currentTeacherQuoteKey = null;
+    let currentTeacherBgNum = null;
+    let currentRefugeTextKey = null;
+    let currentRefugeBgNum = null;
+    let hasCompletedShare = false;
 
     function getNormalizedDateStr() {
       const now = new Date();
@@ -1545,6 +1551,7 @@
     async function playTeacherGuideAndRecite() {
       markFirstCardSeen();
       triggerAppFullscreen();
+      hasCompletedShare = true;
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
       compOverlay.classList.remove('active');
@@ -1587,6 +1594,7 @@
     async function closeCompanionCard() {
       markFirstCardSeen();
       triggerAppFullscreen();
+      hasCompletedShare = true;
       
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
@@ -1628,24 +1636,17 @@
     }
 
     function getCurrentProgressEnd() {
-      // 1. 若記憶體中已有排程當日終點，優先採用
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      
-      // 2. 檢查 localStorage 中是否存有上次進度
       const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
       if (saved !== null && saved !== '' && saved !== '0') {
         return parseInt(saved, 10);
       }
-      
-      // 3. 【快取清除防護修復】若無快取紀錄，根據網址的 start 日期與今天日期 (targetDay) 做判定
-      // 不管是否有更改過排程，我們用最低的補給他，每天一句數量即可 (targetDay - 1)，不用從第一句開始。
       const targetDay = getRealTargetDay();
       if (targetDay > 1) {
         return Math.min(CLASSIC_TOTAL_SENTENCES, targetDay - 1);
       }
-      
       return 0;
     }
 
@@ -1982,7 +1983,6 @@
         }
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
-          // 若無排程，強制重新生成一次以套用快取防護帶入的進度
           let savedSettings = {};
           try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}'); } catch (e) {}
           generateAlgorithmicSchedule({
@@ -2756,6 +2756,9 @@
         loadRandomCardData();
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
+        hasCompletedShare = true;
+        console.log(`【已完成 LINE 分享】已輸出記錄：\n第1組(師父法語): Quote ID=${currentTeacherQuoteKey}, Bg=bg_${String(currentTeacherBgNum).padStart(2,'0')}.webp\n第2組(皈依祈求): Text Key=${currentRefugeTextKey}, Bg=bg_${String(currentRefugeBgNum).padStart(2,'0')}.webp`);
+
         combinedCanvas.toBlob(async (blob) => {
           if (!blob) { showToast('⚠️ 截圖產生失敗', 3000); return; }
           let clipboardSuccess = false;
@@ -2871,7 +2874,7 @@
           speakPrompt(promptText);
           showTransitionModal(
             "🎉 新進度跟讀圓滿！",
-            `您已完成新進度跟讀。<br>接下來將進入<strong><span><span>「新進度自讀模式」</span></span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
+            `您已完成新進度跟讀。<br>接下來將進入<strong><span>「新進度自讀模式」</span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
             () => {
               practicePhase = 'new_zidu';
               currentCycleCount = 0;
@@ -3166,6 +3169,9 @@
 
     function handleRestoreCompanionButtons() {
       showToast('展悲智翼飛佛地', 3500);
+
+      // User pressed "返回" without sharing -> mark that current card cycle is abandoned / should refresh
+      hasCompletedShare = true;
 
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
@@ -3826,7 +3832,7 @@
       } catch (e) {}
     }
 
-        let masterQuotesObj = {};
+    let masterQuotesObj = {};
     let masterQuotesKeys = [];
 
     async function loadMasterQuotesJson() {
@@ -3871,19 +3877,17 @@
 
       const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
       const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+      currentRefugeBgNum = randomImgNum;
       const paddedImgNum = String(randomImgNum).padStart(2, '0');
       const imgPath = `images/bg_${paddedImgNum}.webp`;
-
-      console.log(`[DEBUG_LOG] 皈依祈求抽卡 -> 背景編號: bg_${paddedImgNum}.webp`);
 
       if (cardStage) cardStage.classList.add('fade-out');
 
       setTimeout(() => {
         if (textKeys.length > 0) {
           const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
+          currentRefugeTextKey = randomTextKey;
           const selectedData = cardTexts[randomTextKey];
-
-          console.log(`[DEBUG_LOG] 皈依祈求抽卡 -> images_text.json 句子編號/Key: ${randomTextKey}`, selectedData);
 
           let titleText = selectedData.title;
           let rawContent = selectedData.content;
@@ -3895,6 +3899,8 @@
           const displayId = selectedData.id || randomTextKey;
           const cardIdInline = document.getElementById('cardIdInline');
           if (cardIdInline) cardIdInline.textContent = displayId;
+
+          console.log(`【第2組記錄・皈依祈求】Images Text Sentence ID: ${displayId} (Key: ${currentRefugeTextKey}) | Background Image: ${imgPath}`);
 
           const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94 - 28;
 
@@ -3973,15 +3979,17 @@
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
 
         if (masterQuotesKeys.length > 0) {
-          const randomKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
-          const item = masterQuotesObj[randomKey];
+          if (hasCompletedShare || !currentTeacherQuoteKey || !masterQuotesObj[currentTeacherQuoteKey]) {
+            currentTeacherQuoteKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
+            const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
+            currentTeacherBgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+            hasCompletedShare = false;
+          }
+
+          const item = masterQuotesObj[currentTeacherQuoteKey];
           let quoteText = item.content || '';
 
-          const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
-          const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
-          const paddedImgNum = String(randomImgNum).padStart(2, '0');
-
-          console.log(`[DEBUG_LOG] 首頁長卡載入 -> 背景編號: bg_${paddedImgNum}.webp | teacher_text 句子編號/Key: ${randomKey}`, item);
+          console.log(`【第1組記錄・師父法語】Day: ${targetDay} | Teacher Quote ID: ${currentTeacherQuoteKey} | Background Image: bg_${String(currentTeacherBgNum).padStart(2, '0')}.webp`);
 
           if (textContainer) textContainer.style.display = 'none';
           if (textContainerLong) textContainerLong.style.display = 'flex';
@@ -4000,7 +4008,7 @@
 
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              const maxH = (textContainerLong ? textContainerLong.clientHeight : 380) - 16;
+              const maxH = (textContainerLong ? textContainerLong.clientHeight : 380) - 12;
               let size = 34;
               const minSize = 14;
 
@@ -4021,9 +4029,9 @@
                 longFooter.style.fontFamily = targetFont;
               }
 
-              let tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+              let totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
 
-              while (tH > maxH && size > minSize) {
+              while (totalH > maxH && size > minSize) {
                 size--;
                 targetFont = size >= 30 
                   ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
@@ -4042,11 +4050,12 @@
                   longFooter.style.fontFamily = targetFont;
                 }
 
-                tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+                totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
               }
             });
           });
 
+          const paddedImgNum = String(currentTeacherBgNum).padStart(2, '0');
           if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
         }
       }
@@ -4058,7 +4067,7 @@
         const guideContent = overlay.querySelector('.line-guide-content');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>，點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
+          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
         } else {
           guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
         }
