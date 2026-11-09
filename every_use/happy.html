@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.40</title>
+  <title>歡喜背書V999.41</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -981,7 +981,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.40 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.41 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1021,8 +1021,8 @@
 
   <div id="offering-modal-overlay">
     <div class="offering-card">
-      <div class="offering-header"><span>🙏</span> 功德供養</div>
-      <button id="btn-play-dedication" class="btn-dedication-long">🙏 今日背書功德迴向</button>
+      
+      <button id="btn-play-dedication" class="btn-dedication-long">🙏 老師帶我們背書功德迴向</button>
       <div class="offering-row">
         <div class="offering-field"><input type="text" id="input-class-id" class="offering-input" placeholder="班號 (例: 22宗009)"></div>
         <div class="offering-field"><input type="text" id="input-user-name" class="offering-input" placeholder="姓名 (請輸入姓名)"></div>
@@ -3091,7 +3091,7 @@
       }
 
       let startTime = performance.now();
-      const duration = 6000;
+      const duration = 800;
 
       function animateStarSea(now) {
         let elapsed = now - startTime;
@@ -3142,20 +3142,13 @@
 
     function handleDayBtnClick() {
       triggerAppFullscreen();
-      const todayStr = getNormalizedDateStr();
-      const lastToastDate = classicStorage.getItem('FIREWORKS_TOAST_DATE_V971');
-      let showToastFlag = (lastToastDate !== todayStr);
-      if (showToastFlag) {
-        classicStorage.setItem('FIREWORKS_TOAST_DATE_V971', todayStr);
-      }
-      triggerStarSea(showToastFlag);
+      triggerStarSea(false);
+      showToast('御信樂風望星海', 3500);
 
-      // 點擊皈依祈求時，載入完整的標題、內文與ID（隨機法語卡片）
       loadRandomCardData();
 
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
-        // 先瞬間設為 0，然後延遲 300ms 後淡入 (fade in) 顯示背景圖與完整文字
         cardStage.style.transition = 'none';
         cardStage.style.opacity = '0';
         setTimeout(() => {
@@ -3174,9 +3167,10 @@
     }
 
     function handleRestoreCompanionButtons() {
+      showToast('展悲智翼飛佛地', 3500);
+
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
-        // 返回時淡出 (fade out)
         cardStage.style.transition = 'opacity 0.8s ease';
         cardStage.style.opacity = '0';
       }
@@ -3190,7 +3184,6 @@
           actionsRow.style.display = 'flex';
         }
 
-        // 恢復首頁畫面：21天內顯示固定卡片圖檔，22天後顯示標題與天數
         const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
         initCompanionCard(targetDay);
 
