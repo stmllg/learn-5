@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.58</title>
+  <title>歡喜背書V999.59</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -982,7 +982,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.58 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.59 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -3988,41 +3988,28 @@
             longFooter.style.textAlign = 'center';
           }
 
-          // Adaptive font sizing loop with requestAnimationFrame
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              const maxH = (textContainerLong ? textContainerLong.clientHeight : 380) - 24;
-              let size = 34;
-              const minSize = 14;
+          // Robust length-based dynamic font sizing & 30px serif/sans switch
+          const len = quoteText.length;
+          let fontSize = 32;
+          if (len > 35) fontSize = 28;
+          if (len > 65) fontSize = 24;
+          if (len > 100) fontSize = 20;
+          if (len > 150) fontSize = 17;
 
-              const targetFont = size >= 30 
-                ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
-                : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+          const targetFont = fontSize >= 30 
+            ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+            : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
 
-              if (longHeader) longHeader.style.fontSize = Math.round(size * 0.85) + "px";
-              if (longContent) {
-                longContent.style.fontSize = size + "px";
-                longContent.style.fontFamily = targetFont;
-              }
-              if (longFooter) longFooter.style.fontSize = Math.round(size * 0.85) + "px";
-
-              let tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
-
-              while (tH > maxH && size > minSize) {
-                size--;
-                const updatedFont = size >= 30 
-                  ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
-                  : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-                if (longHeader) longHeader.style.fontSize = Math.round(size * 0.85) + "px";
-                if (longContent) {
-                  longContent.style.fontSize = size + "px";
-                  longContent.style.fontFamily = updatedFont;
-                }
-                if (longFooter) longFooter.style.fontSize = Math.round(size * 0.85) + "px";
-                tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
-              }
-            });
-          });
+          if (longHeader) {
+            longHeader.style.fontSize = Math.max(16, Math.round(fontSize * 0.85)) + "px";
+          }
+          if (longContent) {
+            longContent.style.fontSize = fontSize + "px";
+            longContent.style.fontFamily = targetFont;
+          }
+          if (longFooter) {
+            longFooter.style.fontSize = Math.max(16, Math.round(fontSize * 0.85)) + "px";
+          }
 
           const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
           const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
