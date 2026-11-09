@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.51</title>
+  <title>歡喜背書V999.52</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -981,7 +981,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.51 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.52 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -3846,37 +3846,89 @@
 
     async function loadRandomCardData() {
       await loadBackgroundConfig();
-      await loadMasterQuotesJson();
+      if (Object.keys(cardTexts).length === 0) {
+        try {
+          const res = await fetch('images_text.json?t=' + Date.now());
+          if (res.ok) {
+            cardTexts = await res.json();
+            textKeys = Object.keys(cardTexts);
+          }
+        } catch(e) {}
+      }
+
       const cardStage = document.getElementById('cardStage');
+      const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const textContainerLong = document.getElementById('textContainerLongCard');
-      if (textContainer) textContainer.style.display = 'none';
-      if (textContainerLong) textContainerLong.style.display = 'flex';
-
-      const cardTitleLong = document.getElementById('cardTitleLong');
-      const cardDayLong = document.getElementById('cardDayLong');
-      const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
-
-      if (masterQuotesKeys.length > 0) {
-        const randomKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
-        const item = masterQuotesObj[randomKey];
-        if (cardTitleLong) cardTitleLong.textContent = item.content || '';
-        if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
-      }
+      const cardTitle = document.getElementById('cardTitle');
+      const cardContent = document.getElementById('cardContent');
+      if (textContainerLong) textContainerLong.style.display = 'none';
+      if (bottomRightBadge) bottomRightBadge.style.display = 'block';
+      if (textContainer) textContainer.style.display = 'block';
 
       const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
       const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
       const paddedImgNum = String(randomImgNum).padStart(2, '0');
       const imgPath = `images/bg_${paddedImgNum}.webp`;
 
-      if (cardStage) {
-        cardStage.style.transition = 'opacity 0.8s ease';
-        cardStage.style.opacity = '0.2';
-        setTimeout(() => {
+      if (cardStage) cardStage.classList.add('fade-out');
+
+      setTimeout(() => {
+        if (textKeys.length > 0) {
+          const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
+          const selectedData = cardTexts[randomTextKey];
+
+          let titleText = selectedData.title;
+          let rawContent = selectedData.content;
+          if (titleText && titleText.length > 16) titleText = titleText.substring(0, 16);
+
+          if (cardTitle) cardTitle.textContent = titleText || '';
+          if (cardContent) cardContent.textContent = rawContent || '';
+
+          const displayId = selectedData.id || randomTextKey;
+          const cardIdInline = document.getElementById('cardIdInline');
+          if (cardIdInline) cardIdInline.textContent = displayId;
+
+          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94 - 28;
+
+          let size = 34; 
+          const minSize = 14; 
+
+          const targetFont = size >= 30 
+            ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+            : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+          if (cardContent) cardContent.style.fontSize = size + "px";
+          if (cardTitle) cardTitle.style.fontSize = (size + 4) + "px";
+          if (cardContent) cardContent.style.fontFamily = targetFont;
+          if (cardTitle) cardTitle.style.fontFamily = targetFont;
+          if (cardIdInline) {
+            cardIdInline.style.fontSize = "12px";
+            cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+          }
+
+          let tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
+
+          while (tH > maxH && size > minSize) {
+            size--;
+            const updatedFont = size >= 30 
+              ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+              : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+            if (cardContent) cardContent.style.fontSize = size + "px";
+            if (cardTitle) cardTitle.style.fontSize = (size + 4) + "px";
+            if (cardContent) cardContent.style.fontFamily = updatedFont;
+            if (cardTitle) cardTitle.style.fontFamily = updatedFont;
+            if (cardIdInline) cardIdInline.style.fontSize = "12px";
+            tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
+          }
+
+          if (bottomRightBadge) bottomRightBadge.style.display = 'none';
+        }
+        if (cardStage) {
           cardStage.style.backgroundImage = `url('${imgPath}')`;
-          cardStage.style.opacity = '1';
-        }, 200);
-      }
+          cardStage.classList.remove('fade-out');
+        }
+      }, 200);
     }
 
     async function initCompanionCard(targetDay) {
