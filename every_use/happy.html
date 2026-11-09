@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.54</title>
+  <title>歡喜背書V999.56</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -275,12 +275,12 @@
       right: 4%;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      gap: 16px;
-      overflow: visible;
-      background: transparent;
+      justify-content: space-between;
+      align-items: stretch;
+      overflow: hidden;
+      border: 3px solid red;
+      background: rgba(255, 0, 0, 0.03);
+      padding: 10px;
     }
     .card-title-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
@@ -907,8 +907,9 @@
 
     <div class="companion-wrapper" id="cardStage">
       <div class="card-text-container-long-card" id="textContainerLongCard" style="display: none;">
-        <div class="card-title-long-card" id="cardTitleLong">載入中...</div>
-        <div class="card-day-long-card" id="cardDayLong">堅持背書第 22 天</div>
+        <div id="longCardHeader" style="text-align: left; font-weight: 900; color: #581C87; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-bottom: 4px;">師父法語</div>
+        <div id="longCardContent" style="text-align: center; font-weight: 800; color: #0F172A; white-space: pre-wrap; word-break: break-all; text-shadow: 0 1px 3px rgba(255,255,255,0.95); flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;">載入中...</div>
+        <div id="longCardFooter" style="text-align: center; font-weight: 900; color: #047857; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-top: 4px;">堅持背書第 22 天</div>
       </div>
 
       <div class="card-text-container" id="textContainer" style="display: none;">
@@ -981,7 +982,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.54 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.56 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -2746,10 +2747,12 @@
         const canvas2 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
-        combinedCanvas.height = canvas1.height + canvas2.height;
+        combinedCanvas.height = canvas1.height + canvas2.height + 8;
         const ctx = combinedCanvas.getContext('2d');
         ctx.drawImage(canvas1, 0, 0);
-        ctx.drawImage(canvas2, 0, canvas1.height);
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(0, canvas1.height, combinedCanvas.width, 8);
+        ctx.drawImage(canvas2, 0, canvas1.height + 8);
         loadRandomCardData();
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
@@ -3939,8 +3942,9 @@
       const bottomRightBadge = document.getElementById('bottomRightBadge');
       const textContainer = document.getElementById('textContainer');
       const textContainerLong = document.getElementById('textContainerLongCard');
-      const cardTitleLong = document.getElementById('cardTitleLong');
-      const cardDayLong = document.getElementById('cardDayLong');
+      const longHeader = document.getElementById('longCardHeader');
+      const longContent = document.getElementById('longCardContent');
+      const longFooter = document.getElementById('longCardFooter');
       const btnDays = document.getElementById('btn-card-days');
 
       if (btnDays) {
@@ -3971,8 +3975,52 @@
 
           if (textContainer) textContainer.style.display = 'none';
           if (textContainerLong) textContainerLong.style.display = 'flex';
-          if (cardTitleLong) cardTitleLong.textContent = quoteText;
-          if (cardDayLong) cardDayLong.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+          
+          if (longHeader) {
+            longHeader.textContent = '師父法語';
+            longHeader.style.textAlign = 'left';
+          }
+          if (longContent) {
+            longContent.textContent = quoteText;
+          }
+          if (longFooter) {
+            longFooter.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+            longFooter.style.textAlign = 'center';
+          }
+
+          // Dynamic adaptive sizing loop for long card
+          setTimeout(() => {
+            const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.70;
+            let size = 30;
+            const minSize = 14;
+
+            const targetFont = size >= 30 
+              ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+              : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+            if (longHeader) longHeader.style.fontSize = size + "px";
+            if (longContent) {
+              longContent.style.fontSize = size + "px";
+              longContent.style.fontFamily = targetFont;
+            }
+            if (longFooter) longFooter.style.fontSize = size + "px";
+
+            let tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+
+            while (tH > maxH && size > minSize) {
+              size--;
+              const updatedFont = size >= 30 
+                ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+              if (longHeader) longHeader.style.fontSize = size + "px";
+              if (longContent) {
+                longContent.style.fontSize = size + "px";
+                longContent.style.fontFamily = updatedFont;
+              }
+              if (longFooter) longFooter.style.fontSize = size + "px";
+              tH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.offsetHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+            }
+          }, 50);
 
           const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
           const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
@@ -3981,7 +4029,6 @@
         }
       }
     }
-
 
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
