@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.73</title>
+  <title>歡喜背書V999.741</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -21,14 +21,19 @@
     const K_PARAM = urlParams.get('k');
 
     // === 嚴格安全檢核防護機制 ===
-    // 規則：如果網址帶有 k 參數，我們進行驗證；若驗證不符則擋下。
-    if (K_PARAM) {
-        const checkString = START_PARAM + GROUP_PARAM + SECRET_KEY;
-        const calculatedK = CryptoJS.MD5(checkString).toString().substring(0, 3);
-        if (calculatedK !== K_PARAM) {
-            document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 網址驗證失敗或參數遭不當修改</h2><p style="color:#CBD5E1; margin-top:10px;">此網址無效或未經授權，無法存取此頁面。</p></div></body>';
-            throw new Error("Security verification failed.");
-        }
+    // 規則 1：如果完全沒有帶 k 參數，直接擋下！
+    // 規則 2：如果帶了 k 參數，但算出來的檢核碼不符，直接擋下！
+    if (!K_PARAM) {
+        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 缺少安全驗證碼 (k)</h2><p style="color:#CBD5E1; margin-top:10px;">此連結無效或未經授權，無法直接存取此頁面。</p></div></body>';
+        throw new Error("Missing security parameter.");
+    }
+
+    const checkString = START_PARAM + GROUP_PARAM + SECRET_KEY;
+    const calculatedK = CryptoJS.MD5(checkString).toString().substring(0, 3);
+    
+    if (calculatedK !== K_PARAM) {
+        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 網址驗證失敗或參數遭不當修改</h2><p style="color:#CBD5E1; margin-top:10px;">此網址無效或未經授權，無法存取此頁面。</p></div></body>';
+        throw new Error("Security verification failed.");
     }
 
     const CURRENT_CLASSIC_ID = /^[a-zA-Z0-9_-]+$/.test(CLASSIC_PARAM || '') ? CLASSIC_PARAM : 'er_sheng';
@@ -4117,7 +4122,7 @@
           if (masterQuotesKeys.length > 0) {
             const savedDate = classicStorage.getItem('TEACHER_CARD_DATE_V971');
             let savedQuoteKey = classicStorage.getItem('TEACHER_CARD_QUOTE_KEY_V971');
-            let savedBgNum = classicStorage.getItem('TEASHED_CARD_BG_NUM_V971');
+            let savedBgNum = classicStorage.getItem('TEACHER_CARD_BG_NUM_V971');
 
             if (savedDate !== todayStr || !savedQuoteKey || !masterQuotesObj[savedQuoteKey] || !savedBgNum) {
               currentTeacherQuoteKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
@@ -4251,7 +4256,7 @@
 
       initCompanionCard(targetDay);
 
-      const btnOfferingDynamic = document.getElementById('btn-card-offoring-dynamic');
+      const btnOfferingDynamic = document.getElementById('btn-card-offering-dynamic');
       if (btnOfferingDynamic) {
         btnOfferingDynamic.style.display = 'inline-block';
       }
