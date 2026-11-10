@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.75</title>
+  <title>歡喜背書V999.78</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,8 +20,11 @@
     const START_PARAM = urlParams.get('s') || urlParams.get('start') || '';
     const K_PARAM = urlParams.get('k');
 
-    // === 安全檢核防護機制 ===
-    if (K_PARAM) {
+    // === 嚴格安全檢核防護機制 ===
+    if (!K_PARAM) {
+        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 缺少安全驗證參數</h2><p style="color:#CBD5E1; margin-top:10px;">此網址未經授權或缺少必要參數，無法存取。</p></div></body>';
+        throw new Error("Missing security parameter.");
+    } else {
         const checkString = START_PARAM + GROUP_PARAM + SECRET_KEY;
         const calculatedK = CryptoJS.MD5(checkString).toString().substring(0, 3);
         if (calculatedK !== K_PARAM) {
@@ -310,8 +313,8 @@
       justify-content: space-between;
       align-items: stretch;
       overflow: visible;
-      border: 3px solid red;
-      background: rgba(255, 0, 0, 0.03);
+      border: none;
+      background: transparent;
       padding: 8px;
     }
     .card-title-long-card {
@@ -920,9 +923,8 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        偵測到您目前使用 LINE 內建瀏覽器。若三點選單被隱藏，請點擊下方按鈕直接以預設瀏覽器開啟：
+        偵測到您目前使用 LINE 內建瀏覽器。請點擊畫面左下角的三點選單，並選擇「以預設瀏覽器開啟」，以獲得最佳背書視野與完整功能。
       </div>
-      <button class="btn-open-browser" onclick="openInDefaultBrowser()">🚀 點此以預設瀏覽器開啟</button>
     </div>
   </div>
 
@@ -968,11 +970,11 @@
       </div>
 
       <div class="companion-actions-row" id="companionActionsRow">
-        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
+        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModalWithFullscreen()" style="display: none;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button id="btn-card-offering-dynamic" class="btn-card-orange" onclick="handleOfferingClick()" style="display: inline-block; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FEF3C7; border: 1.5px solid #FDE68A;">背書供養</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
-        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
+        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClickWithFullscreen()">皈依祈求</button>
       </div>
     </div>
   </div>
@@ -1021,7 +1023,18 @@
     </div>
   </div>
 
-  <div id="restore-modal-overlay">
+  
+  <div id="screenshot-permission-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; z-index: 55000; background: rgba(4, 7, 15, 0.94); backdrop-filter: blur(8px); justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+    <div class="restore-card" style="border-color: #38BDF8;">
+      <div class="restore-title" style="color: #38BDF8;">📸 畫面與截圖權限授權</div>
+      <div class="restore-desc">
+        為確保「皈依祈求與精美截圖分享」功能順利執行，請點擊下方按鈕允許授權。<br><small style="color: #94A3B8; margin-top: 6px; display: block;">（此授權如同麥克風邏輯，僅需允許一次即可）</small>
+      </div>
+      <button class="btn-restore-confirm" onclick="confirmScreenshotPermission()" style="background: linear-gradient(135deg, #34D399 0%, #059669 100%); color: #064E3B; border: 2px solid #10B981;">🙏 允許授權，繼續祈求</button>
+    </div>
+  </div>
+
+<div id="restore-modal-overlay">
     <div class="restore-card">
       <div class="restore-title">🙏 隨喜回來・繼續精進</div>
       <div class="restore-desc" id="restore-desc-text">
@@ -1031,7 +1044,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.76 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.78 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1399,11 +1412,17 @@
     }, { passive: true });
 
     window.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length === 1 && hasEnteredReciting) {
+      if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - swipeStartX;
         const deltaY = e.changedTouches[0].clientY - swipeStartY;
         if (Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-          handleReturnToCompanionCard();
+          const sideRightGroup = document.getElementById('side-right-group');
+          const isRefugeViewActive = sideRightGroup && getComputedStyle(sideRightGroup).display === 'flex';
+          if (hasEnteredReciting) {
+            handleReturnToCompanionCard();
+          } else if (isRefugeViewActive) {
+            handleRestoreCompanionButtons();
+          }
         }
       }
     }, { passive: true });
@@ -1441,6 +1460,8 @@
         video.removeAttribute('src');
         video.load(); 
       } catch(e) {}
+
+      exitFullscreenMode();
 
       const targetDay = getRealTargetDay();
       initCompanionCard(targetDay);
@@ -1507,7 +1528,22 @@
     window.addEventListener('resize', handleOrientationCheck);
     window.addEventListener('orientationchange', orientationChangeWrapper);
 
-    function triggerAppFullscreen() {}
+    function requestFullscreenMode() {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      }
+    }
+
+    function exitFullscreenMode() {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
 
     function getUserMediaWithTimeout(constraints, timeoutMs = 6000) {
       return new Promise((resolve, reject) => {
@@ -1570,8 +1606,12 @@
         standaloneVideo.load();
         standaloneOverlay.style.display = 'none';
 
+        exitFullscreenMode();
+
         if (typeof onEndedCallback === 'function') {
           onEndedCallback();
+        } else {
+          handleReturnToCompanionCard();
         }
       };
 
@@ -1586,6 +1626,7 @@
     }
 
     async function playTeacherGuideAndRecite() {
+      requestFullscreenMode();
       markFirstCardSeen();
       hasCompletedShare = true;
       const compOverlay = document.getElementById('companion-overlay');
@@ -1604,8 +1645,11 @@
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
+        requestFullscreenMode();
+
         playStandaloneVideo('mode1', 0, async () => {
           showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
+          requestFullscreenMode();
           await loadAllAssetsSmartSync();
 
           const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
@@ -1626,6 +1670,7 @@
     }
 
     async function closeCompanionCard() {
+      requestFullscreenMode();
       markFirstCardSeen();
       hasCompletedShare = true;
       
@@ -1644,6 +1689,8 @@
         classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+
+        requestFullscreenMode();
 
         await loadAllAssetsSmartSync();
 
@@ -1664,6 +1711,16 @@
           setCoreMode('mode2');
         }
       }, 200);
+    }
+
+    function openScheduleModalWithFullscreen() {
+      requestFullscreenMode();
+      openScheduleModal();
+    }
+
+    function handleDayBtnClickWithFullscreen() {
+      requestFullscreenMode();
+      handleDayBtnClick();
     }
 
     function getCurrentProgressEnd() {
@@ -2615,6 +2672,7 @@
     }
 
     function handleGenduClick() {
+      requestFullscreenMode();
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
         showToast("⚠️ 請先跟著讀完遍數", 3000);
         return;
@@ -2659,6 +2717,7 @@
     }
 
     async function handleZiduClick() {
+      requestFullscreenMode();
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
         showToast("⚠️ 請先跟著讀完遍數", 3000);
         return;
@@ -2708,6 +2767,7 @@
     }
 
     async function handleRecordModeClick() {
+      requestFullscreenMode();
       if (!isIndependentModeUnlocked()) {
         showToast("⚠️ 請先完成今日定課與串習後方可解鎖比對功能", 3000);
         return;
@@ -2756,7 +2816,8 @@
       renderUI();
     }
 
-    async function shareScreenshotToLine() {
+        async function shareScreenshotToLine() {
+      requestFullscreenMode();
       const actionsRow = document.getElementById('companionActionsRow');
       const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
@@ -2765,11 +2826,17 @@
       if (sideRightGroup) sideRightGroup.style.display = 'none';
       showToast('📸 正在產生上下並列精美截圖...', 2500);
       const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
+      
+      const originalWidth = cardStage.clientWidth;
+      const originalHeight = cardStage.clientHeight;
+      cardStage.style.width = originalWidth + 'px';
+      cardStage.style.height = originalHeight + 'px';
+      cardStage.style.aspectRatio = 'unset';
+
       try {
         await initCompanionCard(targetDay);
         await new Promise(r => setTimeout(r, 200));
-        // 優化：將 scale 降為 1，並輸出為 JPEG (品質 0.82)，確保檔案控制在 200 KB 以內同時兼顧清晰度
-        const canvas1 = await html2canvas(cardStage, { scale: 1, useCORS: true, backgroundColor: null, logging: false });
+        const canvas1 = await html2canvas(cardStage, { scale: 1.25, useCORS: true, backgroundColor: '#0F172A', logging: false, width: originalWidth, height: originalHeight });
         
         if (!currentRefugeTextKey || !cardTexts[currentRefugeTextKey]) {
           await loadRandomCardData();
@@ -2777,13 +2844,69 @@
           await renderSpecificRefugeCard(currentRefugeTextKey, currentRefugeBgNum);
         }
         await new Promise(r => setTimeout(r, 200));
-        const canvas2 = await html2canvas(cardStage, { scale: 1, useCORS: true, backgroundColor: null, logging: false });
+        const canvas2 = await html2canvas(cardStage, { scale: 1.25, useCORS: true, backgroundColor: '#0F172A', logging: false, width: originalWidth, height: originalHeight });
+        
+        cardStage.style.width = '';
+        cardStage.style.height = '';
+        cardStage.style.aspectRatio = '';
+
+        const targetWidth = canvas1.width;
+        const targetHeight1 = canvas1.height;
+        const targetHeight2 = canvas2.height;
+
+        const combinedCanvas = document.createElement('canvas');
+        combinedCanvas.width = targetWidth;
+        combinedCanvas.height = targetHeight1 + targetHeight2 + 8;
+        const ctx = combinedCanvas.getContext('2d');
+        ctx.fillStyle = '#0F172A';
+        ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
+        
+        ctx.drawImage(canvas1, 0, 0, targetWidth, targetHeight1);
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(0, targetHeight1, targetWidth, 8);
+        ctx.drawImage(canvas2, 0, targetHeight1 + 8, targetWidth, targetHeight2);
+
+        if (actionsRow) actionsRow.style.display = 'flex';
+        if (sideRightGroup) sideRightGroup.style.display = 'flex';
+        hasCompletedShare = true;
+
+        combinedCanvas.toBlob(async (blob) => {
+          if (!blob) { showToast('⚠️ 截圖產生失敗', 3000); return; }
+          let clipboardSuccess = false;
+          try {
+            if (navigator.clipboard && window.ClipboardItem) {
+              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+              clipboardSuccess = true;
+            }
+          } catch(e) {}
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `歡喜背書_上下並列_${Date.now()}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          if (clipboardSuccess) {
+            showToast('✨ PNG 截圖已複製到剪貼簿並下載（約 400KB）！', 5000);
+          } else {
+            showToast('✨ PNG 截圖已自動下載（約 400KB）！', 4000);
+          }
+        }, 'image/png');
+      } catch(err) {
+        cardStage.style.width = '';
+        cardStage.style.height = '';
+        cardStage.style.aspectRatio = '';
+        if (actionsRow) actionsRow.style.display = 'flex';
+        if (sideRightGroup) sideRightGroup.style.display = 'flex';
+        showToast('⚠️ 截圖失敗', 3000);
+      }
+    }        await new Promise(r => setTimeout(r, 200));
+        const canvas2 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
         combinedCanvas.height = canvas1.height + canvas2.height + 8;
         const ctx = combinedCanvas.getContext('2d');
-        ctx.fillStyle = '#0F172A';
-        ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
         ctx.drawImage(canvas1, 0, 0);
         ctx.fillStyle = '#F59E0B';
         ctx.fillRect(0, canvas1.height, combinedCanvas.width, 8);
@@ -2797,24 +2920,24 @@
           let clipboardSuccess = false;
           try {
             if (navigator.clipboard && window.ClipboardItem) {
-              await navigator.clipboard.write([new ClipboardItem({ 'image/jpeg': blob })]);
+              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
               clipboardSuccess = true;
             }
           } catch(e) {}
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `歡喜背書_上下並列_${Date.now()}.jpg`;
+          a.download = `歡喜背書_上下並列_${Date.now()}.png`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
           if (clipboardSuccess) {
-            showToast('✨ 上下並列輕量截圖(<200KB)已複製到剪貼簿，並已自動下載！', 5000);
+            showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 上下並列輕量截圖(<200KB)已自動下載！', 4000);
+            showToast('✨ 上下並列截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
           }
-        }, 'image/jpeg', 0.82);
+        }, 'image/png', 0.95);
       } catch(err) {
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
@@ -3199,6 +3322,7 @@
     }
 
     function handleRestoreCompanionButtons() {
+      exitFullscreenMode();
       showToast('展悲智翼飛佛地', 3500);
 
       hasCompletedShare = true;
@@ -3520,6 +3644,7 @@
     }
 
     function handleOfferingClick() {
+      requestFullscreenMode();
       const displayCoinsCount = document.getElementById('display-coins-count');
       const inputClassId = document.getElementById('input-class-id');
       const inputUserName = document.getElementById('input-user-name');
@@ -3551,7 +3676,10 @@
       return Math.max(1, Math.abs(end - start) + 1);
     }
 
-    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
+    btnCancelOffering.addEventListener('click', () => { 
+      offeringOverlay.style.display = 'none'; 
+      handleReturnToCompanionCard();
+    });
 
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
@@ -3648,7 +3776,10 @@
       totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
     }
 
-    btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
+    btnRejoiceClose.addEventListener('click', () => { 
+      leaderboardOverlay.style.display = 'none'; 
+      handleReturnToCompanionCard();
+    });
 
     function haltGuideRunnerImmediately() {
       isGuideActive = false;
@@ -4108,7 +4239,7 @@
         if (btnDays) {
           btnDays.style.display = 'inline-block';
           btnDays.textContent = '皈依祈求';
-          btnDays.onclick = handleDayBtnClick;
+          btnDays.onclick = handleDayBtnClickWithFullscreen;
         }
 
         const todayStr = getNormalizedDateStr();
