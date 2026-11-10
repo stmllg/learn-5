@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.70</title>
+  <title>歡喜背書V999.701</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1635,24 +1635,17 @@
     }
 
     function getCurrentProgressEnd() {
-      // 1. 若記憶體中已有排程當日終點，優先採用
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      
-      // 2. 檢查 localStorage 中是否存有上次進度
       const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
       if (saved !== null && saved !== '' && saved !== '0') {
         return parseInt(saved, 10);
       }
-      
-      // 3. 【快取清除防護修復】若無快取紀錄，根據網址的 start 日期與今天日期 (targetDay) 做判定
-      // 不管是否有更改過排程，我們用最低的補給他，每天一句數量即可 (targetDay - 1)，不用從第一句開始。
       const targetDay = getRealTargetDay();
       if (targetDay > 1) {
         return Math.min(CLASSIC_TOTAL_SENTENCES, targetDay - 1);
       }
-      
       return 0;
     }
 
@@ -2087,110 +2080,127 @@
           });
 
           currentPdfDoc = await loadingTask.promise;
-          const page = await currentPdfDoc.getPage(1);
+          const numPages = currentPdfDoc.numPages || 1;
 
           pdfCanvas.width = 0;
           pdfCanvas.height = 0;
 
           const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
-          const pageRotation = page.rotate || 0;
-          const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
-          const pageScale = availableWidth / unscaledViewport.width;
-          const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
+          
+          let totalHeight = 0;
+          let maxViewportWidth = 0;
+          const pageViewports = [];
 
-          pdfCanvas.width = viewport.width;
-          pdfCanvas.height = viewport.height;
-          const ctx = pdfCanvas.getContext('2d');
-
-          await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-
-          const textContent = await page.getTextContent();
-          const items = textContent.items;
-          const validSpans = [];
-          const chineseCharRegex = /[一-龥]/;
-
-          items.forEach(it => {
-            const str = it.str || '';
-            if (!str.trim()) return;
-
-            const tx = it.transform;
-            const pdfX = tx[4];
-            const pdfY = tx[5];
-
-            const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
-            const fontWidth = it.width * pageScale;
-
-            const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
-            const screenX0 = p0[0];
-
-            const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
-            const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
-
-            const realTop = Math.min(p0[1], pTop[1]);
-            const realBottom = Math.max(p0[1], pTop[1]);
-
-            const charWidth = fontWidth / Math.max(1, str.length);
-            for (let c = 0; c < str.length; c++) {
-              const char = str[c];
-              if (chineseCharRegex.test(char)) {
-                const charX0 = screenX0 + (c * charWidth);
-                const charX1 = charX0 + charWidth;
-                validSpans.push({ x0: charX0, x1: charX1, topY: realTop, bottomY: realBottom, fs: fontScale, char: char });
-              }
-            }
-          });
-
-          validSpans.sort((a, b) => a.topY - b.topY);
-          const rowGroups = [];
-
-          validSpans.forEach(span => {
-            let matched = false;
-            for (let g of rowGroups) {
-              if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
-                g.spans.push(span);
-                matched = true;
-                break;
-              }
-            }
-            if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
-          });
-
-          const analyzedRows = rowGroups.map(g => {
-            g.spans.sort((a, b) => a.x0 - b.x0);
-            const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
-            const minTop = Math.min(...g.spans.map(s => s.topY));
-            const lineX0 = g.spans[0].x0;
-            const lineX1 = g.spans[g.spans.length - 1].x1;
-
-            return { spans: g.spans, chineseCount: g.spans.length, avgFs: avgFs, minTop: minTop, lineX0: lineX0, lineX1: lineX1 };
-          });
-
-          analyzedRows.forEach(r => {
-            r.maxBottom = Math.max(...r.spans.map(s => s.bottomY));
-            r.underLineY = r.maxBottom + 7;
-          });
-
-          const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30);
-          let mainTextFontSize = 0;
-          if (candidateLargeRows.length > 0) {
-            const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
-            mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
+          for (let p = 1; p <= numPages; p++) {
+            const page = await currentPdfDoc.getPage(p);
+            const pageRotation = page.rotate || 0;
+            const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
+            const pageScale = availableWidth / unscaledViewport.width;
+            const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
+            pageViewports.push({ page, viewport });
+            totalHeight += viewport.height;
+            if (viewport.width > maxViewportWidth) maxViewportWidth = viewport.width;
           }
 
+          pdfCanvas.width = maxViewportWidth;
+          pdfCanvas.height = totalHeight;
+          const ctx = pdfCanvas.getContext('2d');
+
+          let currentYOffset = 0;
           parsedTextLines = [];
           let internalIndex = 0;
 
-          analyzedRows.forEach(r => {
-            const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.70);
-            if (r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30 && isNormalOrLarge) {
-              parsedTextLines.push({
-                lineIndex: internalIndex++, x0: r.lineX0, x1: r.lineX1, topGlobal: r.minTop, bottomGlobal: r.maxBottom, underLineY: r.underLineY, charItems: r.spans
-              });
+          for (let i = 0; i < pageViewports.length; i++) {
+            const { page, viewport } = pageViewports[i];
+            await page.render({ canvasContext: ctx, viewport: viewport, transform: [1, 0, 0, 1, 0, currentYOffset] }).promise;
+
+            const textContent = await page.getTextContent();
+            const items = textContent.items;
+            const validSpans = [];
+            const chineseCharRegex = /[一-龥]/;
+
+            items.forEach(it => {
+              const str = it.str || '';
+              if (!str.trim()) return;
+
+              const tx = it.transform;
+              const pdfX = tx[4];
+              const pdfY = tx[5];
+
+              const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * (viewport.width / viewport.viewBox[2]);
+              const fontWidth = it.width * (viewport.width / viewport.viewBox[2]);
+
+              const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
+              const screenX0 = p0[0];
+
+              const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / (viewport.width / viewport.viewBox[2]));
+              const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+
+              const realTop = Math.min(p0[1], pTop[1]) + currentYOffset;
+              const realBottom = Math.max(p0[1], pTop[1]) + currentYOffset;
+
+              const charWidth = fontWidth / Math.max(1, str.length);
+              for (let c = 0; c < str.length; c++) {
+                const char = str[c];
+                if (chineseCharRegex.test(char)) {
+                  const charX0 = screenX0 + (c * charWidth);
+                  const charX1 = charX0 + charWidth;
+                  validSpans.push({ x0: charX0, x1: charX1, topY: realTop, bottomY: realBottom, fs: fontScale, char: char });
+                }
+              }
+            });
+
+            validSpans.sort((a, b) => a.topY - b.topY);
+            const rowGroups = [];
+
+            validSpans.forEach(span => {
+              let matched = false;
+              for (let g of rowGroups) {
+                if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
+                  g.spans.push(span);
+                  matched = true;
+                  break;
+                }
+              }
+              if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
+            });
+
+            const analyzedRows = rowGroups.map(g => {
+              g.spans.sort((a, b) => a.x0 - b.x0);
+              const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
+              const minTop = Math.min(...g.spans.map(s => s.topY));
+              const lineX0 = g.spans[0].x0;
+              const lineX1 = g.spans[g.spans.length - 1].x1;
+
+              return { spans: g.spans, chineseCount: g.spans.length, avgFs: avgFs, minTop: minTop, lineX0: lineX0, lineX1: lineX1 };
+            });
+
+            analyzedRows.forEach(r => {
+              r.maxBottom = Math.max(...r.spans.map(s => s.bottomY));
+              r.underLineY = r.maxBottom + 7;
+            });
+
+            const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30);
+            let mainTextFontSize = 0;
+            if (candidateLargeRows.length > 0) {
+              const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
+              mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
             }
-          });
+
+            analyzedRows.forEach(r => {
+              const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.70);
+              if (r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30 && isNormalOrLarge) {
+                parsedTextLines.push({
+                  lineIndex: internalIndex++, x0: r.lineX0, x1: r.lineX1, topGlobal: r.minTop, bottomGlobal: r.maxBottom, underLineY: r.underLineY, charItems: r.spans
+                });
+              }
+            });
+
+            currentYOffset += viewport.height;
+          }
 
           parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
-          guideStage.style.height = viewport.height + 'px';
+          guideStage.style.height = totalHeight + 'px';
 
           updateVisualDisplay();
           scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
