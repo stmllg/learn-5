@@ -10,10 +10,25 @@
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
   <meta name="theme-color" content="#0B0F19">
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <script>
+    const SECRET_KEY = "teacher2026"; // 固定密鑰
+
     const urlParams = new URLSearchParams(window.location.search);
     const CLASSIC_PARAM = urlParams.get('classic');
-    const GROUP_PARAM = urlParams.get('group') || 'def';
+    const GROUP_PARAM = urlParams.get('g') || urlParams.get('group') || 'def';
+    const START_PARAM = urlParams.get('s') || urlParams.get('start') || '';
+    const K_PARAM = urlParams.get('k');
+
+    // === 安全檢核防護機制 ===
+    if (K_PARAM) {
+        const checkString = START_PARAM + GROUP_PARAM + SECRET_KEY;
+        const calculatedK = CryptoJS.MD5(checkString).toString().substring(0, 3);
+        if (calculatedK !== K_PARAM) {
+            document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 網址驗證失敗或參數遭不當修改</h2><p style="color:#CBD5E1; margin-top:10px;">此網址無效或未經授權，無法存取此頁面。</p></div></body>';
+            throw new Error("Security verification failed.");
+        }
+    }
 
     const CURRENT_CLASSIC_ID = /^[a-zA-Z0-9_-]+$/.test(CLASSIC_PARAM || '') ? CLASSIC_PARAM : 'er_sheng';
     const CURRENT_GROUP_ID = /^[a-zA-Z0-9_-]+$/.test(GROUP_PARAM || '') ? GROUP_PARAM : 'def';
@@ -1653,8 +1668,8 @@
     function getRealTargetDay() {
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
-      if (urlParams.get('start')) {
-        const startStr = urlParams.get('start');
+      const startStr = urlParams.get('s') || urlParams.get('start');
+      if (startStr) {
         const parts = startStr.split('-');
         if (parts.length === 3) {
           const y = parseInt(parts[0], 10);
@@ -1684,8 +1699,8 @@
         return currentDayPlan.day;
       }
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('start')) {
-        const startStr = urlParams.get('start');
+      const startStr = urlParams.get('s') || urlParams.get('start');
+      if (startStr) {
         const parts = startStr.split('-');
         if (parts.length === 3) {
           const y = parseInt(parts[0], 10);
@@ -1983,7 +1998,6 @@
         }
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
-          // 若無排程，強制重新生成一次以套用快取防護帶入的進度
           let savedSettings = {};
           try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}'); } catch (e) {}
           generateAlgorithmicSchedule({
@@ -2729,7 +2743,7 @@
       renderUI();
     }
 
-        async function shareScreenshotToLine() {
+    async function shareScreenshotToLine() {
       triggerAppFullscreen();
       const actionsRow = document.getElementById('companionActionsRow');
       const sideRightGroup = document.getElementById('side-right-group');
@@ -2762,7 +2776,6 @@
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
         hasCompletedShare = true;
-        console.log(`【已完成 LINE 分享】已輸出記錄：\n第1組(師父法語): Quote ID=${currentTeacherQuoteKey}, Bg=bg_${String(currentTeacherBgNum).padStart(2,'0')}.webp\n第2組(皈依祈求): Text Key=${currentRefugeTextKey}, Bg=bg_${String(currentRefugeBgNum).padStart(2,'0')}.webp`);
 
         combinedCanvas.toBlob(async (blob) => {
           if (!blob) { showToast('⚠️ 截圖產生失敗', 3000); return; }
@@ -3102,7 +3115,6 @@
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw deep cosmic background tint
         ctx.fillStyle = 'rgba(4, 7, 15, 0.25)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -3175,7 +3187,6 @@
     function handleRestoreCompanionButtons() {
       showToast('展悲智翼飛佛地', 3500);
 
-      // User pressed "返回" without sharing -> mark that current card cycle is abandoned / should refresh
       hasCompletedShare = true;
 
       const cardStage = document.getElementById('cardStage');
@@ -3550,8 +3561,8 @@
       btnConfirmOffering.textContent = '連線供養中...';
 
       const urlParams = new URLSearchParams(window.location.search);
-      const startDateParam = urlParams.get('start') || '';
-      const groupParam = urlParams.get('group') || '';
+      const startDateParam = urlParams.get('s') || urlParams.get('start') || '';
+      const groupParam = urlParams.get('g') || urlParams.get('group') || '';
       const callbackName = 'onRankDataLoaded_' + Math.floor(Math.random() * 1000000);
 
       let isDone = false;
@@ -3837,7 +3848,7 @@
       } catch (e) {}
     }
 
-        let masterQuotesObj = {};
+    let masterQuotesObj = {};
     let masterQuotesKeys = [];
 
     async function loadMasterQuotesJson() {
@@ -3858,7 +3869,6 @@
       }
     }
 
-    
     function renderSpecificRefugeCard(textKey, bgNum) {
       return new Promise(async (resolve) => {
         await loadBackgroundConfig();
@@ -4001,9 +4011,6 @@
           const cardIdInline = document.getElementById('cardIdInline');
           if (cardIdInline) cardIdInline.textContent = displayId;
 
-          console.log(`【第2組記錄・皈依祈求】Images Text Sentence ID: ${displayId} (Key: ${currentRefugeTextKey}) | Background Image: ${imgPath}`);
-
-          // Robust 34px down-to-14px decrement adaptive loop with Noto Serif TC for >= 30px
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
               const cardH = (cardStage && cardStage.clientHeight > 50 ? cardStage.clientHeight : 600);
@@ -4062,7 +4069,6 @@
           cardStage.classList.remove('fade-out');
         }
 
-        // Wait for next frame to ensure DOM & background image rendering are complete
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             resolve();
@@ -4108,7 +4114,6 @@
           if (bottomRightBadge) bottomRightBadge.style.display = 'block';
 
           if (masterQuotesKeys.length > 0) {
-            // Strict daily fixed persistence: binds to todayStr so it never changes today unless tomorrow arrives
             const savedDate = classicStorage.getItem('TEACHER_CARD_DATE_V971');
             let savedQuoteKey = classicStorage.getItem('TEACHER_CARD_QUOTE_KEY_V971');
             let savedBgNum = classicStorage.getItem('TEACHER_CARD_BG_NUM_V971');
@@ -4144,7 +4149,6 @@
               longFooter.style.textAlign = 'center';
             }
 
-            // Ensure cardStage / companionOverlay is visible so clientHeight > 0
             const compOverlay = document.getElementById('companion-overlay');
             if (compOverlay && getComputedStyle(compOverlay).display === 'none') {
               compOverlay.style.display = 'flex';
@@ -4210,7 +4214,9 @@
           }
         }
       });
-    }window.addEventListener('DOMContentLoaded', async () => {
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
         const guideContent = overlay.querySelector('.line-guide-content');
