@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.744</title>
+  <title>歡喜背書V999.745</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,8 +20,11 @@
     const START_PARAM = urlParams.get('s') || urlParams.get('start') || '';
     const K_PARAM = urlParams.get('k');
 
-    // === 安全檢核防護機制 ===
-    if (K_PARAM) {
+    // === 嚴格安全檢核防護機制 ===
+    if (!K_PARAM) {
+        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 缺少安全驗證參數</h2><p style="color:#CBD5E1; margin-top:10px;">此網址未經授權或缺少必要參數，無法存取。</p></div></body>';
+        throw new Error("Missing security parameter.");
+    } else {
         const checkString = START_PARAM + GROUP_PARAM + SECRET_KEY;
         const calculatedK = CryptoJS.MD5(checkString).toString().substring(0, 3);
         if (calculatedK !== K_PARAM) {
@@ -1031,7 +1034,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.743 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.744 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1399,11 +1402,17 @@
     }, { passive: true });
 
     window.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length === 1 && hasEnteredReciting) {
+      if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - swipeStartX;
         const deltaY = e.changedTouches[0].clientY - swipeStartY;
         if (Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-          handleReturnToCompanionCard();
+          const sideRightGroup = document.getElementById('side-right-group');
+          const isRefugeViewActive = sideRightGroup && getComputedStyle(sideRightGroup).display === 'flex';
+          if (hasEnteredReciting) {
+            handleReturnToCompanionCard();
+          } else if (isRefugeViewActive) {
+            handleRestoreCompanionButtons();
+          }
         }
       }
     }, { passive: true });
@@ -1587,7 +1596,6 @@
         standaloneVideo.load();
         standaloneOverlay.style.display = 'none';
 
-        // 播放佛號影片或功德迴向影片完畢時，主動回首頁，就退回全螢幕
         exitFullscreenMode();
 
         if (typeof onEndedCallback === 'function') {
@@ -3239,6 +3247,7 @@
     }
 
     function handleRestoreCompanionButtons() {
+      exitFullscreenMode();
       showToast('展悲智翼飛佛地', 3500);
 
       hasCompletedShare = true;
@@ -3692,7 +3701,10 @@
       totalRankList.innerHTML = buildListHtml(data ? data.totalTop3 : null);
     }
 
-    btnRejoiceClose.addEventListener('click', () => { leaderboardOverlay.style.display = 'none'; });
+    btnRejoiceClose.addEventListener('click', () => { 
+      leaderboardOverlay.style.display = 'none'; 
+      handleReturnToCompanionCard();
+    });
 
     function haltGuideRunnerImmediately() {
       isGuideActive = false;
