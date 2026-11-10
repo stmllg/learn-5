@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.72</title>
+  <title>歡喜背書V999.73</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -982,7 +982,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.72 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.73 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1089,6 +1089,7 @@
 
     const lineBrowserOverlay = document.getElementById('line-browser-overlay');
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
+    portraitBlocker.onclick = () => { portraitBlocker.style.display = 'none'; companionOverlay.style.display = 'flex'; };
     const companionOverlay = document.getElementById('companion-overlay');
     const restoreModalOverlay = document.getElementById('restore-modal-overlay');
     const restoreDescText = document.getElementById('restore-desc-text');
@@ -1635,24 +1636,17 @@
     }
 
     function getCurrentProgressEnd() {
-      // 1. 若記憶體中已有排程當日終點，優先採用
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      
-      // 2. 檢查 localStorage 中是否存有上次進度
       const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
       if (saved !== null && saved !== '' && saved !== '0') {
         return parseInt(saved, 10);
       }
-      
-      // 3. 【快取清除防護修復】若無快取紀錄，根據網址的 start 日期與今天日期 (targetDay) 做判定
-      // 不管是否有更改過排程，我們用最低的補給他，每天一句數量即可 (targetDay - 1)，不用從第一句開始。
       const targetDay = getRealTargetDay();
       if (targetDay > 1) {
         return Math.min(CLASSIC_TOTAL_SENTENCES, targetDay - 1);
       }
-      
       return 0;
     }
 
@@ -2746,17 +2740,17 @@
       showToast('📸 正在產生上下並列精美截圖...', 2500);
       const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
       try {
-        // 1. Fully render and await Group 1 (Teacher's Dharma Words)
         await initCompanionCard(targetDay);
         await new Promise(r => setTimeout(r, 200));
         const canvas1 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
         
-        // 2. Fully render and await Group 2 (Refuge Prayer / Images Text)
-        await loadRandomCardData();
+        if (!currentRefugeTextKey || !cardTexts[currentRefugeTextKey]) {
+          await loadRandomCardData();
+        } else {
+          await renderSpecificRefugeCard(currentRefugeTextKey, currentRefugeBgNum);
+        }
         await new Promise(r => setTimeout(r, 200));
         const canvas2 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
-        
-        // Combine canvases vertically
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
         combinedCanvas.height = canvas1.height + canvas2.height + 8;
@@ -2765,11 +2759,9 @@
         ctx.fillStyle = '#F59E0B';
         ctx.fillRect(0, canvas1.height, combinedCanvas.width, 8);
         ctx.drawImage(canvas2, 0, canvas1.height + 8);
-        
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
         hasCompletedShare = true;
-        
         console.log(`【已完成 LINE 分享】已輸出記錄：\n第1組(師父法語): Quote ID=${currentTeacherQuoteKey}, Bg=bg_${String(currentTeacherBgNum).padStart(2,'0')}.webp\n第2組(皈依祈求): Text Key=${currentRefugeTextKey}, Bg=bg_${String(currentRefugeBgNum).padStart(2,'0')}.webp`);
 
         combinedCanvas.toBlob(async (blob) => {
@@ -2790,11 +2782,9 @@
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
           if (clipboardSuccess) {
-            showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！
-可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 上下並列截圖已自動下載！
-請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 上下並列截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
       } catch(err) {
@@ -2802,7 +2792,9 @@
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
         showToast('⚠️ 截圖失敗', 3000);
       }
-    }window.addEventListener('DOMContentLoaded', () => {
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         const canvasEl = document.getElementById('pdf-canvas');
         if (canvasEl) {
@@ -4116,6 +4108,7 @@
           if (bottomRightBadge) bottomRightBadge.style.display = 'block';
 
           if (masterQuotesKeys.length > 0) {
+            // Strict daily fixed persistence: binds to todayStr so it never changes today unless tomorrow arrives
             const savedDate = classicStorage.getItem('TEACHER_CARD_DATE_V971');
             let savedQuoteKey = classicStorage.getItem('TEACHER_CARD_QUOTE_KEY_V971');
             let savedBgNum = classicStorage.getItem('TEACHER_CARD_BG_NUM_V971');
@@ -4261,7 +4254,7 @@
 
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.display = 'flex';
-      compOverlay.classList.add('active');
+      companionOverlay.classList.add('active');
 
       handleOrientationCheck();
     });
