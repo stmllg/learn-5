@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.742</title>
+  <title>歡喜背書V999.744</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -968,11 +968,11 @@
       </div>
 
       <div class="companion-actions-row" id="companionActionsRow">
-        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModal()" style="display: none;">⚙️ 排程設定</button>
+        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModalWithFullscreen()" style="display: none;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button id="btn-card-offering-dynamic" class="btn-card-orange" onclick="handleOfferingClick()" style="display: inline-block; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FEF3C7; border: 1.5px solid #FDE68A;">背書供養</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
-        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClick()">皈依祈求</button>
+        <button id="btn-card-days" class="btn-card-setting" style="display: none; background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%); color: #78350F; border: 1.5px solid #D97706; cursor: pointer;" onclick="handleDayBtnClickWithFullscreen()">皈依祈求</button>
       </div>
     </div>
   </div>
@@ -1442,12 +1442,7 @@
         video.load(); 
       } catch(e) {}
 
-      // 退出全螢幕
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
+      exitFullscreenMode();
 
       const targetDay = getRealTargetDay();
       initCompanionCard(targetDay);
@@ -1514,8 +1509,21 @@
     window.addEventListener('resize', handleOrientationCheck);
     window.addEventListener('orientationchange', orientationChangeWrapper);
 
-    function triggerAppFullscreen() {
-      // 已停用瀏覽器原生全螢幕 API，避免跳出干擾操作的提示框
+    function requestFullscreenMode() {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      }
+    }
+
+    function exitFullscreenMode() {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
     }
 
     function getUserMediaWithTimeout(constraints, timeoutMs = 6000) {
@@ -1579,8 +1587,13 @@
         standaloneVideo.load();
         standaloneOverlay.style.display = 'none';
 
+        // 播放佛號影片或功德迴向影片完畢時，主動回首頁，就退回全螢幕
+        exitFullscreenMode();
+
         if (typeof onEndedCallback === 'function') {
           onEndedCallback();
+        } else {
+          handleReturnToCompanionCard();
         }
       };
 
@@ -1595,8 +1608,8 @@
     }
 
     async function playTeacherGuideAndRecite() {
+      requestFullscreenMode();
       markFirstCardSeen();
-      triggerAppFullscreen();
       hasCompletedShare = true;
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
@@ -1614,10 +1627,11 @@
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
-        triggerAppFullscreen();
+        requestFullscreenMode();
 
         playStandaloneVideo('mode1', 0, async () => {
           showToast('✨ 前行圓滿，正在進入今日定課...', 3000);
+          requestFullscreenMode();
           await loadAllAssetsSmartSync();
 
           const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
@@ -1638,8 +1652,8 @@
     }
 
     async function closeCompanionCard() {
+      requestFullscreenMode();
       markFirstCardSeen();
-      triggerAppFullscreen();
       hasCompletedShare = true;
       
       const compOverlay = document.getElementById('companion-overlay');
@@ -1658,7 +1672,7 @@
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
 
-        triggerAppFullscreen();
+        requestFullscreenMode();
 
         await loadAllAssetsSmartSync();
 
@@ -1679,6 +1693,16 @@
           setCoreMode('mode2');
         }
       }, 200);
+    }
+
+    function openScheduleModalWithFullscreen() {
+      requestFullscreenMode();
+      openScheduleModal();
+    }
+
+    function handleDayBtnClickWithFullscreen() {
+      requestFullscreenMode();
+      handleDayBtnClick();
     }
 
     function getCurrentProgressEnd() {
@@ -2630,7 +2654,7 @@
     }
 
     function handleGenduClick() {
-      triggerAppFullscreen();
+      requestFullscreenMode();
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
         showToast("⚠️ 請先跟著讀完遍數", 3000);
         return;
@@ -2675,7 +2699,7 @@
     }
 
     async function handleZiduClick() {
-      triggerAppFullscreen();
+      requestFullscreenMode();
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
         showToast("⚠️ 請先跟著讀完遍數", 3000);
         return;
@@ -2725,7 +2749,7 @@
     }
 
     async function handleRecordModeClick() {
-      triggerAppFullscreen();
+      requestFullscreenMode();
       if (!isIndependentModeUnlocked()) {
         showToast("⚠️ 請先完成今日定課與串習後方可解鎖比對功能", 3000);
         return;
@@ -2775,7 +2799,7 @@
     }
 
     async function shareScreenshotToLine() {
-      triggerAppFullscreen();
+      requestFullscreenMode();
       const actionsRow = document.getElementById('companionActionsRow');
       const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
@@ -3190,7 +3214,6 @@
 
     function handleDayBtnClick() {
       markFirstCardSeen();
-      triggerAppFullscreen();
       triggerStarSea(false);
       showToast('御信樂風望星海', 3500);
 
@@ -3537,6 +3560,7 @@
     }
 
     function handleOfferingClick() {
+      requestFullscreenMode();
       const displayCoinsCount = document.getElementById('display-coins-count');
       const inputClassId = document.getElementById('input-class-id');
       const inputUserName = document.getElementById('input-user-name');
@@ -3568,7 +3592,10 @@
       return Math.max(1, Math.abs(end - start) + 1);
     }
 
-    btnCancelOffering.addEventListener('click', () => { offeringOverlay.style.display = 'none'; });
+    btnCancelOffering.addEventListener('click', () => { 
+      offeringOverlay.style.display = 'none'; 
+      handleReturnToCompanionCard();
+    });
 
     btnConfirmOffering.addEventListener('click', () => {
       const classId = inputClassId.value.trim();
@@ -4125,7 +4152,7 @@
         if (btnDays) {
           btnDays.style.display = 'inline-block';
           btnDays.textContent = '皈依祈求';
-          btnDays.onclick = handleDayBtnClick;
+          btnDays.onclick = handleDayBtnClickWithFullscreen;
         }
 
         const todayStr = getNormalizedDateStr();
