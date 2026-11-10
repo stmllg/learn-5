@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.68</title>
+  <title>歡喜背書V999.70</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -269,8 +269,8 @@
 
     .card-text-container-long-card {
       position: absolute;
-      top: 2%;
-      bottom: 11%;
+      top: 3%;
+      bottom: 13%;
       left: 21%;
       right: 3%;
       display: flex;
@@ -280,7 +280,7 @@
       overflow: visible;
       border: 3px solid red;
       background: rgba(255, 0, 0, 0.03);
-      padding: 6px;
+      padding: 8px;
     }
     .card-title-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
@@ -293,13 +293,12 @@
     }
     .card-day-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
-      font-size: 16px !important;
+      font-size: 28px !important;
       font-weight: 900;
       color: #047857;
       text-shadow: 0 1px 3px rgba(255,255,255,0.95);
       letter-spacing: 2px;
       width: 100%;
-      text-align: center;
     }
 
     .card-text-container {
@@ -983,7 +982,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.68 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.70 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1201,13 +1200,11 @@
     let manualScrollTimer = null;
 
     let pendingRestoredState = null;
-    
-    // Strict Session Locked State Variables
-    let lockedTeacherQuoteKey = null;
-    let lockedTeacherBgNum = null;
-    let lockedRefugeTextKey = null;
-    let lockedRefugeBgNum = null;
-    let isRefugeActiveInSession = false; // true if user clicked "皈依祈求" during this session
+    let currentTeacherQuoteKey = null;
+    let currentTeacherBgNum = null;
+    let currentRefugeTextKey = null;
+    let currentRefugeBgNum = null;
+    let hasCompletedShare = false;
 
     function getNormalizedDateStr() {
       const now = new Date();
@@ -1395,13 +1392,6 @@
         video.load(); 
       } catch(e) {}
 
-      // Reset locked sessions upon returning from practice
-      lockedTeacherQuoteKey = null;
-      lockedTeacherBgNum = null;
-      lockedRefugeTextKey = null;
-      lockedRefugeBgNum = null;
-      isRefugeActiveInSession = false;
-
       const targetDay = getRealTargetDay();
       initCompanionCard(targetDay);
 
@@ -1560,6 +1550,7 @@
     async function playTeacherGuideAndRecite() {
       markFirstCardSeen();
       triggerAppFullscreen();
+      hasCompletedShare = true;
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
       compOverlay.classList.remove('active');
@@ -1602,6 +1593,7 @@
     async function closeCompanionCard() {
       markFirstCardSeen();
       triggerAppFullscreen();
+      hasCompletedShare = true;
       
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
@@ -1643,17 +1635,24 @@
     }
 
     function getCurrentProgressEnd() {
+      // 1. 若記憶體中已有排程當日終點，優先採用
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
+      
+      // 2. 檢查 localStorage 中是否存有上次進度
       const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
       if (saved !== null && saved !== '' && saved !== '0') {
         return parseInt(saved, 10);
       }
+      
+      // 3. 【快取清除防護修復】若無快取紀錄，根據網址的 start 日期與今天日期 (targetDay) 做判定
+      // 不管是否有更改過排程，我們用最低的補給他，每天一句數量即可 (targetDay - 1)，不用從第一句開始。
       const targetDay = getRealTargetDay();
       if (targetDay > 1) {
         return Math.min(CLASSIC_TOTAL_SENTENCES, targetDay - 1);
       }
+      
       return 0;
     }
 
@@ -1990,6 +1989,7 @@
         }
 
         if (!scheduleData || !Array.isArray(scheduleData)) {
+          // 若無排程，強制重新生成一次以套用快取防護帶入的進度
           let savedSettings = {};
           try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}'); } catch (e) {}
           generateAlgorithmicSchedule({
@@ -2735,33 +2735,23 @@
       renderUI();
     }
 
-    // STRICT WYSIWYG SHARE: Snapshot exact current DOM state without re-randomizing during capture
-    async function shareScreenshotToLine() {
+        async function shareScreenshotToLine() {
       triggerAppFullscreen();
       const actionsRow = document.getElementById('companionActionsRow');
       const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
       if (!cardStage) return;
-      
       if (actionsRow) actionsRow.style.display = 'none';
       if (sideRightGroup) sideRightGroup.style.display = 'none';
-      showToast('📸 正在產生精準對應之上下並列截圖...', 2500);
-      
+      showToast('📸 正在產生上下並列精美截圖...', 2500);
       const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
       try {
-        // 1. Snapshot Part 1: Render whatever is currently locked in cardStage (Teacher's Dharma or whatever was active)
-        const canvas1 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
-        
-        // 2. Snapshot Part 2: If refuge was active, use locked refuge, else load/lock current refuge
-        if (!isRefugeActiveInSession || !lockedRefugeTextKey) {
-          await loadRandomCardDataForShare();
-        } else {
-          // Render locked refuge card explicitly without changing IDs
-          await renderLockedRefugeCard();
-        }
+        await initCompanionCard(targetDay);
         await new Promise(r => setTimeout(r, 300));
+        const canvas1 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
+        await loadRandomCardData();
+        await new Promise(r => setTimeout(r, 400));
         const canvas2 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
-        
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
         combinedCanvas.height = canvas1.height + canvas2.height + 8;
@@ -2770,19 +2760,11 @@
         ctx.fillStyle = '#F59E0B';
         ctx.fillRect(0, canvas1.height, combinedCanvas.width, 8);
         ctx.drawImage(canvas2, 0, canvas1.height + 8);
-        
-        // Restore card back to current session view
-        if (isRefugeActiveInSession) {
-          await renderLockedRefugeCard();
-        } else {
-          await initCompanionCard(targetDay);
-        }
-
+        loadRandomCardData();
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
-        
         hasCompletedShare = true;
-        console.log(`【LINE 分享成功輸出記錄】\n第1組(師父法語): Quote ID=${lockedTeacherQuoteKey}, Bg=bg_${String(lockedTeacherBgNum).padStart(2,'0')}.webp\n第2組(皈依祈求): Text Key=${lockedRefugeTextKey}, Bg=bg_${String(lockedRefugeBgNum).padStart(2,'0')}.webp`);
+        console.log(`【已完成 LINE 分享】已輸出記錄：\n第1組(師父法語): Quote ID=${currentTeacherQuoteKey}, Bg=bg_${String(currentTeacherBgNum).padStart(2,'0')}.webp\n第2組(皈依祈求): Text Key=${currentRefugeTextKey}, Bg=bg_${String(currentRefugeBgNum).padStart(2,'0')}.webp`);
 
         combinedCanvas.toBlob(async (blob) => {
           if (!blob) { showToast('⚠️ 截圖產生失敗', 3000); return; }
@@ -2811,66 +2793,6 @@
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
         showToast('⚠️ 截圖失敗', 3000);
-      }
-    }
-
-    async function loadRandomCardDataForShare() {
-      await loadBackgroundConfig();
-      if (Object.keys(cardTexts).length === 0) {
-        try {
-          const res = await fetch('images_text.json?t=' + Date.now());
-          if (res.ok) {
-            cardTexts = await res.json();
-            textKeys = Object.keys(cardTexts);
-          }
-        } catch(e) {}
-      }
-      if (textKeys.length > 0 && !lockedRefugeTextKey) {
-        lockedRefugeTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
-        const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
-        lockedRefugeBgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
-      }
-      await renderLockedRefugeCard();
-    }
-
-    async function renderLockedRefugeCard() {
-      const cardStage = document.getElementById('cardStage');
-      const bottomRightBadge = document.getElementById('bottomRightBadge');
-      const textContainer = document.getElementById('textContainer');
-      const textContainerLong = document.getElementById('textContainerLongCard');
-      const cardTitle = document.getElementById('cardTitle');
-      const cardContent = document.getElementById('cardContent');
-      if (textContainerLong) textContainerLong.style.display = 'none';
-      if (bottomRightBadge) bottomRightBadge.style.display = 'block';
-      if (textContainer) textContainer.style.display = 'block';
-
-      if (!lockedRefugeTextKey && textKeys.length > 0) {
-        lockedRefugeTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
-      }
-      if (!lockedRefugeBgNum) {
-        const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
-        lockedRefugeBgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
-      }
-
-      const selectedData = cardTexts[lockedRefugeTextKey] || { title: '皈依祈求', content: '內容載入中...' };
-      const paddedImgNum = String(lockedRefugeBgNum).padStart(2, '0');
-      const imgPath = `images/bg_${paddedImgNum}.webp`;
-
-      let titleText = selectedData.title;
-      let rawContent = selectedData.content;
-      if (titleText && titleText.length > 16) titleText = titleText.substring(0, 16);
-
-      if (cardTitle) cardTitle.textContent = titleText || '';
-      if (cardContent) cardContent.textContent = rawContent || '';
-
-      const displayId = selectedData.id || lockedRefugeTextKey;
-      const cardIdInline = document.getElementById('cardIdInline');
-      if (cardIdInline) cardIdInline.textContent = displayId;
-
-      console.log(`【第2組鎖定・皈依祈求】Images Text ID: ${displayId} | Background: ${imgPath}`);
-
-      if (cardStage) {
-        cardStage.style.backgroundImage = `url('${imgPath}')`;
       }
     }
 
@@ -3182,6 +3104,7 @@
         let elapsed = now - startTime;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // Draw deep cosmic background tint
         ctx.fillStyle = 'rgba(4, 7, 15, 0.25)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -3230,8 +3153,7 @@
       triggerStarSea(false);
       showToast('御信樂風望星海', 3500);
 
-      isRefugeActiveInSession = true;
-      loadRandomCardDataForShare();
+      loadRandomCardData();
 
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
@@ -3255,12 +3177,7 @@
     function handleRestoreCompanionButtons() {
       showToast('展悲智翼飛佛地', 3500);
 
-      // Reset locked sessions since user pressed 'Return' without sharing
-      lockedTeacherQuoteKey = null;
-      lockedTeacherBgNum = null;
-      lockedRefugeTextKey = null;
-      lockedRefugeBgNum = null;
-      isRefugeActiveInSession = false;
+      // User pressed "返回" without sharing -> mark that current card cycle is abandoned / should refresh
       hasCompletedShare = true;
 
       const cardStage = document.getElementById('cardStage');
@@ -3943,6 +3860,115 @@
       }
     }
 
+    function loadRandomCardData() {
+      return new Promise(async (resolve) => {
+        await loadBackgroundConfig();
+        if (Object.keys(cardTexts).length === 0) {
+          try {
+            const res = await fetch('images_text.json?t=' + Date.now());
+            if (res.ok) {
+              cardTexts = await res.json();
+              textKeys = Object.keys(cardTexts);
+            }
+          } catch(e) {}
+        }
+
+        const cardStage = document.getElementById('cardStage');
+        const bottomRightBadge = document.getElementById('bottomRightBadge');
+        const textContainer = document.getElementById('textContainer');
+        const textContainerLong = document.getElementById('textContainerLongCard');
+        const cardTitle = document.getElementById('cardTitle');
+        const cardContent = document.getElementById('cardContent');
+        if (textContainerLong) textContainerLong.style.display = 'none';
+        if (bottomRightBadge) bottomRightBadge.style.display = 'block';
+        if (textContainer) textContainer.style.display = 'block';
+
+        const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
+        const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+        currentRefugeBgNum = randomImgNum;
+        const paddedImgNum = String(randomImgNum).padStart(2, '0');
+        const imgPath = `images/bg_${paddedImgNum}.webp`;
+
+        if (textKeys.length > 0) {
+          const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
+          currentRefugeTextKey = randomTextKey;
+          const selectedData = cardTexts[randomTextKey];
+
+          let titleText = selectedData.title;
+          let rawContent = selectedData.content;
+          if (titleText && titleText.length > 16) titleText = titleText.substring(0, 16);
+
+          if (cardTitle) cardTitle.textContent = titleText || '';
+          if (cardContent) cardContent.textContent = rawContent || '';
+
+          const displayId = selectedData.id || randomTextKey;
+          const cardIdInline = document.getElementById('cardIdInline');
+          if (cardIdInline) cardIdInline.textContent = displayId;
+
+          console.log(`【第2組記錄・皈依祈求】Images Text Sentence ID: ${displayId} (Key: ${currentRefugeTextKey}) | Background Image: ${imgPath}`);
+
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94 - 28;
+              let size = 34;
+              const minSize = 14;
+
+              let targetFont = size >= 30 
+                ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+              if (cardTitle) {
+                cardTitle.style.fontSize = (size + 4) + "px";
+                cardTitle.style.fontFamily = targetFont;
+              }
+              if (cardContent) {
+                cardContent.style.fontSize = size + "px";
+                cardContent.style.fontFamily = targetFont;
+              }
+              if (cardIdInline) {
+                cardIdInline.style.fontSize = "12px";
+                cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+              }
+
+              let tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
+
+              while (tH > maxH && size > minSize) {
+                size--;
+                targetFont = size >= 30 
+                  ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                  : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+                if (cardTitle) {
+                  cardTitle.style.fontSize = (size + 4) + "px";
+                  cardTitle.style.fontFamily = targetFont;
+                }
+                if (cardContent) {
+                  cardContent.style.fontSize = size + "px";
+                  cardContent.style.fontFamily = targetFont;
+                }
+                if (cardIdInline) {
+                  cardIdInline.style.fontSize = "12px";
+                  cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+                }
+
+                tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
+              }
+              resolve();
+            });
+          });
+
+          if (bottomRightBadge) bottomRightBadge.style.display = 'none';
+        } else {
+          resolve();
+        }
+
+        if (cardStage) {
+          cardStage.style.backgroundImage = `url('${imgPath}')`;
+          cardStage.classList.remove('fade-out');
+        }
+      });
+    }
+
     async function initCompanionCard(targetDay) {
       await loadBackgroundConfig();
       await loadMasterQuotesJson();
@@ -3978,19 +4004,27 @@
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
 
         if (masterQuotesKeys.length > 0) {
-          // Strict Session Locking: if locked values are missing or share completed, generate and lock
-          if (hasCompletedShare || !lockedTeacherQuoteKey || !masterQuotesObj[lockedTeacherQuoteKey]) {
-            lockedTeacherQuoteKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
+          const savedDate = classicStorage.getItem('TEACHER_CARD_DATE_V971');
+          let savedQuoteKey = classicStorage.getItem('TEACHER_CARD_QUOTE_KEY_V971');
+          let savedBgNum = classicStorage.getItem('TEACHER_CARD_BG_NUM_V971');
+
+          if (savedDate !== todayStr || !savedQuoteKey || !masterQuotesObj[savedQuoteKey] || !savedBgNum) {
+            currentTeacherQuoteKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
             const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
-            lockedTeacherBgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
-            hasCompletedShare = false;
-            isRefugeActiveInSession = false;
+            currentTeacherBgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+            
+            classicStorage.setItem('TEACHER_CARD_DATE_V971', todayStr);
+            classicStorage.setItem('TEACHER_CARD_QUOTE_KEY_V971', currentTeacherQuoteKey);
+            classicStorage.setItem('TEACHER_CARD_BG_NUM_V971', currentTeacherBgNum);
+          } else {
+            currentTeacherQuoteKey = savedQuoteKey;
+            currentTeacherBgNum = parseInt(savedBgNum, 10);
           }
 
-          const item = masterQuotesObj[lockedTeacherQuoteKey];
+          const item = masterQuotesObj[currentTeacherQuoteKey];
           let quoteText = item.content || '';
 
-          console.log(`【第1組鎖定記錄・師父法語】Teacher Quote ID: ${lockedTeacherQuoteKey} | Background: bg_${String(lockedTeacherBgNum).padStart(2,'0')}.webp`);
+          console.log(`【第1組記錄・師父法語】Day: ${targetDay} | Teacher Quote ID: ${currentTeacherQuoteKey} | Background Image: bg_${String(currentTeacherBgNum).padStart(2, '0')}.webp`);
 
           if (textContainer) textContainer.style.display = 'none';
           if (textContainerLong) textContainerLong.style.display = 'flex';
@@ -4056,7 +4090,7 @@
             });
           });
 
-          const paddedImgNum = String(lockedTeacherBgNum).padStart(2, '0');
+          const paddedImgNum = String(currentTeacherBgNum).padStart(2, '0');
           if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
         }
       }
