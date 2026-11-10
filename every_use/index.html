@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.743</title>
+  <title>歡喜背書V999.742</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1031,7 +1031,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.744 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.743 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1442,7 +1442,7 @@
         video.load(); 
       } catch(e) {}
 
-      // 強制退出全螢幕
+      // 退出全螢幕
       if (document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
       } else if (document.webkitExitFullscreen) {
@@ -1515,17 +1515,7 @@
     window.addEventListener('orientationchange', orientationChangeWrapper);
 
     function triggerAppFullscreen() {
-      const el = document.documentElement;
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      if (isIOS) {
-        window.scrollTo(0, 1);
-      } else {
-        try {
-          if (el.requestFullscreen) { el.requestFullscreen().catch(() => {}); } 
-          else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen().catch(() => {}); } 
-          else if (el.msRequestFullscreen) { el.msRequestFullscreen().catch(() => {}); }
-        } catch (e) {}
-      }
+      // 已停用瀏覽器原生全螢幕 API，避免跳出干擾操作的提示框
     }
 
     function getUserMediaWithTimeout(constraints, timeoutMs = 6000) {
@@ -1556,7 +1546,6 @@
     }
 
     async function playStandaloneVideo(modeType, startSeekSec = 0, onEndedCallback) {
-      triggerAppFullscreen(); // 確保模式1與模式5播放時進入全螢幕
       currentCoreMode = modeType; 
       haltGuideRunnerImmediately();
       if (video && !video.paused) video.pause();
@@ -3231,13 +3220,6 @@
 
       hasCompletedShare = true;
 
-      // 退出全螢幕
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
-
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
         cardStage.style.transition = 'opacity 0.8s ease';
@@ -3555,7 +3537,6 @@
     }
 
     function handleOfferingClick() {
-      triggerAppFullscreen(); // 確保背書供養觸發全螢幕
       const displayCoinsCount = document.getElementById('display-coins-count');
       const inputClassId = document.getElementById('input-class-id');
       const inputUserName = document.getElementById('input-user-name');
