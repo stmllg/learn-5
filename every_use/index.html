@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.65</title>
+  <title>歡喜背書V999.73</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -275,13 +275,12 @@
       right: 3%;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: space-between;
       align-items: stretch;
-      overflow: hidden;
-      border: none;
-      background: transparent;
+      overflow: visible;
+      border: 3px solid red;
+      background: rgba(255, 0, 0, 0.03);
       padding: 8px;
-      gap: 4px;
     }
     .card-title-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
@@ -983,7 +982,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.65 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.73 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1090,6 +1089,7 @@
 
     const lineBrowserOverlay = document.getElementById('line-browser-overlay');
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
+    portraitBlocker.onclick = () => { portraitBlocker.style.display = 'none'; companionOverlay.style.display = 'flex'; };
     const companionOverlay = document.getElementById('companion-overlay');
     const restoreModalOverlay = document.getElementById('restore-modal-overlay');
     const restoreDescText = document.getElementById('restore-desc-text');
@@ -1201,6 +1201,11 @@
     let manualScrollTimer = null;
 
     let pendingRestoredState = null;
+    let currentTeacherQuoteKey = null;
+    let currentTeacherBgNum = null;
+    let currentRefugeTextKey = null;
+    let currentRefugeBgNum = null;
+    let hasCompletedShare = false;
 
     function getNormalizedDateStr() {
       const now = new Date();
@@ -1546,6 +1551,7 @@
     async function playTeacherGuideAndRecite() {
       markFirstCardSeen();
       triggerAppFullscreen();
+      hasCompletedShare = true;
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
       compOverlay.classList.remove('active');
@@ -1588,6 +1594,7 @@
     async function closeCompanionCard() {
       markFirstCardSeen();
       triggerAppFullscreen();
+      hasCompletedShare = true;
       
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
@@ -1629,24 +1636,17 @@
     }
 
     function getCurrentProgressEnd() {
-      // 1. 若記憶體中已有排程當日終點，優先採用
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
-      
-      // 2. 檢查 localStorage 中是否存有上次進度
       const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
       if (saved !== null && saved !== '' && saved !== '0') {
         return parseInt(saved, 10);
       }
-      
-      // 3. 【快取清除防護修復】若無快取紀錄，根據網址的 start 日期與今天日期 (targetDay) 做判定
-      // 不管是否有更改過排程，我們用最低的補給他，每天一句數量即可 (targetDay - 1)，不用從第一句開始。
       const targetDay = getRealTargetDay();
       if (targetDay > 1) {
         return Math.min(CLASSIC_TOTAL_SENTENCES, targetDay - 1);
       }
-      
       return 0;
     }
 
@@ -2741,10 +2741,15 @@
       const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
       try {
         await initCompanionCard(targetDay);
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 200));
         const canvas1 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
-        await loadRandomCardData();
-        await new Promise(r => setTimeout(r, 400));
+        
+        if (!currentRefugeTextKey || !cardTexts[currentRefugeTextKey]) {
+          await loadRandomCardData();
+        } else {
+          await renderSpecificRefugeCard(currentRefugeTextKey, currentRefugeBgNum);
+        }
+        await new Promise(r => setTimeout(r, 200));
         const canvas2 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
@@ -2754,9 +2759,11 @@
         ctx.fillStyle = '#F59E0B';
         ctx.fillRect(0, canvas1.height, combinedCanvas.width, 8);
         ctx.drawImage(canvas2, 0, canvas1.height + 8);
-        loadRandomCardData();
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
+        hasCompletedShare = true;
+        console.log(`【已完成 LINE 分享】已輸出記錄：\n第1組(師父法語): Quote ID=${currentTeacherQuoteKey}, Bg=bg_${String(currentTeacherBgNum).padStart(2,'0')}.webp\n第2組(皈依祈求): Text Key=${currentRefugeTextKey}, Bg=bg_${String(currentRefugeBgNum).padStart(2,'0')}.webp`);
+
         combinedCanvas.toBlob(async (blob) => {
           if (!blob) { showToast('⚠️ 截圖產生失敗', 3000); return; }
           let clipboardSuccess = false;
@@ -3167,6 +3174,9 @@
 
     function handleRestoreCompanionButtons() {
       showToast('展悲智翼飛佛地', 3500);
+
+      // User pressed "返回" without sharing -> mark that current card cycle is abandoned / should refresh
+      hasCompletedShare = true;
 
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
@@ -3848,38 +3858,136 @@
       }
     }
 
-    async function loadRandomCardData() {
-      await loadBackgroundConfig();
-      if (Object.keys(cardTexts).length === 0) {
-        try {
-          const res = await fetch('images_text.json?t=' + Date.now());
-          if (res.ok) {
-            cardTexts = await res.json();
-            textKeys = Object.keys(cardTexts);
-          }
-        } catch(e) {}
-      }
+    
+    function renderSpecificRefugeCard(textKey, bgNum) {
+      return new Promise(async (resolve) => {
+        await loadBackgroundConfig();
+        if (Object.keys(cardTexts).length === 0) {
+          try {
+            const res = await fetch('images_text.json?t=' + Date.now());
+            if (res.ok) {
+              cardTexts = await res.json();
+              textKeys = Object.keys(cardTexts);
+            }
+          } catch(e) {}
+        }
 
-      const cardStage = document.getElementById('cardStage');
-      const bottomRightBadge = document.getElementById('bottomRightBadge');
-      const textContainer = document.getElementById('textContainer');
-      const textContainerLong = document.getElementById('textContainerLongCard');
-      const cardTitle = document.getElementById('cardTitle');
-      const cardContent = document.getElementById('cardContent');
-      if (textContainerLong) textContainerLong.style.display = 'none';
-      if (bottomRightBadge) bottomRightBadge.style.display = 'block';
-      if (textContainer) textContainer.style.display = 'block';
+        const cardStage = document.getElementById('cardStage');
+        const bottomRightBadge = document.getElementById('bottomRightBadge');
+        const textContainer = document.getElementById('textContainer');
+        const textContainerLong = document.getElementById('textContainerLongCard');
+        const cardTitle = document.getElementById('cardTitle');
+        const cardContent = document.getElementById('cardContent');
+        if (textContainerLong) textContainerLong.style.display = 'none';
+        if (bottomRightBadge) bottomRightBadge.style.display = 'block';
+        if (textContainer) textContainer.style.display = 'block';
 
-      const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
-      const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
-      const paddedImgNum = String(randomImgNum).padStart(2, '0');
-      const imgPath = `images/bg_${paddedImgNum}.webp`;
+        const selectedData = cardTexts[textKey] || cardTexts[textKeys[0]];
+        let titleText = selectedData.title;
+        let rawContent = selectedData.content;
+        if (titleText && titleText.length > 16) titleText = titleText.substring(0, 16);
 
-      if (cardStage) cardStage.classList.add('fade-out');
+        if (cardTitle) cardTitle.textContent = titleText || '';
+        if (cardContent) cardContent.textContent = rawContent || '';
 
-      setTimeout(() => {
+        const displayId = selectedData.id || textKey;
+        const cardIdInline = document.getElementById('cardIdInline');
+        if (cardIdInline) cardIdInline.textContent = displayId;
+
+        const paddedImgNum = String(bgNum || backgroundConfig.firstNum).padStart(2, '0');
+        const imgPath = `images/bg_${paddedImgNum}.webp`;
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const cardH = (cardStage && cardStage.clientHeight > 50 ? cardStage.clientHeight : 600);
+            const maxH = cardH * 0.94 - 28;
+            let size = 34;
+            const minSize = 14;
+
+            let targetFont = size >= 30 
+              ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+              : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+            if (cardTitle) {
+              cardTitle.style.fontSize = (size + 4) + "px";
+              cardTitle.style.fontFamily = targetFont;
+            }
+            if (cardContent) {
+              cardContent.style.fontSize = size + "px";
+              cardContent.style.fontFamily = targetFont;
+            }
+            if (cardIdInline) {
+              cardIdInline.style.fontSize = "12px";
+              cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+            }
+
+            let tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
+
+            while (tH > maxH && size > minSize) {
+              size--;
+              targetFont = size >= 30 
+                ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+              if (cardTitle) {
+                cardTitle.style.fontSize = (size + 4) + "px";
+                cardTitle.style.fontFamily = targetFont;
+              }
+              if (cardContent) {
+                cardContent.style.fontSize = size + "px";
+                cardContent.style.fontFamily = targetFont;
+              }
+              if (cardIdInline) {
+                cardIdInline.style.fontSize = "12px";
+                cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+              }
+
+              tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
+            }
+
+            if (bottomRightBadge) bottomRightBadge.style.display = 'none';
+            if (cardStage) {
+              cardStage.style.backgroundImage = `url('${imgPath}')`;
+              cardStage.classList.remove('fade-out');
+            }
+            resolve();
+          });
+        });
+      });
+    }
+
+    function loadRandomCardData() {
+      return new Promise(async (resolve) => {
+        await loadBackgroundConfig();
+        if (Object.keys(cardTexts).length === 0) {
+          try {
+            const res = await fetch('images_text.json?t=' + Date.now());
+            if (res.ok) {
+              cardTexts = await res.json();
+              textKeys = Object.keys(cardTexts);
+            }
+          } catch(e) {}
+        }
+
+        const cardStage = document.getElementById('cardStage');
+        const bottomRightBadge = document.getElementById('bottomRightBadge');
+        const textContainer = document.getElementById('textContainer');
+        const textContainerLong = document.getElementById('textContainerLongCard');
+        const cardTitle = document.getElementById('cardTitle');
+        const cardContent = document.getElementById('cardContent');
+        if (textContainerLong) textContainerLong.style.display = 'none';
+        if (bottomRightBadge) bottomRightBadge.style.display = 'block';
+        if (textContainer) textContainer.style.display = 'block';
+
+        const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
+        const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+        currentRefugeBgNum = randomImgNum;
+        const paddedImgNum = String(randomImgNum).padStart(2, '0');
+        const imgPath = `images/bg_${paddedImgNum}.webp`;
+
         if (textKeys.length > 0) {
           const randomTextKey = textKeys[Math.floor(Math.random() * textKeys.length)];
+          currentRefugeTextKey = randomTextKey;
           const selectedData = cardTexts[randomTextKey];
 
           let titleText = selectedData.title;
@@ -3893,114 +4001,162 @@
           const cardIdInline = document.getElementById('cardIdInline');
           if (cardIdInline) cardIdInline.textContent = displayId;
 
-          const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94 - 28;
+          console.log(`【第2組記錄・皈依祈求】Images Text Sentence ID: ${displayId} (Key: ${currentRefugeTextKey}) | Background Image: ${imgPath}`);
 
-          let size = 34; 
-          const minSize = 14; 
+          // Robust 34px down-to-14px decrement adaptive loop with Noto Serif TC for >= 30px
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              const cardH = (cardStage && cardStage.clientHeight > 50 ? cardStage.clientHeight : 600);
+              const maxH = cardH * 0.94 - 28;
+              let size = 34;
+              const minSize = 14;
 
-          const targetFont = size >= 30 
-            ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
-            : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+              let targetFont = size >= 30 
+                ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
 
-          if (cardContent) cardContent.style.fontSize = size + "px";
-          if (cardTitle) cardTitle.style.fontSize = (size + 4) + "px";
-          if (cardContent) cardContent.style.fontFamily = targetFont;
-          if (cardTitle) cardTitle.style.fontFamily = targetFont;
-          if (cardIdInline) {
-            cardIdInline.style.fontSize = "12px";
-            cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-          }
+              if (cardTitle) {
+                cardTitle.style.fontSize = (size + 4) + "px";
+                cardTitle.style.fontFamily = targetFont;
+              }
+              if (cardContent) {
+                cardContent.style.fontSize = size + "px";
+                cardContent.style.fontFamily = targetFont;
+              }
+              if (cardIdInline) {
+                cardIdInline.style.fontSize = "12px";
+                cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+              }
 
-          let tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
+              let tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
 
-          while (tH > maxH && size > minSize) {
-            size--;
-            const updatedFont = size >= 30 
-              ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
-              : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-            if (cardContent) cardContent.style.fontSize = size + "px";
-            if (cardTitle) cardTitle.style.fontSize = (size + 4) + "px";
-            if (cardContent) cardContent.style.fontFamily = updatedFont;
-            if (cardTitle) cardTitle.style.fontFamily = updatedFont;
-            if (cardIdInline) cardIdInline.style.fontSize = "12px";
-            tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
-          }
+              while (tH > maxH && size > minSize) {
+                size--;
+                targetFont = size >= 30 
+                  ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                  : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+                if (cardTitle) {
+                  cardTitle.style.fontSize = (size + 4) + "px";
+                  cardTitle.style.fontFamily = targetFont;
+                }
+                if (cardContent) {
+                  cardContent.style.fontSize = size + "px";
+                  cardContent.style.fontFamily = targetFont;
+                }
+                if (cardIdInline) {
+                  cardIdInline.style.fontSize = "12px";
+                  cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+                }
+
+                tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
+              }
+            });
+          });
 
           if (bottomRightBadge) bottomRightBadge.style.display = 'none';
         }
+
         if (cardStage) {
           cardStage.style.backgroundImage = `url('${imgPath}')`;
           cardStage.classList.remove('fade-out');
         }
-      }, 200);
+
+        // Wait for next frame to ensure DOM & background image rendering are complete
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      });
     }
 
-    async function initCompanionCard(targetDay) {
-      await loadBackgroundConfig();
-      await loadMasterQuotesJson();
-      window.CURRENT_TARGET_DAY = targetDay;
-      const cardStage = document.getElementById('cardStage');
-      const bottomRightBadge = document.getElementById('bottomRightBadge');
-      const textContainer = document.getElementById('textContainer');
-      const textContainerLong = document.getElementById('textContainerLongCard');
-      const longHeader = document.getElementById('longCardHeader');
-      const longContent = document.getElementById('longCardContent');
-      const longFooter = document.getElementById('longCardFooter');
-      const btnDays = document.getElementById('btn-card-days');
+    function initCompanionCard(targetDay) {
+      return new Promise(async (resolve) => {
+        await loadBackgroundConfig();
+        await loadMasterQuotesJson();
+        window.CURRENT_TARGET_DAY = targetDay;
+        const cardStage = document.getElementById('cardStage');
+        const bottomRightBadge = document.getElementById('bottomRightBadge');
+        const textContainer = document.getElementById('textContainer');
+        const textContainerLong = document.getElementById('textContainerLongCard');
+        const longHeader = document.getElementById('longCardHeader');
+        const longContent = document.getElementById('longCardContent');
+        const longFooter = document.getElementById('longCardFooter');
+        const btnDays = document.getElementById('btn-card-days');
 
-      if (btnDays) {
-        btnDays.style.display = 'inline-block';
-        btnDays.textContent = '皈依祈求';
-        btnDays.onclick = handleDayBtnClick;
-      }
+        if (btnDays) {
+          btnDays.style.display = 'inline-block';
+          btnDays.textContent = '皈依祈求';
+          btnDays.onclick = handleDayBtnClick;
+        }
 
-      const todayStr = getNormalizedDateStr();
-      const lastShownDate = classicStorage.getItem('FIRST_LAUNCH_SHOWN_DATE_V971');
-      const isFirstLaunchToday = (targetDay <= 21 && lastShownDate !== todayStr);
+        const todayStr = getNormalizedDateStr();
+        const lastShownDate = classicStorage.getItem('FIRST_LAUNCH_SHOWN_DATE_V971');
+        const isFirstLaunchToday = (targetDay <= 21 && lastShownDate !== todayStr);
 
-      if (isFirstLaunchToday) {
-        const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
-        if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
-        if (bottomRightBadge) bottomRightBadge.style.display = 'none';
-        if (textContainer) textContainer.style.display = 'none';
-        if (textContainerLong) textContainerLong.style.display = 'none';
-        window.HAS_SEEN_FIRST_CARD = false;
-      } else {
-        window.HAS_SEEN_FIRST_CARD = true;
-        if (bottomRightBadge) bottomRightBadge.style.display = 'block';
-
-        if (masterQuotesKeys.length > 0) {
-          const randomKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
-          const item = masterQuotesObj[randomKey];
-          let quoteText = item.content || '';
-
+        if (isFirstLaunchToday) {
+          const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
+          if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
+          if (bottomRightBadge) bottomRightBadge.style.display = 'none';
           if (textContainer) textContainer.style.display = 'none';
-          if (textContainerLong) textContainerLong.style.display = 'flex';
-          
-          if (longHeader) {
-            longHeader.textContent = '師父法語';
-            longHeader.style.textAlign = 'left';
-          }
-          if (longContent) {
-            longContent.textContent = quoteText;
-          }
-          if (longFooter) {
-            longFooter.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
-            longFooter.style.textAlign = 'center';
-          }
+          if (textContainerLong) textContainerLong.style.display = 'none';
+          window.HAS_SEEN_FIRST_CARD = false;
+          resolve();
+        } else {
+          window.HAS_SEEN_FIRST_CARD = true;
+          if (bottomRightBadge) bottomRightBadge.style.display = 'block';
 
-          // 嚴格依據 scrollHeight 真實內容高度檢測，從 34px 開始以 -1px 平順級距向下遞減至 14px
-          requestAnimationFrame(() => {
+          if (masterQuotesKeys.length > 0) {
+            // Strict daily fixed persistence: binds to todayStr so it never changes today unless tomorrow arrives
+            const savedDate = classicStorage.getItem('TEACHER_CARD_DATE_V971');
+            let savedQuoteKey = classicStorage.getItem('TEACHER_CARD_QUOTE_KEY_V971');
+            let savedBgNum = classicStorage.getItem('TEACHER_CARD_BG_NUM_V971');
+
+            if (savedDate !== todayStr || !savedQuoteKey || !masterQuotesObj[savedQuoteKey] || !savedBgNum) {
+              currentTeacherQuoteKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
+              const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
+              currentTeacherBgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+              
+              classicStorage.setItem('TEACHER_CARD_DATE_V971', todayStr);
+              classicStorage.setItem('TEACHER_CARD_QUOTE_KEY_V971', currentTeacherQuoteKey);
+              classicStorage.setItem('TEACHER_CARD_BG_NUM_V971', currentTeacherBgNum);
+            } else {
+              currentTeacherQuoteKey = savedQuoteKey;
+              currentTeacherBgNum = parseInt(savedBgNum, 10);
+            }
+
+            const item = masterQuotesObj[currentTeacherQuoteKey];
+            let quoteText = item.content || '';
+
+            if (textContainer) textContainer.style.display = 'none';
+            if (textContainerLong) textContainerLong.style.display = 'flex';
+            
+            if (longHeader) {
+              longHeader.textContent = '師父法語';
+              longHeader.style.textAlign = 'left';
+            }
+            if (longContent) {
+              longContent.textContent = quoteText;
+            }
+            if (longFooter) {
+              longFooter.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+              longFooter.style.textAlign = 'center';
+            }
+
+            // Ensure cardStage / companionOverlay is visible so clientHeight > 0
+            const compOverlay = document.getElementById('companion-overlay');
+            if (compOverlay && getComputedStyle(compOverlay).display === 'none') {
+              compOverlay.style.display = 'flex';
+            }
+
             requestAnimationFrame(() => {
-              let size = 34;
-              const minSize = 14;
+              requestAnimationFrame(() => {
+                const maxH = (textContainerLong && textContainerLong.clientHeight > 50 ? textContainerLong.clientHeight : 380) - 12;
+                let size = 34;
+                const minSize = 14;
 
-              if (textContainerLong) {
-                textContainerLong.style.overflow = 'hidden';
-              }
-
-              while (size >= minSize) {
-                let targetFont = size >= 26 
+                let targetFont = size >= 30 
                   ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
                   : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
 
@@ -4014,31 +4170,47 @@
                 }
                 if (longFooter) {
                   longFooter.style.fontSize = "16px";
-                  longFooter.style.textAlign = "center";
-                  longFooter.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+                  longFooter.style.fontFamily = targetFont;
                 }
 
-                // 檢查 scrollHeight 是否超過 clientHeight
-                if (textContainerLong && textContainerLong.scrollHeight <= textContainerLong.clientHeight) {
-                  break;
+                let totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+
+                while (totalH > maxH && size > minSize) {
+                  size--;
+                  targetFont = size >= 30 
+                    ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                    : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+                  if (longHeader) {
+                    longHeader.style.fontSize = (size + 2) + "px";
+                    longHeader.style.fontFamily = targetFont;
+                  }
+                  if (longContent) {
+                    longContent.style.fontSize = size + "px";
+                    longContent.style.fontFamily = targetFont;
+                  }
+                  if (longFooter) {
+                    longFooter.style.fontSize = "16px";
+                    longFooter.style.fontFamily = targetFont;
+                  }
+
+                  totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
                 }
-                if (size === minSize) {
-                  break;
+
+                const paddedImgNum = String(currentTeacherBgNum).padStart(2, '0');
+                if (cardStage) {
+                  cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
                 }
-                size--;
-              }
+
+                resolve();
+              });
             });
-          });
-
-          const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
-          const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
-          const paddedImgNum = String(randomImgNum).padStart(2, '0');
-          if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
+          } else {
+            resolve();
+          }
         }
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', async () => {
+      });
+    }window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
         const guideContent = overlay.querySelector('.line-guide-content');
@@ -4082,7 +4254,7 @@
 
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.display = 'flex';
-      compOverlay.classList.add('active');
+      companionOverlay.classList.add('active');
 
       handleOrientationCheck();
     });
