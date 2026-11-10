@@ -181,7 +181,7 @@
 
     <div class="checkbox-group">
         <input type="checkbox" id="isSeniorCheckbox">
-        <label for="isSeniorCheckbox">🌱 長青班專用模式（勾選後，產生的專屬網址將指向長青簡化版 green_index.html）</label>
+        <label for="isSeniorCheckbox">🌱 長青班專屬模式（勾選後，產生的專屬網址將指向長青版 green_index.html）</label>
     </div>
 
     <div class="form-group">
@@ -211,7 +211,7 @@
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec";
-    const SECRET_KEY = "teacher2026"; // 您指定的固定密鑰
+    const SECRET_KEY = "teacher2026"; // 固定密鑰
 
     function getRandomLetters() {
         const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -230,7 +230,6 @@
         return `${y}-${m}-${d}`;
     }
 
-    // 讀取網址參數 (支援舊版 start/group 或新版 s/g)
     const urlParams = new URLSearchParams(window.location.search);
     const group = urlParams.get('g') || urlParams.get('group') || getRandomLetters();
     const start = urlParams.get('s') || urlParams.get('start') || getTodayString();
@@ -328,7 +327,8 @@
         pathArr.pop(); 
         const basePath = pathArr.join('/') + '/';
         
-        const targetFileName = isSenior ? "green_index.html" : "index.html";
+        // 若勾選長青班，輸出網址指向 green_index.html；否則指向標準版 app.html (或 index.html)
+        const targetFileName = isSenior ? "green_index.html" : "app.html";
 
         // === 自動計算精簡版帶有檢核碼 k (前 3 碼) 的網址 ===
         const rawStringForMd5 = start + group + SECRET_KEY;
@@ -338,7 +338,9 @@
         
         let teamHeader = teamName ? `【${teamName}】發起人` : "發起人";
 
-        finalShareText = `${teamHeader} ${fullName}\n📚《${classicText}》 📅 ${start}\n👉 點擊連結背誦：${personalLink}`;
+        finalShareText = `${teamHeader} ${fullName}
+📚《${classicText}》 📅 ${start}
+👉 點擊連結背誦：${personalLink}`;
 
         document.getElementById("generated-text").innerText = finalShareText;
         document.getElementById("result-box").style.display = "block";
