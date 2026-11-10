@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.741</title>
+  <title>歡喜背書V999.742</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,20 +20,14 @@
     const START_PARAM = urlParams.get('s') || urlParams.get('start') || '';
     const K_PARAM = urlParams.get('k');
 
-    // === 嚴格安全檢核防護機制 ===
-    // 規則 1：如果完全沒有帶 k 參數，直接擋下！
-    // 規則 2：如果帶了 k 參數，但算出來的檢核碼不符，直接擋下！
-    if (!K_PARAM) {
-        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 缺少安全驗證碼 (k)</h2><p style="color:#CBD5E1; margin-top:10px;">此連結無效或未經授權，無法直接存取此頁面。</p></div></body>';
-        throw new Error("Missing security parameter.");
-    }
-
-    const checkString = START_PARAM + GROUP_PARAM + SECRET_KEY;
-    const calculatedK = CryptoJS.MD5(checkString).toString().substring(0, 3);
-    
-    if (calculatedK !== K_PARAM) {
-        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 網址驗證失敗或參數遭不當修改</h2><p style="color:#CBD5E1; margin-top:10px;">此網址無效或未經授權，無法存取此頁面。</p></div></body>';
-        throw new Error("Security verification failed.");
+    // === 安全檢核防護機制 ===
+    if (K_PARAM) {
+        const checkString = START_PARAM + GROUP_PARAM + SECRET_KEY;
+        const calculatedK = CryptoJS.MD5(checkString).toString().substring(0, 3);
+        if (calculatedK !== K_PARAM) {
+            document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 網址驗證失敗或參數遭不當修改</h2><p style="color:#CBD5E1; margin-top:10px;">此網址無效或未經授權，無法存取此頁面。</p></div></body>';
+            throw new Error("Security verification failed.");
+        }
     }
 
     const CURRENT_CLASSIC_ID = /^[a-zA-Z0-9_-]+$/.test(CLASSIC_PARAM || '') ? CLASSIC_PARAM : 'er_sheng';
@@ -118,17 +112,34 @@
       letter-spacing: 2px;
     }
     .line-guide-content {
-      font-size: 16px;
-      line-height: 1.8;
+      font-size: 15px;
+      line-height: 1.7;
       color: #E2E8F0;
       text-align: left;
       background: rgba(15, 23, 42, 0.7);
-      padding: 16px 18px;
+      padding: 14px 16px;
       border-radius: 12px;
       border: 1px dashed rgba(245, 158, 11, 0.45);
     }
     .line-guide-content strong {
       color: #38BDF8;
+    }
+    .btn-open-browser {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #06C755 0%, #00B900 100%);
+      color: #FFFFFF;
+      font-size: 17px;
+      font-weight: 900;
+      border: 2px solid #05B34B;
+      border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(6, 199, 85, 0.4);
+      letter-spacing: 1px;
+      transition: transform 0.15s ease-out;
+    }
+    .btn-open-browser:active {
+      transform: scale(0.96);
     }
 
     #portrait-blocker-overlay {
@@ -909,10 +920,27 @@
     <div class="line-guide-card">
       <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
       <div class="line-guide-content">
-        請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>或<strong>「⋯」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Safari 或 Chrome）。
+        偵測到您目前使用 LINE 內建瀏覽器。若三點選單被隱藏，請點擊下方按鈕直接以預設瀏覽器開啟：
       </div>
+      <button class="btn-open-browser" onclick="openInDefaultBrowser()">🚀 點此以預設瀏覽器開啟</button>
     </div>
   </div>
+
+  <script>
+    function openInDefaultBrowser() {
+      const currentUrl = window.location.href;
+      let targetUrl = currentUrl;
+      if (!targetUrl.includes('openExternalBrowser=1')) {
+        targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'openExternalBrowser=1';
+      }
+      if (/Android/i.test(navigator.userAgent)) {
+        const cleanUrl = targetUrl.replace(/^https?:\/\//, '');
+        window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end;`;
+      } else {
+        window.location.href = targetUrl;
+      }
+    }
+  </script>
 
   <div id="portrait-blocker-overlay">
     <div class="rotate-phone-icon"></div>
@@ -1003,7 +1031,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.73 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.742 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -4225,13 +4253,6 @@
     window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
-        const guideContent = overlay.querySelector('.line-guide-content');
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        if (isIOS) {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的圖示（<strong><span>⋯</span></strong>或<strong>指南針/Safari圖示</strong>），點選<strong>「在 Safari 中開啟」</strong>以獲得最佳全螢幕體驗。`;
-        } else {
-          guideContent.innerHTML = `請留意畫面<strong>右下角或右上角</strong>的三點圖示<strong>「⋮」</strong>，點選<strong>「以預設瀏覽器開啟」</strong>（Chrome）。`;
-        }
         overlay.classList.add('active');
         return; 
       }
