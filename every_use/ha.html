@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.701</title>
+  <title>歡喜背書V999.72</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -982,7 +982,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.70 載入中】...</div>
+  <div id="schedule-toast">📦 【v999.72 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1635,17 +1635,24 @@
     }
 
     function getCurrentProgressEnd() {
+      // 1. 若記憶體中已有排程當日終點，優先採用
       if (currentDayPlan && currentDayPlan.end) {
         return currentDayPlan.end;
       }
+      
+      // 2. 檢查 localStorage 中是否存有上次進度
       const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
       if (saved !== null && saved !== '' && saved !== '0') {
         return parseInt(saved, 10);
       }
+      
+      // 3. 【快取清除防護修復】若無快取紀錄，根據網址的 start 日期與今天日期 (targetDay) 做判定
+      // 不管是否有更改過排程，我們用最低的補給他，每天一句數量即可 (targetDay - 1)，不用從第一句開始。
       const targetDay = getRealTargetDay();
       if (targetDay > 1) {
         return Math.min(CLASSIC_TOTAL_SENTENCES, targetDay - 1);
       }
+      
       return 0;
     }
 
@@ -2080,127 +2087,110 @@
           });
 
           currentPdfDoc = await loadingTask.promise;
-          const numPages = currentPdfDoc.numPages || 1;
+          const page = await currentPdfDoc.getPage(1);
 
           pdfCanvas.width = 0;
           pdfCanvas.height = 0;
 
           const availableWidth = Math.max(centerCore.clientWidth || 0, window.innerWidth - 130);
-          
-          let totalHeight = 0;
-          let maxViewportWidth = 0;
-          const pageViewports = [];
+          const pageRotation = page.rotate || 0;
+          const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
+          const pageScale = availableWidth / unscaledViewport.width;
+          const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
 
-          for (let p = 1; p <= numPages; p++) {
-            const page = await currentPdfDoc.getPage(p);
-            const pageRotation = page.rotate || 0;
-            const unscaledViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
-            const pageScale = availableWidth / unscaledViewport.width;
-            const viewport = page.getViewport({ scale: pageScale, rotation: pageRotation });
-            pageViewports.push({ page, viewport });
-            totalHeight += viewport.height;
-            if (viewport.width > maxViewportWidth) maxViewportWidth = viewport.width;
-          }
-
-          pdfCanvas.width = maxViewportWidth;
-          pdfCanvas.height = totalHeight;
+          pdfCanvas.width = viewport.width;
+          pdfCanvas.height = viewport.height;
           const ctx = pdfCanvas.getContext('2d');
 
-          let currentYOffset = 0;
+          await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+          const textContent = await page.getTextContent();
+          const items = textContent.items;
+          const validSpans = [];
+          const chineseCharRegex = /[一-龥]/;
+
+          items.forEach(it => {
+            const str = it.str || '';
+            if (!str.trim()) return;
+
+            const tx = it.transform;
+            const pdfX = tx[4];
+            const pdfY = tx[5];
+
+            const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
+            const fontWidth = it.width * pageScale;
+
+            const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
+            const screenX0 = p0[0];
+
+            const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
+            const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
+
+            const realTop = Math.min(p0[1], pTop[1]);
+            const realBottom = Math.max(p0[1], pTop[1]);
+
+            const charWidth = fontWidth / Math.max(1, str.length);
+            for (let c = 0; c < str.length; c++) {
+              const char = str[c];
+              if (chineseCharRegex.test(char)) {
+                const charX0 = screenX0 + (c * charWidth);
+                const charX1 = charX0 + charWidth;
+                validSpans.push({ x0: charX0, x1: charX1, topY: realTop, bottomY: realBottom, fs: fontScale, char: char });
+              }
+            }
+          });
+
+          validSpans.sort((a, b) => a.topY - b.topY);
+          const rowGroups = [];
+
+          validSpans.forEach(span => {
+            let matched = false;
+            for (let g of rowGroups) {
+              if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
+                g.spans.push(span);
+                matched = true;
+                break;
+              }
+            }
+            if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
+          });
+
+          const analyzedRows = rowGroups.map(g => {
+            g.spans.sort((a, b) => a.x0 - b.x0);
+            const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
+            const minTop = Math.min(...g.spans.map(s => s.topY));
+            const lineX0 = g.spans[0].x0;
+            const lineX1 = g.spans[g.spans.length - 1].x1;
+
+            return { spans: g.spans, chineseCount: g.spans.length, avgFs: avgFs, minTop: minTop, lineX0: lineX0, lineX1: lineX1 };
+          });
+
+          analyzedRows.forEach(r => {
+            r.maxBottom = Math.max(...r.spans.map(s => s.bottomY));
+            r.underLineY = r.maxBottom + 7;
+          });
+
+          const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30);
+          let mainTextFontSize = 0;
+          if (candidateLargeRows.length > 0) {
+            const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
+            mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
+          }
+
           parsedTextLines = [];
           let internalIndex = 0;
 
-          for (let i = 0; i < pageViewports.length; i++) {
-            const { page, viewport } = pageViewports[i];
-            await page.render({ canvasContext: ctx, viewport: viewport, transform: [1, 0, 0, 1, 0, currentYOffset] }).promise;
-
-            const textContent = await page.getTextContent();
-            const items = textContent.items;
-            const validSpans = [];
-            const chineseCharRegex = /[一-龥]/;
-
-            items.forEach(it => {
-              const str = it.str || '';
-              if (!str.trim()) return;
-
-              const tx = it.transform;
-              const pdfX = tx[4];
-              const pdfY = tx[5];
-
-              const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * (viewport.width / viewport.viewBox[2]);
-              const fontWidth = it.width * (viewport.width / viewport.viewBox[2]);
-
-              const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
-              const screenX0 = p0[0];
-
-              const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / (viewport.width / viewport.viewBox[2]));
-              const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
-
-              const realTop = Math.min(p0[1], pTop[1]) + currentYOffset;
-              const realBottom = Math.max(p0[1], pTop[1]) + currentYOffset;
-
-              const charWidth = fontWidth / Math.max(1, str.length);
-              for (let c = 0; c < str.length; c++) {
-                const char = str[c];
-                if (chineseCharRegex.test(char)) {
-                  const charX0 = screenX0 + (c * charWidth);
-                  const charX1 = charX0 + charWidth;
-                  validSpans.push({ x0: charX0, x1: charX1, topY: realTop, bottomY: realBottom, fs: fontScale, char: char });
-                }
-              }
-            });
-
-            validSpans.sort((a, b) => a.topY - b.topY);
-            const rowGroups = [];
-
-            validSpans.forEach(span => {
-              let matched = false;
-              for (let g of rowGroups) {
-                if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
-                  g.spans.push(span);
-                  matched = true;
-                  break;
-                }
-              }
-              if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
-            });
-
-            const analyzedRows = rowGroups.map(g => {
-              g.spans.sort((a, b) => a.x0 - b.x0);
-              const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
-              const minTop = Math.min(...g.spans.map(s => s.topY));
-              const lineX0 = g.spans[0].x0;
-              const lineX1 = g.spans[g.spans.length - 1].x1;
-
-              return { spans: g.spans, chineseCount: g.spans.length, avgFs: avgFs, minTop: minTop, lineX0: lineX0, lineX1: lineX1 };
-            });
-
-            analyzedRows.forEach(r => {
-              r.maxBottom = Math.max(...r.spans.map(s => s.bottomY));
-              r.underLineY = r.maxBottom + 7;
-            });
-
-            const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30);
-            let mainTextFontSize = 0;
-            if (candidateLargeRows.length > 0) {
-              const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
-              mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
+          analyzedRows.forEach(r => {
+            const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.70);
+            if (r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30 && isNormalOrLarge) {
+              parsedTextLines.push({
+                lineIndex: internalIndex++, x0: r.lineX0, x1: r.lineX1, topGlobal: r.minTop, bottomGlobal: r.maxBottom, underLineY: r.underLineY, charItems: r.spans
+              });
             }
-
-            analyzedRows.forEach(r => {
-              const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.70);
-              if (r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30 && isNormalOrLarge) {
-                parsedTextLines.push({
-                  lineIndex: internalIndex++, x0: r.lineX0, x1: r.lineX1, topGlobal: r.minTop, bottomGlobal: r.maxBottom, underLineY: r.underLineY, charItems: r.spans
-                });
-              }
-            });
-
-            currentYOffset += viewport.height;
-          }
+          });
 
           parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
-          guideStage.style.height = totalHeight + 'px';
+          guideStage.style.height = viewport.height + 'px';
 
           updateVisualDisplay();
           scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
@@ -2756,12 +2746,17 @@
       showToast('📸 正在產生上下並列精美截圖...', 2500);
       const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
       try {
+        // 1. Fully render and await Group 1 (Teacher's Dharma Words)
         await initCompanionCard(targetDay);
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 200));
         const canvas1 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
+        
+        // 2. Fully render and await Group 2 (Refuge Prayer / Images Text)
         await loadRandomCardData();
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 200));
         const canvas2 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
+        
+        // Combine canvases vertically
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
         combinedCanvas.height = canvas1.height + canvas2.height + 8;
@@ -2770,10 +2765,11 @@
         ctx.fillStyle = '#F59E0B';
         ctx.fillRect(0, canvas1.height, combinedCanvas.width, 8);
         ctx.drawImage(canvas2, 0, canvas1.height + 8);
-        loadRandomCardData();
+        
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
         hasCompletedShare = true;
+        
         console.log(`【已完成 LINE 分享】已輸出記錄：\n第1組(師父法語): Quote ID=${currentTeacherQuoteKey}, Bg=bg_${String(currentTeacherBgNum).padStart(2,'0')}.webp\n第2組(皈依祈求): Text Key=${currentRefugeTextKey}, Bg=bg_${String(currentRefugeBgNum).padStart(2,'0')}.webp`);
 
         combinedCanvas.toBlob(async (blob) => {
@@ -2794,9 +2790,11 @@
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
           if (clipboardSuccess) {
-            showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
+            showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！
+可直接貼上至 LINE 分享！', 5000);
           } else {
-            showToast('✨ 上下並列截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
+            showToast('✨ 上下並列截圖已自動下載！
+請至相簿選取圖片分享至 LINE！', 4000);
           }
         }, 'image/png', 0.95);
       } catch(err) {
@@ -2804,9 +2802,7 @@
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
         showToast('⚠️ 截圖失敗', 3000);
       }
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
+    }window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         const canvasEl = document.getElementById('pdf-canvas');
         if (canvasEl) {
@@ -3849,7 +3845,7 @@
       } catch (e) {}
     }
 
-    let masterQuotesObj = {};
+        let masterQuotesObj = {};
     let masterQuotesKeys = [];
 
     async function loadMasterQuotesJson() {
@@ -3868,6 +3864,104 @@
         classicStorage.setItem('FIRST_LAUNCH_SHOWN_DATE_V971', getNormalizedDateStr());
         window.HAS_SEEN_FIRST_CARD = true;
       }
+    }
+
+    
+    function renderSpecificRefugeCard(textKey, bgNum) {
+      return new Promise(async (resolve) => {
+        await loadBackgroundConfig();
+        if (Object.keys(cardTexts).length === 0) {
+          try {
+            const res = await fetch('images_text.json?t=' + Date.now());
+            if (res.ok) {
+              cardTexts = await res.json();
+              textKeys = Object.keys(cardTexts);
+            }
+          } catch(e) {}
+        }
+
+        const cardStage = document.getElementById('cardStage');
+        const bottomRightBadge = document.getElementById('bottomRightBadge');
+        const textContainer = document.getElementById('textContainer');
+        const textContainerLong = document.getElementById('textContainerLongCard');
+        const cardTitle = document.getElementById('cardTitle');
+        const cardContent = document.getElementById('cardContent');
+        if (textContainerLong) textContainerLong.style.display = 'none';
+        if (bottomRightBadge) bottomRightBadge.style.display = 'block';
+        if (textContainer) textContainer.style.display = 'block';
+
+        const selectedData = cardTexts[textKey] || cardTexts[textKeys[0]];
+        let titleText = selectedData.title;
+        let rawContent = selectedData.content;
+        if (titleText && titleText.length > 16) titleText = titleText.substring(0, 16);
+
+        if (cardTitle) cardTitle.textContent = titleText || '';
+        if (cardContent) cardContent.textContent = rawContent || '';
+
+        const displayId = selectedData.id || textKey;
+        const cardIdInline = document.getElementById('cardIdInline');
+        if (cardIdInline) cardIdInline.textContent = displayId;
+
+        const paddedImgNum = String(bgNum || backgroundConfig.firstNum).padStart(2, '0');
+        const imgPath = `images/bg_${paddedImgNum}.webp`;
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const cardH = (cardStage && cardStage.clientHeight > 50 ? cardStage.clientHeight : 600);
+            const maxH = cardH * 0.94 - 28;
+            let size = 34;
+            const minSize = 14;
+
+            let targetFont = size >= 30 
+              ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+              : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+            if (cardTitle) {
+              cardTitle.style.fontSize = (size + 4) + "px";
+              cardTitle.style.fontFamily = targetFont;
+            }
+            if (cardContent) {
+              cardContent.style.fontSize = size + "px";
+              cardContent.style.fontFamily = targetFont;
+            }
+            if (cardIdInline) {
+              cardIdInline.style.fontSize = "12px";
+              cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+            }
+
+            let tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
+
+            while (tH > maxH && size > minSize) {
+              size--;
+              targetFont = size >= 30 
+                ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+              if (cardTitle) {
+                cardTitle.style.fontSize = (size + 4) + "px";
+                cardTitle.style.fontFamily = targetFont;
+              }
+              if (cardContent) {
+                cardContent.style.fontSize = size + "px";
+                cardContent.style.fontFamily = targetFont;
+              }
+              if (cardIdInline) {
+                cardIdInline.style.fontSize = "12px";
+                cardIdInline.style.fontFamily = '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+              }
+
+              tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
+            }
+
+            if (bottomRightBadge) bottomRightBadge.style.display = 'none';
+            if (cardStage) {
+              cardStage.style.backgroundImage = `url('${imgPath}')`;
+              cardStage.classList.remove('fade-out');
+            }
+            resolve();
+          });
+        });
+      });
     }
 
     function loadRandomCardData() {
@@ -3917,9 +4011,11 @@
 
           console.log(`【第2組記錄・皈依祈求】Images Text Sentence ID: ${displayId} (Key: ${currentRefugeTextKey}) | Background Image: ${imgPath}`);
 
+          // Robust 34px down-to-14px decrement adaptive loop with Noto Serif TC for >= 30px
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              const maxH = (cardStage ? cardStage.clientHeight : window.innerHeight) * 0.94 - 28;
+              const cardH = (cardStage && cardStage.clientHeight > 50 ? cardStage.clientHeight : 600);
+              const maxH = cardH * 0.94 - 28;
               let size = 34;
               const minSize = 14;
 
@@ -3963,122 +4059,111 @@
 
                 tH = (cardTitle ? cardTitle.offsetHeight : 0) + (cardContent ? cardContent.offsetHeight : 0) + (cardIdInline ? cardIdInline.offsetHeight : 0);
               }
-              resolve();
             });
           });
 
           if (bottomRightBadge) bottomRightBadge.style.display = 'none';
-        } else {
-          resolve();
         }
 
         if (cardStage) {
           cardStage.style.backgroundImage = `url('${imgPath}')`;
           cardStage.classList.remove('fade-out');
         }
+
+        // Wait for next frame to ensure DOM & background image rendering are complete
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
       });
     }
 
-    async function initCompanionCard(targetDay) {
-      await loadBackgroundConfig();
-      await loadMasterQuotesJson();
-      window.CURRENT_TARGET_DAY = targetDay;
-      const cardStage = document.getElementById('cardStage');
-      const bottomRightBadge = document.getElementById('bottomRightBadge');
-      const textContainer = document.getElementById('textContainer');
-      const textContainerLong = document.getElementById('textContainerLongCard');
-      const longHeader = document.getElementById('longCardHeader');
-      const longContent = document.getElementById('longCardContent');
-      const longFooter = document.getElementById('longCardFooter');
-      const btnDays = document.getElementById('btn-card-days');
+    function initCompanionCard(targetDay) {
+      return new Promise(async (resolve) => {
+        await loadBackgroundConfig();
+        await loadMasterQuotesJson();
+        window.CURRENT_TARGET_DAY = targetDay;
+        const cardStage = document.getElementById('cardStage');
+        const bottomRightBadge = document.getElementById('bottomRightBadge');
+        const textContainer = document.getElementById('textContainer');
+        const textContainerLong = document.getElementById('textContainerLongCard');
+        const longHeader = document.getElementById('longCardHeader');
+        const longContent = document.getElementById('longCardContent');
+        const longFooter = document.getElementById('longCardFooter');
+        const btnDays = document.getElementById('btn-card-days');
 
-      if (btnDays) {
-        btnDays.style.display = 'inline-block';
-        btnDays.textContent = '皈依祈求';
-        btnDays.onclick = handleDayBtnClick;
-      }
+        if (btnDays) {
+          btnDays.style.display = 'inline-block';
+          btnDays.textContent = '皈依祈求';
+          btnDays.onclick = handleDayBtnClick;
+        }
 
-      const todayStr = getNormalizedDateStr();
-      const lastShownDate = classicStorage.getItem('FIRST_LAUNCH_SHOWN_DATE_V971');
-      const isFirstLaunchToday = (targetDay <= 21 && lastShownDate !== todayStr);
+        const todayStr = getNormalizedDateStr();
+        const lastShownDate = classicStorage.getItem('FIRST_LAUNCH_SHOWN_DATE_V971');
+        const isFirstLaunchToday = (targetDay <= 21 && lastShownDate !== todayStr);
 
-      if (isFirstLaunchToday) {
-        const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
-        if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
-        if (bottomRightBadge) bottomRightBadge.style.display = 'none';
-        if (textContainer) textContainer.style.display = 'none';
-        if (textContainerLong) textContainerLong.style.display = 'none';
-        window.HAS_SEEN_FIRST_CARD = false;
-      } else {
-        window.HAS_SEEN_FIRST_CARD = true;
-        if (bottomRightBadge) bottomRightBadge.style.display = 'block';
-
-        if (masterQuotesKeys.length > 0) {
-          const savedDate = classicStorage.getItem('TEACHER_CARD_DATE_V971');
-          let savedQuoteKey = classicStorage.getItem('TEACHER_CARD_QUOTE_KEY_V971');
-          let savedBgNum = classicStorage.getItem('TEACHER_CARD_BG_NUM_V971');
-
-          if (savedDate !== todayStr || !savedQuoteKey || !masterQuotesObj[savedQuoteKey] || !savedBgNum) {
-            currentTeacherQuoteKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
-            const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
-            currentTeacherBgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
-            
-            classicStorage.setItem('TEACHER_CARD_DATE_V971', todayStr);
-            classicStorage.setItem('TEACHER_CARD_QUOTE_KEY_V971', currentTeacherQuoteKey);
-            classicStorage.setItem('TEACHER_CARD_BG_NUM_V971', currentTeacherBgNum);
-          } else {
-            currentTeacherQuoteKey = savedQuoteKey;
-            currentTeacherBgNum = parseInt(savedBgNum, 10);
-          }
-
-          const item = masterQuotesObj[currentTeacherQuoteKey];
-          let quoteText = item.content || '';
-
-          console.log(`【第1組記錄・師父法語】Day: ${targetDay} | Teacher Quote ID: ${currentTeacherQuoteKey} | Background Image: bg_${String(currentTeacherBgNum).padStart(2, '0')}.webp`);
-
+        if (isFirstLaunchToday) {
+          const cardFileName = 'cards/' + ('card_' + String(targetDay).padStart(3, "0") + '.webp');
+          if (cardStage) cardStage.style.backgroundImage = `url('${cardFileName}')`;
+          if (bottomRightBadge) bottomRightBadge.style.display = 'none';
           if (textContainer) textContainer.style.display = 'none';
-          if (textContainerLong) textContainerLong.style.display = 'flex';
-          
-          if (longHeader) {
-            longHeader.textContent = '師父法語';
-            longHeader.style.textAlign = 'left';
-          }
-          if (longContent) {
-            longContent.textContent = quoteText;
-          }
-          if (longFooter) {
-            longFooter.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
-            longFooter.style.textAlign = 'center';
-          }
+          if (textContainerLong) textContainerLong.style.display = 'none';
+          window.HAS_SEEN_FIRST_CARD = false;
+          resolve();
+        } else {
+          window.HAS_SEEN_FIRST_CARD = true;
+          if (bottomRightBadge) bottomRightBadge.style.display = 'block';
 
-          requestAnimationFrame(() => {
+          if (masterQuotesKeys.length > 0) {
+            const savedDate = classicStorage.getItem('TEACHER_CARD_DATE_V971');
+            let savedQuoteKey = classicStorage.getItem('TEACHER_CARD_QUOTE_KEY_V971');
+            let savedBgNum = classicStorage.getItem('TEACHER_CARD_BG_NUM_V971');
+
+            if (savedDate !== todayStr || !savedQuoteKey || !masterQuotesObj[savedQuoteKey] || !savedBgNum) {
+              currentTeacherQuoteKey = masterQuotesKeys[Math.floor(Math.random() * masterQuotesKeys.length)];
+              const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
+              currentTeacherBgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
+              
+              classicStorage.setItem('TEACHER_CARD_DATE_V971', todayStr);
+              classicStorage.setItem('TEACHER_CARD_QUOTE_KEY_V971', currentTeacherQuoteKey);
+              classicStorage.setItem('TEACHER_CARD_BG_NUM_V971', currentTeacherBgNum);
+            } else {
+              currentTeacherQuoteKey = savedQuoteKey;
+              currentTeacherBgNum = parseInt(savedBgNum, 10);
+            }
+
+            const item = masterQuotesObj[currentTeacherQuoteKey];
+            let quoteText = item.content || '';
+
+            if (textContainer) textContainer.style.display = 'none';
+            if (textContainerLong) textContainerLong.style.display = 'flex';
+            
+            if (longHeader) {
+              longHeader.textContent = '師父法語';
+              longHeader.style.textAlign = 'left';
+            }
+            if (longContent) {
+              longContent.textContent = quoteText;
+            }
+            if (longFooter) {
+              longFooter.textContent = `堅持背書第 ${String(targetDay).padStart(3, '0')} 天`;
+              longFooter.style.textAlign = 'center';
+            }
+
+            // Ensure cardStage / companionOverlay is visible so clientHeight > 0
+            const compOverlay = document.getElementById('companion-overlay');
+            if (compOverlay && getComputedStyle(compOverlay).display === 'none') {
+              compOverlay.style.display = 'flex';
+            }
+
             requestAnimationFrame(() => {
-              const maxH = (textContainerLong ? textContainerLong.clientHeight : 380) - 12;
-              let size = 34;
-              const minSize = 14;
+              requestAnimationFrame(() => {
+                const maxH = (textContainerLong && textContainerLong.clientHeight > 50 ? textContainerLong.clientHeight : 380) - 12;
+                let size = 34;
+                const minSize = 14;
 
-              let targetFont = size >= 30 
-                ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
-                : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
-
-              if (longHeader) {
-                longHeader.style.fontSize = (size + 2) + "px";
-                longHeader.style.fontFamily = targetFont;
-              }
-              if (longContent) {
-                longContent.style.fontSize = size + "px";
-                longContent.style.fontFamily = targetFont;
-              }
-              if (longFooter) {
-                longFooter.style.fontSize = "16px";
-                longFooter.style.fontFamily = targetFont;
-              }
-
-              let totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
-
-              while (totalH > maxH && size > minSize) {
-                size--;
-                targetFont = size >= 30 
+                let targetFont = size >= 30 
                   ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
                   : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
 
@@ -4095,18 +4180,44 @@
                   longFooter.style.fontFamily = targetFont;
                 }
 
-                totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
-              }
+                let totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+
+                while (totalH > maxH && size > minSize) {
+                  size--;
+                  targetFont = size >= 30 
+                    ? '"Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif", serif' 
+                    : '"Microsoft JhengHei", "Noto Sans TC", sans-serif';
+
+                  if (longHeader) {
+                    longHeader.style.fontSize = (size + 2) + "px";
+                    longHeader.style.fontFamily = targetFont;
+                  }
+                  if (longContent) {
+                    longContent.style.fontSize = size + "px";
+                    longContent.style.fontFamily = targetFont;
+                  }
+                  if (longFooter) {
+                    longFooter.style.fontSize = "16px";
+                    longFooter.style.fontFamily = targetFont;
+                  }
+
+                  totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+                }
+
+                const paddedImgNum = String(currentTeacherBgNum).padStart(2, '0');
+                if (cardStage) {
+                  cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
+                }
+
+                resolve();
+              });
             });
-          });
-
-          const paddedImgNum = String(currentTeacherBgNum).padStart(2, '0');
-          if (cardStage) cardStage.style.backgroundImage = `url('images/bg_${paddedImgNum}.webp')`;
+          } else {
+            resolve();
+          }
         }
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', async () => {
+      });
+    }window.addEventListener('DOMContentLoaded', async () => {
       if (/Line/i.test(navigator.userAgent)) {
         const overlay = document.getElementById('line-browser-overlay');
         const guideContent = overlay.querySelector('.line-guide-content');
@@ -4150,7 +4261,7 @@
 
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.display = 'flex';
-      companionOverlay.classList.add('active');
+      compOverlay.classList.add('active');
 
       handleOrientationCheck();
     });
