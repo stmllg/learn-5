@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.78</title>
+  <title>歡喜背書V999.99</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -919,6 +919,27 @@
     #btn-record.compare-voice-detected {
       animation: compareVoiceFlash .42s ease-in-out infinite !important;
     }
+
+    /* OF02：四階段確認畫面，不改原有背書按鍵與計次邏輯 */
+    #of02-stage-overlay { display:none; position:fixed; inset:0; z-index:80000;
+      background:rgba(4,7,15,.94); align-items:center; justify-content:center;
+      padding:12px; box-sizing:border-box; }
+    #of02-stage-overlay.active { display:flex; }
+    #of02-stage-panel { width:min(92vw,760px); max-height:96dvh; overflow:auto;
+      background:#F8FAFC; color:#0F172A; border-radius:24px; padding:clamp(16px,3vw,30px);
+      text-align:center; border:5px solid var(--stage-color,#2563EB);
+      box-shadow:0 12px 40px rgba(0,0,0,.65); display:flex; flex-direction:column;
+      align-items:center; gap:clamp(10px,2vh,18px); }
+    #of02-stage-group { color:var(--stage-color,#2563EB); font-weight:900; font-size:clamp(17px,3.5vw,25px); }
+    #of02-stage-title { font-size:clamp(22px,4.2vw,34px); color:var(--stage-color,#2563EB);
+      line-height:1.35; font-weight:900; }
+    #of02-stage-desc { font-size:clamp(17px,2.9vw,23px); line-height:1.55;
+      font-weight:800; color:#1E293B; white-space:pre-line; }
+    #of02-stage-detail { font-size:clamp(14px,2.3vw,19px); line-height:1.55; color:#475569; }
+    #of02-stage-confirm { font-size:clamp(19px,3vw,25px); font-weight:900;
+      padding:12px 30px; min-height:52px; color:white; background:var(--stage-color,#2563EB);
+      border:0; border-radius:14px; cursor:pointer; width:min(100%,400px); }
+    #of02-stage-confirm:disabled { opacity:.6; cursor:wait; }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 </head>
@@ -1018,6 +1039,18 @@
   </div>
 
   
+
+
+  <!-- OF02：獨立的四階段學習確認畫面。只有按下確定才開始該階段。 -->
+  <div id="of02-stage-overlay" role="dialog" aria-modal="true" aria-labelledby="of02-stage-title">
+    <div id="of02-stage-panel">
+      <div id="of02-stage-group"></div>
+      <div id="of02-stage-title"></div>
+      <div id="of02-stage-desc"></div>
+      <div id="of02-stage-detail"></div>
+      <button type="button" id="of02-stage-confirm">確定開始</button>
+    </div>
+  </div>
 
 <div id="restore-modal-overlay">
     <div class="restore-card">
@@ -1203,6 +1236,38 @@
     let autoPlayCompareOnStop = false;
     let recordedAudioBlobUrl = null;
     let recordAudioElement = new Audio();
+    // OF09：只針對「比對」做純增益處理，不使用壓縮／限制；自讀聲控保持原樣。
+    let compareRecordingNodes = null;
+    let comparePlaybackContext = null;
+    let comparePlaybackReady = false;
+    function prepareComparePlaybackBoost() {
+      try {
+        if (!comparePlaybackReady) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          const ctx = new AudioCtx();
+          const src = ctx.createMediaElementSource(recordAudioElement);
+          const gain = ctx.createGain();
+          gain.gain.value = 4.6; // 回放增益：只作用於「比對」錄音，不影響影片
+          // OF09：只有播放增益，不再透過動態壓縮器／限制器。
+          src.connect(gain);
+          gain.connect(ctx.destination);
+          comparePlaybackContext = ctx;
+          comparePlaybackReady = true;
+        }
+        if (comparePlaybackContext && comparePlaybackContext.state !== 'running') {
+          comparePlaybackContext.resume().catch(() => {});
+        }
+      } catch (err) { console.warn('[OF09 回放音量]', err); }
+    }
+    function releaseCompareRecordingNodes() {
+      if (!compareRecordingNodes) return;
+      try { compareRecordingNodes.input.disconnect(); } catch (_) {}
+      try { compareRecordingNodes.gain.disconnect(); } catch (_) {}
+      // MediaRecorder 已停止後才釋放音軌，不影響原始 micStream / 自讀。
+      try { compareRecordingNodes.destination.stream.getTracks().forEach(t => t.stop()); } catch (_) {}
+      compareRecordingNodes = null;
+    }
     // 僅供比對錄音按鈕顯示即時收音狀態；不參與錄音或聲控翻頁判斷。
     let compareMeterFrame = null;
     function stopCompareVoiceMeter() {
@@ -1217,6 +1282,8 @@
       const samples = new Float32Array(analyser.fftSize);
       let lastUpdate = 0;
       let smoothed = 0;
+      // OF05：依當前手機的安靜底噪調整「閃爍」靈敏度，不影響錄音檔的聲音。
+      let quietFloor = 0.0002;
       const sample = (now) => {
         if (!isUserRecording || currentCoreMode !== 'mode4' || !mediaRecorder || mediaRecorder.state !== 'recording') {
           stopCompareVoiceMeter();
@@ -1229,8 +1296,16 @@
           for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
           const rms = Math.sqrt(sum / samples.length);
           smoothed = smoothed * 0.45 + rms * 0.55;
+          // 安靜時逐步校準；有朗讀聲時不讓門檻跟著抬高。
+          const flashThreshold = Math.max(0.00025, quietFloor * 1.35 + 0.00012);
+          const heardVoice = smoothed > flashThreshold;
+          if (!heardVoice) {
+            quietFloor = quietFloor * 0.96 + smoothed * 0.04;
+          } else if (smoothed < quietFloor) {
+            quietFloor = smoothed;
+          }
           const button = document.getElementById('btn-record');
-          if (button) button.classList.toggle('compare-voice-detected', smoothed > Math.max(0.008, baseNoiseLevel * 1.8));
+          if (button) button.classList.toggle('compare-voice-detected', heardVoice);
         }
         compareMeterFrame = requestAnimationFrame(sample);
       };
@@ -1272,8 +1347,8 @@
 
     let isVoiceActive = false;
     let isTouchingDisplay = false; 
-    let baseNoiseLevel = 0.0015;
-    let dynamicThreshold = 0.0020;
+    let baseNoiseLevel = 0.0003;
+    let dynamicThreshold = 0.0006;
     let calibrationSamples = [];
     let isCalibrating = false;
     let silentFrameCount = 0;
@@ -1306,6 +1381,85 @@
         return false;
       }
     }
+
+
+    // OF02：四種定課階段皆必須經由學員按「確定」才能開始。
+    // 同一階段內原有的重複播放／自讀循環不會額外跳出確認。
+    const OF02_STAGE_INFO = {
+      new_gendu: { group:'今日定課', title:'今日進度・跟讀',
+        desc:'今日進度，請跟著影片念。', detail:'跟著老師的影片與聲音，完成今日安排的遍數。',
+        button:'確定開始跟讀', color:'#2563EB', mode:'mode2' },
+      new_zidu: { group:'今日定課', title:'今日進度・自讀',
+        desc:'今日進度，請自己念出聲，小紅點會向前。',
+        detail:'可按「快＋」「慢－」調整語速；不方便出聲時，手指放在螢幕上，也可以帶動小紅點。',
+        button:'確定開始自讀', color:'#059669', mode:'mode3' },
+      cumulative_gendu: { group:'串習定課', title:'串習定課・從頭跟讀',
+        desc:'串習定課，從頭跟讀。', detail:'請從第一句開始，依照今日串習範圍跟著影片複習。',
+        button:'確定開始串習跟讀', color:'#EA580C', mode:'mode2' },
+      cumulative_zidu: { group:'串習定課', title:'串習定課・從頭自讀',
+        desc:'串習定課，從頭自讀。',
+        detail:'小紅點會向前，可調整快慢；不方便出聲時，也可以用手指帶動。',
+        button:'確定開始串習自讀', color:'#9333EA', mode:'mode3' }
+    };
+    let of02AwaitingStageConfirmation = false;
+    let of02StartingStage = false;
+
+    function of02ShowStageConfirmation() {
+      const info = OF02_STAGE_INFO[practicePhase];
+      if (!info || practicePhase === 'completed') return false;
+      // 防止上一階段仍在播放／計次，顯示確認卡後不能自行前進。
+      try { video.pause(); } catch(e) {}
+      haltGuideRunnerImmediately();
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      of02AwaitingStageConfirmation = true;
+      of02StartingStage = false;
+      const overlay = document.getElementById('of02-stage-overlay');
+      const panel = document.getElementById('of02-stage-panel');
+      if (!overlay || !panel) return false;
+      panel.style.setProperty('--stage-color', info.color);
+      document.getElementById('of02-stage-group').textContent = info.group;
+      document.getElementById('of02-stage-title').textContent = info.title;
+      document.getElementById('of02-stage-desc').textContent = info.desc;
+      document.getElementById('of02-stage-detail').textContent = info.detail;
+      const btn = document.getElementById('of02-stage-confirm');
+      btn.textContent = info.button;
+      btn.disabled = false;
+      overlay.classList.add('active');
+      return true;
+    }
+
+    async function of02ConfirmStage() {
+      if (!of02AwaitingStageConfirmation || of02StartingStage) return;
+      const info = OF02_STAGE_INFO[practicePhase];
+      if (!info) return;
+      of02StartingStage = true;
+      const btn = document.getElementById('of02-stage-confirm');
+      if (btn) btn.disabled = true;
+      of02AwaitingStageConfirmation = false;
+      document.getElementById('of02-stage-overlay').classList.remove('active');
+      try {
+        if (info.mode === 'mode2') {
+          // setCoreMode(mode2) 沿用原本影片起始／自動循環機制。
+          setCoreMode('mode2');
+        } else {
+          setCoreMode('mode3');
+          await handleZiduClick();
+        }
+      } finally {
+        of02StartingStage = false;
+      }
+    }
+
+    // 交接時先儲存下一階段，若中途離開，下次仍需按確認才開始。
+    function of02AdvanceToStage(nextPhase) {
+      practicePhase = nextPhase;
+      currentCycleCount = 0;
+      setupStageRange();
+      saveCurrentAppState();
+      of02ShowStageConfirmation();
+    }
+
+    document.getElementById('of02-stage-confirm').addEventListener('click', of02ConfirmStage);
 
     function saveCurrentAppState() {
       if (!hasEnteredReciting) return;
@@ -1374,7 +1528,11 @@
       restoreModalOverlay.style.display = 'none';
 
       loadAllAssetsSmartSync().then(() => {
-        if (currentCoreMode === 'mode2') {
+        if (practicePhase !== 'completed') {
+          // 恢復進度也不能自動播放；必須重新確認目前階段。
+          setupStageRange();
+          of02ShowStageConfirmation();
+        } else if (currentCoreMode === 'mode2') {
           setCoreMode('mode2');
           if (state.videoCurrentTime > 0) video.currentTime = state.videoCurrentTime;
         } else if (currentCoreMode === 'mode3') {
@@ -1404,6 +1562,12 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         saveCurrentAppState();
+        // 被 LINE／系統切至背景時，不能讓已停止的麥克風仍顯示錄音中。
+        if (isUserRecording && mediaRecorder && mediaRecorder.state === 'recording') {
+          autoPlayCompareOnStop = false;
+          isUserRecording = false;
+          try { mediaRecorder.stop(); } catch (_) {}
+        }
         releaseMicrophoneResources();
       } else if (document.visibilityState === 'visible') {
         setTimeout(() => {
@@ -1585,7 +1749,7 @@
     async function preWarmMicrophonePermission() {
       try {
         const stream = await getUserMediaWithTimeout({ 
-          audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } 
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
         }, 4000);
         stream.getTracks().forEach(track => track.stop());
       } catch (e) {}
@@ -1682,7 +1846,7 @@
             } catch(e) {}
           }
 
-          setCoreMode('mode2');
+          of02ShowStageConfirmation();
         });
       }, 200);
     }
@@ -1725,7 +1889,8 @@
 
         const hasRestore = checkAndPrepareRestoreState();
         if (!hasRestore) {
-          setCoreMode('mode2');
+          if (practicePhase !== 'completed') of02ShowStageConfirmation();
+          else setCoreMode('mode2');
         }
       }, 200);
     }
@@ -2459,6 +2624,13 @@
 
     function releaseMicrophoneResources() {
       stopCompareVoiceMeter();
+      // OF04：麥克風釋放時同步停止舊的收音監測，不沿用無效分析器。
+      if (vadCheckTimer !== null) {
+        cancelAnimationFrame(vadCheckTimer);
+        vadCheckTimer = null;
+      }
+      analyser = null;
+      vadDataArray = null;
       if (micStream) {
         try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
         micStream = null;
@@ -2709,6 +2881,7 @@
     }
 
     function handleGenduClick() {
+      if (of02AwaitingStageConfirmation) return;
       requestFullscreenMode();
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
         showToast("⚠️ 請先跟著讀完遍數", 3000);
@@ -2754,6 +2927,7 @@
     }
 
     async function handleZiduClick() {
+      if (of02AwaitingStageConfirmation) return;
       requestFullscreenMode();
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
         showToast("⚠️ 請先跟著讀完遍數", 3000);
@@ -2765,12 +2939,7 @@
           return;
       }
 
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') await audioContext.resume();
-      } catch (e) {}
-
+      // OF04：統一交由 ensureMicrophoneActive() 先要求麥克風，再啟動音訊處理。
       const micOk = await ensureMicrophoneActive();
       if (!micOk) {
         return;
@@ -2822,6 +2991,8 @@
       if (isUserRecording) {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           autoPlayCompareOnStop = true;
+          // 在使用者按下停止鍵的手勢中啟用回放音訊，減少手機自動播放被阻擋。
+          prepareComparePlaybackBoost();
           isUserRecording = false;
           stopCompareVoiceMeter();
           mediaRecorder.stop();
@@ -3054,6 +3225,7 @@
     }
 
     function handleCycleCompletion() {
+      if (of02AwaitingStageConfirmation) return;
       if (currentCoreMode === 'mode2') {
         video.pause();
       } else if (currentCoreMode === 'mode3') {
@@ -3077,19 +3249,7 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          const promptText = "手指放螢幕也可小紅點向前，按快慢可調自己的語速";
-          speakPrompt(promptText);
-          showTransitionModal(
-            "🎉 新進度跟讀圓滿！",
-            `您已完成新進度跟讀。<br>接下來將進入<strong><span>「新進度自讀模式」</span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
-            () => {
-              practicePhase = 'new_zidu';
-              currentCycleCount = 0;
-              setupStageRange();
-              setCoreMode('mode3');
-              handleZiduClick();
-            }
-          );
+          of02AdvanceToStage('new_zidu');
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
@@ -3098,26 +3258,7 @@
           handleZiduClick();
         } else {
           if (hasCumulative) {
-            showTransitionModal(
-              "🎉 新進度自讀圓滿！",
-              `新進度已全部圓滿。<br>接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
-              () => {
-                practicePhase = 'cumulative_gendu';
-                currentCycleCount = 0;
-                setupStageRange();
-                setCoreMode('mode2');
-                const range = getActiveVideoRange();
-                if (range.valid) { video.currentTime = range.start; }
-                setTimeout(() => {
-                  video.play().then(() => {
-                    updateModeButtonsStyle();
-                    startMp4PrecisionCheck();
-                  }).catch(e => {
-                    handleGenduClick();
-                  });
-                }, 300);
-              }
-            );
+            of02AdvanceToStage('cumulative_gendu');
           } else {
             finishAllPractice();
           }
@@ -3130,17 +3271,7 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          showTransitionModal(
-            "🎉 串習複習跟讀圓滿！",
-            `您已完成串習複習跟讀。<br>接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
-            () => {
-              practicePhase = 'cumulative_zidu';
-              currentCycleCount = 0;
-              setupStageRange();
-              setCoreMode('mode3');
-              handleZiduClick();
-            }
-          );
+          of02AdvanceToStage('cumulative_zidu');
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
@@ -3551,38 +3682,76 @@
     }
 
     async function ensureMicrophoneActive() {
-      if (micStream) return true;
       try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') await audioContext.resume();
-
-        micStream = await getUserMediaWithTimeout({
-          audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
-        }, 6000);
-
-        const source = audioContext.createMediaStreamSource(micStream);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.04;
-        source.connect(analyser);
-
-        isCalibrating = true;
-        calibrationSamples = [];
-        setTimeout(() => {
-          if (calibrationSamples.length > 0) {
-            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
-            baseNoiseLevel = sum / calibrationSamples.length;
-            dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('NOT_SUPPORTED');
+        }
+        // OF04：不能只看串流物件是否存在；切換 LINE／Chrome 或背景後，
+        // 已停止、禁用或靜音的音軌都不能作為有效麥克風使用。
+        const liveTrack = micStream && micStream.getAudioTracks().find(
+          track => track.readyState === 'live' && track.enabled && !track.muted
+        );
+        if (!liveTrack) {
+          if (micStream) {
+            try { micStream.getTracks().forEach(track => track.stop()); } catch (_) {}
           }
-          isCalibrating = false;
-        }, 350);
-
+          micStream = null;
+          analyser = null;
+          // 優先在使用者按鍵事件中請求麥克風，避免先等待 AudioContext
+          // 導致行動瀏覽器失去使用者手勢權限。
+          micStream = await getUserMediaWithTimeout({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+          }, 12000);
+        }
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) throw new Error('NO_AUDIO_CONTEXT');
+        if (!audioContext || audioContext.state === 'closed') audioContext = new AudioContextClass();
+        if (audioContext.state !== 'running') await audioContext.resume();
+        if (audioContext.state !== 'running') throw new Error('AUDIO_SUSPENDED');
+        if (!analyser || !liveTrack) {
+          const source = audioContext.createMediaStreamSource(micStream);
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 512;
+          analyser.smoothingTimeConstant = 0.04;
+          source.connect(analyser);
+          isCalibrating = true;
+          calibrationSamples = [];
+          setTimeout(() => {
+            if (calibrationSamples.length > 0) {
+              // OF05：取安靜段的較低分位數作底噪基準。
+              // 避免使用者在 350ms 校準期間已朗讀，將人聲當作背景雜音。
+              const sorted = [...calibrationSamples].sort((a, b) => a - b);
+              baseNoiseLevel = sorted[Math.floor((sorted.length - 1) * 0.2)];
+              dynamicThreshold = Math.max(0.00045, baseNoiseLevel * 1.30 + 0.00018);
+            }
+            isCalibrating = false;
+          }, 350);
+        }
         lastVoiceTime = performance.now();
+        // 舊循環若未停止，會讀到失效的麥克風；在此明確重新開始。
+        if (vadCheckTimer !== null) {
+          cancelAnimationFrame(vadCheckTimer);
+          vadCheckTimer = null;
+        }
         startSharedVadLoop();
         return true;
       } catch (err) {
-        showToast("⚠️ 麥克風回應逾時或未授權，已自動解除鎖定", 4000);
+        const name = err && err.name ? err.name : '';
+        const message = err && err.message ? err.message : '';
+        let hint = '⚠️ 麥克風啟動失敗，請再按一次重試';
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          hint = '⚠️ 麥克風權限被拒絕，請在瀏覽器網站設定中允許麥克風';
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          hint = '⚠️ 找不到可用的手機麥克風';
+        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+          hint = '⚠️ 麥克風被其他程式占用，請先關閉其他錄音程式';
+        } else if (message === 'Timeout') {
+          hint = '⚠️ 麥克風啟動逾時，請確認權限後重試';
+        } else if (message === 'AUDIO_SUSPENDED') {
+          hint = '⚠️ 瀏覽器尚未啟動收音，請再次按鍵';
+        }
+        console.warn('[OF04 microphone]', name, message);
+        showToast(hint, 5000);
         releaseMicrophoneResources();
         return false;
       }
@@ -3673,13 +3842,28 @@
 
         if (recordAudioElement) recordAudioElement.pause();
         audioChunks = [];
-        const recorder = new MediaRecorder(micStream);
+        // OF09：僅「比對錄音」提高訊號增益，不經動態壓縮器。
+        // 原始 micStream 與自讀的聲控分析完全不變。
+        releaseCompareRecordingNodes();
+        let recordStream = micStream;
+        if (audioContext && audioContext.state === 'running' && audioContext.createMediaStreamDestination) {
+          const input = audioContext.createMediaStreamSource(micStream);
+          const gain = audioContext.createGain();
+          gain.gain.value = 2.8;
+          const destination = audioContext.createMediaStreamDestination();
+          input.connect(gain);
+          gain.connect(destination);
+          compareRecordingNodes = {input, gain, destination};
+          recordStream = destination.stream;
+        }
+        const recorder = new MediaRecorder(recordStream);
         mediaRecorder = recorder;
         recorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0) audioChunks.push(e.data);
         };
         recorder.onstop = () => {
           stopCompareVoiceMeter();
+          releaseCompareRecordingNodes();
           // 不再以固定 200ms 猜測完成時間；必須等新錄音真正封裝完成。
           const options = recorder.mimeType ? { type: recorder.mimeType } : {};
           const recordedBlob = new Blob(audioChunks, options);
@@ -3706,6 +3890,7 @@
         showToast('🔴 已開始錄音，請朗讀', 1800);
       } catch (err) {
         stopCompareVoiceMeter();
+        releaseCompareRecordingNodes();
         showToast('⚠️ 錄音啟動失敗，請重試', 2500);
       } finally {
         isPreparingCompareRecording = false;
@@ -3717,6 +3902,8 @@
       if (isGuideActive) haltGuideRunnerImmediately();
 
       if (recordAudioElement.paused) {
+        prepareComparePlaybackBoost();
+        recordAudioElement.volume = 1;
         recordAudioElement.playbackRate = compareSpeed;
         recordAudioElement.play().then(() => renderUI()).catch(() => {});
       } else {
@@ -4485,5 +4672,7 @@
       handleOrientationCheck();
     });
   </script>
+  <!-- OF05：沿用 OF04，僅改善比對閃爍與自讀聲控靈敏度 -->
+  <script src="./offline_manager.js"></script>
 </body>
 </html>
