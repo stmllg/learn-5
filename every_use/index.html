@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.78</title>
+  <title>歡喜背書V999.79</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2582,6 +2582,13 @@
 
     function releaseMicrophoneResources() {
       stopCompareVoiceMeter();
+      // OF04：麥克風釋放時同步停止舊的收音監測，不沿用無效分析器。
+      if (vadCheckTimer !== null) {
+        cancelAnimationFrame(vadCheckTimer);
+        vadCheckTimer = null;
+      }
+      analyser = null;
+      vadDataArray = null;
       if (micStream) {
         try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
         micStream = null;
@@ -2890,12 +2897,7 @@
           return;
       }
 
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') await audioContext.resume();
-      } catch (e) {}
-
+      // OF04：統一交由 ensureMicrophoneActive() 先要求麥克風，再啟動音訊處理。
       const micOk = await ensureMicrophoneActive();
       if (!micOk) {
         return;
@@ -3637,49 +3639,73 @@
 
     async function ensureMicrophoneActive() {
       try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext || audioContext.state === 'closed') audioContext = new AudioContextClass();
-        // 手機切換 LINE／Chrome、背景／前景後 AudioContext 可能被暫停。
-        if (audioContext.state !== 'running') await audioContext.resume();
-        // 不能只檢查 micStream 是否存在：軌道可能已被瀏覽器終止。
-        const liveTrack = micStream && micStream.getAudioTracks().some(
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('NOT_SUPPORTED');
+        }
+        // OF04：不能只看串流物件是否存在；切換 LINE／Chrome 或背景後，
+        // 已停止、禁用或靜音的音軌都不能作為有效麥克風使用。
+        const liveTrack = micStream && micStream.getAudioTracks().find(
           track => track.readyState === 'live' && track.enabled && !track.muted
         );
-        if (liveTrack && analyser) {
-          startSharedVadLoop();
-          return true;
-        }
-        if (micStream) {
-          try { micStream.getTracks().forEach(track => track.stop()); } catch (_) {}
-          micStream = null;
-        }
-        analyser = null;
-        micStream = await getUserMediaWithTimeout({
-          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-        }, 6000);
-
-        const source = audioContext.createMediaStreamSource(micStream);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.04;
-        source.connect(analyser);
-
-        isCalibrating = true;
-        calibrationSamples = [];
-        setTimeout(() => {
-          if (calibrationSamples.length > 0) {
-            const sum = calibrationSamples.reduce((a, b) => a + b, 0);
-            baseNoiseLevel = sum / calibrationSamples.length;
-            dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
+        if (!liveTrack) {
+          if (micStream) {
+            try { micStream.getTracks().forEach(track => track.stop()); } catch (_) {}
           }
-          isCalibrating = false;
-        }, 350);
-
+          micStream = null;
+          analyser = null;
+          // 優先在使用者按鍵事件中請求麥克風，避免先等待 AudioContext
+          // 導致行動瀏覽器失去使用者手勢權限。
+          micStream = await getUserMediaWithTimeout({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+          }, 12000);
+        }
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) throw new Error('NO_AUDIO_CONTEXT');
+        if (!audioContext || audioContext.state === 'closed') audioContext = new AudioContextClass();
+        if (audioContext.state !== 'running') await audioContext.resume();
+        if (audioContext.state !== 'running') throw new Error('AUDIO_SUSPENDED');
+        if (!analyser || !liveTrack) {
+          const source = audioContext.createMediaStreamSource(micStream);
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 512;
+          analyser.smoothingTimeConstant = 0.04;
+          source.connect(analyser);
+          isCalibrating = true;
+          calibrationSamples = [];
+          setTimeout(() => {
+            if (calibrationSamples.length > 0) {
+              const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+              baseNoiseLevel = sum / calibrationSamples.length;
+              dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
+            }
+            isCalibrating = false;
+          }, 350);
+        }
         lastVoiceTime = performance.now();
+        // 舊循環若未停止，會讀到失效的麥克風；在此明確重新開始。
+        if (vadCheckTimer !== null) {
+          cancelAnimationFrame(vadCheckTimer);
+          vadCheckTimer = null;
+        }
         startSharedVadLoop();
         return true;
       } catch (err) {
-        showToast("⚠️ 麥克風回應逾時或未授權，已自動解除鎖定", 4000);
+        const name = err && err.name ? err.name : '';
+        const message = err && err.message ? err.message : '';
+        let hint = '⚠️ 麥克風啟動失敗，請再按一次重試';
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          hint = '⚠️ 麥克風權限被拒絕，請在瀏覽器網站設定中允許麥克風';
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          hint = '⚠️ 找不到可用的手機麥克風';
+        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+          hint = '⚠️ 麥克風被其他程式占用，請先關閉其他錄音程式';
+        } else if (message === 'Timeout') {
+          hint = '⚠️ 麥克風啟動逾時，請確認權限後重試';
+        } else if (message === 'AUDIO_SUSPENDED') {
+          hint = '⚠️ 瀏覽器尚未啟動收音，請再次按鍵';
+        }
+        console.warn('[OF04 microphone]', name, message);
+        showToast(hint, 5000);
         releaseMicrophoneResources();
         return false;
       }
@@ -3810,7 +3836,7 @@
         showToast('🔴 已開始錄音，請朗讀', 1800);
       } catch (err) {
         stopCompareVoiceMeter();
-        showToast('⚠️ 錄音啟動失敗，請重試', 2500);
+        showToast('⚠️ 錄音啟動失敗，請確認瀏覽器麥克風權限', 4000);
       } finally {
         isPreparingCompareRecording = false;
       }
@@ -4589,7 +4615,7 @@
       handleOrientationCheck();
     });
   </script>
-  <!-- OF03：保留 OF02 四階段確認；只強化錄音串流有效性與收音提示 -->
+  <!-- OF04：保留 OF02 四階段確認，修復自讀與比對共用麥克風初始化 -->
   <script src="./offline_manager.js"></script>
 </body>
 </html>
