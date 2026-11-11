@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.78</title>
+  <title>歡喜背書V999.79</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1686,6 +1686,11 @@
     }
 
     function openScheduleModalWithFullscreen() {
+      if (classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) {
+        const btn = document.getElementById('btn-card-setting-dynamic');
+        if (btn) btn.style.display = 'none';
+        return;
+      }
       requestFullscreenMode();
       openScheduleModal();
     }
@@ -1872,6 +1877,13 @@
     }
 
     function saveAndApplySchedule() {
+      // 同一天排程只允許確認一次，避免重複重算學習進度。
+      if (classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) {
+        closeScheduleModal();
+        const btn = document.getElementById('btn-card-setting-dynamic');
+        if (btn) btn.style.display = 'none';
+        return;
+      }
       const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
@@ -1882,6 +1894,9 @@
       classicStorage.setItem('USER_SCHEDULE_SETTINGS_V971', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+      const btn = document.getElementById('btn-card-setting-dynamic');
+      if (btn) btn.style.display = 'none';
       closeScheduleModal();
       showToast('✨ 排程參數已更新，並以指定已學進度重新計算完成！', 4000);
       applyScheduleToState('');
