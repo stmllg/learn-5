@@ -2816,7 +2816,31 @@
       renderUI();
     }
 
-        async function shareScreenshotToLine() {
+    // 僅供 LINE 分享使用：逐步壓縮 JPEG，必要時縮小尺寸，限制為 400 KiB。
+    async function compressShareCanvas(sourceCanvas) {
+      const maxBytes = 400 * 1024;
+      const toBlob = (canvas, type, quality) => new Promise(resolve => canvas.toBlob(resolve, type, quality));
+      let workingCanvas = sourceCanvas;
+      for (let round = 0; round < 9; round++) {
+        for (const quality of [0.88, 0.82, 0.76, 0.70, 0.64, 0.58, 0.50, 0.42]) {
+          const blob = await toBlob(workingCanvas, 'image/jpeg', quality);
+          if (blob && blob.type === 'image/jpeg' && blob.size <= maxBytes) return blob;
+        }
+        const nextCanvas = document.createElement('canvas');
+        nextCanvas.width = Math.max(1, Math.round(workingCanvas.width * 0.85));
+        nextCanvas.height = Math.max(1, Math.round(workingCanvas.height * 0.85));
+        const nextCtx = nextCanvas.getContext('2d');
+        nextCtx.fillStyle = '#FFFFFF';
+        nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+        nextCtx.imageSmoothingEnabled = true;
+        nextCtx.imageSmoothingQuality = 'high';
+        nextCtx.drawImage(workingCanvas, 0, 0, nextCanvas.width, nextCanvas.height);
+        workingCanvas = nextCanvas;
+      }
+      throw new Error('圖片無法壓縮至 400 KB 以內');
+    }
+
+    async function shareScreenshotToLine() {
       requestFullscreenMode();
       const actionsRow = document.getElementById('companionActionsRow');
       const sideRightGroup = document.getElementById('side-right-group');
@@ -2826,122 +2850,67 @@
       if (sideRightGroup) sideRightGroup.style.display = 'none';
       showToast('📸 正在產生上下並列精美截圖...', 2500);
       const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
-      
-      const originalWidth = cardStage.clientWidth;
-      const originalHeight = cardStage.clientHeight;
-      cardStage.style.width = originalWidth + 'px';
-      cardStage.style.height = originalHeight + 'px';
-      cardStage.style.aspectRatio = 'unset';
-
       try {
         await initCompanionCard(targetDay);
         await new Promise(r => setTimeout(r, 200));
-        const canvas1 = await html2canvas(cardStage, { scale: 1.25, useCORS: true, backgroundColor: '#0F172A', logging: false, width: originalWidth, height: originalHeight });
-        
+        const canvas1 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
+
         if (!currentRefugeTextKey || !cardTexts[currentRefugeTextKey]) {
           await loadRandomCardData();
         } else {
           await renderSpecificRefugeCard(currentRefugeTextKey, currentRefugeBgNum);
         }
         await new Promise(r => setTimeout(r, 200));
-        const canvas2 = await html2canvas(cardStage, { scale: 1.25, useCORS: true, backgroundColor: '#0F172A', logging: false, width: originalWidth, height: originalHeight });
-        
-        cardStage.style.width = '';
-        cardStage.style.height = '';
-        cardStage.style.aspectRatio = '';
-
-        const targetWidth = canvas1.width;
-        const targetHeight1 = canvas1.height;
-        const targetHeight2 = canvas2.height;
-
-        const combinedCanvas = document.createElement('canvas');
-        combinedCanvas.width = targetWidth;
-        combinedCanvas.height = targetHeight1 + targetHeight2 + 8;
-        const ctx = combinedCanvas.getContext('2d');
-        ctx.fillStyle = '#0F172A';
-        ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
-        
-        ctx.drawImage(canvas1, 0, 0, targetWidth, targetHeight1);
-        ctx.fillStyle = '#F59E0B';
-        ctx.fillRect(0, targetHeight1, targetWidth, 8);
-        ctx.drawImage(canvas2, 0, targetHeight1 + 8, targetWidth, targetHeight2);
-
-        if (actionsRow) actionsRow.style.display = 'flex';
-        if (sideRightGroup) sideRightGroup.style.display = 'flex';
-        hasCompletedShare = true;
-
-        combinedCanvas.toBlob(async (blob) => {
-          if (!blob) { showToast('⚠️ 截圖產生失敗', 3000); return; }
-          let clipboardSuccess = false;
-          try {
-            if (navigator.clipboard && window.ClipboardItem) {
-              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-              clipboardSuccess = true;
-            }
-          } catch(e) {}
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `歡喜背書_上下並列_${Date.now()}.png`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          if (clipboardSuccess) {
-            showToast('✨ PNG 截圖已複製到剪貼簿並下載（約 400KB）！', 5000);
-          } else {
-            showToast('✨ PNG 截圖已自動下載（約 400KB）！', 4000);
-          }
-        }, 'image/png');
-      } catch(err) {
-        cardStage.style.width = '';
-        cardStage.style.height = '';
-        cardStage.style.aspectRatio = '';
-        if (actionsRow) actionsRow.style.display = 'flex';
-        if (sideRightGroup) sideRightGroup.style.display = 'flex';
-        showToast('⚠️ 截圖失敗', 3000);
-      }
-    }        await new Promise(r => setTimeout(r, 200));
         const canvas2 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
         combinedCanvas.height = canvas1.height + canvas2.height + 8;
         const ctx = combinedCanvas.getContext('2d');
+        // JPEG 不支援透明，先鋪白底，避免透明區域變黑。
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
         ctx.drawImage(canvas1, 0, 0);
         ctx.fillStyle = '#F59E0B';
         ctx.fillRect(0, canvas1.height, combinedCanvas.width, 8);
         ctx.drawImage(canvas2, 0, canvas1.height + 8);
-        if (actionsRow) actionsRow.style.display = 'flex';
-        if (sideRightGroup) sideRightGroup.style.display = 'flex';
-        hasCompletedShare = true;
 
-        combinedCanvas.toBlob(async (blob) => {
-          if (!blob) { showToast('⚠️ 截圖產生失敗', 3000); return; }
-          let clipboardSuccess = false;
-          try {
-            if (navigator.clipboard && window.ClipboardItem) {
-              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        const blob = await compressShareCanvas(combinedCanvas);
+        let clipboardSuccess = false;
+        try {
+          if (navigator.clipboard && window.ClipboardItem) {
+            // 部分瀏覽器只接受 PNG 剪貼簿；不可讓未壓縮 PNG 破壞 400 KB 限制。
+            if (ClipboardItem.supports && ClipboardItem.supports('image/jpeg')) {
+              await navigator.clipboard.write([new ClipboardItem({ 'image/jpeg': blob })]);
               clipboardSuccess = true;
+            } else {
+              const pngBlob = await new Promise(resolve => combinedCanvas.toBlob(resolve, 'image/png'));
+              if (pngBlob && pngBlob.size <= 400 * 1024) {
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+                clipboardSuccess = true;
+              }
             }
-          } catch(e) {}
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `歡喜背書_上下並列_${Date.now()}.png`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          if (clipboardSuccess) {
-            showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
-          } else {
-            showToast('✨ 上下並列截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
           }
-        }, 'image/png', 0.95);
+        } catch(e) {}
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `歡喜背書_上下並列_${Date.now()}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        hasCompletedShare = true;
+        if (clipboardSuccess) {
+          showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
+        } else {
+          showToast('✨ 已下載 400 KB 以內的圖片！\n請從下載檔案選取圖片分享至 LINE！', 5000);
+        }
       } catch(err) {
+        console.error('LINE 截圖輸出失敗：', err);
+        showToast('⚠️ 截圖或壓縮失敗', 3000);
+      } finally {
         if (actionsRow) actionsRow.style.display = 'flex';
         if (sideRightGroup) sideRightGroup.style.display = 'flex';
-        showToast('⚠️ 截圖失敗', 3000);
       }
     }
 
