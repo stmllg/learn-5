@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.78</title>
+  <title>歡喜背書V999.80</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1236,39 +1236,6 @@
     let autoPlayCompareOnStop = false;
     let recordedAudioBlobUrl = null;
     let recordAudioElement = new Audio();
-    // OF06：只增強「比對錄音」回放音量；不更動原始麥克風收音、錄音檔與聲控判斷。
-    let comparePlaybackContext = null;
-    let comparePlaybackBoostReady = false;
-    function prepareComparePlaybackBoost() {
-      try {
-        if (!comparePlaybackBoostReady) {
-          const ContextClass = window.AudioContext || window.webkitAudioContext;
-          if (!ContextClass) return; // 舊瀏覽器照原有 Audio 播放
-          const ctx = new ContextClass();
-          const source = ctx.createMediaElementSource(recordAudioElement);
-          const boost = ctx.createGain();
-          boost.gain.value = 3.0; // 約 +9.5 dB，只作用於錄音回放
-          const limiter = ctx.createDynamicsCompressor();
-          limiter.threshold.value = -9;
-          limiter.knee.value = 0;
-          limiter.ratio.value = 16;
-          limiter.attack.value = 0.003;
-          limiter.release.value = 0.15;
-          source.connect(boost);
-          boost.connect(limiter);
-          limiter.connect(ctx.destination);
-          comparePlaybackContext = ctx;
-          comparePlaybackBoostReady = true;
-        }
-        // 在按「比對」的使用者手勢期間啟用，以符合手機瀏覽器播放限制。
-        if (comparePlaybackContext && comparePlaybackContext.state === 'suspended') {
-          comparePlaybackContext.resume().catch(() => {});
-        }
-      } catch (error) {
-        console.warn('[OF06 playback gain]', error);
-        // 增益功能不可用時，保留原本的 Audio 播放路徑。
-      }
-    }
     // 僅供比對錄音按鈕顯示即時收音狀態；不參與錄音或聲控翻頁判斷。
     let compareMeterFrame = null;
     function stopCompareVoiceMeter() {
@@ -2990,7 +2957,6 @@
       if (isPreparingCompareRecording) return;
 
       if (isUserRecording) {
-        prepareComparePlaybackBoost();
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           autoPlayCompareOnStop = true;
           isUserRecording = false;
@@ -3004,7 +2970,6 @@
           showToast("經文處理中，請稍等片刻", 2000);
           return;
         }
-        prepareComparePlaybackBoost();
         toggleReliableRecordAction();
       }
     }
@@ -3835,7 +3800,7 @@
         const ok = await ensureMicrophoneActive();
         if (!ok || currentCoreMode !== 'mode4') return;
 
-        // 等待手機麥克風收音穩定（回音消除仍關閉）；準備期間提示先不要朗讀。
+        // 等待手機麥克風與回音消除處理穩定；準備期間提示使用者先不要朗讀。
         showToast('🎙️ 麥克風準備中，請稍候…', 700);
         await new Promise(resolve => setTimeout(resolve, 450));
         if (currentCoreMode !== 'mode4' || !micStream ||
@@ -3850,7 +3815,6 @@
         };
         recorder.onstop = () => {
           stopCompareVoiceMeter();
-          isUserRecording = false;
           // 不再以固定 200ms 猜測完成時間；必須等新錄音真正封裝完成。
           const options = recorder.mimeType ? { type: recorder.mimeType } : {};
           const recordedBlob = new Blob(audioChunks, options);
@@ -3870,12 +3834,6 @@
             showToast('⚠️ 本次沒有收到錄音資料，請重試', 2500);
           }
         };
-        recorder.onerror = () => {
-          isUserRecording = false;
-          stopCompareVoiceMeter();
-          renderUI();
-          showToast('⚠️ 手機錄音中斷，請再按「比對」重試', 3000);
-        };
         recorder.start();
         isUserRecording = true;
         renderUI();
@@ -3883,7 +3841,7 @@
         showToast('🔴 已開始錄音，請朗讀', 1800);
       } catch (err) {
         stopCompareVoiceMeter();
-        showToast('⚠️ 錄音啟動失敗，請確認瀏覽器麥克風權限', 4000);
+        showToast('⚠️ 錄音啟動失敗，請重試', 2500);
       } finally {
         isPreparingCompareRecording = false;
       }
@@ -3894,7 +3852,6 @@
       if (isGuideActive) haltGuideRunnerImmediately();
 
       if (recordAudioElement.paused) {
-        prepareComparePlaybackBoost();
         recordAudioElement.playbackRate = compareSpeed;
         recordAudioElement.play().then(() => renderUI()).catch(() => {});
       } else {
