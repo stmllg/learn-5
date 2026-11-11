@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.80</title>
+  <title>歡喜背書V999.7</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1236,6 +1236,38 @@
     let autoPlayCompareOnStop = false;
     let recordedAudioBlobUrl = null;
     let recordAudioElement = new Audio();
+    // OF09：只針對「比對」做純增益處理，不使用壓縮／限制；自讀聲控保持原樣。
+    let compareRecordingNodes = null;
+    let comparePlaybackContext = null;
+    let comparePlaybackReady = false;
+    function prepareComparePlaybackBoost() {
+      try {
+        if (!comparePlaybackReady) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          const ctx = new AudioCtx();
+          const src = ctx.createMediaElementSource(recordAudioElement);
+          const gain = ctx.createGain();
+          gain.gain.value = 2.5; // 回放增益：只作用於「比對」錄音，不影響影片
+          // OF09：只有播放增益，不再透過動態壓縮器／限制器。
+          src.connect(gain);
+          gain.connect(ctx.destination);
+          comparePlaybackContext = ctx;
+          comparePlaybackReady = true;
+        }
+        if (comparePlaybackContext && comparePlaybackContext.state !== 'running') {
+          comparePlaybackContext.resume().catch(() => {});
+        }
+      } catch (err) { console.warn('[OF09 回放音量]', err); }
+    }
+    function releaseCompareRecordingNodes() {
+      if (!compareRecordingNodes) return;
+      try { compareRecordingNodes.input.disconnect(); } catch (_) {}
+      try { compareRecordingNodes.gain.disconnect(); } catch (_) {}
+      // MediaRecorder 已停止後才釋放音軌，不影響原始 micStream / 自讀。
+      try { compareRecordingNodes.destination.stream.getTracks().forEach(t => t.stop()); } catch (_) {}
+      compareRecordingNodes = null;
+    }
     // 僅供比對錄音按鈕顯示即時收音狀態；不參與錄音或聲控翻頁判斷。
     let compareMeterFrame = null;
     function stopCompareVoiceMeter() {
@@ -1265,7 +1297,7 @@
           const rms = Math.sqrt(sum / samples.length);
           smoothed = smoothed * 0.45 + rms * 0.55;
           // 安靜時逐步校準；有朗讀聲時不讓門檻跟著抬高。
-          const flashThreshold = Math.max(0.0005, quietFloor * 1.8 + 0.0002);
+          const flashThreshold = Math.max(0.00025, quietFloor * 1.35 + 0.00012);
           const heardVoice = smoothed > flashThreshold;
           if (!heardVoice) {
             quietFloor = quietFloor * 0.96 + smoothed * 0.04;
@@ -2959,6 +2991,8 @@
       if (isUserRecording) {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           autoPlayCompareOnStop = true;
+          // 在使用者按下停止鍵的手勢中啟用回放音訊，減少手機自動播放被阻擋。
+          prepareComparePlaybackBoost();
           isUserRecording = false;
           stopCompareVoiceMeter();
           mediaRecorder.stop();
@@ -3808,13 +3842,28 @@
 
         if (recordAudioElement) recordAudioElement.pause();
         audioChunks = [];
-        const recorder = new MediaRecorder(micStream);
+        // OF09：僅「比對錄音」提高訊號增益，不經動態壓縮器。
+        // 原始 micStream 與自讀的聲控分析完全不變。
+        releaseCompareRecordingNodes();
+        let recordStream = micStream;
+        if (audioContext && audioContext.state === 'running' && audioContext.createMediaStreamDestination) {
+          const input = audioContext.createMediaStreamSource(micStream);
+          const gain = audioContext.createGain();
+          gain.gain.value = 2.8;
+          const destination = audioContext.createMediaStreamDestination();
+          input.connect(gain);
+          gain.connect(destination);
+          compareRecordingNodes = {input, gain, destination};
+          recordStream = destination.stream;
+        }
+        const recorder = new MediaRecorder(recordStream);
         mediaRecorder = recorder;
         recorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0) audioChunks.push(e.data);
         };
         recorder.onstop = () => {
           stopCompareVoiceMeter();
+          releaseCompareRecordingNodes();
           // 不再以固定 200ms 猜測完成時間；必須等新錄音真正封裝完成。
           const options = recorder.mimeType ? { type: recorder.mimeType } : {};
           const recordedBlob = new Blob(audioChunks, options);
@@ -3841,6 +3890,7 @@
         showToast('🔴 已開始錄音，請朗讀', 1800);
       } catch (err) {
         stopCompareVoiceMeter();
+        releaseCompareRecordingNodes();
         showToast('⚠️ 錄音啟動失敗，請重試', 2500);
       } finally {
         isPreparingCompareRecording = false;
@@ -3852,6 +3902,8 @@
       if (isGuideActive) haltGuideRunnerImmediately();
 
       if (recordAudioElement.paused) {
+        prepareComparePlaybackBoost();
+        recordAudioElement.volume = 1;
         recordAudioElement.playbackRate = compareSpeed;
         recordAudioElement.play().then(() => renderUI()).catch(() => {});
       } else {
