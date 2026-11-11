@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.78</title>
+  <title>歡喜背書V999.78test</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -928,21 +928,6 @@
     </div>
   </div>
 
-  <script>
-    function openInDefaultBrowser() {
-      const currentUrl = window.location.href;
-      let targetUrl = currentUrl;
-      if (!targetUrl.includes('openExternalBrowser=1')) {
-        targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'openExternalBrowser=1';
-      }
-      if (/Android/i.test(navigator.userAgent)) {
-        const cleanUrl = targetUrl.replace(/^https?:\/\//, '');
-        window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end;`;
-      } else {
-        window.location.href = targetUrl;
-      }
-    }
-  </script>
 
   <div id="portrait-blocker-overlay">
     <div class="rotate-phone-icon"></div>
@@ -1024,15 +1009,6 @@
   </div>
 
   
-  <div id="screenshot-permission-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; z-index: 55000; background: rgba(4, 7, 15, 0.94); backdrop-filter: blur(8px); justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
-    <div class="restore-card" style="border-color: #38BDF8;">
-      <div class="restore-title" style="color: #38BDF8;">📸 畫面與截圖權限授權</div>
-      <div class="restore-desc">
-        為確保「皈依祈求與精美截圖分享」功能順利執行，請點擊下方按鈕允許授權。<br><small style="color: #94A3B8; margin-top: 6px; display: block;">（此授權如同麥克風邏輯，僅需允許一次即可）</small>
-      </div>
-      <button class="btn-restore-confirm" onclick="confirmScreenshotPermission()" style="background: linear-gradient(135deg, #34D399 0%, #059669 100%); color: #064E3B; border: 2px solid #10B981;">🙏 允許授權，繼續祈求</button>
-    </div>
-  </div>
 
 <div id="restore-modal-overlay">
     <div class="restore-card">
@@ -1149,7 +1125,6 @@
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
-    const lineBrowserOverlay = document.getElementById('line-browser-overlay');
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
     portraitBlocker.onclick = () => { portraitBlocker.style.display = 'none'; companionOverlay.style.display = 'flex'; };
     const companionOverlay = document.getElementById('companion-overlay');
@@ -1267,7 +1242,6 @@
     let currentTeacherBgNum = null;
     let currentRefugeTextKey = null;
     let currentRefugeBgNum = null;
-    let hasCompletedShare = false;
 
     function getNormalizedDateStr() {
       const now = new Date();
@@ -1628,7 +1602,6 @@
     async function playTeacherGuideAndRecite() {
       requestFullscreenMode();
       markFirstCardSeen();
-      hasCompletedShare = true;
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
       compOverlay.classList.remove('active');
@@ -1672,7 +1645,6 @@
     async function closeCompanionCard() {
       requestFullscreenMode();
       markFirstCardSeen();
-      hasCompletedShare = true;
       
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
@@ -2816,26 +2788,44 @@
       renderUI();
     }
 
-    // 僅供 LINE 分享使用：逐步壓縮 JPEG，必要時縮小尺寸，限制為 400 KiB。
+    // 僅供 LINE 分享使用：先維持清晰度，再視需要縮小尺寸。
     async function compressShareCanvas(sourceCanvas) {
       const maxBytes = 400 * 1024;
-      const toBlob = (canvas, type, quality) => new Promise(resolve => canvas.toBlob(resolve, type, quality));
-      let workingCanvas = sourceCanvas;
+      const toJpeg = canvas => quality => new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+      let canvas = sourceCanvas;
       for (let round = 0; round < 9; round++) {
-        for (const quality of [0.88, 0.82, 0.76, 0.70, 0.64, 0.58, 0.50, 0.42]) {
-          const blob = await toBlob(workingCanvas, 'image/jpeg', quality);
-          if (blob && blob.type === 'image/jpeg' && blob.size <= maxBytes) return blob;
+        const encode = toJpeg(canvas);
+        let best = null;
+        let low = 0.42, high = 0.88;
+        // 先測試最高品質；不符合時用二分搜尋減少重複編碼。
+        const highest = await encode(high);
+        if (highest && highest.type === 'image/jpeg' && highest.size <= maxBytes) return highest;
+        const lowest = await encode(low);
+        if (lowest && lowest.type === 'image/jpeg' && lowest.size <= maxBytes) {
+          best = lowest;
+          for (let i = 0; i < 5; i++) {
+            const mid = (low + high) / 2;
+            const blob = await encode(mid);
+            if (blob && blob.type === 'image/jpeg' && blob.size <= maxBytes) {
+              best = blob;
+              low = mid;
+            } else {
+              high = mid;
+            }
+          }
+          return best;
         }
-        const nextCanvas = document.createElement('canvas');
-        nextCanvas.width = Math.max(1, Math.round(workingCanvas.width * 0.85));
-        nextCanvas.height = Math.max(1, Math.round(workingCanvas.height * 0.85));
-        const nextCtx = nextCanvas.getContext('2d');
-        nextCtx.fillStyle = '#FFFFFF';
-        nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-        nextCtx.imageSmoothingEnabled = true;
-        nextCtx.imageSmoothingQuality = 'high';
-        nextCtx.drawImage(workingCanvas, 0, 0, nextCanvas.width, nextCanvas.height);
-        workingCanvas = nextCanvas;
+        const smaller = document.createElement('canvas');
+        smaller.width = Math.max(1, Math.round(canvas.width * 0.85));
+        smaller.height = Math.max(1, Math.round(canvas.height * 0.85));
+        const ctx = smaller.getContext('2d');
+        if (!ctx) throw new Error('無法建立圖片畫布');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, smaller.width, smaller.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(canvas, 0, 0, smaller.width, smaller.height);
+        canvas = smaller;
       }
       throw new Error('圖片無法壓縮至 400 KB 以內');
     }
@@ -2846,6 +2836,8 @@
       const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
       if (!cardStage) return;
+      const previousActionsDisplay = actionsRow ? actionsRow.style.display : '';
+      const previousSideDisplay = sideRightGroup ? sideRightGroup.style.display : '';
       if (actionsRow) actionsRow.style.display = 'none';
       if (sideRightGroup) sideRightGroup.style.display = 'none';
       showToast('📸 正在產生上下並列精美截圖...', 2500);
@@ -2899,7 +2891,6 @@
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 10000);
-        hasCompletedShare = true;
         if (clipboardSuccess) {
           showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
         } else {
@@ -2909,8 +2900,8 @@
         console.error('LINE 截圖輸出失敗：', err);
         showToast('⚠️ 截圖或壓縮失敗', 3000);
       } finally {
-        if (actionsRow) actionsRow.style.display = 'flex';
-        if (sideRightGroup) sideRightGroup.style.display = 'flex';
+        if (actionsRow) actionsRow.style.display = previousActionsDisplay;
+        if (sideRightGroup) sideRightGroup.style.display = previousSideDisplay;
       }
     }
 
@@ -3293,8 +3284,6 @@
     function handleRestoreCompanionButtons() {
       exitFullscreenMode();
       showToast('展悲智翼飛佛地', 3500);
-
-      hasCompletedShare = true;
 
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
