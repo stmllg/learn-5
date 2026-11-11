@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.79</title>
+  <title>歡喜背書V999.78</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -910,6 +910,15 @@
     .rank-item { display: flex; justify-content: space-between; align-items: center; font-size: 17px; font-weight: 800; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); padding: 6px 0; }
     .rank-coins { color: #F59E0B; font-weight: 900; }
     .btn-rejoice { width: 100%; height: 46px; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FFFFFF; font-size: 18px; font-weight: 900; border: none; border-radius: 14px; cursor: pointer; }
+
+    /* 比對錄音收音指示：只有偵測到麥克風音量才閃爍，無聲時維持紫色 */
+    @keyframes compareVoiceFlash {
+      0%, 100% { filter: brightness(1); box-shadow: 0 0 12px rgba(147,51,234,.65); }
+      50% { filter: brightness(1.65); box-shadow: 0 0 26px rgba(216,180,254,1); }
+    }
+    #btn-record.compare-voice-detected {
+      animation: compareVoiceFlash .42s ease-in-out infinite !important;
+    }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 </head>
@@ -928,21 +937,6 @@
     </div>
   </div>
 
-  <script>
-    function openInDefaultBrowser() {
-      const currentUrl = window.location.href;
-      let targetUrl = currentUrl;
-      if (!targetUrl.includes('openExternalBrowser=1')) {
-        targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'openExternalBrowser=1';
-      }
-      if (/Android/i.test(navigator.userAgent)) {
-        const cleanUrl = targetUrl.replace(/^https?:\/\//, '');
-        window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end;`;
-      } else {
-        window.location.href = targetUrl;
-      }
-    }
-  </script>
 
   <div id="portrait-blocker-overlay">
     <div class="rotate-phone-icon"></div>
@@ -1024,15 +1018,6 @@
   </div>
 
   
-  <div id="screenshot-permission-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; z-index: 55000; background: rgba(4, 7, 15, 0.94); backdrop-filter: blur(8px); justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
-    <div class="restore-card" style="border-color: #38BDF8;">
-      <div class="restore-title" style="color: #38BDF8;">📸 畫面與截圖權限授權</div>
-      <div class="restore-desc">
-        為確保「皈依祈求與精美截圖分享」功能順利執行，請點擊下方按鈕允許授權。<br><small style="color: #94A3B8; margin-top: 6px; display: block;">（此授權如同麥克風邏輯，僅需允許一次即可）</small>
-      </div>
-      <button class="btn-restore-confirm" onclick="confirmScreenshotPermission()" style="background: linear-gradient(135deg, #34D399 0%, #059669 100%); color: #064E3B; border: 2px solid #10B981;">🙏 允許授權，繼續祈求</button>
-    </div>
-  </div>
 
 <div id="restore-modal-overlay">
     <div class="restore-card">
@@ -1149,7 +1134,6 @@
 
     const APPS_SCRIPT_URL = GAS_BACKEND_URL;
 
-    const lineBrowserOverlay = document.getElementById('line-browser-overlay');
     const portraitBlocker = document.getElementById('portrait-blocker-overlay');
     portraitBlocker.onclick = () => { portraitBlocker.style.display = 'none'; companionOverlay.style.display = 'flex'; };
     const companionOverlay = document.getElementById('companion-overlay');
@@ -1215,8 +1199,44 @@
     let mediaRecorder = null;
     let audioChunks = [];
     let isUserRecording = false;
+    let isPreparingCompareRecording = false;
+    let autoPlayCompareOnStop = false;
     let recordedAudioBlobUrl = null;
     let recordAudioElement = new Audio();
+    // 僅供比對錄音按鈕顯示即時收音狀態；不參與錄音或聲控翻頁判斷。
+    let compareMeterFrame = null;
+    function stopCompareVoiceMeter() {
+      if (compareMeterFrame !== null) cancelAnimationFrame(compareMeterFrame);
+      compareMeterFrame = null;
+      const button = document.getElementById('btn-record');
+      if (button) button.classList.remove('compare-voice-detected');
+    }
+    function startCompareVoiceMeter() {
+      stopCompareVoiceMeter();
+      if (!analyser) return;
+      const samples = new Float32Array(analyser.fftSize);
+      let lastUpdate = 0;
+      let smoothed = 0;
+      const sample = (now) => {
+        if (!isUserRecording || currentCoreMode !== 'mode4' || !mediaRecorder || mediaRecorder.state !== 'recording') {
+          stopCompareVoiceMeter();
+          return;
+        }
+        if (now - lastUpdate >= 90) {
+          lastUpdate = now;
+          analyser.getFloatTimeDomainData(samples);
+          let sum = 0;
+          for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+          const rms = Math.sqrt(sum / samples.length);
+          smoothed = smoothed * 0.45 + rms * 0.55;
+          const button = document.getElementById('btn-record');
+          if (button) button.classList.toggle('compare-voice-detected', smoothed > Math.max(0.008, baseNoiseLevel * 1.8));
+        }
+        compareMeterFrame = requestAnimationFrame(sample);
+      };
+      compareMeterFrame = requestAnimationFrame(sample);
+    }
+
 
     let scriptureData = [];
     let currentPdfDoc = null;
@@ -1267,7 +1287,6 @@
     let currentTeacherBgNum = null;
     let currentRefugeTextKey = null;
     let currentRefugeBgNum = null;
-    let hasCompletedShare = false;
 
     function getNormalizedDateStr() {
       const now = new Date();
@@ -1566,7 +1585,7 @@
     async function preWarmMicrophonePermission() {
       try {
         const stream = await getUserMediaWithTimeout({ 
-          audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } 
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
         }, 4000);
         stream.getTracks().forEach(track => track.stop());
       } catch (e) {}
@@ -1628,7 +1647,6 @@
     async function playTeacherGuideAndRecite() {
       requestFullscreenMode();
       markFirstCardSeen();
-      hasCompletedShare = true;
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
       compOverlay.classList.remove('active');
@@ -1672,7 +1690,6 @@
     async function closeCompanionCard() {
       requestFullscreenMode();
       markFirstCardSeen();
-      hasCompletedShare = true;
       
       const compOverlay = document.getElementById('companion-overlay');
       compOverlay.style.opacity = '0';
@@ -1714,6 +1731,11 @@
     }
 
     function openScheduleModalWithFullscreen() {
+      if (classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) {
+        const btn = document.getElementById('btn-card-setting-dynamic');
+        if (btn) btn.style.display = 'none';
+        return;
+      }
       requestFullscreenMode();
       openScheduleModal();
     }
@@ -1900,6 +1922,13 @@
     }
 
     function saveAndApplySchedule() {
+      // 同一天排程只允許確認一次，避免重複重算學習進度。
+      if (classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) {
+        closeScheduleModal();
+        const btn = document.getElementById('btn-card-setting-dynamic');
+        if (btn) btn.style.display = 'none';
+        return;
+      }
       const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
       const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
       const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
@@ -1910,6 +1939,9 @@
       classicStorage.setItem('USER_SCHEDULE_SETTINGS_V971', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+      const btn = document.getElementById('btn-card-setting-dynamic');
+      if (btn) btn.style.display = 'none';
       closeScheduleModal();
       showToast('✨ 排程參數已更新，並以指定已學進度重新計算完成！', 4000);
       applyScheduleToState('');
@@ -2426,6 +2458,7 @@
     }
 
     function releaseMicrophoneResources() {
+      stopCompareVoiceMeter();
       if (micStream) {
         try { micStream.getTracks().forEach(track => track.stop()); } catch (e) {}
         micStream = null;
@@ -2440,6 +2473,7 @@
     function preWarmMediaRecorder() {}
 
     function setCoreMode(mode) {
+      stopCompareVoiceMeter();
       haltGuideRunnerImmediately();
 
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
@@ -2514,7 +2548,7 @@
         }
 
         if (isIndependentModeUnlocked()) {
-          slotL1.innerHTML = '';
+          slotL1.innerHTML = '<button class="circle-btn" id="btn-select-all" style="background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%); border-color: #DDD6FE;">全部</button>';
 
           const textA = isSelectingMarkA ? '請點句' : '起句';
           const textB = isSelectingMarkB ? '請點句' : '終句';
@@ -2536,6 +2570,9 @@
 
         slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
         slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
+
+        const btnSelectAll = document.getElementById('btn-select-all');
+        if (btnSelectAll) btnSelectAll.addEventListener('click', handleSelectAllSentences);
 
         const btnMarkA = document.getElementById('btn-mark-a');
         if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
@@ -2651,19 +2688,19 @@
                   btnRecord.style.borderColor = '#BAE6FD';
                   btnRecord.style.color = '#FB923C';
                   btnRecord.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
-                  btnRecord.classList.remove('recording-flashing');
+                  btnRecord.classList.remove('compare-voice-detected');
               } else {
                   if (isRecordRunning) {
                       btnRecord.style.background = colorPurple;
                       btnRecord.style.borderColor = '#E9D5FF';
                       btnRecord.style.color = '#FFFFFF';
-                      btnRecord.classList.add('recording-flashing');
+                      // 閃爍由即時麥克風音量控制，不再固定閃爍。
                       btnRecord.style.boxShadow = '0 0 18px rgba(147, 51, 234, 0.9)';
                   } else {
                       btnRecord.style.background = colorGreen;
                       btnRecord.style.borderColor = '#A7F3D0';
                       btnRecord.style.color = '#FFFFFF';
-                      btnRecord.classList.remove('recording-flashing');
+                      btnRecord.classList.remove('compare-voice-detected');
                       btnRecord.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.85)';
                   }
               }
@@ -2779,16 +2816,18 @@
         return;
       }
 
+      // 麥克風正在預備時，不接受重複點擊，避免同時建立兩個錄音器。
+      if (isPreparingCompareRecording) return;
+
       if (isUserRecording) {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-        isUserRecording = false;
-        renderUI();
-        setTimeout(() => {
-          if (recordedAudioBlobUrl) {
-            togglePlaybackAction();
-            showToast('▶️ 錄音完成，正在為您播放比對', 2500);
-          }
-        }, 200);
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          autoPlayCompareOnStop = true;
+          isUserRecording = false;
+          stopCompareVoiceMeter();
+          mediaRecorder.stop();
+          renderUI();
+          showToast('⏳ 正在完成錄音，請稍候', 1500);
+        }
       } else {
         if (parsedTextLines.length === 0) {
           showToast("經文處理中，請稍等片刻", 2000);
@@ -2796,6 +2835,30 @@
         }
         toggleReliableRecordAction();
       }
+    }
+
+    // 自主學習：左1「全部」將起句與終句設為全篇範圍。
+    function handleSelectAllSentences() {
+      if (!isIndependentModeUnlocked()) return;
+      const total = scriptureData && scriptureData.length ? scriptureData.length : parsedTextLines.length;
+      if (!total) {
+        showToast('經文尚未載入完成，請稍候', 2500);
+        return;
+      }
+      isManualSelected = true;
+      isSelectingMarkA = false;
+      isSelectingMarkB = false;
+      markA_Index = 0;
+      markB_Index = total - 1;
+      currentLineIndex = 0;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      videoPausedAt = -1;
+      updateVisualDisplay();
+      scrollToAlignTop(0);
+      renderUI();
+      saveCurrentAppState();
+      showToast('✅ 已設定全部經文：第 1 句至第 ' + total + ' 句', 3000);
     }
 
     function handleMarkAClck() {
@@ -2816,12 +2879,56 @@
       renderUI();
     }
 
+    // 僅供 LINE 分享使用：先維持清晰度，再視需要縮小尺寸。
+    async function compressShareCanvas(sourceCanvas) {
+      const maxBytes = 400 * 1024;
+      const toJpeg = canvas => quality => new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+      let canvas = sourceCanvas;
+      for (let round = 0; round < 9; round++) {
+        const encode = toJpeg(canvas);
+        let best = null;
+        let low = 0.42, high = 0.88;
+        // 先測試最高品質；不符合時用二分搜尋減少重複編碼。
+        const highest = await encode(high);
+        if (highest && highest.type === 'image/jpeg' && highest.size <= maxBytes) return highest;
+        const lowest = await encode(low);
+        if (lowest && lowest.type === 'image/jpeg' && lowest.size <= maxBytes) {
+          best = lowest;
+          for (let i = 0; i < 5; i++) {
+            const mid = (low + high) / 2;
+            const blob = await encode(mid);
+            if (blob && blob.type === 'image/jpeg' && blob.size <= maxBytes) {
+              best = blob;
+              low = mid;
+            } else {
+              high = mid;
+            }
+          }
+          return best;
+        }
+        const smaller = document.createElement('canvas');
+        smaller.width = Math.max(1, Math.round(canvas.width * 0.85));
+        smaller.height = Math.max(1, Math.round(canvas.height * 0.85));
+        const ctx = smaller.getContext('2d');
+        if (!ctx) throw new Error('無法建立圖片畫布');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, smaller.width, smaller.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(canvas, 0, 0, smaller.width, smaller.height);
+        canvas = smaller;
+      }
+      throw new Error('圖片無法壓縮至 400 KB 以內');
+    }
+
     async function shareScreenshotToLine() {
       requestFullscreenMode();
       const actionsRow = document.getElementById('companionActionsRow');
       const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
       if (!cardStage) return;
+      const previousActionsDisplay = actionsRow ? actionsRow.style.display : '';
+      const previousSideDisplay = sideRightGroup ? sideRightGroup.style.display : '';
       if (actionsRow) actionsRow.style.display = 'none';
       if (sideRightGroup) sideRightGroup.style.display = 'none';
       showToast('📸 正在產生上下並列精美截圖...', 2500);
@@ -2830,7 +2937,7 @@
         await initCompanionCard(targetDay);
         await new Promise(r => setTimeout(r, 200));
         const canvas1 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
-        
+
         if (!currentRefugeTextKey || !cardTexts[currentRefugeTextKey]) {
           await loadRandomCardData();
         } else {
@@ -2842,41 +2949,50 @@
         combinedCanvas.width = canvas1.width;
         combinedCanvas.height = canvas1.height + canvas2.height + 8;
         const ctx = combinedCanvas.getContext('2d');
+        // JPEG 不支援透明，先鋪白底，避免透明區域變黑。
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
         ctx.drawImage(canvas1, 0, 0);
         ctx.fillStyle = '#F59E0B';
         ctx.fillRect(0, canvas1.height, combinedCanvas.width, 8);
         ctx.drawImage(canvas2, 0, canvas1.height + 8);
-        if (actionsRow) actionsRow.style.display = 'flex';
-        if (sideRightGroup) sideRightGroup.style.display = 'flex';
-        hasCompletedShare = true;
 
-        combinedCanvas.toBlob(async (blob) => {
-          if (!blob) { showToast('⚠️ 截圖產生失敗', 3000); return; }
-          let clipboardSuccess = false;
-          try {
-            if (navigator.clipboard && window.ClipboardItem) {
-              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        const blob = await compressShareCanvas(combinedCanvas);
+        let clipboardSuccess = false;
+        try {
+          if (navigator.clipboard && window.ClipboardItem) {
+            // 部分瀏覽器只接受 PNG 剪貼簿；不可讓未壓縮 PNG 破壞 400 KB 限制。
+            if (ClipboardItem.supports && ClipboardItem.supports('image/jpeg')) {
+              await navigator.clipboard.write([new ClipboardItem({ 'image/jpeg': blob })]);
               clipboardSuccess = true;
+            } else {
+              const pngBlob = await new Promise(resolve => combinedCanvas.toBlob(resolve, 'image/png'));
+              if (pngBlob && pngBlob.size <= 400 * 1024) {
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+                clipboardSuccess = true;
+              }
             }
-          } catch(e) {}
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `歡喜背書_上下並列_${Date.now()}.png`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          if (clipboardSuccess) {
-            showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
-          } else {
-            showToast('✨ 上下並列截圖已自動下載！\n請至相簿選取圖片分享至 LINE！', 4000);
           }
-        }, 'image/png', 0.95);
+        } catch(e) {}
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `歡喜背書_上下並列_${Date.now()}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        if (clipboardSuccess) {
+          showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
+        } else {
+          showToast('✨ 已下載 400 KB 以內的圖片！\n請從下載檔案選取圖片分享至 LINE！', 5000);
+        }
       } catch(err) {
-        if (actionsRow) actionsRow.style.display = 'flex';
-        if (sideRightGroup) sideRightGroup.style.display = 'flex';
-        showToast('⚠️ 截圖失敗', 3000);
+        console.error('LINE 截圖輸出失敗：', err);
+        showToast('⚠️ 截圖或壓縮失敗', 3000);
+      } finally {
+        if (actionsRow) actionsRow.style.display = previousActionsDisplay;
+        if (sideRightGroup) sideRightGroup.style.display = previousSideDisplay;
       }
     }
 
@@ -3260,8 +3376,6 @@
       exitFullscreenMode();
       showToast('展悲智翼飛佛地', 3500);
 
-      hasCompletedShare = true;
-
       const cardStage = document.getElementById('cardStage');
       if (cardStage) {
         cardStage.style.transition = 'opacity 0.8s ease';
@@ -3444,7 +3558,7 @@
         if (audioContext.state === 'suspended') await audioContext.resume();
 
         micStream = await getUserMediaWithTimeout({
-          audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
         }, 6000);
 
         const source = audioContext.createMediaStreamSource(micStream);
@@ -3544,25 +3658,58 @@
     }
 
     async function toggleReliableRecordAction() {
-      const ok = await ensureMicrophoneActive();
-      if (!ok) return;
+      if (isPreparingCompareRecording || isUserRecording) return;
+      isPreparingCompareRecording = true;
+      autoPlayCompareOnStop = false;
+      try {
+        const ok = await ensureMicrophoneActive();
+        if (!ok || currentCoreMode !== 'mode4') return;
 
-      audioChunks = [];
-      mediaRecorder = new MediaRecorder(micStream);
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.push(e.data);
-      };
-      mediaRecorder.onstop = () => {
-        const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
-        const recordedBlob = new Blob(audioChunks, options);
-        recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
-        recordAudioElement.src = recordedAudioBlobUrl;
-        recordAudioElement.playbackRate = compareSpeed;
+        // 等待手機麥克風與回音消除處理穩定；準備期間提示使用者先不要朗讀。
+        showToast('🎙️ 麥克風準備中，請稍候…', 700);
+        await new Promise(resolve => setTimeout(resolve, 450));
+        if (currentCoreMode !== 'mode4' || !micStream ||
+            !micStream.getAudioTracks().some(track => track.readyState === 'live')) return;
+
+        if (recordAudioElement) recordAudioElement.pause();
+        audioChunks = [];
+        const recorder = new MediaRecorder(micStream);
+        mediaRecorder = recorder;
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) audioChunks.push(e.data);
+        };
+        recorder.onstop = () => {
+          stopCompareVoiceMeter();
+          // 不再以固定 200ms 猜測完成時間；必須等新錄音真正封裝完成。
+          const options = recorder.mimeType ? { type: recorder.mimeType } : {};
+          const recordedBlob = new Blob(audioChunks, options);
+          const shouldPlay = autoPlayCompareOnStop && currentCoreMode === 'mode4';
+          autoPlayCompareOnStop = false;
+          if (recordedBlob.size > 0) {
+            if (recordedAudioBlobUrl) URL.revokeObjectURL(recordedAudioBlobUrl);
+            recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
+            recordAudioElement.src = recordedAudioBlobUrl;
+            recordAudioElement.playbackRate = compareSpeed;
+            renderUI();
+            if (shouldPlay) {
+              togglePlaybackAction();
+              showToast('▶️ 錄音完成，正在為您播放比對', 2500);
+            }
+          } else {
+            showToast('⚠️ 本次沒有收到錄音資料，請重試', 2500);
+          }
+        };
+        recorder.start();
+        isUserRecording = true;
         renderUI();
-      };
-      mediaRecorder.start(); 
-      isUserRecording = true;
-      renderUI();
+        startCompareVoiceMeter();
+        showToast('🔴 已開始錄音，請朗讀', 1800);
+      } catch (err) {
+        stopCompareVoiceMeter();
+        showToast('⚠️ 錄音啟動失敗，請重試', 2500);
+      } finally {
+        isPreparingCompareRecording = false;
+      }
     }
 
     function togglePlaybackAction() {
@@ -4338,5 +4485,7 @@
       handleOrientationCheck();
     });
   </script>
+  <!-- OF01 只新增離線資源管理；原 V999.79 功能及錄音參數維持不變 -->
+  <script src="./offline_manager.js"></script>
 </body>
 </html>
