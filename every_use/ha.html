@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.79</title>
+  <title>歡喜背書V999.799</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1190,6 +1190,8 @@
     let mediaRecorder = null;
     let audioChunks = [];
     let isUserRecording = false;
+    let isPreparingCompareRecording = false;
+    let autoPlayCompareOnStop = false;
     let recordedAudioBlobUrl = null;
     let recordAudioElement = new Audio();
 
@@ -2769,16 +2771,17 @@
         return;
       }
 
+      // 麥克風正在預備時，不接受重複點擊，避免同時建立兩個錄音器。
+      if (isPreparingCompareRecording) return;
+
       if (isUserRecording) {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-        isUserRecording = false;
-        renderUI();
-        setTimeout(() => {
-          if (recordedAudioBlobUrl) {
-            togglePlaybackAction();
-            showToast('▶️ 錄音完成，正在為您播放比對', 2500);
-          }
-        }, 200);
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          autoPlayCompareOnStop = true;
+          isUserRecording = false;
+          mediaRecorder.stop();
+          renderUI();
+          showToast('⏳ 正在完成錄音，請稍候', 1500);
+        }
       } else {
         if (parsedTextLines.length === 0) {
           showToast("經文處理中，請稍等片刻", 2000);
@@ -3609,25 +3612,55 @@
     }
 
     async function toggleReliableRecordAction() {
-      const ok = await ensureMicrophoneActive();
-      if (!ok) return;
+      if (isPreparingCompareRecording || isUserRecording) return;
+      isPreparingCompareRecording = true;
+      autoPlayCompareOnStop = false;
+      try {
+        const ok = await ensureMicrophoneActive();
+        if (!ok || currentCoreMode !== 'mode4') return;
 
-      audioChunks = [];
-      mediaRecorder = new MediaRecorder(micStream);
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.push(e.data);
-      };
-      mediaRecorder.onstop = () => {
-        const options = mediaRecorder.mimeType ? { type: mediaRecorder.mimeType } : {};
-        const recordedBlob = new Blob(audioChunks, options);
-        recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
-        recordAudioElement.src = recordedAudioBlobUrl;
-        recordAudioElement.playbackRate = compareSpeed;
+        // 等待手機麥克風與回音消除處理穩定；準備期間提示使用者先不要朗讀。
+        showToast('🎙️ 麥克風準備中，請稍候…', 700);
+        await new Promise(resolve => setTimeout(resolve, 450));
+        if (currentCoreMode !== 'mode4' || !micStream ||
+            !micStream.getAudioTracks().some(track => track.readyState === 'live')) return;
+
+        if (recordAudioElement) recordAudioElement.pause();
+        audioChunks = [];
+        const recorder = new MediaRecorder(micStream);
+        mediaRecorder = recorder;
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) audioChunks.push(e.data);
+        };
+        recorder.onstop = () => {
+          // 不再以固定 200ms 猜測完成時間；必須等新錄音真正封裝完成。
+          const options = recorder.mimeType ? { type: recorder.mimeType } : {};
+          const recordedBlob = new Blob(audioChunks, options);
+          const shouldPlay = autoPlayCompareOnStop && currentCoreMode === 'mode4';
+          autoPlayCompareOnStop = false;
+          if (recordedBlob.size > 0) {
+            if (recordedAudioBlobUrl) URL.revokeObjectURL(recordedAudioBlobUrl);
+            recordedAudioBlobUrl = URL.createObjectURL(recordedBlob);
+            recordAudioElement.src = recordedAudioBlobUrl;
+            recordAudioElement.playbackRate = compareSpeed;
+            renderUI();
+            if (shouldPlay) {
+              togglePlaybackAction();
+              showToast('▶️ 錄音完成，正在為您播放比對', 2500);
+            }
+          } else {
+            showToast('⚠️ 本次沒有收到錄音資料，請重試', 2500);
+          }
+        };
+        recorder.start();
+        isUserRecording = true;
         renderUI();
-      };
-      mediaRecorder.start(); 
-      isUserRecording = true;
-      renderUI();
+        showToast('🔴 已開始錄音，請朗讀', 1800);
+      } catch (err) {
+        showToast('⚠️ 錄音啟動失敗，請重試', 2500);
+      } finally {
+        isPreparingCompareRecording = false;
+      }
     }
 
     function togglePlaybackAction() {
