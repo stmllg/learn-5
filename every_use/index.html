@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.79</title>
+  <title>歡喜背書V999.78</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1236,6 +1236,39 @@
     let autoPlayCompareOnStop = false;
     let recordedAudioBlobUrl = null;
     let recordAudioElement = new Audio();
+    // OF06：只增強「比對錄音」回放音量；不更動原始麥克風收音、錄音檔與聲控判斷。
+    let comparePlaybackContext = null;
+    let comparePlaybackBoostReady = false;
+    function prepareComparePlaybackBoost() {
+      try {
+        if (!comparePlaybackBoostReady) {
+          const ContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!ContextClass) return; // 舊瀏覽器照原有 Audio 播放
+          const ctx = new ContextClass();
+          const source = ctx.createMediaElementSource(recordAudioElement);
+          const boost = ctx.createGain();
+          boost.gain.value = 3.0; // 約 +9.5 dB，只作用於錄音回放
+          const limiter = ctx.createDynamicsCompressor();
+          limiter.threshold.value = -9;
+          limiter.knee.value = 0;
+          limiter.ratio.value = 16;
+          limiter.attack.value = 0.003;
+          limiter.release.value = 0.15;
+          source.connect(boost);
+          boost.connect(limiter);
+          limiter.connect(ctx.destination);
+          comparePlaybackContext = ctx;
+          comparePlaybackBoostReady = true;
+        }
+        // 在按「比對」的使用者手勢期間啟用，以符合手機瀏覽器播放限制。
+        if (comparePlaybackContext && comparePlaybackContext.state === 'suspended') {
+          comparePlaybackContext.resume().catch(() => {});
+        }
+      } catch (error) {
+        console.warn('[OF06 playback gain]', error);
+        // 增益功能不可用時，保留原本的 Audio 播放路徑。
+      }
+    }
     // 僅供比對錄音按鈕顯示即時收音狀態；不參與錄音或聲控翻頁判斷。
     let compareMeterFrame = null;
     function stopCompareVoiceMeter() {
@@ -2957,6 +2990,7 @@
       if (isPreparingCompareRecording) return;
 
       if (isUserRecording) {
+        prepareComparePlaybackBoost();
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           autoPlayCompareOnStop = true;
           isUserRecording = false;
@@ -2970,6 +3004,7 @@
           showToast("經文處理中，請稍等片刻", 2000);
           return;
         }
+        prepareComparePlaybackBoost();
         toggleReliableRecordAction();
       }
     }
@@ -3859,6 +3894,7 @@
       if (isGuideActive) haltGuideRunnerImmediately();
 
       if (recordAudioElement.paused) {
+        prepareComparePlaybackBoost();
         recordAudioElement.playbackRate = compareSpeed;
         recordAudioElement.play().then(() => renderUI()).catch(() => {});
       } else {
