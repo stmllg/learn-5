@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.78test</title>
+  <title>歡喜背書V999.78</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2486,7 +2486,7 @@
         }
 
         if (isIndependentModeUnlocked()) {
-          slotL1.innerHTML = '';
+          slotL1.innerHTML = '<button class="circle-btn" id="btn-select-all" style="background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%); border-color: #DDD6FE;">全部</button>';
 
           const textA = isSelectingMarkA ? '請點句' : '起句';
           const textB = isSelectingMarkB ? '請點句' : '終句';
@@ -2508,6 +2508,9 @@
 
         slotR1.innerHTML = '<button class="square-btn" id="btn-gendu">跟讀</button>';
         slotR2.innerHTML = '<button class="square-btn" id="btn-zidu">自讀</button>';
+
+        const btnSelectAll = document.getElementById('btn-select-all');
+        if (btnSelectAll) btnSelectAll.addEventListener('click', handleSelectAllSentences);
 
         const btnMarkA = document.getElementById('btn-mark-a');
         if (btnMarkA) btnMarkA.addEventListener('click', handleMarkAClck);
@@ -2768,6 +2771,30 @@
         }
         toggleReliableRecordAction();
       }
+    }
+
+    // 自主學習：左1「全部」將起句與終句設為全篇範圍。
+    function handleSelectAllSentences() {
+      if (!isIndependentModeUnlocked()) return;
+      const total = scriptureData && scriptureData.length ? scriptureData.length : parsedTextLines.length;
+      if (!total) {
+        showToast('經文尚未載入完成，請稍候', 2500);
+        return;
+      }
+      isManualSelected = true;
+      isSelectingMarkA = false;
+      isSelectingMarkB = false;
+      markA_Index = 0;
+      markB_Index = total - 1;
+      currentLineIndex = 0;
+      currentCharIndexFloat = 0.0;
+      isLineHeadLocked = true;
+      videoPausedAt = -1;
+      updateVisualDisplay();
+      scrollToAlignTop(0);
+      renderUI();
+      saveCurrentAppState();
+      showToast('✅ 已設定全部經文：第 1 句至第 ' + total + ' 句', 3000);
     }
 
     function handleMarkAClck() {
