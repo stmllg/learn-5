@@ -1250,6 +1250,8 @@
       const samples = new Float32Array(analyser.fftSize);
       let lastUpdate = 0;
       let smoothed = 0;
+      // OF05：依當前手機的安靜底噪調整「閃爍」靈敏度，不影響錄音檔的聲音。
+      let quietFloor = 0.0002;
       const sample = (now) => {
         if (!isUserRecording || currentCoreMode !== 'mode4' || !mediaRecorder || mediaRecorder.state !== 'recording') {
           stopCompareVoiceMeter();
@@ -1262,8 +1264,16 @@
           for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
           const rms = Math.sqrt(sum / samples.length);
           smoothed = smoothed * 0.45 + rms * 0.55;
+          // 安靜時逐步校準；有朗讀聲時不讓門檻跟著抬高。
+          const flashThreshold = Math.max(0.0005, quietFloor * 1.8 + 0.0002);
+          const heardVoice = smoothed > flashThreshold;
+          if (!heardVoice) {
+            quietFloor = quietFloor * 0.96 + smoothed * 0.04;
+          } else if (smoothed < quietFloor) {
+            quietFloor = smoothed;
+          }
           const button = document.getElementById('btn-record');
-          if (button) button.classList.toggle('compare-voice-detected', smoothed > 0.008);
+          if (button) button.classList.toggle('compare-voice-detected', heardVoice);
         }
         compareMeterFrame = requestAnimationFrame(sample);
       };
@@ -1305,8 +1315,8 @@
 
     let isVoiceActive = false;
     let isTouchingDisplay = false; 
-    let baseNoiseLevel = 0.0015;
-    let dynamicThreshold = 0.0020;
+    let baseNoiseLevel = 0.0003;
+    let dynamicThreshold = 0.0006;
     let calibrationSamples = [];
     let isCalibrating = false;
     let silentFrameCount = 0;
@@ -3674,9 +3684,11 @@
           calibrationSamples = [];
           setTimeout(() => {
             if (calibrationSamples.length > 0) {
-              const sum = calibrationSamples.reduce((a, b) => a + b, 0);
-              baseNoiseLevel = sum / calibrationSamples.length;
-              dynamicThreshold = Math.max(0.0012, baseNoiseLevel * 1.05 + 0.0003);
+              // OF05：取安靜段的較低分位數作底噪基準。
+              // 避免使用者在 350ms 校準期間已朗讀，將人聲當作背景雜音。
+              const sorted = [...calibrationSamples].sort((a, b) => a - b);
+              baseNoiseLevel = sorted[Math.floor((sorted.length - 1) * 0.2)];
+              dynamicThreshold = Math.max(0.00045, baseNoiseLevel * 1.30 + 0.00018);
             }
             isCalibrating = false;
           }, 350);
@@ -4615,7 +4627,7 @@
       handleOrientationCheck();
     });
   </script>
-  <!-- OF04：保留 OF02 四階段確認，修復自讀與比對共用麥克風初始化 -->
+  <!-- OF05：沿用 OF04，僅改善比對閃爍與自讀聲控靈敏度 -->
   <script src="./offline_manager.js"></script>
 </body>
 </html>
