@@ -919,6 +919,27 @@
     #btn-record.compare-voice-detected {
       animation: compareVoiceFlash .42s ease-in-out infinite !important;
     }
+
+    /* OF02：四階段確認畫面，不改原有背書按鍵與計次邏輯 */
+    #of02-stage-overlay { display:none; position:fixed; inset:0; z-index:80000;
+      background:rgba(4,7,15,.94); align-items:center; justify-content:center;
+      padding:12px; box-sizing:border-box; }
+    #of02-stage-overlay.active { display:flex; }
+    #of02-stage-panel { width:min(92vw,760px); max-height:96dvh; overflow:auto;
+      background:#F8FAFC; color:#0F172A; border-radius:24px; padding:clamp(16px,3vw,30px);
+      text-align:center; border:5px solid var(--stage-color,#2563EB);
+      box-shadow:0 12px 40px rgba(0,0,0,.65); display:flex; flex-direction:column;
+      align-items:center; gap:clamp(10px,2vh,18px); }
+    #of02-stage-group { color:var(--stage-color,#2563EB); font-weight:900; font-size:clamp(17px,3.5vw,25px); }
+    #of02-stage-title { font-size:clamp(22px,4.2vw,34px); color:var(--stage-color,#2563EB);
+      line-height:1.35; font-weight:900; }
+    #of02-stage-desc { font-size:clamp(17px,2.9vw,23px); line-height:1.55;
+      font-weight:800; color:#1E293B; white-space:pre-line; }
+    #of02-stage-detail { font-size:clamp(14px,2.3vw,19px); line-height:1.55; color:#475569; }
+    #of02-stage-confirm { font-size:clamp(19px,3vw,25px); font-weight:900;
+      padding:12px 30px; min-height:52px; color:white; background:var(--stage-color,#2563EB);
+      border:0; border-radius:14px; cursor:pointer; width:min(100%,400px); }
+    #of02-stage-confirm:disabled { opacity:.6; cursor:wait; }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 </head>
@@ -1018,6 +1039,18 @@
   </div>
 
   
+
+
+  <!-- OF02：獨立的四階段學習確認畫面。只有按下確定才開始該階段。 -->
+  <div id="of02-stage-overlay" role="dialog" aria-modal="true" aria-labelledby="of02-stage-title">
+    <div id="of02-stage-panel">
+      <div id="of02-stage-group"></div>
+      <div id="of02-stage-title"></div>
+      <div id="of02-stage-desc"></div>
+      <div id="of02-stage-detail"></div>
+      <button type="button" id="of02-stage-confirm">確定開始</button>
+    </div>
+  </div>
 
 <div id="restore-modal-overlay">
     <div class="restore-card">
@@ -1230,7 +1263,7 @@
           const rms = Math.sqrt(sum / samples.length);
           smoothed = smoothed * 0.45 + rms * 0.55;
           const button = document.getElementById('btn-record');
-          if (button) button.classList.toggle('compare-voice-detected', smoothed > Math.max(0.008, baseNoiseLevel * 1.8));
+          if (button) button.classList.toggle('compare-voice-detected', smoothed > 0.008);
         }
         compareMeterFrame = requestAnimationFrame(sample);
       };
@@ -1307,6 +1340,85 @@
       }
     }
 
+
+    // OF02：四種定課階段皆必須經由學員按「確定」才能開始。
+    // 同一階段內原有的重複播放／自讀循環不會額外跳出確認。
+    const OF02_STAGE_INFO = {
+      new_gendu: { group:'今日定課', title:'今日進度・跟讀',
+        desc:'今日進度，請跟著影片念。', detail:'跟著老師的影片與聲音，完成今日安排的遍數。',
+        button:'確定開始跟讀', color:'#2563EB', mode:'mode2' },
+      new_zidu: { group:'今日定課', title:'今日進度・自讀',
+        desc:'今日進度，請自己念出聲，小紅點會向前。',
+        detail:'可按「快＋」「慢－」調整語速；不方便出聲時，手指放在螢幕上，也可以帶動小紅點。',
+        button:'確定開始自讀', color:'#059669', mode:'mode3' },
+      cumulative_gendu: { group:'串習定課', title:'串習定課・從頭跟讀',
+        desc:'串習定課，從頭跟讀。', detail:'請從第一句開始，依照今日串習範圍跟著影片複習。',
+        button:'確定開始串習跟讀', color:'#EA580C', mode:'mode2' },
+      cumulative_zidu: { group:'串習定課', title:'串習定課・從頭自讀',
+        desc:'串習定課，從頭自讀。',
+        detail:'小紅點會向前，可調整快慢；不方便出聲時，也可以用手指帶動。',
+        button:'確定開始串習自讀', color:'#9333EA', mode:'mode3' }
+    };
+    let of02AwaitingStageConfirmation = false;
+    let of02StartingStage = false;
+
+    function of02ShowStageConfirmation() {
+      const info = OF02_STAGE_INFO[practicePhase];
+      if (!info || practicePhase === 'completed') return false;
+      // 防止上一階段仍在播放／計次，顯示確認卡後不能自行前進。
+      try { video.pause(); } catch(e) {}
+      haltGuideRunnerImmediately();
+      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
+      of02AwaitingStageConfirmation = true;
+      of02StartingStage = false;
+      const overlay = document.getElementById('of02-stage-overlay');
+      const panel = document.getElementById('of02-stage-panel');
+      if (!overlay || !panel) return false;
+      panel.style.setProperty('--stage-color', info.color);
+      document.getElementById('of02-stage-group').textContent = info.group;
+      document.getElementById('of02-stage-title').textContent = info.title;
+      document.getElementById('of02-stage-desc').textContent = info.desc;
+      document.getElementById('of02-stage-detail').textContent = info.detail;
+      const btn = document.getElementById('of02-stage-confirm');
+      btn.textContent = info.button;
+      btn.disabled = false;
+      overlay.classList.add('active');
+      return true;
+    }
+
+    async function of02ConfirmStage() {
+      if (!of02AwaitingStageConfirmation || of02StartingStage) return;
+      const info = OF02_STAGE_INFO[practicePhase];
+      if (!info) return;
+      of02StartingStage = true;
+      const btn = document.getElementById('of02-stage-confirm');
+      if (btn) btn.disabled = true;
+      of02AwaitingStageConfirmation = false;
+      document.getElementById('of02-stage-overlay').classList.remove('active');
+      try {
+        if (info.mode === 'mode2') {
+          // setCoreMode(mode2) 沿用原本影片起始／自動循環機制。
+          setCoreMode('mode2');
+        } else {
+          setCoreMode('mode3');
+          await handleZiduClick();
+        }
+      } finally {
+        of02StartingStage = false;
+      }
+    }
+
+    // 交接時先儲存下一階段，若中途離開，下次仍需按確認才開始。
+    function of02AdvanceToStage(nextPhase) {
+      practicePhase = nextPhase;
+      currentCycleCount = 0;
+      setupStageRange();
+      saveCurrentAppState();
+      of02ShowStageConfirmation();
+    }
+
+    document.getElementById('of02-stage-confirm').addEventListener('click', of02ConfirmStage);
+
     function saveCurrentAppState() {
       if (!hasEnteredReciting) return;
       if (currentCoreMode === 'mode1' || currentCoreMode === 'mode5') return;
@@ -1374,7 +1486,11 @@
       restoreModalOverlay.style.display = 'none';
 
       loadAllAssetsSmartSync().then(() => {
-        if (currentCoreMode === 'mode2') {
+        if (practicePhase !== 'completed') {
+          // 恢復進度也不能自動播放；必須重新確認目前階段。
+          setupStageRange();
+          of02ShowStageConfirmation();
+        } else if (currentCoreMode === 'mode2') {
           setCoreMode('mode2');
           if (state.videoCurrentTime > 0) video.currentTime = state.videoCurrentTime;
         } else if (currentCoreMode === 'mode3') {
@@ -1404,6 +1520,12 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         saveCurrentAppState();
+        // 被 LINE／系統切至背景時，不能讓已停止的麥克風仍顯示錄音中。
+        if (isUserRecording && mediaRecorder && mediaRecorder.state === 'recording') {
+          autoPlayCompareOnStop = false;
+          isUserRecording = false;
+          try { mediaRecorder.stop(); } catch (_) {}
+        }
         releaseMicrophoneResources();
       } else if (document.visibilityState === 'visible') {
         setTimeout(() => {
@@ -1682,7 +1804,7 @@
             } catch(e) {}
           }
 
-          setCoreMode('mode2');
+          of02ShowStageConfirmation();
         });
       }, 200);
     }
@@ -1725,7 +1847,8 @@
 
         const hasRestore = checkAndPrepareRestoreState();
         if (!hasRestore) {
-          setCoreMode('mode2');
+          if (practicePhase !== 'completed') of02ShowStageConfirmation();
+          else setCoreMode('mode2');
         }
       }, 200);
     }
@@ -2709,6 +2832,7 @@
     }
 
     function handleGenduClick() {
+      if (of02AwaitingStageConfirmation) return;
       requestFullscreenMode();
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
         showToast("⚠️ 請先跟著讀完遍數", 3000);
@@ -2754,6 +2878,7 @@
     }
 
     async function handleZiduClick() {
+      if (of02AwaitingStageConfirmation) return;
       requestFullscreenMode();
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
         showToast("⚠️ 請先跟著讀完遍數", 3000);
@@ -3054,6 +3179,7 @@
     }
 
     function handleCycleCompletion() {
+      if (of02AwaitingStageConfirmation) return;
       if (currentCoreMode === 'mode2') {
         video.pause();
       } else if (currentCoreMode === 'mode3') {
@@ -3077,19 +3203,7 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          const promptText = "手指放螢幕也可小紅點向前，按快慢可調自己的語速";
-          speakPrompt(promptText);
-          showTransitionModal(
-            "🎉 新進度跟讀圓滿！",
-            `您已完成新進度跟讀。<br>接下來將進入<strong><span>「新進度自讀模式」</span></strong>。<br><br>💡 提示：手指放螢幕也可小紅點向前，按快慢可調自己的語速。<br><br>請準備好後點擊下方按鈕開始。`,
-            () => {
-              practicePhase = 'new_zidu';
-              currentCycleCount = 0;
-              setupStageRange();
-              setCoreMode('mode3');
-              handleZiduClick();
-            }
-          );
+          of02AdvanceToStage('new_zidu');
         }
       } else if (practicePhase === 'new_zidu') {
         if (currentCycleCount < newRepeat) {
@@ -3098,26 +3212,7 @@
           handleZiduClick();
         } else {
           if (hasCumulative) {
-            showTransitionModal(
-              "🎉 新進度自讀圓滿！",
-              `新進度已全部圓滿。<br>接下來將進入<strong><span>「串習複習跟讀」</span></strong>。<br><br>請準備好後點擊下方按鈕開始。`,
-              () => {
-                practicePhase = 'cumulative_gendu';
-                currentCycleCount = 0;
-                setupStageRange();
-                setCoreMode('mode2');
-                const range = getActiveVideoRange();
-                if (range.valid) { video.currentTime = range.start; }
-                setTimeout(() => {
-                  video.play().then(() => {
-                    updateModeButtonsStyle();
-                    startMp4PrecisionCheck();
-                  }).catch(e => {
-                    handleGenduClick();
-                  });
-                }, 300);
-              }
-            );
+            of02AdvanceToStage('cumulative_gendu');
           } else {
             finishAllPractice();
           }
@@ -3130,17 +3225,7 @@
           if (range.valid) { video.currentTime = range.start; }
           setTimeout(() => { handleGenduClick(); }, 500);
         } else {
-          showTransitionModal(
-            "🎉 串習複習跟讀圓滿！",
-            `您已完成串習複習跟讀。<br>接下來將進入<strong>「串習複習自讀」</strong>。<br><br>請準備好後點擊下方按鈕開始。`,
-            () => {
-              practicePhase = 'cumulative_zidu';
-              currentCycleCount = 0;
-              setupStageRange();
-              setCoreMode('mode3');
-              handleZiduClick();
-            }
-          );
+          of02AdvanceToStage('cumulative_zidu');
         }
       } else if (practicePhase === 'cumulative_zidu') {
         if (currentCycleCount < cRepeat) {
@@ -3551,12 +3636,24 @@
     }
 
     async function ensureMicrophoneActive() {
-      if (micStream) return true;
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioContext) audioContext = new AudioContextClass();
-        if (audioContext.state === 'suspended') await audioContext.resume();
-
+        if (!audioContext || audioContext.state === 'closed') audioContext = new AudioContextClass();
+        // 手機切換 LINE／Chrome、背景／前景後 AudioContext 可能被暫停。
+        if (audioContext.state !== 'running') await audioContext.resume();
+        // 不能只檢查 micStream 是否存在：軌道可能已被瀏覽器終止。
+        const liveTrack = micStream && micStream.getAudioTracks().some(
+          track => track.readyState === 'live' && track.enabled && !track.muted
+        );
+        if (liveTrack && analyser) {
+          startSharedVadLoop();
+          return true;
+        }
+        if (micStream) {
+          try { micStream.getTracks().forEach(track => track.stop()); } catch (_) {}
+          micStream = null;
+        }
+        analyser = null;
         micStream = await getUserMediaWithTimeout({
           audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
         }, 6000);
@@ -3665,7 +3762,7 @@
         const ok = await ensureMicrophoneActive();
         if (!ok || currentCoreMode !== 'mode4') return;
 
-        // 等待手機麥克風與回音消除處理穩定；準備期間提示使用者先不要朗讀。
+        // 等待手機麥克風收音穩定（回音消除仍關閉）；準備期間提示先不要朗讀。
         showToast('🎙️ 麥克風準備中，請稍候…', 700);
         await new Promise(resolve => setTimeout(resolve, 450));
         if (currentCoreMode !== 'mode4' || !micStream ||
@@ -3680,6 +3777,7 @@
         };
         recorder.onstop = () => {
           stopCompareVoiceMeter();
+          isUserRecording = false;
           // 不再以固定 200ms 猜測完成時間；必須等新錄音真正封裝完成。
           const options = recorder.mimeType ? { type: recorder.mimeType } : {};
           const recordedBlob = new Blob(audioChunks, options);
@@ -3698,6 +3796,12 @@
           } else {
             showToast('⚠️ 本次沒有收到錄音資料，請重試', 2500);
           }
+        };
+        recorder.onerror = () => {
+          isUserRecording = false;
+          stopCompareVoiceMeter();
+          renderUI();
+          showToast('⚠️ 手機錄音中斷，請再按「比對」重試', 3000);
         };
         recorder.start();
         isUserRecording = true;
@@ -4485,7 +4589,7 @@
       handleOrientationCheck();
     });
   </script>
-  <!-- OF01 只新增離線資源管理；原 V999.79 功能及錄音參數維持不變 -->
+  <!-- OF03：保留 OF02 四階段確認；只強化錄音串流有效性與收音提示 -->
   <script src="./offline_manager.js"></script>
 </body>
 </html>
