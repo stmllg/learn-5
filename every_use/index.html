@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.78</title>
+  <title>歡喜背書V999.99</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1386,20 +1386,18 @@
     // OF02：四種定課階段皆必須經由學員按「確定」才能開始。
     // 同一階段內原有的重複播放／自讀循環不會額外跳出確認。
     const OF02_STAGE_INFO = {
-      new_gendu: { group:'今日定課', title:'今日進度・跟讀',
-        desc:'今日進度，請跟著影片念。', detail:'跟著老師的影片與聲音，完成今日安排的遍數。',
-        button:'確定開始跟讀', color:'#2563EB', mode:'mode2' },
-      new_zidu: { group:'今日定課', title:'今日進度・自讀',
-        desc:'今日進度，請自己念出聲，小紅點會向前。',
-        detail:'可按「快＋」「慢－」調整語速；不方便出聲時，手指放在螢幕上，也可以帶動小紅點。',
-        button:'確定開始自讀', color:'#059669', mode:'mode3' },
-      cumulative_gendu: { group:'串習定課', title:'串習定課・從頭跟讀',
-        desc:'串習定課，從頭跟讀。', detail:'請從第一句開始，依照今日串習範圍跟著影片複習。',
-        button:'確定開始串習跟讀', color:'#EA580C', mode:'mode2' },
-      cumulative_zidu: { group:'串習定課', title:'串習定課・從頭自讀',
-        desc:'串習定課，從頭自讀。',
-        detail:'小紅點會向前，可調整快慢；不方便出聲時，也可以用手指帶動。',
-        button:'確定開始串習自讀', color:'#9333EA', mode:'mode3' }
+      new_gendu: { group:'今天新進度', title:'跟著念',
+        desc:'', detail:'',
+        button:'確定開始', color:'#2563EB', mode:'mode2' },
+      new_zidu: { group:'今天新進度', title:'自己念',
+        desc:'念出聲，小紅點會向前。\n不方便出聲，手指放在螢幕上也可以。', detail:'',
+        button:'確定開始', color:'#059669', mode:'mode3' },
+      cumulative_gendu: { group:'從第一句串習', title:'跟著念',
+        desc:'', detail:'',
+        button:'確定開始', color:'#EA580C', mode:'mode2' },
+      cumulative_zidu: { group:'從第一句串習', title:'自己念',
+        desc:'念出聲，小紅點會向前。\n不方便出聲，手指放在螢幕上也可以。', detail:'',
+        button:'確定開始', color:'#9333EA', mode:'mode3' }
     };
     let of02AwaitingStageConfirmation = false;
     let of02StartingStage = false;
@@ -1419,8 +1417,12 @@
       panel.style.setProperty('--stage-color', info.color);
       document.getElementById('of02-stage-group').textContent = info.group;
       document.getElementById('of02-stage-title').textContent = info.title;
-      document.getElementById('of02-stage-desc').textContent = info.desc;
-      document.getElementById('of02-stage-detail').textContent = info.detail;
+      const stageDesc = document.getElementById('of02-stage-desc');
+      const stageDetail = document.getElementById('of02-stage-detail');
+      stageDesc.textContent = info.desc;
+      stageDesc.style.display = info.desc ? '' : 'none';
+      stageDetail.textContent = info.detail;
+      stageDetail.style.display = info.detail ? '' : 'none';
       const btn = document.getElementById('of02-stage-confirm');
       btn.textContent = info.button;
       btn.disabled = false;
