@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.99</title>
+  <title>歡喜背書V999.78</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -985,7 +985,7 @@
       </div>
 
       <div class="companion-actions-row" id="companionActionsRow">
-        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModalWithFullscreen()" style="display: none;">⚙️ 排程設定</button>
+        <button id="btn-card-setting-dynamic" class="btn-card-setting" onclick="openScheduleModalWithFullscreen()" style="display: inline-block;">⚙️ 排程設定</button>
         <button class="btn-card-orange" onclick="playTeacherGuideAndRecite()">老師帶前行</button>
         <button id="btn-card-offering-dynamic" class="btn-card-orange" onclick="handleOfferingClick()" style="display: inline-block; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #FEF3C7; border: 1.5px solid #FDE68A;">背書供養</button>
         <button class="btn-card-orange" onclick="closeCompanionCard()">開始背誦</button>
@@ -1248,7 +1248,7 @@
           const ctx = new AudioCtx();
           const src = ctx.createMediaElementSource(recordAudioElement);
           const gain = ctx.createGain();
-          gain.gain.value = 4.6; // 回放增益：只作用於「比對」錄音，不影響影片
+          gain.gain.value = 5.0; // OF11：比對錄音回放增益由 3.2 改為 5.0，其他錄音／自讀不變
           // OF09：只有播放增益，不再透過動態壓縮器／限制器。
           src.connect(gain);
           gain.connect(ctx.destination);
@@ -1825,7 +1825,7 @@
         hasEnteredReciting = true;
         classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
 
         requestFullscreenMode();
 
@@ -1869,7 +1869,7 @@
         hasEnteredReciting = true;
         classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'none';
+        if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
 
         requestFullscreenMode();
 
@@ -1896,11 +1896,7 @@
     }
 
     function openScheduleModalWithFullscreen() {
-      if (classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) {
-        const btn = document.getElementById('btn-card-setting-dynamic');
-        if (btn) btn.style.display = 'none';
-        return;
-      }
+      // OF11：測試期間允許每天隨時開啟查看排程；儲存仍保留原本每日一次限制。
       requestFullscreenMode();
       openScheduleModal();
     }
@@ -2091,7 +2087,8 @@
       if (classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) {
         closeScheduleModal();
         const btn = document.getElementById('btn-card-setting-dynamic');
-        if (btn) btn.style.display = 'none';
+        if (btn) btn.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
+        showToast('今日排程已設定；測試期間可查看，但不重複更新。', 3500);
         return;
       }
       const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
@@ -2106,7 +2103,7 @@
       generateAlgorithmicSchedule(settings);
       classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
       const btn = document.getElementById('btn-card-setting-dynamic');
-      if (btn) btn.style.display = 'none';
+      if (btn) btn.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
       closeScheduleModal();
       showToast('✨ 排程參數已更新，並以指定已學進度重新計算完成！', 4000);
       applyScheduleToState('');
@@ -4641,16 +4638,9 @@
       checkDailyResetOnStartup();
 
       const todayStr = getNormalizedDateStr();
-      const settingUsedDate = classicStorage.getItem('SETTING_BTN_USED_DATE_V971');
+      // OF11：排程按鈕測試期間永遠顯示，以便檢查「已學句數」；不變更每日儲存限制。
       const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
-      
-      if (btnCardSettingDynamic) {
-        if (settingUsedDate === todayStr) {
-          btnCardSettingDynamic.style.display = 'none';
-        } else {
-          btnCardSettingDynamic.style.display = 'inline-block';
-        }
-      }
+      if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block';
 
       let targetDay = getRealTargetDay();
       classicStorage.setItem('CURRENT_SCHEDULE_DAY_V971', targetDay.toString());
