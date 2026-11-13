@@ -10,31 +10,11 @@
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
   <meta name="theme-color" content="#0B0F19">
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <script>
-    const SECRET_KEY = "teacher2026"; // 固定密鑰
-
     const urlParams = new URLSearchParams(window.location.search);
     const CLASSIC_PARAM = urlParams.get('classic');
     const GROUP_PARAM = urlParams.get('g') || urlParams.get('group') || 'def';
     const START_PARAM = urlParams.get('s') || urlParams.get('start') || '';
-    const K_PARAM = urlParams.get('k');
-
-    // === 嚴格安全檢核防護機制 ===
-    if (!K_PARAM) {
-        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 缺少安全驗證參數</h2><p style="color:#CBD5E1; margin-top:10px;">此網址未經授權或缺少必要參數，無法存取。</p></div></body>';
-        throw new Error("Missing security parameter.");
-    } else {
-        const checkString = START_PARAM + GROUP_PARAM + SECRET_KEY;
-        const calculatedK = CryptoJS.MD5(checkString).toString().substring(0, 3);
-        if (calculatedK !== K_PARAM) {
-            document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 網址驗證失敗或參數遭不當修改</h2><p style="color:#CBD5E1; margin-top:10px;">此網址無效或未經授權，無法存取此頁面。</p></div></body>';
-            throw new Error("Security verification failed.");
-        }
-    }
-
-    
-    
 
     const CURRENT_CLASSIC_ID = /^[a-zA-Z0-9_-]+$/.test(CLASSIC_PARAM || '') ? CLASSIC_PARAM : 'er_sheng';
     const CURRENT_GROUP_ID = /^[a-zA-Z0-9_-]+$/.test(GROUP_PARAM || '') ? GROUP_PARAM : 'def';
