@@ -32,7 +32,7 @@
     let CLASSIC_TOTAL_SENTENCES = 66;
     const DEFAULT_DAILY_STEP = 1;
     const DEFAULT_REPEAT_NEW = 10;
-    const DEFAULT_REPEAT_CUMULATIVE = 10;
+    const DEFAULT_REPEAT_CUMULATIVE = 5;
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
@@ -868,11 +868,11 @@
 
         <div class="schedule-field-row">
           <span class="schedule-field-label">定課預設遍數：</span>
-          <input type="number" id="input-repeat-new" class="schedule-field-input" min="1" max="50" oninput="previewScheduleChanges()">
+          <input type="number" id="input-repeat-new" class="schedule-field-input" min="1" max="50" readonly>
         </div>
         <div class="schedule-field-row">
           <span class="schedule-field-label">串習預設遍數：</span>
-          <input type="number" id="input-repeat-cum" class="schedule-field-input" min="0" max="50" oninput="previewScheduleChanges()">
+          <input type="number" id="input-repeat-cum" class="schedule-field-input" min="0" max="50" readonly>
         </div>
       </div>
 
@@ -1561,69 +1561,41 @@
       return 0;
     }
 
+    // 排程日期只依網址起始日（start/s），或首次使用日期推進；不依舊日快取。
     function getRealTargetDay() {
-      const urlParams = new URLSearchParams(window.location.search);
-      let targetDay = 1;
-      if (urlParams.get('start')) {
-        const startStr = urlParams.get('start');
-        const parts = startStr.split('-');
-        if (parts.length === 3) {
-          const y = parseInt(parts[0], 10);
-          const m = parseInt(parts[1], 10) - 1;
-          const d = parseInt(parts[2], 10);
-          const userStartDate = new Date(y, m, d);
-          const now = new Date();
-          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
-          targetDay = Math.max(1, diffDays);
-        }
-      } else if (urlParams.get('day')) {
-        targetDay = parseInt(urlParams.get('day'), 10) || 1;
-      } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V971');
-        if (currentSchedDay) {
-          targetDay = parseInt(currentSchedDay, 10) || 1;
-        } else {
-          targetDay = 1;
+      const params = new URLSearchParams(window.location.search);
+      const manualDay = params.get('day');
+      const startStr = START_PARAM || classicStorage.getItem('SCHEDULE_START_DATE_V30') || '';
+      if (manualDay && !START_PARAM) {
+        const n = parseInt(manualDay, 10);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+      const now = new Date();
+      const todayUTC = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+      const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(startStr);
+      if (match) {
+        const y = Number(match[1]), m = Number(match[2]), d = Number(match[3]);
+        const startUTC = Date.UTC(y, m - 1, d);
+        const valid = new Date(startUTC);
+        if (valid.getUTCFullYear() === y && valid.getUTCMonth() === m - 1 && valid.getUTCDate() === d) {
+          return Math.max(1, Math.floor((todayUTC - startUTC) / 86400000) + 1);
         }
       }
-      return targetDay;
+      // 沒帶起始日時，首次開啟當作第1天，儲存後每日自動遞增。
+      const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+      classicStorage.setItem('SCHEDULE_START_DATE_V30', today);
+      return 1;
     }
 
     function getCurrentActiveDayNumber() {
-      if (currentDayPlan && currentDayPlan.day) {
-        return currentDayPlan.day;
-      }
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('start')) {
-        const startStr = urlParams.get('start');
-        const parts = startStr.split('-');
-        if (parts.length === 3) {
-          const y = parseInt(parts[0], 10);
-          const m = parseInt(parts[1], 10) - 1;
-          const d = parseInt(parts[2], 10);
-          const userStartDate = new Date(y, m, d);
-          const now = new Date();
-          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
-          return Math.max(1, diffDays);
-        }
-      } else if (urlParams.get('day')) {
-        return parseInt(urlParams.get('day'), 10) || 1;
-      } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V971');
-        if (currentSchedDay) {
-          return parseInt(currentSchedDay, 10) || 1;
-        }
-      }
-      return 1;
+      return getRealTargetDay();
     }
 
     function openScheduleModal() {
       const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}');
-      selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
-      const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
-      const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
+      selectedDailyStep = 1;
+      const rNew = 10;
+      const rCum = 5;
 
       document.getElementById('display-total-sentences').textContent = CLASSIC_TOTAL_SENTENCES + '句';
       
@@ -1654,8 +1626,8 @@
     }
 
     function selectDailyStep(step) {
-      selectedDailyStep = step;
-      updateStepButtonsUI(step);
+      selectedDailyStep = 1;
+      updateStepButtonsUI(1);
       previewScheduleChanges();
     }
 
@@ -1680,40 +1652,14 @@
     }
 
     function generateTempScheduleList(settings) {
-      const total = CLASSIC_TOTAL_SENTENCES;
-      const step = settings.dailyStep;
-      const rNew = settings.repeatNew;
-      const rCum = settings.repeatCum;
-      const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
       const list = [];
-
-      let currentDay = getCurrentActiveDayNumber();
-      let simDay = currentDay;
-      let simStart = Math.min(total, testCompleted + 1);
-      if (simDay === 1) simStart = 1;
-
-      for (let i = 1; i <= 5; i++) {
-        let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
-        let cStart = null, cEnd = null, cRepeat = 0;
-
-        if (simDay > 1) {
-          cStart = 1;
-          cEnd = end;
-          cRepeat = rCum;
-        }
-
-        let dayLabel = (i === 1) ? '今天' : (i === 2 ? '明天' : `第${simDay}天`);
-        let reviewStr = (simDay === 1) ? `複[---](1遍)` : `複[${cStart}~${cEnd}](${rCum}遍)`;
-
-        list.push(`${dayLabel} (第${simDay}天): 新[${simStart}~${end}](${rNew}遍) ${reviewStr}`);
-
-        if (end >= total) break;
-        if (simDay === 1) {
-          simStart = 2;
-        } else {
-          simStart = Math.min(total, end + 1);
-        }
-        simDay++;
+      const todayDay = getRealTargetDay();
+      for (let i = 0; i < 5; i++) {
+        const day = todayDay + i;
+        if (day > CLASSIC_TOTAL_SENTENCES) break;
+        const label = i === 0 ? '今天' : (i === 1 ? '明天' : `第${day}天`);
+        const review = day === 1 ? '複[---](0遍)' : `複[1~${day}](5遍)`;
+        list.push(`${label} (第${day}天): 新[${day}~${day}](10遍) ${review}`);
       }
       return list;
     }
@@ -1727,12 +1673,12 @@
 
     function saveAndApplySchedule() {
       const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
-      const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
-      const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
+      const repeatNew = 10;
+      const repeatCum = 5;
 
       classicStorage.setItem('USER_CURRENT_PROGRESS_END_V971', testCompleted.toString());
 
-      const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
+      const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: 1, repeatNew, repeatCum, testCompleted };
       classicStorage.setItem('USER_SCHEDULE_SETTINGS_V971', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
@@ -1779,6 +1725,12 @@
       const completedInput = document.getElementById('input-completed-sentences');
       if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
       if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
+
+      // 每次啟動依完整句數重建固定排程，避免沿用從第1天開始的舊快取。
+      classicStorage.setItem('USER_SCHEDULE_SETTINGS_V971', JSON.stringify({
+        totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: 1, repeatNew: 10, repeatCum: 5
+      }));
+      generateAlgorithmicSchedule({ dailyStep: 1, repeatNew: 10, repeatCum: 5 });
 
       if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971') || CLASSIC_TOTAL_SENTENCES > 0) {
         let savedSchedule = null;
@@ -1831,50 +1783,23 @@
 
     function generateAlgorithmicSchedule(settings) {
       const total = CLASSIC_TOTAL_SENTENCES;
-      const step = settings.dailyStep || DEFAULT_DAILY_STEP;
-      const rNew = settings.repeatNew;
-      const rCum = settings.repeatCum;
-      
-      let currentDay = getCurrentActiveDayNumber();
-      let testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
-      if (testCompleted === 0 && currentDay > 1) {
-        testCompleted = (currentDay === 2) ? 1 : Math.min(total, 1 + (currentDay - 2) * step);
-      }
-      
+      const step = 1;                 // 固定每日一句
+      const rNew = 10;                // 今日定課十遍
+      const rCum = 5;                 // 串習定課五遍
       const scheduleList = [];
-      let simDay = currentDay;
-      let simStart = Math.min(total, testCompleted + 1);
-      if (simDay === 1) simStart = 1;
-
-      for (let dayIdx = 1; dayIdx <= 100; dayIdx++) {
-        let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
-        let cStart = null, cEnd = null, cRepeat = 0;
-
-        if (simDay > 1) {
-          cStart = 1;
-          cEnd = end;
-          cRepeat = rCum;
-        }
-
+      // 從第一天建立完整排程，而不是只從今天起建；跨天無須沿用舊快取。
+      for (let day = 1; day <= total; day++) {
+        const end = Math.min(total, day);
         scheduleList.push({
-          day: simDay,
-          start: simStart,
+          day: day,
+          start: end,
           end: end,
           repeat: rNew,
-          cStart: cStart,
-          cEnd: cEnd,
-          cRepeat: cRepeat
+          cStart: day > 1 ? 1 : null,
+          cEnd: day > 1 ? end : null,
+          cRepeat: day > 1 ? rCum : 0
         });
-
-        if (end >= total) break;
-        if (simDay === 1) {
-          simStart = 2;
-        } else {
-          simStart = Math.min(total, end + 1);
-        }
-        simDay++;
       }
-
       classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V971', JSON.stringify(scheduleList));
     }
 
@@ -1883,7 +1808,7 @@
 
       try {
         let scheduleData = null;
-        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971');
+        let localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971');
 
         if (localSched) {
           try { scheduleData = JSON.parse(localSched); } catch(e){}
