@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.99</title>
+  <title>歡喜背書V999.101｜日期固定排程修正版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -996,11 +996,11 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v996)</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定（日期固定）</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
-          <span class="schedule-field-label">經典總句數 / 已學：</span>
+          <span class="schedule-field-label">經典總句數 / 今日排程終點：</span>
           <div style="display: flex; gap: 4px; align-items: center;">
             <div id="display-total-sentences" class="schedule-field-readonly">37句</div>
             <input type="number" id="input-completed-sentences" class="schedule-field-input" min="0" max="37" readonly style="width: 75px; background: #1E293B; color: #94A3B8; border-color: #475569;">
@@ -1825,7 +1825,7 @@
         await preWarmMicrophonePermission();
 
         hasEnteredReciting = true;
-        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+        // 進入背書不改寫排程設定；固定快照由 applyScheduleToState() 建立。
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
 
@@ -1869,7 +1869,7 @@
         await preWarmMicrophonePermission();
 
         hasEnteredReciting = true;
-        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+        // 進入背書不改寫排程設定；固定快照由 applyScheduleToState() 建立。
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
 
@@ -1908,22 +1908,56 @@
       handleDayBtnClick();
     }
 
-    function getCurrentProgressEnd() {
-      if (currentDayPlan && currentDayPlan.end) {
-        return currentDayPlan.end;
-      }
-      const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
-      if (saved !== null && saved !== '' && saved !== '0') {
-        return parseInt(saved, 10);
-      }
-      const targetDay = getRealTargetDay();
-      if (targetDay > 1) {
-        return Math.min(CLASSIC_TOTAL_SENTENCES, targetDay - 1);
-      }
-      return 0;
+    // 日期排程：唯一進度依據是網址起始日期、當天日期與設定步幅。
+    // 自主選句、實際背誦遍數及舊 USER_CURRENT_PROGRESS_END_V971 均不得參與排程。
+    function loadFixedScheduleSettings() {
+      let saved = {};
+      try { saved = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}') || {}; } catch(e) {}
+      return {
+        dailyStep: [1,2,4].includes(Number(saved.dailyStep)) ? Number(saved.dailyStep) : DEFAULT_DAILY_STEP,
+        repeatNew: Math.max(1, Number(saved.repeatNew) || DEFAULT_REPEAT_NEW),
+        repeatCum: Math.max(0, Number(saved.repeatCum ?? DEFAULT_REPEAT_CUMULATIVE) || 0),
+        anchorDay: Math.max(1, Number(saved.anchorDay) || 1),
+        anchorStart: Math.max(1, Number(saved.anchorStart) || 1)
+      };
     }
 
-    function getRealTargetDay() {
+    function fixedPlanForDay(day, cfg) {
+      const total = Math.max(1, CLASSIC_TOTAL_SENTENCES);
+      const d = Math.max(1, Math.floor(Number(day) || 1));
+      const step = [1,2,4].includes(Number(cfg.dailyStep)) ? Number(cfg.dailyStep) : DEFAULT_DAILY_STEP;
+      const anchorDay = Math.max(1, Number(cfg.anchorDay) || 1);
+      const anchorStart = Math.max(1, Number(cfg.anchorStart) || 1);
+      // 第一天固定 1 句；第二天起才套用每日步幅。
+      let start;
+      if (d === 1) start = 1;
+      else if (d >= anchorDay && anchorDay > 1) start = anchorStart + (d - anchorDay) * step;
+      else start = 2 + (d - 2) * step;
+      const end = start <= total ? Math.min(total, start + (d === 1 ? 0 : step - 1)) : null;
+      return {
+        day: d, start: end === null ? null : start, end,
+        repeat: end === null ? 0 : Math.max(1, Number(cfg.repeatNew) || DEFAULT_REPEAT_NEW),
+        cStart: d === 1 ? null : 1,
+        cEnd: d === 1 ? null : (end === null ? total : end),
+        cRepeat: d === 1 ? 0 : Math.max(0, Number(cfg.repeatCum ?? DEFAULT_REPEAT_CUMULATIVE) || 0)
+      };
+    }
+
+    function getTodayFixedSnapshot() {
+      let snap = null;
+      try { snap = JSON.parse(classicStorage.getItem('FIXED_DAILY_PLAN_V972') || 'null'); } catch(e) {}
+      if (!snap || snap.date !== getNormalizedDateStr() || snap.day !== getRealTargetDay()) return null;
+      if (!snap.plan || !Object.prototype.hasOwnProperty.call(snap.plan, 'day')) return null;
+      return snap.plan;
+    }
+
+    function getCurrentProgressEnd() {
+      // 舊名稱僅保留給尚未清理的呼叫點；回傳今日「安排」終點，絕非完成句數。
+      const plan = getTodayFixedSnapshot() || fixedPlanForDay(getRealTargetDay(), loadFixedScheduleSettings());
+      return Number(plan.end) || CLASSIC_TOTAL_SENTENCES;
+    }
+
+        function getRealTargetDay() {
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
       const startStr = urlParams.get('s') || urlParams.get('start');
@@ -1953,73 +1987,48 @@
     }
 
     function getCurrentActiveDayNumber() {
-      if (currentDayPlan && currentDayPlan.day) {
-        return currentDayPlan.day;
-      }
-      const urlParams = new URLSearchParams(window.location.search);
-      const startStr = urlParams.get('s') || urlParams.get('start');
-      if (startStr) {
-        const parts = startStr.split('-');
-        if (parts.length === 3) {
-          const y = parseInt(parts[0], 10);
-          const m = parseInt(parts[1], 10) - 1;
-          const d = parseInt(parts[2], 10);
-          const userStartDate = new Date(y, m, d);
-          const now = new Date();
-          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
-          return Math.max(1, diffDays);
-        }
-      } else if (urlParams.get('day')) {
-        return parseInt(urlParams.get('day'), 10) || 1;
-      } else {
-        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V971');
-        if (currentSchedDay) {
-          return parseInt(currentSchedDay, 10) || 1;
-        }
-      }
-      return 1;
+      // 不可優先取 currentDayPlan.day：該值可能是昨日留下的狀態。
+      return getRealTargetDay();
     }
 
-    function openScheduleModal() {
-      const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}');
-      selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
-      const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
-      const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
+        function openScheduleModal() {
+      const savedSettings = loadFixedScheduleSettings();
+      selectedDailyStep = savedSettings.dailyStep;
+      const fixedToday = getTodayFixedSnapshot();
+      const locked = !!fixedToday || classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr();
+      const activeDay = getRealTargetDay();
+      const effectivePlan = fixedToday || fixedPlanForDay(activeDay, savedSettings);
 
       document.getElementById('display-total-sentences').textContent = CLASSIC_TOTAL_SENTENCES + '句';
-      
-      const activeDay = getCurrentActiveDayNumber();
-      let completedEnd = getCurrentProgressEnd();
-
-      if (activeDay === 2 && completedEnd === 0) {
-        completedEnd = 1;
-      } else if (completedEnd === 0 && activeDay > 2) {
-        completedEnd = Math.min(CLASSIC_TOTAL_SENTENCES, 1 + (activeDay - 2) * selectedDailyStep);
-      }
-
-      document.getElementById('input-completed-sentences').value = completedEnd;
-
+      document.getElementById('input-completed-sentences').value = effectivePlan.end ?? CLASSIC_TOTAL_SENTENCES;
+      document.getElementById('input-repeat-new').value = savedSettings.repeatNew;
+      document.getElementById('input-repeat-cum').value = savedSettings.repeatCum;
       updateStepButtonsUI(selectedDailyStep);
-      document.getElementById('input-repeat-new').value = rNew;
-      document.getElementById('input-repeat-cum').value = rCum;
+      const previewCfg = { ...savedSettings, anchorDay: activeDay, anchorStart: effectivePlan.start ?? (CLASSIC_TOTAL_SENTENCES + 1) };
+      renderPreviewList('preview-new-list', generateTempScheduleList(previewCfg));
 
-      renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum, testCompleted: completedEnd }));
-
+      document.querySelectorAll('.step-btn').forEach(btn => { btn.disabled = locked; btn.style.opacity = locked ? '0.55' : ''; });
+      document.getElementById('input-repeat-new').disabled = locked;
+      document.getElementById('input-repeat-cum').disabled = locked;
+      const saveBtn = document.getElementById('btn-save-schedule');
+      saveBtn.disabled = locked;
+      saveBtn.textContent = locked ? '🔒 今日排程已鎖定' : '確認更新排程';
+      saveBtn.style.opacity = locked ? '0.6' : '';
       scheduleModalOverlay.style.display = 'flex';
     }
 
-    function closeScheduleModal() {
+        function closeScheduleModal() {
       scheduleModalOverlay.style.display = 'none';
     }
 
     function selectDailyStep(step) {
+      if (getTodayFixedSnapshot() || classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) return;
       selectedDailyStep = step;
       updateStepButtonsUI(step);
       previewScheduleChanges();
     }
 
-    function updateStepButtonsUI(activeStep) {
+        function updateStepButtonsUI(activeStep) {
       const buttons = document.querySelectorAll('.step-btn');
       buttons.forEach(btn => {
         const stepVal = parseInt(btn.getAttribute('data-step'), 10);
@@ -2032,52 +2041,33 @@
     }
 
     function previewScheduleChanges() {
-      const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
-      const rNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
-      const rCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
-
-      renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum, testCompleted: testCompleted }));
+      if (getTodayFixedSnapshot() || classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) return;
+      const old = loadFixedScheduleSettings();
+      const activeDay = getRealTargetDay();
+      const todayStart = fixedPlanForDay(activeDay, old).start ?? (CLASSIC_TOTAL_SENTENCES + 1);
+      const repeatNew = Math.max(1, parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW);
+      const repeatCum = Math.max(0, parseInt(document.getElementById('input-repeat-cum').value, 10) || 0);
+      renderPreviewList('preview-new-list', generateTempScheduleList({
+        dailyStep: selectedDailyStep, repeatNew, repeatCum,
+        anchorDay: activeDay, anchorStart: todayStart
+      }));
     }
 
     function generateTempScheduleList(settings) {
-      const total = CLASSIC_TOTAL_SENTENCES;
-      const step = settings.dailyStep;
-      const rNew = settings.repeatNew;
-      const rCum = settings.repeatCum;
-      const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
       const list = [];
-
-      let currentDay = getCurrentActiveDayNumber();
-      let simDay = currentDay;
-      let simStart = testCompleted + 1;
-      if (simDay === 1) simStart = 1;
-
-      for (let i = 1; i <= 5; i++) {
-        let dayLabel = (i === 1) ? '今天' : (i === 2 ? '明天' : `第${simDay}天`);
-        
-        if (simStart > total) {
-          list.push(`${dayLabel} (第${simDay}天): 今日定課已圓滿 ｜ 全局串習[1~${total}](${rCum}遍)`);
-        } else {
-          let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
-          let cStart = 1, cEnd = end, cRepeat = rCum;
-          if (simDay === 1) {
-            cStart = null; cEnd = null; cRepeat = 0;
-          }
-          let reviewStr = (simDay === 1) ? `複[---](1遍)` : `複[${cStart}~${cEnd}](${rCum}遍)`;
-          list.push(`${dayLabel} (第${simDay}天): 新[${simStart}~${end}](${rNew}遍) ${reviewStr}`);
-
-          if (end >= total) {
-            simStart = total + 1;
-          } else {
-            simStart = end + 1;
-          }
-        }
-        simDay++;
+      const activeDay = getRealTargetDay();
+      for (let offset = 0; offset < 5; offset++) {
+        const day = activeDay + offset;
+        const p = offset === 0 && getTodayFixedSnapshot() ? getTodayFixedSnapshot() : fixedPlanForDay(day, settings);
+        const label = offset === 0 ? '今天' : offset === 1 ? '明天' : `第${day}天`;
+        const newly = p.start === null ? '今日定課已圓滿' : `新[${p.start}~${p.end}](${p.repeat}遍)`;
+        const cumulative = p.cStart === null ? '複[---]' : `複[${p.cStart}~${p.cEnd}](${p.cRepeat}遍)`;
+        list.push(`${label} (第${day}天): ${newly} ${cumulative}`);
       }
       return list;
     }
 
-    function renderPreviewList(elementId, items) {
+        function renderPreviewList(elementId, items) {
       const el = document.getElementById(elementId);
       if (el) {
         el.innerHTML = items.join('<br>');
@@ -2085,33 +2075,36 @@
     }
 
     function saveAndApplySchedule() {
-      // 同一天排程只允許確認一次，避免重複重算學習進度。
-      if (classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) {
+      const today = getNormalizedDateStr();
+      if (getTodayFixedSnapshot() || classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === today) {
         closeScheduleModal();
-        const btn = document.getElementById('btn-card-setting-dynamic');
-        if (btn) btn.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
-        showToast('今日排程已設定；測試期間可查看，但不重複更新。', 3500);
+        showToast('🔒 今天排程已固定，只能查看，明天才可變更設定。', 3500);
         return;
       }
-      const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
-      const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
-      const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
-
-      classicStorage.setItem('USER_CURRENT_PROGRESS_END_V971', testCompleted.toString());
-
-      const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
+      const oldSettings = loadFixedScheduleSettings();
+      const activeDay = getRealTargetDay();
+      // 修改步幅不能把「完成句數／自主選句」當起點。
+      // 今天應從哪一句開始，由變更前的固定日期公式推得。
+      const originalStart = fixedPlanForDay(activeDay, oldSettings).start ?? (CLASSIC_TOTAL_SENTENCES + 1);
+      const repeatNew = Math.max(1, parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW);
+      const repeatCum = Math.max(0, parseInt(document.getElementById('input-repeat-cum').value, 10) || 0);
+      const settings = {
+        dailyStep: selectedDailyStep, repeatNew, repeatCum,
+        anchorDay: activeDay, anchorStart: originalStart
+      };
       classicStorage.setItem('USER_SCHEDULE_SETTINGS_V971', JSON.stringify(settings));
-
       generateAlgorithmicSchedule(settings);
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
-      const btn = document.getElementById('btn-card-setting-dynamic');
-      if (btn) btn.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', today);
+      // 確認後同一天的定課範圍定稿；之後所有跟讀／自讀共用此快照。
+      const plan = fixedPlanForDay(activeDay, settings);
+      classicStorage.setItem('FIXED_DAILY_PLAN_V972', JSON.stringify({ date: today, day: activeDay, plan }));
       closeScheduleModal();
-      showToast('✨ 排程參數已更新，並以指定已學進度重新計算完成！', 4000);
+      showToast('✅ 今日排程已固定。未完成不順延，自主練習不影響日期排程。', 4000);
+      isManualSelected = false;
       applyScheduleToState('');
     }
 
-    if (btnPlayDedication) {
+        if (btnPlayDedication) {
       btnPlayDedication.addEventListener('click', async () => {
         offeringOverlay.style.display = 'none';
         playStandaloneVideo('mode5', 0, () => {
@@ -2125,7 +2118,7 @@
 
     async function prefetchSentenceCountOnStartup() {
       const timestamp = Date.now();
-      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V971');
+      const localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V971');
       try {
         const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
@@ -2136,43 +2129,19 @@
           }
         }
       } catch (e) {}
-
       if (scriptureData.length === 0 && localSentStr) {
         try { scriptureData = JSON.parse(localSentStr); } catch(e){}
       }
-
-      if (Array.isArray(scriptureData) && scriptureData.length > 0) {
-        CLASSIC_TOTAL_SENTENCES = scriptureData.length;
-      }
-
+      if (Array.isArray(scriptureData) && scriptureData.length > 0) CLASSIC_TOTAL_SENTENCES = scriptureData.length;
       const totalDisplay = document.getElementById('display-total-sentences');
       const completedInput = document.getElementById('input-completed-sentences');
       if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
       if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
-
-      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971') || CLASSIC_TOTAL_SENTENCES > 0) {
-        let savedSchedule = null;
-        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971') || 'null'); } catch (e) {}
-        const scheduleNeedsResize = !Array.isArray(savedSchedule) ||
-          savedSchedule.length === 0 ||
-          savedSchedule.some(item => Number(item.end) > CLASSIC_TOTAL_SENTENCES) ||
-          Number(savedSchedule[savedSchedule.length - 1]?.end) !== CLASSIC_TOTAL_SENTENCES;
-        
-        if (scheduleNeedsResize) {
-          let savedSettings = {};
-          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}'); } catch (e) {}
-          generateAlgorithmicSchedule({
-            totalSentences: CLASSIC_TOTAL_SENTENCES,
-            dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
-            repeatNew: savedSettings.repeatNew || DEFAULT_REPEAT_NEW,
-            repeatCum: savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE,
-            testCompleted: Math.min(CLASSIC_TOTAL_SENTENCES, getCurrentProgressEnd())
-          });
-        }
-      }
+      // 舊快取可能由「已學進度+1」產生；必須使用日期重新建立，不拿它當推進依據。
+      generateAlgorithmicSchedule(loadFixedScheduleSettings());
     }
 
-    async function loadAllAssetsSmartSync() {
+        async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
       await prefetchSentenceCountOnStartup();
 
@@ -2200,131 +2169,55 @@
     }
 
     function generateAlgorithmicSchedule(settings) {
-      const total = CLASSIC_TOTAL_SENTENCES;
-      const step = settings.dailyStep || DEFAULT_DAILY_STEP;
-      const rNew = settings.repeatNew;
-      const rCum = settings.repeatCum;
-      const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
+      const todayDay = getRealTargetDay();
       const scheduleList = [];
-
-      let currentDay = getCurrentActiveDayNumber();
-      let simDay = currentDay;
-      let simStart = testCompleted + 1;
-      if (simDay === 1) simStart = 1;
-
-      for (let dayIdx = 1; dayIdx <= 100; dayIdx++) {
-        if (simStart > total) {
-          scheduleList.push({
-            day: simDay,
-            start: null,
-            end: null,
-            repeat: 0,
-            cStart: 1,
-            cEnd: total,
-            cRepeat: rCum
-          });
-        } else {
-          let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
-          let cStart = null, cEnd = null, cRepeat = 0;
-
-          if (simDay > 1) {
-            cStart = 1;
-            cEnd = end;
-            cRepeat = rCum;
-          }
-
-          scheduleList.push({
-            day: simDay,
-            start: simStart,
-            end: end,
-            repeat: rNew,
-            cStart: cStart,
-            cEnd: cEnd,
-            cRepeat: cRepeat
-          });
-
-          if (end >= total) {
-            simStart = total + 1;
-          } else {
-            simStart = end + 1;
-          }
-        }
-        simDay++;
+      for (let d = Math.max(1, todayDay - 1); d <= todayDay + 100; d++) {
+        scheduleList.push(fixedPlanForDay(d, settings));
       }
-
       classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V971', JSON.stringify(scheduleList));
+      return scheduleList;
     }
 
     function applyScheduleToState(prefixMsg = "") {
+      // 自主練習只改畫面區間；絕不可回寫日期排程。
       if (isManualSelected) return false;
-
       try {
-        let scheduleData = null;
-        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971');
-
-        if (localSched) {
-          try { scheduleData = JSON.parse(localSched); } catch(e){}
+        const today = getNormalizedDateStr();
+        const targetDay = getRealTargetDay();
+        const fixed = getTodayFixedSnapshot();
+        const settings = loadFixedScheduleSettings();
+        currentDayPlan = fixed || fixedPlanForDay(targetDay, settings);
+        if (!fixed) {
+          classicStorage.setItem('FIXED_DAILY_PLAN_V972', JSON.stringify({ date: today, day: targetDay, plan: currentDayPlan }));
         }
-
-        if (!scheduleData || !Array.isArray(scheduleData)) {
-          let savedSettings = {};
-          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}'); } catch (e) {}
-          generateAlgorithmicSchedule({
-            totalSentences: CLASSIC_TOTAL_SENTENCES,
-            dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
-            repeatNew: savedSettings.repeatNew || DEFAULT_REPEAT_NEW,
-            repeatCum: savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE,
-            testCompleted: Math.min(CLASSIC_TOTAL_SENTENCES, getCurrentProgressEnd())
-          });
-          scheduleData = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971') || '[]');
-        }
-
-        if (!scheduleData || !Array.isArray(scheduleData) || scheduleData.length === 0) {
-          currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
-          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
+        // 刪除舊版用排程終點假冒「已完成進度」的寫入。
+        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === today) {
           practicePhase = 'completed';
-        } else if (!currentDayPlan.start || currentDayPlan.start > CLASSIC_TOTAL_SENTENCES) {
+        } else if (!currentDayPlan.start) {
           practicePhase = 'cumulative_gendu';
         } else {
           practicePhase = 'new_gendu';
         }
-          currentCycleCount = 0;
-          return false;
-        }
-        
-        let targetDay = getCurrentActiveDayNumber();
-        currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
-        if (!currentDayPlan) currentDayPlan = scheduleData[0];
-
-        classicStorage.setItem('USER_CURRENT_PROGRESS_END_V971', currentDayPlan.end.toString());
-
-        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
-          practicePhase = 'completed';
-        } else {
-          practicePhase = 'new_gendu';
-        }
-        
         const savedStateStr = classicStorage.getItem('APP_SAVED_STATE_V971');
         let restoredCount = 0;
         if (savedStateStr) {
           try {
             const st = JSON.parse(savedStateStr);
-            if (st.savedDateStr === getNormalizedDateStr()) {
+            if (st.savedDateStr === today) {
               restoredCount = st.currentCycleCount || 0;
               if (st.practicePhase) practicePhase = st.practicePhase;
             }
           } catch(e) {}
         }
         currentCycleCount = restoredCount;
-
         setupStageRange();
         isScheduleRepeatLocked = false;
         return true;
-      } catch (err) {}
+      } catch (err) { console.warn('日期排程載入失敗', err); }
       return false;
     }
 
-    function setupStageRange() {
+        function setupStageRange() {
       if (!currentDayPlan) return;
       const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : CLASSIC_TOTAL_SENTENCES - 1));
 
