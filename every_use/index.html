@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.101｜日期固定排程修正版</title>
+  <title>歡喜背書V999.101｜日期排程・單一有效分頁版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1144,14 +1144,73 @@
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+    // === OF13 單一有效分頁：以「經典＋群組」為單位，新分頁接手 ===
+    // 同一網站來源的分頁可協調；LINE WebView 與獨立 Chrome 若不共用儲存來源，無法跨 App 鎖定。
+    const TAB_OWNER_KEY = NAMESPACE_KEY + '::ACTIVE_TAB_OWNER_OF13';
+    const TAB_INSTANCE_ID = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const TAB_IS_LINE_WEBVIEW = /Line/i.test(navigator.userAgent);
+    let tabHasBeenSuperseded = false;
+    let tabLockOverlay = null;
+
+    function tabReadOwner() {
+      try { return JSON.parse(localStorage.getItem(TAB_OWNER_KEY) || 'null'); }
+      catch (_) { return null; }
+    }
+    function tabIsCurrentOwner() {
+      if (tabHasBeenSuperseded) return false;
+      // LINE 停留在瀏覽器提示畫面，不搶走 Chrome 已開啟頁面的控制權。
+      if (TAB_IS_LINE_WEBVIEW) return false;
+      const owner = tabReadOwner();
+      return !!(owner && owner.id === TAB_INSTANCE_ID);
+    }
+    function tabShowLocked() {
+      if (tabLockOverlay || TAB_IS_LINE_WEBVIEW) return;
+      tabLockOverlay = document.createElement('div');
+      tabLockOverlay.id = 'of13-old-tab-overlay';
+      tabLockOverlay.setAttribute('role', 'alertdialog');
+      tabLockOverlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#080d1af5;color:#fff;display:flex;align-items:center;justify-content:center;padding:22px;text-align:center;font-family:Microsoft JhengHei,sans-serif;box-sizing:border-box';
+      tabLockOverlay.innerHTML = '<div style="max-width:480px;border:2px solid #f59e0b;border-radius:20px;padding:28px 20px;background:#172033;line-height:1.8"><div style="font-size:24px;font-weight:900;color:#fbbf24">此頁已停止操作</div><p style="font-size:17px;margin:18px 0">同一經典與群組，已在另一個分頁開啟。<br>為保護今日排程與背書紀錄，這個舊分頁不會再修改資料。</p><p style="font-size:15px;color:#cbd5e1">請關閉此分頁，繼續使用新開啟的頁面。</p></div>';
+      document.body.appendChild(tabLockOverlay);
+    }
+    function tabStopOldPage() {
+      if (tabHasBeenSuperseded) return;
+      tabHasBeenSuperseded = true;
+      try { document.getElementById('my-chant-video')?.pause(); } catch (_) {}
+      try { document.getElementById('standalone-video')?.pause(); } catch (_) {}
+      try { if (typeof haltGuideRunnerImmediately === 'function') haltGuideRunnerImmediately(); } catch (_) {}
+      try { if (typeof releaseMicrophoneResources === 'function') releaseMicrophoneResources(); } catch (_) {}
+      try { if (typeof cycleWaitTimer !== 'undefined' && cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; } } catch (_) {}
+      if (document.body) tabShowLocked();
+      else document.addEventListener('DOMContentLoaded', tabShowLocked, { once: true });
+    }
+    function tabCheckOwnership() {
+      if (tabHasBeenSuperseded || TAB_IS_LINE_WEBVIEW) return;
+      if (!tabIsCurrentOwner()) tabStopOldPage();
+    }
+    // 每次新開此教材，都由新頁接手。舊頁不會自動重新搶回。
+    if (!TAB_IS_LINE_WEBVIEW) {
+      try { localStorage.setItem(TAB_OWNER_KEY, JSON.stringify({ id: TAB_INSTANCE_ID, at: Date.now() })); }
+      catch (e) { console.warn('單一分頁儲存協調不可用：', e); }
+      window.addEventListener('storage', e => {
+        if (e.key === TAB_OWNER_KEY) tabCheckOwnership();
+      });
+      window.addEventListener('focus', tabCheckOwnership);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) tabCheckOwnership(); });
+      setInterval(tabCheckOwnership, 1500);
+    }
+
     const classicStorage = {
       getItem(key) {
         return localStorage.getItem(NAMESPACE_KEY + '::' + key);
       },
       setItem(key, value) {
+        // 重要：寫入當下再次驗證，阻止舊分頁的定時器、退出事件及非同步回呼覆寫進度。
+        if (!tabIsCurrentOwner()) { tabCheckOwnership(); return; }
         localStorage.setItem(NAMESPACE_KEY + '::' + key, value);
       },
       removeItem(key) {
+        if (!tabIsCurrentOwner()) { tabCheckOwnership(); return; }
         localStorage.removeItem(NAMESPACE_KEY + '::' + key);
       }
     };
