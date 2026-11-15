@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.99｜統一逐字座標測試版</title>
+  <title>歡喜背書V999.100｜統一逐字座標測試版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2187,38 +2187,52 @@
         throw new Error('PDF 與 sentences.json 來源版本不同，已停止自讀以防跳句');
     }
 
+    // v2 診斷修正：保留 HTTP、檔名、schema 等真實錯誤，避免一律誤報「舊版 JSON」。
+    let unifiedJsonLastError = '';
     async function prefetchSentenceCountOnStartup() {
       const timestamp = Date.now();
-      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V971');
+      const jsonUrl = new URL(CLASSIC_ASSETS.sentences, location.href);
+      const localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V971');
+      let fetchError = '';
       try {
-        const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
-        if (res.ok) {
-          const freshSent = await res.json();
-          if (isUnifiedSentenceFile(freshSent)) {
-            scripturePdfMeta = freshSent;
-            scriptureData = freshSent.sentences;
-            classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V971', JSON.stringify(freshSent));
-          } else {
-            throw new Error('此版 index.html 僅支援新版 v2 分句座標 JSON');
-          }
+        const res = await fetch(jsonUrl.href + '?nocache=' + timestamp, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status + '：找不到或無法讀取 ' + jsonUrl.pathname);
+        let freshSent;
+        try { freshSent = await res.json(); }
+        catch (e) { throw new Error('伺服器回傳的不是有效 JSON：' + jsonUrl.pathname); }
+        if (!isUnifiedSentenceFile(freshSent)) {
+          const ver = freshSent && freshSent.schema_version;
+          const count = freshSent && Array.isArray(freshSent.sentences) ? freshSent.sentences.length : null;
+          throw new Error('讀到的 JSON 格式不符合新版 v2：schema_version=' + String(ver) +
+                          '、sentences=' + String(count) + '；路徑 ' + jsonUrl.pathname);
         }
-      } catch (e) {}
+        scripturePdfMeta = freshSent;
+        scriptureData = freshSent.sentences;
+        classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V971', JSON.stringify(freshSent));
+      } catch (e) {
+        fetchError = e && e.message ? e.message : String(e);
+        console.error('[統一座標 v2] 讀取失敗：', jsonUrl.href, fetchError);
+      }
 
-      if (scriptureData.length === 0 && localSentStr) {
+      // 僅回退到已經驗證是 v2 的離線 JSON，不再把舊版誤當新版使用。
+      if (!scripturePdfMeta && localSentStr) {
         try {
           const saved = JSON.parse(localSentStr);
           if (isUnifiedSentenceFile(saved)) {
             scripturePdfMeta = saved;
             scriptureData = saved.sentences;
+            if (fetchError) showToast('⚠️ 線上 JSON 讀取失敗，目前使用已下載的新版資料', 6500);
           }
-        } catch(e){}
+        } catch (e) { console.warn('[統一座標 v2] 離線 JSON 解析失敗', e); }
       }
       if (!scripturePdfMeta) {
-        const msg = '⚠️ 必須上傳新版 _sentences.json（含逐字座標），舊版 JSON 已不支援';
-        console.error('[統一座標 v2]', msg);
-        showToast(msg, 10000);
+        unifiedJsonLastError = fetchError || '線上與離線資料都沒有有效的新版 v2 JSON';
+        const msg = '⚠️ 教材讀取失敗（' + CURRENT_CLASSIC_ID + '）：' + unifiedJsonLastError;
+        console.error('[統一座標 v2]', msg, '網址：', location.href);
+        showToast(msg, 12000);
         return;
       }
+      unifiedJsonLastError = '';
 
       if (Array.isArray(scriptureData) && scriptureData.length > 0) {
         CLASSIC_TOTAL_SENTENCES = scriptureData.length;
@@ -2255,7 +2269,7 @@
       const timestamp = Date.now();
       await prefetchSentenceCountOnStartup();
 
-      if (!scripturePdfMeta) throw new Error('缺少新版 v2 sentences.json');
+      if (!scripturePdfMeta) throw new Error('新版 JSON 未載入：' + (unifiedJsonLastError || CLASSIC_ASSETS.sentences));
       const pdfCacheKey = 'pdf_file_v2_' + scripturePdfMeta.pdf_sha256.slice(0,16);
       // FIX 2026-11: 跟讀 MP4 直接使用 GitHub 教材，PDF 原先卻永遠優先取 IndexedDB。
       // 只要 GitHub 上更換同名 PDF，跟讀與自讀就可能變成兩份不同版本的教材。
