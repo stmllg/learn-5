@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.100｜統一逐字座標測試版</title>
+  <title>歡喜背書V999.99｜統一逐字座標測試版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2187,31 +2187,102 @@
         throw new Error('PDF 與 sentences.json 來源版本不同，已停止自讀以防跳句');
     }
 
-    // v2 診斷修正：保留 HTTP、檔名、schema 等真實錯誤，避免一律誤報「舊版 JSON」。
+    // v2 教材讀取修正：僅清除同一教材 JSON 的過期 Cache Storage 項目；
+    // Service Worker 仍保留，其餘離線檔、排程與進度完全不受影響。
     let unifiedJsonLastError = '';
+    let unifiedJsonSource = '';
+    async function purgeOutdatedSentenceCache(jsonUrl) {
+      if (!('caches' in window)) return 0;
+      let removed = 0;
+      try {
+        const keys = await caches.keys();
+        for (const name of keys) {
+          const cache = await caches.open(name);
+          const requests = await cache.keys();
+          for (const req of requests) {
+            const u = new URL(req.url);
+            if (u.origin === jsonUrl.origin && u.pathname === jsonUrl.pathname) {
+              const ok = await cache.delete(req);
+              if (ok) removed++;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[統一座標 v2] 清理舊教材快取失敗（仍可繼續讀取）', err);
+      }
+      return removed;
+    }
+
+    function githubRawSentenceURL(jsonUrl) {
+      // 僅在 GitHub Pages 的 /repo/folder/ 路徑上啟用跨來源備援；
+      // 不假設其他網站也有 GitHub 原始檔，且只在同網域讀到錯誤版本時使用。
+      if (!/^[\w-]+\.github\.io$/i.test(jsonUrl.hostname)) return '';
+      const owner = jsonUrl.hostname.split('.')[0];
+      const parts = jsonUrl.pathname.split('/').filter(Boolean);
+      if (parts.length < 2) return '';
+      const repo = parts.shift();
+      return 'https://raw.githubusercontent.com/' + encodeURIComponent(owner) + '/' +
+             encodeURIComponent(repo) + '/main/' + parts.map(encodeURIComponent).join('/');
+    }
+
+    async function requestUnifiedSentences(url, label) {
+      const requestURL = new URL(url);
+      requestURL.searchParams.set('v2_refresh', String(Date.now()));
+      const response = await fetch(requestURL.href, { cache: 'no-store', redirect: 'follow' });
+      if (!response.ok) throw new Error(label + ' HTTP ' + response.status + '：' + requestURL.pathname);
+      let data;
+      try { data = await response.json(); }
+      catch (e) { throw new Error(label + ' 回傳內容不是有效 JSON：' + requestURL.pathname); }
+      if (!isUnifiedSentenceFile(data)) {
+        const ver = data && data.schema_version;
+        const count = data && Array.isArray(data.sentences) ? data.sentences.length : null;
+        throw new Error(label + ' 不是新版 v2（schema_version=' + String(ver) +
+                        '，sentences=' + String(count) + '）：' + requestURL.pathname);
+      }
+      return data;
+    }
+
     async function prefetchSentenceCountOnStartup() {
-      const timestamp = Date.now();
       const jsonUrl = new URL(CLASSIC_ASSETS.sentences, location.href);
       const localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V971');
       let fetchError = '';
+      scripturePdfMeta = null;
+      scriptureData = [];
+      unifiedJsonSource = '';
       try {
-        const res = await fetch(jsonUrl.href + '?nocache=' + timestamp, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status + '：找不到或無法讀取 ' + jsonUrl.pathname);
         let freshSent;
-        try { freshSent = await res.json(); }
-        catch (e) { throw new Error('伺服器回傳的不是有效 JSON：' + jsonUrl.pathname); }
-        if (!isUnifiedSentenceFile(freshSent)) {
-          const ver = freshSent && freshSent.schema_version;
-          const count = freshSent && Array.isArray(freshSent.sentences) ? freshSent.sentences.length : null;
-          throw new Error('讀到的 JSON 格式不符合新版 v2：schema_version=' + String(ver) +
-                          '、sentences=' + String(count) + '；路徑 ' + jsonUrl.pathname);
+        try {
+          freshSent = await requestUnifiedSentences(jsonUrl.href, 'GitHub Pages');
+          unifiedJsonSource = 'GitHub Pages';
+        } catch (firstError) {
+          // 只在拿到舊格式或讀取失敗時清理此 JSON 快取，避免影響日常離線教材。
+          const deleted = await purgeOutdatedSentenceCache(jsonUrl);
+          console.warn('[統一座標 v2] 第一次讀取失敗，清除舊教材快取筆數：', deleted, firstError.message);
+          try {
+            freshSent = await requestUnifiedSentences(jsonUrl.href, 'GitHub Pages 重試');
+            unifiedJsonSource = 'GitHub Pages（清快取後重試）';
+          } catch (retryError) {
+            const rawUrl = githubRawSentenceURL(jsonUrl);
+            if (!rawUrl) throw new Error(firstError.message + '；重試：' + retryError.message);
+            try {
+              freshSent = await requestUnifiedSentences(rawUrl, 'GitHub 原始檔');
+              unifiedJsonSource = 'GitHub 原始檔（避開舊 Service Worker）';
+              showToast('✅ 已找到新版教材，使用 GitHub 原始檔更新本機資料', 4800);
+            } catch (rawError) {
+              throw new Error(firstError.message + '；重試：' + retryError.message + '；備援：' + rawError.message);
+            }
+          }
         }
         scripturePdfMeta = freshSent;
         scriptureData = freshSent.sentences;
         classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V971', JSON.stringify(freshSent));
+        console.info('[統一座標 v2] 教材已載入', {
+          source: unifiedJsonSource, classic: CURRENT_CLASSIC_ID,
+          version: freshSent.schema_version, count: scriptureData.length, path: jsonUrl.pathname
+        });
       } catch (e) {
         fetchError = e && e.message ? e.message : String(e);
-        console.error('[統一座標 v2] 讀取失敗：', jsonUrl.href, fetchError);
+        console.error('[統一座標 v2] 線上教材讀取失敗：', jsonUrl.href, fetchError);
       }
 
       // 僅回退到已經驗證是 v2 的離線 JSON，不再把舊版誤當新版使用。
@@ -2221,7 +2292,8 @@
           if (isUnifiedSentenceFile(saved)) {
             scripturePdfMeta = saved;
             scriptureData = saved.sentences;
-            if (fetchError) showToast('⚠️ 線上 JSON 讀取失敗，目前使用已下載的新版資料', 6500);
+            unifiedJsonSource = '本機已驗證的離線 v2 JSON';
+            if (fetchError) showToast('⚠️ 網路讀取失敗，使用已下載的新版 v2 資料', 6500);
           }
         } catch (e) { console.warn('[統一座標 v2] 離線 JSON 解析失敗', e); }
       }
