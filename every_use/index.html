@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.101｜日期排程・單一有效分頁版</title>
+  <title>歡喜背書V999.99｜統一逐字座標測試版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -996,11 +996,11 @@
 
   <div id="schedule-modal-overlay">
     <div class="schedule-modal-card">
-      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定（日期固定）</div>
+      <div class="schedule-modal-title">⚙️ 萬用智慧排程設定 (v996)</div>
       
       <div class="schedule-grid-layout">
         <div class="schedule-field-row">
-          <span class="schedule-field-label">經典總句數 / 今日排程終點：</span>
+          <span class="schedule-field-label">經典總句數 / 已學：</span>
           <div style="display: flex; gap: 4px; align-items: center;">
             <div id="display-total-sentences" class="schedule-field-readonly">37句</div>
             <input type="number" id="input-completed-sentences" class="schedule-field-input" min="0" max="37" readonly style="width: 75px; background: #1E293B; color: #94A3B8; border-color: #475569;">
@@ -1144,73 +1144,14 @@
     const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    // === OF13 單一有效分頁：以「經典＋群組」為單位，新分頁接手 ===
-    // 同一網站來源的分頁可協調；LINE WebView 與獨立 Chrome 若不共用儲存來源，無法跨 App 鎖定。
-    const TAB_OWNER_KEY = NAMESPACE_KEY + '::ACTIVE_TAB_OWNER_OF13';
-    const TAB_INSTANCE_ID = (typeof crypto !== 'undefined' && crypto.randomUUID)
-      ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const TAB_IS_LINE_WEBVIEW = /Line/i.test(navigator.userAgent);
-    let tabHasBeenSuperseded = false;
-    let tabLockOverlay = null;
-
-    function tabReadOwner() {
-      try { return JSON.parse(localStorage.getItem(TAB_OWNER_KEY) || 'null'); }
-      catch (_) { return null; }
-    }
-    function tabIsCurrentOwner() {
-      if (tabHasBeenSuperseded) return false;
-      // LINE 停留在瀏覽器提示畫面，不搶走 Chrome 已開啟頁面的控制權。
-      if (TAB_IS_LINE_WEBVIEW) return false;
-      const owner = tabReadOwner();
-      return !!(owner && owner.id === TAB_INSTANCE_ID);
-    }
-    function tabShowLocked() {
-      if (tabLockOverlay || TAB_IS_LINE_WEBVIEW) return;
-      tabLockOverlay = document.createElement('div');
-      tabLockOverlay.id = 'of13-old-tab-overlay';
-      tabLockOverlay.setAttribute('role', 'alertdialog');
-      tabLockOverlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#080d1af5;color:#fff;display:flex;align-items:center;justify-content:center;padding:22px;text-align:center;font-family:Microsoft JhengHei,sans-serif;box-sizing:border-box';
-      tabLockOverlay.innerHTML = '<div style="max-width:480px;border:2px solid #f59e0b;border-radius:20px;padding:28px 20px;background:#172033;line-height:1.8"><div style="font-size:24px;font-weight:900;color:#fbbf24">此頁已停止操作</div><p style="font-size:17px;margin:18px 0">同一經典與群組，已在另一個分頁開啟。<br>為保護今日排程與背書紀錄，這個舊分頁不會再修改資料。</p><p style="font-size:15px;color:#cbd5e1">請關閉此分頁，繼續使用新開啟的頁面。</p></div>';
-      document.body.appendChild(tabLockOverlay);
-    }
-    function tabStopOldPage() {
-      if (tabHasBeenSuperseded) return;
-      tabHasBeenSuperseded = true;
-      try { document.getElementById('my-chant-video')?.pause(); } catch (_) {}
-      try { document.getElementById('standalone-video')?.pause(); } catch (_) {}
-      try { if (typeof haltGuideRunnerImmediately === 'function') haltGuideRunnerImmediately(); } catch (_) {}
-      try { if (typeof releaseMicrophoneResources === 'function') releaseMicrophoneResources(); } catch (_) {}
-      try { if (typeof cycleWaitTimer !== 'undefined' && cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; } } catch (_) {}
-      if (document.body) tabShowLocked();
-      else document.addEventListener('DOMContentLoaded', tabShowLocked, { once: true });
-    }
-    function tabCheckOwnership() {
-      if (tabHasBeenSuperseded || TAB_IS_LINE_WEBVIEW) return;
-      if (!tabIsCurrentOwner()) tabStopOldPage();
-    }
-    // 每次新開此教材，都由新頁接手。舊頁不會自動重新搶回。
-    if (!TAB_IS_LINE_WEBVIEW) {
-      try { localStorage.setItem(TAB_OWNER_KEY, JSON.stringify({ id: TAB_INSTANCE_ID, at: Date.now() })); }
-      catch (e) { console.warn('單一分頁儲存協調不可用：', e); }
-      window.addEventListener('storage', e => {
-        if (e.key === TAB_OWNER_KEY) tabCheckOwnership();
-      });
-      window.addEventListener('focus', tabCheckOwnership);
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) tabCheckOwnership(); });
-      setInterval(tabCheckOwnership, 1500);
-    }
-
     const classicStorage = {
       getItem(key) {
         return localStorage.getItem(NAMESPACE_KEY + '::' + key);
       },
       setItem(key, value) {
-        // 重要：寫入當下再次驗證，阻止舊分頁的定時器、退出事件及非同步回呼覆寫進度。
-        if (!tabIsCurrentOwner()) { tabCheckOwnership(); return; }
         localStorage.setItem(NAMESPACE_KEY + '::' + key, value);
       },
       removeItem(key) {
-        if (!tabIsCurrentOwner()) { tabCheckOwnership(); return; }
         localStorage.removeItem(NAMESPACE_KEY + '::' + key);
       }
     };
@@ -1373,6 +1314,7 @@
 
 
     let scriptureData = [];
+    let scripturePdfMeta = null; // 統一分句v2：PDF大小、SHA256、座標系統
     let currentPdfDoc = null;
     let parsedTextLines = [];
     let cachedPdfBuffer = null;
@@ -1884,7 +1826,7 @@
         await preWarmMicrophonePermission();
 
         hasEnteredReciting = true;
-        // 進入背書不改寫排程設定；固定快照由 applyScheduleToState() 建立。
+        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
 
@@ -1928,7 +1870,7 @@
         await preWarmMicrophonePermission();
 
         hasEnteredReciting = true;
-        // 進入背書不改寫排程設定；固定快照由 applyScheduleToState() 建立。
+        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
 
@@ -1967,56 +1909,22 @@
       handleDayBtnClick();
     }
 
-    // 日期排程：唯一進度依據是網址起始日期、當天日期與設定步幅。
-    // 自主選句、實際背誦遍數及舊 USER_CURRENT_PROGRESS_END_V971 均不得參與排程。
-    function loadFixedScheduleSettings() {
-      let saved = {};
-      try { saved = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}') || {}; } catch(e) {}
-      return {
-        dailyStep: [1,2,4].includes(Number(saved.dailyStep)) ? Number(saved.dailyStep) : DEFAULT_DAILY_STEP,
-        repeatNew: Math.max(1, Number(saved.repeatNew) || DEFAULT_REPEAT_NEW),
-        repeatCum: Math.max(0, Number(saved.repeatCum ?? DEFAULT_REPEAT_CUMULATIVE) || 0),
-        anchorDay: Math.max(1, Number(saved.anchorDay) || 1),
-        anchorStart: Math.max(1, Number(saved.anchorStart) || 1)
-      };
-    }
-
-    function fixedPlanForDay(day, cfg) {
-      const total = Math.max(1, CLASSIC_TOTAL_SENTENCES);
-      const d = Math.max(1, Math.floor(Number(day) || 1));
-      const step = [1,2,4].includes(Number(cfg.dailyStep)) ? Number(cfg.dailyStep) : DEFAULT_DAILY_STEP;
-      const anchorDay = Math.max(1, Number(cfg.anchorDay) || 1);
-      const anchorStart = Math.max(1, Number(cfg.anchorStart) || 1);
-      // 第一天固定 1 句；第二天起才套用每日步幅。
-      let start;
-      if (d === 1) start = 1;
-      else if (d >= anchorDay && anchorDay > 1) start = anchorStart + (d - anchorDay) * step;
-      else start = 2 + (d - 2) * step;
-      const end = start <= total ? Math.min(total, start + (d === 1 ? 0 : step - 1)) : null;
-      return {
-        day: d, start: end === null ? null : start, end,
-        repeat: end === null ? 0 : Math.max(1, Number(cfg.repeatNew) || DEFAULT_REPEAT_NEW),
-        cStart: d === 1 ? null : 1,
-        cEnd: d === 1 ? null : (end === null ? total : end),
-        cRepeat: d === 1 ? 0 : Math.max(0, Number(cfg.repeatCum ?? DEFAULT_REPEAT_CUMULATIVE) || 0)
-      };
-    }
-
-    function getTodayFixedSnapshot() {
-      let snap = null;
-      try { snap = JSON.parse(classicStorage.getItem('FIXED_DAILY_PLAN_V972') || 'null'); } catch(e) {}
-      if (!snap || snap.date !== getNormalizedDateStr() || snap.day !== getRealTargetDay()) return null;
-      if (!snap.plan || !Object.prototype.hasOwnProperty.call(snap.plan, 'day')) return null;
-      return snap.plan;
-    }
-
     function getCurrentProgressEnd() {
-      // 舊名稱僅保留給尚未清理的呼叫點；回傳今日「安排」終點，絕非完成句數。
-      const plan = getTodayFixedSnapshot() || fixedPlanForDay(getRealTargetDay(), loadFixedScheduleSettings());
-      return Number(plan.end) || CLASSIC_TOTAL_SENTENCES;
+      if (currentDayPlan && currentDayPlan.end) {
+        return currentDayPlan.end;
+      }
+      const saved = classicStorage.getItem('USER_CURRENT_PROGRESS_END_V971');
+      if (saved !== null && saved !== '' && saved !== '0') {
+        return parseInt(saved, 10);
+      }
+      const targetDay = getRealTargetDay();
+      if (targetDay > 1) {
+        return Math.min(CLASSIC_TOTAL_SENTENCES, targetDay - 1);
+      }
+      return 0;
     }
 
-        function getRealTargetDay() {
+    function getRealTargetDay() {
       const urlParams = new URLSearchParams(window.location.search);
       let targetDay = 1;
       const startStr = urlParams.get('s') || urlParams.get('start');
@@ -2046,48 +1954,73 @@
     }
 
     function getCurrentActiveDayNumber() {
-      // 不可優先取 currentDayPlan.day：該值可能是昨日留下的狀態。
-      return getRealTargetDay();
+      if (currentDayPlan && currentDayPlan.day) {
+        return currentDayPlan.day;
+      }
+      const urlParams = new URLSearchParams(window.location.search);
+      const startStr = urlParams.get('s') || urlParams.get('start');
+      if (startStr) {
+        const parts = startStr.split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const d = parseInt(parts[2], 10);
+          const userStartDate = new Date(y, m, d);
+          const now = new Date();
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const diffDays = Math.floor((todayDate - userStartDate) / (1000 * 60 * 60 * 24)) + 1;
+          return Math.max(1, diffDays);
+        }
+      } else if (urlParams.get('day')) {
+        return parseInt(urlParams.get('day'), 10) || 1;
+      } else {
+        const currentSchedDay = classicStorage.getItem('CURRENT_SCHEDULE_DAY_V971');
+        if (currentSchedDay) {
+          return parseInt(currentSchedDay, 10) || 1;
+        }
+      }
+      return 1;
     }
 
-        function openScheduleModal() {
-      const savedSettings = loadFixedScheduleSettings();
-      selectedDailyStep = savedSettings.dailyStep;
-      const fixedToday = getTodayFixedSnapshot();
-      const locked = !!fixedToday || classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr();
-      const activeDay = getRealTargetDay();
-      const effectivePlan = fixedToday || fixedPlanForDay(activeDay, savedSettings);
+    function openScheduleModal() {
+      const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}');
+      selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
+      const rNew = savedSettings.repeatNew || DEFAULT_REPEAT_NEW;
+      const rCum = savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE;
 
       document.getElementById('display-total-sentences').textContent = CLASSIC_TOTAL_SENTENCES + '句';
-      document.getElementById('input-completed-sentences').value = effectivePlan.end ?? CLASSIC_TOTAL_SENTENCES;
-      document.getElementById('input-repeat-new').value = savedSettings.repeatNew;
-      document.getElementById('input-repeat-cum').value = savedSettings.repeatCum;
-      updateStepButtonsUI(selectedDailyStep);
-      const previewCfg = { ...savedSettings, anchorDay: activeDay, anchorStart: effectivePlan.start ?? (CLASSIC_TOTAL_SENTENCES + 1) };
-      renderPreviewList('preview-new-list', generateTempScheduleList(previewCfg));
+      
+      const activeDay = getCurrentActiveDayNumber();
+      let completedEnd = getCurrentProgressEnd();
 
-      document.querySelectorAll('.step-btn').forEach(btn => { btn.disabled = locked; btn.style.opacity = locked ? '0.55' : ''; });
-      document.getElementById('input-repeat-new').disabled = locked;
-      document.getElementById('input-repeat-cum').disabled = locked;
-      const saveBtn = document.getElementById('btn-save-schedule');
-      saveBtn.disabled = locked;
-      saveBtn.textContent = locked ? '🔒 今日排程已鎖定' : '確認更新排程';
-      saveBtn.style.opacity = locked ? '0.6' : '';
+      if (activeDay === 2 && completedEnd === 0) {
+        completedEnd = 1;
+      } else if (completedEnd === 0 && activeDay > 2) {
+        completedEnd = Math.min(CLASSIC_TOTAL_SENTENCES, 1 + (activeDay - 2) * selectedDailyStep);
+      }
+
+      document.getElementById('input-completed-sentences').value = completedEnd;
+
+      updateStepButtonsUI(selectedDailyStep);
+      document.getElementById('input-repeat-new').value = rNew;
+      document.getElementById('input-repeat-cum').value = rCum;
+
+      renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum, testCompleted: completedEnd }));
+
       scheduleModalOverlay.style.display = 'flex';
     }
 
-        function closeScheduleModal() {
+    function closeScheduleModal() {
       scheduleModalOverlay.style.display = 'none';
     }
 
     function selectDailyStep(step) {
-      if (getTodayFixedSnapshot() || classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) return;
       selectedDailyStep = step;
       updateStepButtonsUI(step);
       previewScheduleChanges();
     }
 
-        function updateStepButtonsUI(activeStep) {
+    function updateStepButtonsUI(activeStep) {
       const buttons = document.querySelectorAll('.step-btn');
       buttons.forEach(btn => {
         const stepVal = parseInt(btn.getAttribute('data-step'), 10);
@@ -2100,33 +2033,52 @@
     }
 
     function previewScheduleChanges() {
-      if (getTodayFixedSnapshot() || classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) return;
-      const old = loadFixedScheduleSettings();
-      const activeDay = getRealTargetDay();
-      const todayStart = fixedPlanForDay(activeDay, old).start ?? (CLASSIC_TOTAL_SENTENCES + 1);
-      const repeatNew = Math.max(1, parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW);
-      const repeatCum = Math.max(0, parseInt(document.getElementById('input-repeat-cum').value, 10) || 0);
-      renderPreviewList('preview-new-list', generateTempScheduleList({
-        dailyStep: selectedDailyStep, repeatNew, repeatCum,
-        anchorDay: activeDay, anchorStart: todayStart
-      }));
+      const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
+      const rNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
+      const rCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
+
+      renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum, testCompleted: testCompleted }));
     }
 
     function generateTempScheduleList(settings) {
+      const total = CLASSIC_TOTAL_SENTENCES;
+      const step = settings.dailyStep;
+      const rNew = settings.repeatNew;
+      const rCum = settings.repeatCum;
+      const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
       const list = [];
-      const activeDay = getRealTargetDay();
-      for (let offset = 0; offset < 5; offset++) {
-        const day = activeDay + offset;
-        const p = offset === 0 && getTodayFixedSnapshot() ? getTodayFixedSnapshot() : fixedPlanForDay(day, settings);
-        const label = offset === 0 ? '今天' : offset === 1 ? '明天' : `第${day}天`;
-        const newly = p.start === null ? '今日定課已圓滿' : `新[${p.start}~${p.end}](${p.repeat}遍)`;
-        const cumulative = p.cStart === null ? '複[---]' : `複[${p.cStart}~${p.cEnd}](${p.cRepeat}遍)`;
-        list.push(`${label} (第${day}天): ${newly} ${cumulative}`);
+
+      let currentDay = getCurrentActiveDayNumber();
+      let simDay = currentDay;
+      let simStart = testCompleted + 1;
+      if (simDay === 1) simStart = 1;
+
+      for (let i = 1; i <= 5; i++) {
+        let dayLabel = (i === 1) ? '今天' : (i === 2 ? '明天' : `第${simDay}天`);
+        
+        if (simStart > total) {
+          list.push(`${dayLabel} (第${simDay}天): 今日定課已圓滿 ｜ 全局串習[1~${total}](${rCum}遍)`);
+        } else {
+          let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
+          let cStart = 1, cEnd = end, cRepeat = rCum;
+          if (simDay === 1) {
+            cStart = null; cEnd = null; cRepeat = 0;
+          }
+          let reviewStr = (simDay === 1) ? `複[---](1遍)` : `複[${cStart}~${cEnd}](${rCum}遍)`;
+          list.push(`${dayLabel} (第${simDay}天): 新[${simStart}~${end}](${rNew}遍) ${reviewStr}`);
+
+          if (end >= total) {
+            simStart = total + 1;
+          } else {
+            simStart = end + 1;
+          }
+        }
+        simDay++;
       }
       return list;
     }
 
-        function renderPreviewList(elementId, items) {
+    function renderPreviewList(elementId, items) {
       const el = document.getElementById(elementId);
       if (el) {
         el.innerHTML = items.join('<br>');
@@ -2134,36 +2086,33 @@
     }
 
     function saveAndApplySchedule() {
-      const today = getNormalizedDateStr();
-      if (getTodayFixedSnapshot() || classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === today) {
+      // 同一天排程只允許確認一次，避免重複重算學習進度。
+      if (classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) {
         closeScheduleModal();
-        showToast('🔒 今天排程已固定，只能查看，明天才可變更設定。', 3500);
+        const btn = document.getElementById('btn-card-setting-dynamic');
+        if (btn) btn.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
+        showToast('今日排程已設定；測試期間可查看，但不重複更新。', 3500);
         return;
       }
-      const oldSettings = loadFixedScheduleSettings();
-      const activeDay = getRealTargetDay();
-      // 修改步幅不能把「完成句數／自主選句」當起點。
-      // 今天應從哪一句開始，由變更前的固定日期公式推得。
-      const originalStart = fixedPlanForDay(activeDay, oldSettings).start ?? (CLASSIC_TOTAL_SENTENCES + 1);
-      const repeatNew = Math.max(1, parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW);
-      const repeatCum = Math.max(0, parseInt(document.getElementById('input-repeat-cum').value, 10) || 0);
-      const settings = {
-        dailyStep: selectedDailyStep, repeatNew, repeatCum,
-        anchorDay: activeDay, anchorStart: originalStart
-      };
+      const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
+      const repeatNew = parseInt(document.getElementById('input-repeat-new').value, 10) || DEFAULT_REPEAT_NEW;
+      const repeatCum = parseInt(document.getElementById('input-repeat-cum').value, 10) || DEFAULT_REPEAT_CUMULATIVE;
+
+      classicStorage.setItem('USER_CURRENT_PROGRESS_END_V971', testCompleted.toString());
+
+      const settings = { totalSentences: CLASSIC_TOTAL_SENTENCES, dailyStep: selectedDailyStep, repeatNew, repeatCum, testCompleted };
       classicStorage.setItem('USER_SCHEDULE_SETTINGS_V971', JSON.stringify(settings));
+
       generateAlgorithmicSchedule(settings);
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', today);
-      // 確認後同一天的定課範圍定稿；之後所有跟讀／自讀共用此快照。
-      const plan = fixedPlanForDay(activeDay, settings);
-      classicStorage.setItem('FIXED_DAILY_PLAN_V972', JSON.stringify({ date: today, day: activeDay, plan }));
+      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+      const btn = document.getElementById('btn-card-setting-dynamic');
+      if (btn) btn.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
       closeScheduleModal();
-      showToast('✅ 今日排程已固定。未完成不順延，自主練習不影響日期排程。', 4000);
-      isManualSelected = false;
+      showToast('✨ 排程參數已更新，並以指定已學進度重新計算完成！', 4000);
       applyScheduleToState('');
     }
 
-        if (btnPlayDedication) {
+    if (btnPlayDedication) {
       btnPlayDedication.addEventListener('click', async () => {
         offeringOverlay.style.display = 'none';
         playStandaloneVideo('mode5', 0, () => {
@@ -2175,47 +2124,185 @@
       });
     }
 
+
+    // === 統一分句 v2：新舊格式不混用，逐句索引直接等於有效朗讀句號 ===
+    function isUnifiedSentenceFile(data) {
+      if (!data || data.schema_version !== 2 || data.coordinate_system !== 'original_pdf_points' ||
+          !Array.isArray(data.pdf_pages) || !Array.isArray(data.sentences) || !data.sentences.length ||
+          !/^[a-f0-9]{64}$/i.test(data.pdf_sha256 || '')) return false;
+      return data.sentences.every((s, i) =>
+        s.id === i + 1 && typeof s.text === 'string' &&
+        Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start &&
+        Number.isInteger(s.pdf_page) && s.pdf_page >= 0 &&
+        Array.isArray(s.glyphs) && s.glyphs.length > 0 &&
+        s.glyphs.every(g => typeof g.c === 'string' && g.c.length > 0 &&
+          Array.isArray(g.bbox) && g.bbox.length === 4 && g.bbox.every(Number.isFinite)));
+    }
+
+    // 這個版本沿用原網站的「長幅單頁 PDF」顯示，不支援多頁時悄悄誤定位。
+    function buildUnifiedPdfLines(viewport, page) {
+      if (!scripturePdfMeta || !scriptureData.length) throw new Error('尚未載入 v2 分句座標');
+      if (currentPdfDoc.numPages !== 1 || scriptureData.some(s => s.pdf_page !== 0))
+        throw new Error('這版 PDF 自讀僅支援單頁長幅 PDF；多頁請先擴充頁面顯示');
+      if ((page.rotate || 0) % 360 !== 0)
+        throw new Error('目前逐字座標僅支援未旋轉 PDF');
+      const m = scripturePdfMeta.pdf_pages[0];
+      if (!m || !(m.width > 0) || !(m.height > 0)) throw new Error('缺少 PDF 原始尺寸');
+      const v1 = page.getViewport({ scale: 1, rotation: 0 });
+      if (Math.abs(v1.width - m.width) > Math.max(0.5, m.width * .005) ||
+          Math.abs(v1.height - m.height) > Math.max(0.5, m.height * .005))
+        throw new Error('目前 PDF 尺寸與 JSON 不符，請確認三個教材檔案屬同一版');
+      const sx = viewport.width / m.width, sy = viewport.height / m.height;
+      return scriptureData.map((sentence, i) => {
+        const glyphs = sentence.glyphs.map(g => ({
+          char: g.c, x0: g.bbox[0] * sx, x1: g.bbox[2] * sx,
+          topY: g.bbox[1] * sy, bottomY: g.bbox[3] * sy
+        }));
+        const x0 = Math.min(...glyphs.map(g => g.x0));
+        const x1 = Math.max(...glyphs.map(g => g.x1));
+        const topY = Math.min(...glyphs.map(g => g.topY));
+        const bottomY = Math.max(...glyphs.map(g => g.bottomY));
+        return {
+          lineIndex: i, sentenceId: sentence.id, charItems: glyphs,
+          x0, x1, topGlobal: topY, bottomGlobal: bottomY,
+          underLineY: bottomY + 3
+        };
+      });
+    }
+
+    function getGlyphDotPosition(line, progress) {
+      const items = line && line.charItems;
+      if (!items || !items.length) return {x:0,y:0};
+      const i = Math.max(0, Math.min(items.length - 1, Math.floor(progress)));
+      const part = progress >= items.length ? 1 : Math.max(0, Math.min(1, progress - i));
+      const g = items[i];
+      return { x: g.x0 + (g.x1 - g.x0) * part, y: g.bottomY + 3 };
+    }
+
+    async function verifyPdfSha256(buffer) {
+      if (!window.crypto || !crypto.subtle) throw new Error('瀏覽器無法驗證 PDF 版本（需 HTTPS）');
+      const bytes = await crypto.subtle.digest('SHA-256', buffer.slice(0));
+      const actual = Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
+      if (actual.toLowerCase() !== scripturePdfMeta.pdf_sha256.toLowerCase())
+        throw new Error('PDF 與 sentences.json 來源版本不同，已停止自讀以防跳句');
+    }
+
     async function prefetchSentenceCountOnStartup() {
       const timestamp = Date.now();
-      const localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V971');
+      let localSentStr = classicStorage.getItem('OFFLINE_SENTENCES_CACHE_V971');
       try {
         const res = await fetch(CLASSIC_ASSETS.sentences + '?nocache=' + timestamp, { cache: 'no-store' });
         if (res.ok) {
           const freshSent = await res.json();
-          if (Array.isArray(freshSent) && freshSent.length > 0) {
-            scriptureData = freshSent;
+          if (isUnifiedSentenceFile(freshSent)) {
+            scripturePdfMeta = freshSent;
+            scriptureData = freshSent.sentences;
             classicStorage.setItem('OFFLINE_SENTENCES_CACHE_V971', JSON.stringify(freshSent));
+          } else {
+            throw new Error('此版 index.html 僅支援新版 v2 分句座標 JSON');
           }
         }
       } catch (e) {}
+
       if (scriptureData.length === 0 && localSentStr) {
-        try { scriptureData = JSON.parse(localSentStr); } catch(e){}
+        try {
+          const saved = JSON.parse(localSentStr);
+          if (isUnifiedSentenceFile(saved)) {
+            scripturePdfMeta = saved;
+            scriptureData = saved.sentences;
+          }
+        } catch(e){}
       }
-      if (Array.isArray(scriptureData) && scriptureData.length > 0) CLASSIC_TOTAL_SENTENCES = scriptureData.length;
+      if (!scripturePdfMeta) {
+        const msg = '⚠️ 必須上傳新版 _sentences.json（含逐字座標），舊版 JSON 已不支援';
+        console.error('[統一座標 v2]', msg);
+        showToast(msg, 10000);
+        return;
+      }
+
+      if (Array.isArray(scriptureData) && scriptureData.length > 0) {
+        CLASSIC_TOTAL_SENTENCES = scriptureData.length;
+      }
+
       const totalDisplay = document.getElementById('display-total-sentences');
       const completedInput = document.getElementById('input-completed-sentences');
       if (totalDisplay) totalDisplay.textContent = CLASSIC_TOTAL_SENTENCES + '句';
       if (completedInput) completedInput.max = String(CLASSIC_TOTAL_SENTENCES);
-      // 舊快取可能由「已學進度+1」產生；必須使用日期重新建立，不拿它當推進依據。
-      generateAlgorithmicSchedule(loadFixedScheduleSettings());
+
+      if (!classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971') || CLASSIC_TOTAL_SENTENCES > 0) {
+        let savedSchedule = null;
+        try { savedSchedule = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971') || 'null'); } catch (e) {}
+        const scheduleNeedsResize = !Array.isArray(savedSchedule) ||
+          savedSchedule.length === 0 ||
+          savedSchedule.some(item => Number(item.end) > CLASSIC_TOTAL_SENTENCES) ||
+          Number(savedSchedule[savedSchedule.length - 1]?.end) !== CLASSIC_TOTAL_SENTENCES;
+        
+        if (scheduleNeedsResize) {
+          let savedSettings = {};
+          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}'); } catch (e) {}
+          generateAlgorithmicSchedule({
+            totalSentences: CLASSIC_TOTAL_SENTENCES,
+            dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
+            repeatNew: savedSettings.repeatNew || DEFAULT_REPEAT_NEW,
+            repeatCum: savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE,
+            testCompleted: Math.min(CLASSIC_TOTAL_SENTENCES, getCurrentProgressEnd())
+          });
+        }
+      }
     }
 
-        async function loadAllAssetsSmartSync() {
+    async function loadAllAssetsSmartSync() {
       const timestamp = Date.now();
       await prefetchSentenceCountOnStartup();
 
-      const savedPdf = await getLocalFile('pdf_file_v905');
-      if (savedPdf && savedPdf.data) {
+      if (!scripturePdfMeta) throw new Error('缺少新版 v2 sentences.json');
+      const pdfCacheKey = 'pdf_file_v2_' + scripturePdfMeta.pdf_sha256.slice(0,16);
+      // FIX 2026-11: 跟讀 MP4 直接使用 GitHub 教材，PDF 原先卻永遠優先取 IndexedDB。
+      // 只要 GitHub 上更換同名 PDF，跟讀與自讀就可能變成兩份不同版本的教材。
+      // 有網路時優先檢查最新 PDF，無網路時才退回原先的離線教材。
+      // v2 PDF 使用專屬 SHA256 快取鍵，避免舊教材誤被載入。
+      const savedPdf = await getLocalFile(pdfCacheKey);
+      let latestPdf = null;
+      let latestValidator = '';
+      let shouldRefreshPdf = !savedPdf || !savedPdf.data;
+      try {
+        // 只用 HEAD 查詢版本，檔案未變時不重複下載完整 PDF。
+        const head = await fetch(CLASSIC_ASSETS.pdf + '?pdf_version=' + timestamp,
+                                 { method: 'HEAD', cache: 'no-store' });
+        if (!head.ok) throw new Error('HEAD HTTP ' + head.status);
+        const etag = head.headers.get('ETag') || '';
+        const modified = head.headers.get('Last-Modified') || '';
+        const length = head.headers.get('Content-Length') || '';
+        latestValidator = [etag, modified, length].join('|');
+        const haveValidator = !!(etag || modified || length);
+        if (haveValidator) {
+          shouldRefreshPdf = shouldRefreshPdf || savedPdf.validator !== latestValidator;
+        } else {
+          // 無 ETag/修改日期時，不冒險沿用可能不相同的線上 PDF。
+          shouldRefreshPdf = true;
+        }
+        if (shouldRefreshPdf) {
+          const res = await fetch(CLASSIC_ASSETS.pdf + '?pdf_sync=' + timestamp,
+                                  { cache: 'no-store' });
+          if (!res.ok) throw new Error('PDF HTTP ' + res.status);
+          const buf = await res.arrayBuffer();
+          if (buf.byteLength < 16) throw new Error('PDF 回應內容過短');
+          await verifyPdfSha256(buf);
+          latestPdf = buf;
+        }
+      } catch (e) {
+        console.warn('無法檢查最新 PDF，改用已下載的離線教材', e);
+      }
+      if (latestPdf) {
+        cachedPdfBuffer = latestPdf;
+        parsedTextLines = [];
+        // 一次更新同一個 IndexedDB 檔案與版本標籤，不產生多份備份。
+        await saveLocalFile(pdfCacheKey, latestPdf, 'pdf_online_synced', latestValidator);
+      } else if (savedPdf && savedPdf.data) {
         cachedPdfBuffer = savedPdf.data;
       } else {
-        try {
-          const res = await fetch(CLASSIC_ASSETS.pdf + '?nocache=' + timestamp);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            await saveLocalFile('pdf_file_v905', buf, 'pdf_cached');
-            cachedPdfBuffer = buf;
-          }
-        } catch (e) {}
+        cachedPdfBuffer = null;
+        showToast('⚠️ PDF 尚未下載，請連線重新開啟教材', 4500);
       }
       if (cachedPdfBuffer && parsedTextLines.length === 0) {
         await renderPdfOnValidDimensions();
@@ -2228,55 +2315,131 @@
     }
 
     function generateAlgorithmicSchedule(settings) {
-      const todayDay = getRealTargetDay();
+      const total = CLASSIC_TOTAL_SENTENCES;
+      const step = settings.dailyStep || DEFAULT_DAILY_STEP;
+      const rNew = settings.repeatNew;
+      const rCum = settings.repeatCum;
+      const testCompleted = settings.testCompleted !== undefined ? settings.testCompleted : getCurrentProgressEnd();
       const scheduleList = [];
-      for (let d = Math.max(1, todayDay - 1); d <= todayDay + 100; d++) {
-        scheduleList.push(fixedPlanForDay(d, settings));
+
+      let currentDay = getCurrentActiveDayNumber();
+      let simDay = currentDay;
+      let simStart = testCompleted + 1;
+      if (simDay === 1) simStart = 1;
+
+      for (let dayIdx = 1; dayIdx <= 100; dayIdx++) {
+        if (simStart > total) {
+          scheduleList.push({
+            day: simDay,
+            start: null,
+            end: null,
+            repeat: 0,
+            cStart: 1,
+            cEnd: total,
+            cRepeat: rCum
+          });
+        } else {
+          let end = (simDay === 1) ? 1 : Math.min(total, simStart + step - 1);
+          let cStart = null, cEnd = null, cRepeat = 0;
+
+          if (simDay > 1) {
+            cStart = 1;
+            cEnd = end;
+            cRepeat = rCum;
+          }
+
+          scheduleList.push({
+            day: simDay,
+            start: simStart,
+            end: end,
+            repeat: rNew,
+            cStart: cStart,
+            cEnd: cEnd,
+            cRepeat: cRepeat
+          });
+
+          if (end >= total) {
+            simStart = total + 1;
+          } else {
+            simStart = end + 1;
+          }
+        }
+        simDay++;
       }
+
       classicStorage.setItem('OFFLINE_SCHEDULE_CACHE_V971', JSON.stringify(scheduleList));
-      return scheduleList;
     }
 
     function applyScheduleToState(prefixMsg = "") {
-      // 自主練習只改畫面區間；絕不可回寫日期排程。
       if (isManualSelected) return false;
+
       try {
-        const today = getNormalizedDateStr();
-        const targetDay = getRealTargetDay();
-        const fixed = getTodayFixedSnapshot();
-        const settings = loadFixedScheduleSettings();
-        currentDayPlan = fixed || fixedPlanForDay(targetDay, settings);
-        if (!fixed) {
-          classicStorage.setItem('FIXED_DAILY_PLAN_V972', JSON.stringify({ date: today, day: targetDay, plan: currentDayPlan }));
+        let scheduleData = null;
+        const localSched = classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971');
+
+        if (localSched) {
+          try { scheduleData = JSON.parse(localSched); } catch(e){}
         }
-        // 刪除舊版用排程終點假冒「已完成進度」的寫入。
-        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === today) {
+
+        if (!scheduleData || !Array.isArray(scheduleData)) {
+          let savedSettings = {};
+          try { savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}'); } catch (e) {}
+          generateAlgorithmicSchedule({
+            totalSentences: CLASSIC_TOTAL_SENTENCES,
+            dailyStep: savedSettings.dailyStep || DEFAULT_DAILY_STEP,
+            repeatNew: savedSettings.repeatNew || DEFAULT_REPEAT_NEW,
+            repeatCum: savedSettings.repeatCum !== undefined ? savedSettings.repeatCum : DEFAULT_REPEAT_CUMULATIVE,
+            testCompleted: Math.min(CLASSIC_TOTAL_SENTENCES, getCurrentProgressEnd())
+          });
+          scheduleData = JSON.parse(classicStorage.getItem('OFFLINE_SCHEDULE_CACHE_V971') || '[]');
+        }
+
+        if (!scheduleData || !Array.isArray(scheduleData) || scheduleData.length === 0) {
+          currentDayPlan = { day: 1, start: 1, end: 1, repeat: DEFAULT_REPEAT_NEW, cStart: null, cEnd: null, cRepeat: 0 };
+          if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
           practicePhase = 'completed';
-        } else if (!currentDayPlan.start) {
+        } else if (!currentDayPlan.start || currentDayPlan.start > CLASSIC_TOTAL_SENTENCES) {
           practicePhase = 'cumulative_gendu';
         } else {
           practicePhase = 'new_gendu';
         }
+          currentCycleCount = 0;
+          return false;
+        }
+        
+        let targetDay = getCurrentActiveDayNumber();
+        currentDayPlan = scheduleData.find(item => Number(item.day) === Number(targetDay)) || scheduleData[scheduleData.length - 1];
+        if (!currentDayPlan) currentDayPlan = scheduleData[0];
+
+        classicStorage.setItem('USER_CURRENT_PROGRESS_END_V971', currentDayPlan.end.toString());
+
+        if (classicStorage.getItem('INDEPENDENT_UNLOCKED_DATE_V971') === getNormalizedDateStr()) {
+          practicePhase = 'completed';
+        } else {
+          practicePhase = 'new_gendu';
+        }
+        
         const savedStateStr = classicStorage.getItem('APP_SAVED_STATE_V971');
         let restoredCount = 0;
         if (savedStateStr) {
           try {
             const st = JSON.parse(savedStateStr);
-            if (st.savedDateStr === today) {
+            if (st.savedDateStr === getNormalizedDateStr()) {
               restoredCount = st.currentCycleCount || 0;
               if (st.practicePhase) practicePhase = st.practicePhase;
             }
           } catch(e) {}
         }
         currentCycleCount = restoredCount;
+
         setupStageRange();
         isScheduleRepeatLocked = false;
         return true;
-      } catch (err) { console.warn('日期排程載入失敗', err); }
+      } catch (err) {}
       return false;
     }
 
-        function setupStageRange() {
+    function setupStageRange() {
       if (!currentDayPlan) return;
       const maxIdx = Math.max(0, (parsedTextLines.length > 0 ? parsedTextLines.length - 1 : CLASSIC_TOTAL_SENTENCES - 1));
 
@@ -2309,8 +2472,9 @@
     async function renderPdfOnValidDimensions() {
       if (!cachedPdfBuffer) return;
       try {
+          await verifyPdfSha256(cachedPdfBuffer);
           const loadingTask = pdfjsLib.getDocument({
-            data: new Uint8Array(cachedPdfBuffer),
+            data: new Uint8Array(cachedPdfBuffer.slice(0)),
             cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
             cMapPacked: true
           });
@@ -2333,97 +2497,18 @@
 
           await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-          const textContent = await page.getTextContent();
-          const items = textContent.items;
-          const validSpans = [];
-          const chineseCharRegex = /[一-龥]/;
-
-          items.forEach(it => {
-            const str = it.str || '';
-            if (!str.trim()) return;
-
-            const tx = it.transform;
-            const pdfX = tx[4];
-            const pdfY = tx[5];
-
-            const fontScale = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) * pageScale;
-            const fontWidth = it.width * pageScale;
-
-            const p0 = pdfjsLib.Util.applyTransform([pdfX, pdfY], viewport.transform);
-            const screenX0 = p0[0];
-
-            const pdfFontH = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) || (fontScale / pageScale);
-            const pTop = pdfjsLib.Util.applyTransform([pdfX, pdfY + pdfFontH], viewport.transform);
-
-            const realTop = Math.min(p0[1], pTop[1]);
-            const realBottom = Math.max(p0[1], pTop[1]);
-
-            const charWidth = fontWidth / Math.max(1, str.length);
-            for (let c = 0; c < str.length; c++) {
-              const char = str[c];
-              if (chineseCharRegex.test(char)) {
-                const charX0 = screenX0 + (c * charWidth);
-                const charX1 = charX0 + charWidth;
-                validSpans.push({ x0: charX0, x1: charX1, topY: realTop, bottomY: realBottom, fs: fontScale, char: char });
-              }
-            }
-          });
-
-          validSpans.sort((a, b) => a.topY - b.topY);
-          const rowGroups = [];
-
-          validSpans.forEach(span => {
-            let matched = false;
-            for (let g of rowGroups) {
-              if (Math.abs(g.topY - span.topY) <= (span.fs * 0.45)) {
-                g.spans.push(span);
-                matched = true;
-                break;
-              }
-            }
-            if (!matched) rowGroups.push({ topY: span.topY, spans: [span] });
-          });
-
-          const analyzedRows = rowGroups.map(g => {
-            g.spans.sort((a, b) => a.x0 - b.x0);
-            const avgFs = g.spans.reduce((sum, s) => sum + s.fs, 0) / g.spans.length;
-            const minTop = Math.min(...g.spans.map(s => s.topY));
-            const lineX0 = g.spans[0].x0;
-            const lineX1 = g.spans[g.spans.length - 1].x1;
-
-            return { spans: g.spans, chineseCount: g.spans.length, avgFs: avgFs, minTop: minTop, lineX0: lineX0, lineX1: lineX1 };
-          });
-
-          analyzedRows.forEach(r => {
-            r.maxBottom = Math.max(...r.spans.map(s => s.bottomY));
-            r.underLineY = r.maxBottom + 7;
-          });
-
-          const candidateLargeRows = analyzedRows.filter(r => r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30);
-          let mainTextFontSize = 0;
-          if (candidateLargeRows.length > 0) {
-            const sortedSizes = candidateLargeRows.map(r => r.avgFs).sort((a, b) => b - a);
-            mainTextFontSize = sortedSizes[Math.min(sortedSizes.length - 1, 2)];
-          }
-
-          parsedTextLines = [];
-          let internalIndex = 0;
-
-          analyzedRows.forEach(r => {
-            const isNormalOrLarge = (r.avgFs >= mainTextFontSize * 0.70);
-            if (r.chineseCount >= 2 && (r.lineX1 - r.lineX0) >= 30 && isNormalOrLarge) {
-              parsedTextLines.push({
-                lineIndex: internalIndex++, x0: r.lineX0, x1: r.lineX1, topGlobal: r.minTop, bottomGlobal: r.maxBottom, underLineY: r.underLineY, charItems: r.spans
-              });
-            }
-          });
-
-          parsedTextLines.sort((a, b) => a.underLineY - b.underLineY);
+          // v2：不使用 PDF.js 文字行重新猜測句號；直接採用 G09 輸出的有聲逐字座標。
+          parsedTextLines = buildUnifiedPdfLines(viewport, page);
           guideStage.style.height = viewport.height + 'px';
-
           updateVisualDisplay();
           scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
-      } catch(e) {}
+          return;
+
+
+      } catch(e) {
+        console.error('[v2 PDF定位]', e);
+        showToast('⚠️ ' + (e.message || 'PDF定位失敗'), 10000);
+      }
     }
 
     const DB_NAME = 'HappyReciteDB_' + CURRENT_CLASSIC_ID;
@@ -2455,12 +2540,17 @@
       } catch (e) { return null; }
     }
 
-    async function saveLocalFile(key, data, tag) {
+    async function saveLocalFile(key, data, tag, validator = '') {
       try {
         const db = await openDatabase();
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).put({ data: data, tag: tag }, key);
-      } catch (e) {}
+        return await new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+          tx.onabort = () => resolve(false);
+          tx.objectStore(STORE_NAME).put({ data: data, tag: tag, validator: validator }, key);
+        });
+      } catch (e) { return false; }
     }
 
     function showToast(msg, duration = 6000) {
@@ -2637,14 +2727,14 @@
         setTimeout(async () => {
           try {
             if (!cachedPdfBuffer) {
-              const localPdf = await getLocalFile('pdf_file_v905');
+              const localPdf = await getLocalFile('pdf_file_v2_' + scripturePdfMeta.pdf_sha256.slice(0,16));
               if (localPdf && localPdf.data) {
                 cachedPdfBuffer = localPdf.data;
               } else {
-                const response = await fetch(CLASSIC_ASSETS.pdf + '?nocache=' + Date.now());
+                const response = await fetch(CLASSIC_ASSETS.pdf + '?pdf_sync=' + Date.now(), { cache: 'no-store' });
                 if (!response.ok) throw new Error('找不到 scripture.pdf');
                 cachedPdfBuffer = await response.arrayBuffer();
-                await saveLocalFile('pdf_file_v905', cachedPdfBuffer, 'mode-load');
+                await saveLocalFile('pdf_file_v2_' + scripturePdfMeta.pdf_sha256.slice(0,16), cachedPdfBuffer, 'mode-load');
               }
             }
 
@@ -2655,7 +2745,10 @@
             } else {
               scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
             }
-          } catch (err) {}
+          } catch (err) {
+            console.error('[PDF統一定位]', err);
+            showToast('⚠️ ' + (err.message || 'PDF 載入或定位失敗'), 10000);
+          }
         }, 120);
       }
 
@@ -3129,6 +3222,10 @@
             const clientX = e.clientX;
             const clientY = e.clientY;
             const targetIdx = getLineIndexAtClientPoint(clientX, clientY);
+            if (targetIdx < 0) {
+              showToast('此位置不是有聲正文，請點選正文中的字', 3000);
+              return;
+            }
 
             if (isSelectingMarkA) {
               isManualSelected = true;
@@ -3615,21 +3712,23 @@
     }
 
     function getLineIndexAtClientPoint(clientX, clientY) {
-      if (parsedTextLines.length === 0) return 0;
-      let closestIdx = 0, minDiff = Infinity;
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-
-      for (let i = 0; i < parsedTextLines.length; i++) {
-        const line = parsedTextLines[i];
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const lineScreenY = canvasRect.top + (line.underLineY * scaleY);
-        const diff = Math.abs(lineScreenY - clientY);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = i;
-        }
-      }
-      return closestIdx;
+      if (!parsedTextLines.length) return -1;
+      const rect = pdfCanvas.getBoundingClientRect();
+      const scaleX = rect.width / pdfCanvas.width;
+      const scaleY = rect.height / pdfCanvas.height;
+      const x = (clientX - rect.left) / scaleX;
+      const y = (clientY - rect.top) / scaleY;
+      let nearest = -1, minD2 = Infinity;
+      parsedTextLines.forEach((line, i) => {
+        line.charItems.forEach(g => {
+          const dx = Math.max(g.x0-x, 0, x-g.x1);
+          const dy = Math.max(g.topY-y, 0, y-g.bottomY);
+          const d2 = dx*dx+dy*dy;
+          if (d2 < minD2) { minD2=d2; nearest=i; }
+        });
+      });
+      // 點在無聲科判/空白不會被誤當作其他經文。
+      return minD2 <= Math.pow(22 / Math.max(scaleX,scaleY),2) ? nearest : -1;
     }
 
     async function ensureMicrophoneActive() {
@@ -4099,9 +4198,9 @@
         guideLine.style.left = (line.x0 * scaleX) + 'px';
         guideLine.style.width = ((line.x1 - line.x0) * scaleX) + 'px';
         
-        const rawX = getLinePhysicalXByCharProgress(line, currentCharIndexFloat);
-        redDot.style.top = (line.underLineY * scaleY) + 'px';
-        redDot.style.left = (rawX * scaleX) + 'px';
+        const dot = getGlyphDotPosition(line, currentCharIndexFloat);
+        redDot.style.top = (dot.y * scaleY) + 'px';
+        redDot.style.left = (dot.x * scaleX) + 'px';
 
         guideLine.style.display = 'block';
         redDot.style.display = 'block';
@@ -4149,9 +4248,9 @@
           const canvasRect = pdfCanvas.getBoundingClientRect();
           const scaleY = canvasRect.height / pdfCanvas.height;
           const scaleX = canvasRect.width / pdfCanvas.width;
-          const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
-          redDot.style.left = (rawX * scaleX) + 'px';
-          redDot.style.top = (curLine.underLineY * scaleY) + 'px';
+          const dot = getGlyphDotPosition(curLine, currentCharIndexFloat);
+          redDot.style.left = (dot.x * scaleX) + 'px';
+          redDot.style.top = (dot.y * scaleY) + 'px';
         }
 
         if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
@@ -4171,9 +4270,9 @@
         const canvasRect = pdfCanvas.getBoundingClientRect();
         const scaleY = canvasRect.height / pdfCanvas.height;
         const scaleX = canvasRect.width / pdfCanvas.width;
-        const rawX = getLinePhysicalXByCharProgress(curLine, currentCharIndexFloat);
-        redDot.style.left = (rawX * scaleX) + 'px';
-        redDot.style.top = (curLine.underLineY * scaleY) + 'px';
+        const dot = getGlyphDotPosition(curLine, currentCharIndexFloat);
+        redDot.style.left = (dot.x * scaleX) + 'px';
+        redDot.style.top = (dot.y * scaleY) + 'px';
       }
       guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
