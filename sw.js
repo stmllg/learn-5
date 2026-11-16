@@ -1,6 +1,6 @@
 /* OF01 獨立離線 Service Worker；不更動原有背書控制邏輯 */
 'use strict';
-const CACHE_NAME='happyrecite-of01-assets';
+const CACHE_NAME='happyrecite-of01-assets-root-v2';
 const APP_BASE=new URL('./', self.location.href);
 const ORIGIN=self.location.origin;
 const CDN_HOSTS=new Set(['cdnjs.cloudflare.com','cdn.jsdelivr.net']);
@@ -23,7 +23,7 @@ self.addEventListener('activate',event=>{
 function targetUrl(request){
   const url=new URL(request.url);
   if(url.origin===ORIGIN && url.pathname.startsWith(APP_BASE.pathname)){
-    // 去除 ?t=、?nocache= 等動態參數，網址 s/g/k 不進入快取鍵。
+    // 去除 ?t=、?nocache= 等動態參數，網址 s/g 不進入快取鍵。
     // 只有程式所需的靜態資源才進入該規則。
     if(!STATIC_EXT.test(url.pathname)) return null;
     const path=url.pathname.endsWith('/') ? 'index.html' : url.pathname;

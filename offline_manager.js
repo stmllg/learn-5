@@ -3,7 +3,7 @@
 'use strict';
 const PREFIX='OF01::';
 const APP_ROOT=new URL('./',location.href);
-const CACHE='happyrecite-of01-assets';
+const CACHE='happyrecite-of01-assets-root-v2';
 const classic=(new URLSearchParams(location.search).get('classic')||'er_sheng');
 const SAFE_CLASSIC=/^[A-Za-z0-9_-]+$/.test(classic)?classic:'er_sheng';
 const ELEM_ID='of01-offline-banner';
@@ -52,7 +52,7 @@ async function getManifest(){
 }
 async function clearOldPdfIndexedDB(fileUrl){
   // 只清除同經文的 PDF 暫存資料，不觸碰學習進度、排程或其他資料庫。
-  if(!fileUrl.endsWith('/'+SAFE_CLASSIC+'_pdf.pdf'))return;
+  if(!fileUrl.endsWith('/classic/'+SAFE_CLASSIC+'_pdf.pdf'))return;
   try{
     const request=indexedDB.open('HappyReciteDB_'+SAFE_CLASSIC,1);
     await new Promise(resolve=>{
@@ -79,7 +79,7 @@ async function ensureOne(cache,item){
     if(!isExternal && response.status!==200) throw new Error('未取得完整檔案');
     // 影片必須是完整 200，不能將 206 分段回應當成已完成離線。
     await cache.put(url,response.clone());
-    if(!isExternal && url.endsWith('/'+SAFE_CLASSIC+'_pdf.pdf'))await clearOldPdfIndexedDB(url);
+    if(!isExternal && url.endsWith('/classic/'+SAFE_CLASSIC+'_pdf.pdf'))await clearOldPdfIndexedDB(url);
     markRev(url,item.rev);
     return true;
   }catch(err){

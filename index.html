@@ -10,39 +10,23 @@
   <meta name="apple-mobile-web-app-title" content="歡喜背書">
   <meta name="theme-color" content="#0B0F19">
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <script>
-    const SECRET_KEY = "teacher2026"; // 固定密鑰
-
+    // 測試版本：取消 MD5 / k 參數限制；保留原本經典、群組、日期的解析方式。
     const urlParams = new URLSearchParams(window.location.search);
     const CLASSIC_PARAM = urlParams.get('classic');
     const GROUP_PARAM = urlParams.get('g') || urlParams.get('group') || 'def';
     const START_PARAM = urlParams.get('s') || urlParams.get('start') || '';
-    const K_PARAM = urlParams.get('k');
-
-    // === 嚴格安全檢核防護機制 ===
-    if (!K_PARAM) {
-        document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 缺少安全驗證參數</h2><p style="color:#CBD5E1; margin-top:10px;">此網址未經授權或缺少必要參數，無法存取。</p></div></body>';
-        throw new Error("Missing security parameter.");
-    } else {
-        const checkString = START_PARAM + GROUP_PARAM + SECRET_KEY;
-        const calculatedK = CryptoJS.MD5(checkString).toString().substring(0, 3);
-        if (calculatedK !== K_PARAM) {
-            document.documentElement.innerHTML = '<head><meta charset="UTF-8"><title>存取拒絕</title></head><body style="background:#0B0F19; color:#FF5252; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; text-align:center;"><div><h2>⚠️ 網址驗證失敗或參數遭不當修改</h2><p style="color:#CBD5E1; margin-top:10px;">此網址無效或未經授權，無法存取此頁面。</p></div></body>';
-            throw new Error("Security verification failed.");
-        }
-    }
 
     const CURRENT_CLASSIC_ID = /^[a-zA-Z0-9_-]+$/.test(CLASSIC_PARAM || '') ? CLASSIC_PARAM : 'er_sheng';
     const CURRENT_GROUP_ID = /^[a-zA-Z0-9_-]+$/.test(GROUP_PARAM || '') ? GROUP_PARAM : 'def';
     const NAMESPACE_KEY = `${CURRENT_CLASSIC_ID}_${CURRENT_GROUP_ID}`;
 
     const CLASSIC_ASSETS = {
-      sentences: `./${CURRENT_CLASSIC_ID}_sentences.json`,
-      pdf: `./${CURRENT_CLASSIC_ID}_pdf.pdf`,
-      video: `./${CURRENT_CLASSIC_ID}_video.mp4`,
-      buddha: './reciting_buddha_name.mp4',
-      dedication: './merit_dedication.mp4'
+      sentences: `./classic/${CURRENT_CLASSIC_ID}_sentences.json`,
+      pdf: `./classic/${CURRENT_CLASSIC_ID}_pdf.pdf`,
+      video: `./classic/${CURRENT_CLASSIC_ID}_video.mp4`,
+      buddha: './Z_reciting_buddha_name.mp4',
+      dedication: './Z_merit_dedication.mp4'
     };
     const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzKop9lC3br5VKWaIkT27kfv_bCpKtpZCxTFAJNLl4yeegqFhVA-RwCwN2h0WrfJ6qo/exec';
     
@@ -1772,7 +1756,7 @@
 
       let mediaUrl = defaultUrl;
       try {
-        let fileKey = (modeType === 'mode1') ? 'reciting_buddha_file_v905' : 'merit_dedication_file_v905';
+        let fileKey = (modeType === 'mode1') ? 'Z_reciting_buddha_file_v906' : 'Z_merit_dedication_file_v906';
         const savedFile = await getLocalFile(fileKey);
         if (savedFile && savedFile.data) {
           mediaUrl = URL.createObjectURL(new Blob([savedFile.data], { type: 'video/mp4' }));
