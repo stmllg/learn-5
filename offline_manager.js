@@ -1,4 +1,4 @@
-/* OF01 離線管理：只新增預下載與狀態 UI，不覆寫原程式任何函式 */
+/* OF01 離線管理（V999.101）：背景靜默檢查，僅實際需要下載時顯示進度。 */
 (function(){
 'use strict';
 const PREFIX='OF01::';
@@ -10,9 +10,10 @@ const ELEM_ID='of01-offline-banner';
 let panel,progressEl,detailEl,closeBtn;
 let manifest;
 let running=false;
+let hideTimer=null;
 function assetKey(file){return new URL(file,APP_ROOT).href;}
 function showPanel(){
-  if(panel) return;
+  if(panel){panel.style.display='block';return;}
   panel=document.createElement('section');panel.id=ELEM_ID;
   panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');
   panel.style.cssText='position:fixed;z-index:999998;right:10px;bottom:10px;width:min(350px,calc(100vw - 20px));box-sizing:border-box;background:#111827;color:#fff;border:2px solid #34d399;border-radius:12px;padding:11px 12px;font:600 14px/1.45 system-ui,sans-serif;box-shadow:0 5px 20px #0008;';
@@ -31,7 +32,7 @@ function markRev(url,rev){try{localStorage.setItem(PREFIX+'rev:'+url,rev);}catch
 async function checkCapacity(){
   if(!navigator.storage?.estimate) return;
   try{const est=await navigator.storage.estimate();
-    if(est.quota&&est.usage&&est.usage/est.quota>0.8){status('⚠️ 手機瀏覽器儲存空間接近上限；大型 MP4 可能下載失敗',0,1);}
+    if(est.quota&&est.usage&&est.usage/est.quota>0.8){console.warn('[OF01] 手機儲存空間接近上限，可能無法快取大型 MP4');}
     if(navigator.storage.persist) await navigator.storage.persist().catch(()=>false);
   }catch(_){ }
 }
@@ -97,47 +98,67 @@ function makeItems(data){
   return [...common,...external,...classicItems];
 }
 async function downloadAll(){
-  if(running)return;running=true;
-  let done=0,failed=[];
+  if(running)return;
+  running=true;
+  let completed=0,failed=[],toDownload=[];
   try{
     if(!('serviceWorker'in navigator)||!('caches'in window))throw new Error('此瀏覽器不支援離線快取');
-    showPanel();status('正在註冊離線管理程式…',0,1);
+    // 註冊、比對清單、查詢快取都在背景執行，不開啟提示視窗。
     await navigator.serviceWorker.register(assetKey('sw.js'),{scope:APP_ROOT.pathname});
     await navigator.serviceWorker.ready;
-    // 第一次開啟可能尚無 controller。當次下載走 manager，下一次才由 SW 接管。
     await checkCapacity();
     manifest=await getManifest();
     const files=makeItems(manifest);
     const cache=await caches.open(CACHE);
-    status('檢查 '+files.length+' 個教材檔案…',0,files.length);
-    // 刻意採低並行數，避免一次下載多支影片造成手機記憶體與網路壅塞。
-    const imageFiles=files.filter(x=>!(/\.mp4(?:$|\?)/i.test(x.url)));
-    const videoFiles=files.filter(x=>/\.mp4(?:$|\?)/i.test(x.url));
+    for(const item of files){
+      const current=await cache.match(item.url);
+      if(!current || storedRev(item.url)!==item.rev)toDownload.push(item);
+    }
+    // 已下載且版本一致：完全靜默，使用者不會看到檢查或完成訊息。
+    if(toDownload.length===0){
+      window.OF01_OFFLINE_STATE={ready:true,completed:files.length,total:files.length,failed:[]};
+      return;
+    }
+    // 僅在確實有缺少或版本不同的檔案、開始取得新內容時才顯示下載狀態。
+    if(hideTimer){clearTimeout(hideTimer);hideTimer=null;}
+    let begun=false;
+    function onDownloadProgress(){
+      const prefix=failed.length?'（失敗 '+failed.length+'）':'';
+      status('正在下載教材 '+completed+' / '+toDownload.length+' 個檔案'+prefix,completed,toDownload.length);
+    }
+    const otherFiles=toDownload.filter(x=>!(/\.mp4(?:$|\?)/i.test(x.url)));
+    const videoFiles=toDownload.filter(x=>/\.mp4(?:$|\?)/i.test(x.url));
     async function fetchItems(items,parallel){
       let cursor=0;
       async function worker(){while(cursor<items.length){
         const item=items[cursor++];
+        if(!begun){begun=true;onDownloadProgress();}
         const ok=await ensureOne(cache,item);
-        done++;
+        completed++;
         if(!ok)failed.push(item.url);
-        status('已檢查 '+done+' / '+files.length+' 個檔案'+(failed.length?'（失敗 '+failed.length+'）':''),done,files.length);
+        onDownloadProgress();
       }}
       await Promise.all(Array.from({length:parallel},worker));
     }
-    await fetchItems(imageFiles,3);
+    // 沿用原本的低並行數，避免手機同時下載多支影片。
+    await fetchItems(otherFiles,3);
     await fetchItems(videoFiles,1);
     if(failed.length){
-      status('⚠️ 離線下載未完成：'+failed.length+' 個檔案失敗；請保持網路並重新整理補齊。',done,files.length);
+      status('⚠️ '+failed.length+' 個教材尚未下載完成，下次開啟將自動補齊。',completed,toDownload.length);
       console.warn('[OF01] 以下未完整快取',failed);
     }else{
-      status('✅ 共用資源及「'+SAFE_CLASSIC+'」經文均已下載，可離線使用',files.length,files.length);
+      status('✅ 教材更新完成',toDownload.length,toDownload.length);
       try{localStorage.setItem(PREFIX+'ready:'+SAFE_CLASSIC,new Date().toISOString());}catch(_){ }
-      setTimeout(()=>{if(panel)panel.style.display='none';},12000);
     }
-    window.OF01_OFFLINE_STATE={ready:failed.length===0,completed:done,total:files.length,failed};
+    // 更新結束即迅速收起，不再長時間擋住畫面。
+    hideTimer=setTimeout(()=>{if(panel)panel.style.display='none';hideTimer=null;},failed.length?5000:1800);
+    window.OF01_OFFLINE_STATE={ready:failed.length===0,completed:files.length-failed.length,total:files.length,failed};
   }catch(err){
-    status('⚠️ 離線準備尚未完成：'+(err.message||err),done,1);
-    console.warn('[OF01]',err);
+    // 未開始下載前的錯誤也保持背景靜默；不彈出下載提示。
+    console.warn('[OF01] 離線檢查未完成',err);
+    if(panel&&panel.style.display!=='none'){
+      panel.style.display='none';
+    }
     window.OF01_OFFLINE_STATE={ready:false,error:String(err)};
   }finally{running=false;}
 }
