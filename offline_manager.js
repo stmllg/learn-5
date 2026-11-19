@@ -1,4 +1,4 @@
-/* OF01 離線管理（V999.101）：背景靜默檢查，僅實際需要下載時顯示進度。 */
+/* OF01 離線管理（V999.101 靜默修正）：自動檢查及預下載完全在背景執行。 */
 (function(){
 'use strict';
 const PREFIX='OF01::';
@@ -11,6 +11,13 @@ let panel,progressEl,detailEl,closeBtn;
 let manifest;
 let running=false;
 let hideTimer=null;
+// 自動預下載永遠不打開遮擋畫面的視窗；手動呼叫重試才允許顯示進度。
+let allowProgressPanel=false;
+// 清除頁面上可能殘留的舊版 OF01 面板。
+function removeOldBanner(){
+  const old=document.getElementById(ELEM_ID);
+  if(old && old!==panel)old.remove();
+}
 function assetKey(file){return new URL(file,APP_ROOT).href;}
 function showPanel(){
   if(panel){panel.style.display='block';return;}
@@ -23,6 +30,11 @@ function showPanel(){
   closeBtn.addEventListener('click',()=>{panel.style.display='none';});
 }
 function status(message,done,total){
+  // 網頁自動檢查、自動下載時，完全不產生或顯示 OF01 視窗。
+  if(!allowProgressPanel){
+    if(panel)panel.style.display='none';
+    return;
+  }
   if(!panel)showPanel();panel.style.display='block';
   detailEl.textContent=message;
   progressEl.value=total?Math.round(done/total*100):0;
@@ -97,8 +109,10 @@ function makeItems(data){
   const classicItems=[...new Set(data.classicTemplates||[])].map(t=>{const file=t.replaceAll('{classic}',SAFE_CLASSIC);return {url:assetKey(file),rev:String(fileRevisions[file]||classicRev)};});
   return [...common,...external,...classicItems];
 }
-async function downloadAll(){
+async function downloadAll(showProgress=false){
   if(running)return;
+  allowProgressPanel=showProgress===true;
+  if(!allowProgressPanel && panel)panel.style.display='none';
   running=true;
   let completed=0,failed=[],toDownload=[];
   try{
@@ -116,6 +130,7 @@ async function downloadAll(){
     }
     // 已下載且版本一致：完全靜默，使用者不會看到檢查或完成訊息。
     if(toDownload.length===0){
+      if(panel)panel.style.display='none';
       window.OF01_OFFLINE_STATE={ready:true,completed:files.length,total:files.length,failed:[]};
       return;
     }
@@ -160,11 +175,36 @@ async function downloadAll(){
       panel.style.display='none';
     }
     window.OF01_OFFLINE_STATE={ready:false,error:String(err)};
-  }finally{running=false;}
+  }finally{
+    running=false;
+    allowProgressPanel=false;
+  }
 }
-// LINE 內建瀏覽器不適合預下載；原程式會提示改用預設瀏覽器。
-function start(){if(/Line/i.test(navigator.userAgent))return;downloadAll();}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
-else start();
-window.OF01_retryDownload=downloadAll;
+// Apple iPhone / iPad：Safari 與主畫面 Web App 的快取儲存可能彼此獨立。
+// 避免使用者在 Safari 加入主畫面之前預下載整套教材，接著在主畫面又下載一次。
+// 只影響「自動」預下載，原有的顯示／背書功能、手動重試入口均不變。
+function isAppleMobile(){
+  return /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+}
+function isInstalledWebApp(){
+  return navigator.standalone===true ||
+    (typeof window.matchMedia==='function' &&
+      (window.matchMedia('(display-mode: standalone)').matches ||
+       window.matchMedia('(display-mode: fullscreen)').matches));
+}
+// LINE 內建瀏覽器不適合預下載；Apple 手機先加入主畫面後才自動預下載。
+function start(){
+  if(/Line/i.test(navigator.userAgent))return;
+  if(isAppleMobile() && !isInstalledWebApp()){
+    console.info('[OF01] Apple 瀏覽器模式：略過預下載，請由主畫面開啟以建立離線教材。');
+    window.OF01_OFFLINE_STATE={ready:false,skipped:'ios-browser-before-install'};
+    return;
+  }
+  downloadAll();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{removeOldBanner();start();},{once:true});
+else {removeOldBanner();start();}
+// 只有使用者主動執行手動重試，才顯示真正的下載進度。
+window.OF01_retryDownload=()=>downloadAll(true);
 })();
