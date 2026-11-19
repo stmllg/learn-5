@@ -797,6 +797,13 @@
       touch-action: pan-y;
     }
 
+    /* Apple Safari：經文區長按不彈出選取/分享選單；保留上下滑動與自讀觸控。 */
+    #center-core, #center-core * {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
     #guide-stage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: block; }
     #guide-line { position: absolute; height: 6px; background-color: #00E676; border-radius: 3px; box-shadow: 0 0 10px rgba(0, 230, 118, 0.9); display: none; }
     #red-dot { position: absolute; width: min(22px, 6vh); height: min(22px, 6vh); background: radial-gradient(circle, #FF5252 20%, #FF1744 100%); border: 2.5px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 12px rgba(255, 23, 68, 0.8); transform: translate(-50%, -50%); display: none; }
@@ -1664,6 +1671,11 @@
         }, 1200);
       }
     }, { passive: true });
+
+    // iPhone 長按經文不開啟 Safari 的快顯功能選單；不攔截 touchstart/end。
+    centerCore.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
 
     centerCore.addEventListener('touchstart', (e) => {
       if (currentCoreMode === 'mode3' && isGuideActive) {
