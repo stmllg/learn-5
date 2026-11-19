@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.100｜每日累計接續排程版</title>
+  <title>歡喜背書V999.101｜每日累計接續排程版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -924,6 +924,16 @@
       padding:12px 30px; min-height:52px; color:white; background:var(--stage-color,#2563EB);
       border:0; border-radius:14px; cursor:pointer; width:min(100%,400px); }
     #of02-stage-confirm:disabled { opacity:.6; cursor:wait; }
+
+    /* V999.101：LINE 三段說明，縮短直式畫面高度 */
+    .line-guide-card { gap: 10px; padding: 15px 18px; max-height: 92dvh; overflow-y: auto; }
+    .line-guide-title { font-size: 19px; letter-spacing: 1px; }
+    .line-guide-content { font-size: 15px; line-height: 1.5; padding: 12px; }
+    .line-guide-step + .line-guide-step { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(245,158,11,.25); }
+    .line-guide-step strong { display: block; margin-bottom: 3px; }
+    .line-icon-dots { display: inline-block; font-weight: 900; font-size: 24px; vertical-align: -3px; line-height: 1; color: #FBBF24; }
+    .line-icon-share { display: inline-flex; vertical-align: middle; color: #38BDF8; }
+    #btn-save-schedule.schedule-locked { background: #DC2626 !important; border-color: #F87171 !important; color: #FFFFFF !important; opacity: 1; cursor: not-allowed; }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 </head>
@@ -935,9 +945,11 @@
 
   <div id="line-browser-overlay">
     <div class="line-guide-card">
-      <div class="line-guide-title">📌 瀏覽器設定・溫馨提示</div>
+      <div class="line-guide-title">瀏覽器開啟說明</div>
       <div class="line-guide-content">
-        偵測到您目前使用 LINE 內建瀏覽器。請點擊畫面左下角的三點選單，並選擇「以預設瀏覽器開啟」，以獲得最佳背書視野與完整功能。
+        <div class="line-guide-step"><strong>① LINE 內建瀏覽器</strong>偵測到使用 LINE 內建瀏覽器，請按左下角 <span class="line-icon-dots" aria-label="直立三點">⋮</span>，選擇「以預設瀏覽器開啟」。</div>
+        <div class="line-guide-step"><strong>② Apple 手機</strong>點選 <span class="line-icon-share" aria-label="分享圖示"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V2m-5 5 5-5 5 5"/><path d="M5 12v9h14v-9"/></svg></span> 分享圖示，向上滑找到「加入主畫面」，以後由主畫面開啟。</div>
+        <div class="line-guide-step"><strong>③ Android 手機</strong>不用特別設定，直接使用即可。</div>
       </div>
     </div>
   </div>
@@ -1810,7 +1822,6 @@
         await preWarmMicrophonePermission();
 
         hasEnteredReciting = true;
-        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
 
@@ -1854,7 +1865,6 @@
         await preWarmMicrophonePermission();
 
         hasEnteredReciting = true;
-        classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
         const btnCardSettingDynamic = document.getElementById('btn-card-setting-dynamic');
         if (btnCardSettingDynamic) btnCardSettingDynamic.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
 
@@ -1982,6 +1992,29 @@
       return getRealTargetDay();
     }
 
+    // V999.101：只有成功按下排程確認鍵才記錄鎖定日期；開啟背書不算設定。
+    const SCHEDULE_CONFIRMED_DATE_KEY_V999101 = 'SCHEDULE_CONFIRMED_DATE_V999101';
+
+    function isScheduleConfirmedToday() {
+      return classicStorage.getItem(SCHEDULE_CONFIRMED_DATE_KEY_V999101) === getNormalizedDateStr();
+    }
+
+    function updateScheduleConfirmButton() {
+      const locked = isScheduleConfirmedToday();
+      const btn = document.getElementById('btn-save-schedule');
+      if (!btn) return;
+      btn.textContent = locked ? '明天才能再變更' : '確認更新排程';
+      btn.classList.toggle('schedule-locked', locked);
+      btn.disabled = locked;
+      btn.setAttribute('aria-disabled', String(locked));
+      // 保留已設定內容供查看，鎖定時不讓使用者編輯無法儲存的欄位。
+      document.querySelectorAll('.step-btn').forEach(el => { el.disabled = locked; });
+      ['input-repeat-new', 'input-repeat-cum'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = locked;
+      });
+    }
+
     function openScheduleModal() {
       const savedSettings = JSON.parse(classicStorage.getItem('USER_SCHEDULE_SETTINGS_V971') || '{}');
       selectedDailyStep = savedSettings.dailyStep || DEFAULT_DAILY_STEP;
@@ -2001,6 +2034,7 @@
 
       renderPreviewList('preview-new-list', generateTempScheduleList({ dailyStep: selectedDailyStep, repeatNew: rNew, repeatCum: rCum, testCompleted: completedEnd }));
 
+      updateScheduleConfirmButton();
       scheduleModalOverlay.style.display = 'flex';
     }
 
@@ -2070,11 +2104,11 @@
 
     function saveAndApplySchedule() {
       // 同一天排程只允許確認一次，避免重複重算學習進度。
-      if (classicStorage.getItem('SETTING_BTN_USED_DATE_V971') === getNormalizedDateStr()) {
+      if (isScheduleConfirmedToday()) {
         closeScheduleModal();
         const btn = document.getElementById('btn-card-setting-dynamic');
         if (btn) btn.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
-        showToast('今日排程已設定；測試期間可查看，但不重複更新。', 3500);
+        showToast('今日排程已確認，明天才能再變更。', 3500);
         return;
       }
       const testCompleted = parseInt(document.getElementById('input-completed-sentences').value, 10) || 0;
@@ -2093,7 +2127,8 @@
       classicStorage.setItem('USER_SCHEDULE_SETTINGS_V971', JSON.stringify(settings));
 
       generateAlgorithmicSchedule(settings);
-      classicStorage.setItem('SETTING_BTN_USED_DATE_V971', getNormalizedDateStr());
+      classicStorage.setItem(SCHEDULE_CONFIRMED_DATE_KEY_V999101, getNormalizedDateStr());
+      updateScheduleConfirmButton();
       const btn = document.getElementById('btn-card-setting-dynamic');
       if (btn) btn.style.display = 'inline-block'; // OF11：測試期間排程鍵常駐
       closeScheduleModal();
@@ -3246,9 +3281,9 @@
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 10000);
         if (clipboardSuccess) {
-          showToast('✨ 上下並列截圖已複製到剪貼簿，並已自動下載！\n可直接貼上至 LINE 分享！', 5000);
+          showToast('圖片已準備好，可直接貼上至 LINE 分享！', 5000);
         } else {
-          showToast('✨ 已下載 400 KB 以內的圖片！\n請從下載檔案選取圖片分享至 LINE！', 5000);
+          showToast('請從下載檔案選取圖片分享至 LINE！', 5000);
         }
       } catch(err) {
         console.error('LINE 截圖輸出失敗：', err);
