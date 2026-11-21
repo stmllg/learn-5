@@ -107,13 +107,15 @@ function makeItems(data){
   const common=[...new Set(data.commonFiles||[])].map(file=>({url:assetKey(file),rev:String(fileRevisions[file]||commonRev)}));
   const external=[...new Set(data.externalFiles||[])].map(file=>({url:file,rev:String(fileRevisions[file]||commonRev)}));
   const classicItems=[...new Set(data.classicTemplates||[])].map(t=>{const file=t.replaceAll('{classic}',SAFE_CLASSIC);return {url:assetKey(file),rev:String(fileRevisions[file]||classicRev)};});
-  // 讓目前開啟的首頁也列入 OF01 的離線檢查；兩版各自首次連線一次即可保存。
-  // 不修改共用教材清單，也不強制下載尚未使用的另一個版本。
-  const currentPageName=location.pathname.endsWith('/') ? 'index.html' : location.pathname.split('/').pop();
-  const pageItems=/^(?:index|green_index)\.html$/i.test(currentPageName)
-    ? [{url:assetKey(currentPageName),rev:String(fileRevisions[currentPageName]||commonRev)}] : [];
-  const all=[...common,...external,...classicItems,...pageItems];
-  return [...new Map(all.map(item=>[item.url,item])).values()];
+  // 僅長青版額外預存 green_index.html；完整版沿用原有教材清單，完全不改。
+  if(location.pathname===APP_ROOT.pathname+'green_index.html'){
+    const file='green_index.html';
+    const url=assetKey(file);
+    if(![...common,...external,...classicItems].some(item=>item.url===url)){
+      return [...common,...external,...classicItems,{url,rev:String(fileRevisions[file]||commonRev)}];
+    }
+  }
+  return [...common,...external,...classicItems];
 }
 async function downloadAll(showProgress=false){
   if(running)return;
