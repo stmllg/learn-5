@@ -107,7 +107,13 @@ function makeItems(data){
   const common=[...new Set(data.commonFiles||[])].map(file=>({url:assetKey(file),rev:String(fileRevisions[file]||commonRev)}));
   const external=[...new Set(data.externalFiles||[])].map(file=>({url:file,rev:String(fileRevisions[file]||commonRev)}));
   const classicItems=[...new Set(data.classicTemplates||[])].map(t=>{const file=t.replaceAll('{classic}',SAFE_CLASSIC);return {url:assetKey(file),rev:String(fileRevisions[file]||classicRev)};});
-  return [...common,...external,...classicItems];
+  // 讓目前開啟的首頁也列入 OF01 的離線檢查；兩版各自首次連線一次即可保存。
+  // 不修改共用教材清單，也不強制下載尚未使用的另一個版本。
+  const currentPageName=location.pathname.endsWith('/') ? 'index.html' : location.pathname.split('/').pop();
+  const pageItems=/^(?:index|green_index)\.html$/i.test(currentPageName)
+    ? [{url:assetKey(currentPageName),rev:String(fileRevisions[currentPageName]||commonRev)}] : [];
+  const all=[...common,...external,...classicItems,...pageItems];
+  return [...new Map(all.map(item=>[item.url,item])).values()];
 }
 async function downloadAll(showProgress=false){
   if(running)return;

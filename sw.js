@@ -25,8 +25,10 @@ function targetUrl(request){
   if(url.origin===ORIGIN && url.pathname.startsWith(APP_BASE.pathname)){
     // 去除 ?t=、?nocache= 等動態參數，網址 s/g 不進入快取鍵。
     // 只有程式所需的靜態資源才進入該規則。
+    // 網址省略 index.html 時也要能正確對應離線首頁。
+    if(url.pathname===APP_BASE.pathname) return new URL('index.html',APP_BASE).href;
     if(!STATIC_EXT.test(url.pathname)) return null;
-    const path=url.pathname.endsWith('/') ? 'index.html' : url.pathname;
+    const path=url.pathname;
     return new URL(path.replace(APP_BASE.pathname, ''),APP_BASE).href;
   }
   if(CDN_HOSTS.has(url.hostname) && STATIC_EXT.test(url.pathname)) return url.href;
@@ -79,19 +81,19 @@ self.addEventListener('fetch',event=>{
       return doFetch(req);
     }
     if(isNavigate){
-      // 主程式有更新時優先取得新版；斷網時退回已預先下載的 index.html。
+      // 每個 HTML 各自網路優先，離線時只退回同一個 HTML，絕不跨版本。
       try{
         const fresh=await fetch(req);
         if(fresh.ok){
-          if(url.pathname===APP_BASE.pathname+'index.html'||url.pathname===APP_BASE.pathname)
-            event.waitUntil(cache.put(new URL('index.html',APP_BASE).href,fresh.clone()).catch(()=>{}));
+          // index.html、green_index.html 各自存入對應的快取鍵。
+          if(url.pathname===APP_BASE.pathname || /\.html?$/i.test(url.pathname))
+            event.waitUntil(cache.put(key,fresh.clone()).catch(()=>{}));
           return fresh;
         }
       }catch(_){ }
       if(saved) return saved;
-      const index=await cache.match(new URL('index.html',APP_BASE).href);
-      if(index) return index;
-      return new Response('離線主程式尚未下載完成，請先連線完成 OF01 下載。',{status:503,headers:{'Content-Type':'text/plain;charset=utf-8'}});
+      // 若 green_index.html 尚未下載，不能錯誤顯示舊 index.html。
+      return new Response('此版本的離線首頁尚未下載，請先連線開啟此版本一次。',{status:503,headers:{'Content-Type':'text/plain;charset=utf-8'}});
     }
     if(saved) return saved;
     // 未預下載的檔案仍照原程式連線讀取，不強制變更行為。
