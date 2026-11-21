@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.101｜每日累計接續排程版</title>
+  <title>歡喜背書V999.103｜每日累計接續排程版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1269,10 +1269,11 @@
     let autoPlayCompareOnStop = false;
     let recordedAudioBlobUrl = null;
     let recordAudioElement = new Audio();
-    // OF09：只針對「比對」做純增益處理，不使用壓縮／限制；自讀聲控保持原樣。
+    // V999.103：只改善「比對錄音回放」音量；不改錄音增益、跟讀與自讀。
     let compareRecordingNodes = null;
     let comparePlaybackContext = null;
     let comparePlaybackReady = false;
+    let comparePlaybackMeterFrame = null;
     function prepareComparePlaybackBoost() {
       try {
         if (!comparePlaybackReady) {
@@ -1280,18 +1281,64 @@
           if (!AudioCtx) return;
           const ctx = new AudioCtx();
           const src = ctx.createMediaElementSource(recordAudioElement);
+          const meter = ctx.createAnalyser();
+          meter.fftSize = 2048;
+          meter.smoothingTimeConstant = 0.30;
           const gain = ctx.createGain();
-          gain.gain.value = 5.0; // OF11：比對錄音回放增益由 3.2 改為 5.0，其他錄音／自讀不變
-          // OF09：只有播放增益，不再透過動態壓縮器／限制器。
-          src.connect(gain);
-          gain.connect(ctx.destination);
+          gain.gain.value = 5.0; // 延續原版起始增益，再按實際音量自動修正。
+          const limiter = ctx.createDynamicsCompressor();
+          limiter.threshold.value = -14;
+          limiter.knee.value = 0;
+          limiter.ratio.value = 16;
+          limiter.attack.value = 0.003;
+          limiter.release.value = 0.18;
+          src.connect(meter);
+          meter.connect(gain);
+          gain.connect(limiter);
+          limiter.connect(ctx.destination);
+          const samples = new Float32Array(meter.fftSize);
+          let lastMeterTime = 0;
+          function followCompareVolume(now) {
+            comparePlaybackMeterFrame = null;
+            if (recordAudioElement.paused || recordAudioElement.ended) return;
+            if (now - lastMeterTime >= 70 && ctx.state === 'running') {
+              lastMeterTime = now;
+              meter.getFloatTimeDomainData(samples);
+              let sum = 0, peak = 0;
+              for (let i = 0; i < samples.length; i++) {
+                const a = Math.abs(samples[i]);
+                sum += a * a;
+                if (a > peak) peak = a;
+              }
+              const rms = Math.sqrt(sum / samples.length);
+              // 過小的底噪不增益，避免沒有朗讀時被放得很吵。
+              if (rms >= 0.003) {
+                const rmsGain = 0.15 / rms;
+                const peakGain = peak > 0 ? 0.90 / peak : 18;
+                const target = Math.max(1, Math.min(18, rmsGain, peakGain));
+                const tc = target < gain.gain.value ? 0.07 : 0.22;
+                gain.gain.setTargetAtTime(target, ctx.currentTime, tc);
+              }
+            }
+            comparePlaybackMeterFrame = requestAnimationFrame(followCompareVolume);
+          }
+          recordAudioElement.addEventListener('play', () => {
+            if (comparePlaybackMeterFrame !== null) cancelAnimationFrame(comparePlaybackMeterFrame);
+            comparePlaybackMeterFrame = requestAnimationFrame(followCompareVolume);
+          });
+          const stopMeter = () => {
+            if (comparePlaybackMeterFrame !== null) cancelAnimationFrame(comparePlaybackMeterFrame);
+            comparePlaybackMeterFrame = null;
+          };
+          recordAudioElement.addEventListener('pause', stopMeter);
+          recordAudioElement.addEventListener('ended', stopMeter);
           comparePlaybackContext = ctx;
           comparePlaybackReady = true;
         }
         if (comparePlaybackContext && comparePlaybackContext.state !== 'running') {
           comparePlaybackContext.resume().catch(() => {});
         }
-      } catch (err) { console.warn('[OF09 回放音量]', err); }
+      } catch (err) { console.warn('[V999.103 比對回放音量]', err); }
     }
     function releaseCompareRecordingNodes() {
       if (!compareRecordingNodes) return;
