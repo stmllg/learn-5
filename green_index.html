@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書長青版 V01</title>
+  <title>歡喜背書長青 S02</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2925,12 +2925,41 @@
           } catch (e) {}
         }
       } else if (mode === 'mode4') {
-        // 錄音比對沿用原有機制，長青版不顯示 PDF；停留在 MP4 畫面。
+        // 長青 S02：比對錄音時顯示原本的 PDF，方便逐句核對經文。
+        // 保持 mode4 錄音機制、麥克風參數與播放增益不變。
         video.pause();
-        videoWrap.style.display = 'flex';
-        pdfContainerWrap.style.display = 'none';
-        guideStage.style.display = 'none';
+        videoWrap.style.display = 'none';
+        pdfContainerWrap.style.display = 'flex';
+        guideStage.style.display = 'block';
         preWarmMediaRecorder();
+        setTimeout(async () => {
+          if (currentCoreMode !== 'mode4') return;
+          try {
+            if (!cachedPdfBuffer) {
+              const localPdf = await getLocalFile('pdf_file_v2_' + scripturePdfMeta.pdf_sha256.slice(0,16));
+              if (localPdf && localPdf.data) {
+                cachedPdfBuffer = localPdf.data;
+              } else {
+                const response = await fetch(CLASSIC_ASSETS.pdf + '?pdf_sync=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error('找不到經文 PDF');
+                cachedPdfBuffer = await response.arrayBuffer();
+                await saveLocalFile('pdf_file_v2_' + scripturePdfMeta.pdf_sha256.slice(0,16), cachedPdfBuffer, 'mode-load');
+              }
+            }
+            if (currentCoreMode !== 'mode4') return;
+            if (!window.pdfjsLib) throw new Error('PDF 閱讀元件尚未載入');
+            if (!pdfCanvas.width || !pdfCanvas.height || parsedTextLines.length === 0) {
+              await renderPdfOnValidDimensions();
+            }
+            if (currentCoreMode === 'mode4') {
+              updateVisualDisplay();
+              scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+            }
+          } catch (err) {
+            console.error('[長青S02 比對PDF]', err);
+            showToast('⚠️ ' + (err.message || '經文 PDF 載入失敗'), 8000);
+          }
+        }, 120);
       } else if (mode === 'mode3') {
         video.pause();
         videoWrap.style.display = 'none';
@@ -2971,7 +3000,7 @@
       renderUI();
     }
 
-    // 長青版 V01：由完成的串習範圍重新跟讀一遍；絕不累加次數、福慧幣。
+    // 長青 S02：額外跟讀一遍不影響 10＋3 定課計次，但圓滿後依句數累計福慧幣。
     function elderReplayOneMore() {
       if (!isIndependentModeUnlocked() || elderReplayActive) return;
       const range = getActiveVideoRange();
@@ -2994,11 +3023,15 @@
 
     function elderReplayFinished() {
       if (!elderReplayActive) return;
-      elderReplayActive = false;
+      elderReplayActive = false; // 防止同一段結尾重複累計
       try { video.pause(); } catch (_) {}
       videoPausedAt = -1;
+      // 與原定課相同的福慧幣規則：每完成一遍，依實際句數累加。
+      // 不呼叫 handleCycleCompletion()，避免重算 10＋3 定課遍數。
+      const earned = calculateSentenceCount();
+      addCoins(earned);
       renderUI();
-      showToast('🌸 再練一遍圓滿！', 2600);
+      showToast(`🌸 再練一遍圓滿！福慧幣 +${earned} 枚`, 3000);
     }
 
     function elderOpenRefuge() {
@@ -3021,7 +3054,7 @@
         document.getElementById('right-wing').classList.toggle('elder-complete', elderReady);
         slotL1.innerHTML = elderReady ? '<button class="square-btn elder-big-btn btn-color-offering" id="btn-elder-offering">背書<br>供養</button>' : '';
         slotL2.innerHTML = '';
-        slotL3.innerHTML = elderReady ? '<button class="circle-btn" id="btn-elder-refuge" style="background:#475569">皈依<br>祈求</button>' : '';
+        slotL3.innerHTML = elderReady ? '<button class="square-btn" id="btn-elder-refuge" style="background:linear-gradient(135deg,#F59E0B,#D97706);border-color:#FDE68A;color:#FFFFFF">皈依<br>祈求</button>' : '';
         slotL4.innerHTML = '<button class="circle-btn btn-color-speed-down" id="btn-speed-down" style="font-size: 22px !important; font-weight: 900; letter-spacing: 1px;">慢-</button>';
         slotR1.innerHTML = elderReady ? '<button class="square-btn elder-big-btn" id="btn-elder-repeat" style="background:linear-gradient(135deg,#10B981,#059669);color:white;border-color:#A7F3D0">再練<br>一遍</button>' : '';
         slotR2.innerHTML = '';
