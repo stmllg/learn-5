@@ -941,6 +941,22 @@
     .line-icon-dots { display: inline-block; font-weight: 900; font-size: 24px; vertical-align: -3px; line-height: 1; color: #FBBF24; }
     .line-icon-share { display: inline-flex; vertical-align: middle; color: #38BDF8; }
     #btn-save-schedule.schedule-locked { background: #DC2626 !important; border-color: #F87171 !important; color: #FFFFFF !important; opacity: 1; cursor: not-allowed; }
+
+    /* V999.102：比對錄音播放結束後才提供重播選擇；不改任何音量增益 */
+    #compare-replay-overlay { display:none; position:fixed; inset:0; z-index:90000;
+      background:rgba(4,7,15,.88); align-items:center; justify-content:center; padding:14px; }
+    #compare-replay-overlay.active { display:flex; }
+    .compare-replay-card { width:min(94vw,480px); max-height:92dvh; overflow:auto;
+      background:linear-gradient(160deg,#1e293b,#0f172a); border:2px solid #34d399;
+      border-radius:20px; padding:22px 22px 18px; text-align:center;
+      box-shadow:0 18px 46px rgba(0,0,0,.75); color:#f8fafc; }
+    .compare-replay-heading { font-size:clamp(19px,3vw,24px); color:#fbbf24; font-weight:900; margin-bottom:12px; }
+    .compare-replay-message { font-size:clamp(17px,2.8vw,22px); line-height:1.65; font-weight:800; white-space:pre-line; }
+    .compare-replay-actions { display:flex; justify-content:center; gap:12px; margin-top:20px; }
+    .compare-replay-actions button { flex:1; min-width:0; padding:12px 8px; border:0;
+      border-radius:13px; font-size:clamp(16px,2.7vw,21px); font-weight:900; cursor:pointer; }
+    #compare-replay-again { background:#10b981; color:#052e27; }
+    #compare-replay-cancel { background:#475569; color:#fff; }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 </head>
@@ -1055,7 +1071,21 @@
     </div>
   </div>
 
-<div id="restore-modal-overlay">
+
+  <!-- V999.102：只在比對錄音實際播放到結尾時顯示 -->
+  <div id="compare-replay-overlay" role="dialog" aria-modal="true" aria-labelledby="compare-replay-heading">
+    <div class="compare-replay-card">
+      <div id="compare-replay-heading" class="compare-replay-heading">🎧 比對錄音播放完成</div>
+      <div class="compare-replay-message">默背錄音，再比對，很重要！
+隨喜您的發心。</div>
+      <div class="compare-replay-actions">
+        <button type="button" id="compare-replay-again">再重播一次</button>
+        <button type="button" id="compare-replay-cancel">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="restore-modal-overlay">
     <div class="restore-card">
       <div class="restore-title">🙏 隨喜回來・繼續精進</div>
       <div class="restore-desc" id="restore-desc-text">
@@ -1695,7 +1725,32 @@
       }
     }, { passive: true });
 
-    recordAudioElement.addEventListener('ended', () => { renderUI(); });
+    // V999.102：錄音自然播放結束才詢問是否重播，沒有自動循環。
+    const compareReplayOverlay = document.getElementById('compare-replay-overlay');
+    function closeCompareReplayDialog() {
+      compareReplayOverlay.classList.remove('active');
+    }
+    function showCompareReplayDialog() {
+      if (!recordedAudioBlobUrl || currentCoreMode !== 'mode4') return;
+      compareReplayOverlay.classList.add('active');
+    }
+    document.getElementById('compare-replay-cancel').addEventListener('click', closeCompareReplayDialog);
+    document.getElementById('compare-replay-again').addEventListener('click', () => {
+      closeCompareReplayDialog();
+      if (!recordedAudioBlobUrl || currentCoreMode !== 'mode4') return;
+      // 在點擊事件中重播，符合 Apple Safari 的音訊播放手勢要求。
+      recordAudioElement.currentTime = 0;
+      prepareComparePlaybackBoost();
+      recordAudioElement.volume = 1;
+      recordAudioElement.playbackRate = compareSpeed;
+      recordAudioElement.play().then(() => renderUI()).catch((err) => {
+        console.warn('[比對重播]', err);
+        showToast('⚠️ 無法重播，請再試一次', 1800);
+        showCompareReplayDialog();
+      });
+    });
+
+    recordAudioElement.addEventListener('ended', () => { renderUI(); showCompareReplayDialog(); });
 
     function checkDailyResetOnStartup() {
       const todayStr = getNormalizedDateStr();
@@ -3972,6 +4027,7 @@
     }
 
     async function toggleReliableRecordAction() {
+      closeCompareReplayDialog();
       if (isPreparingCompareRecording || isUserRecording) return;
       isPreparingCompareRecording = true;
       autoPlayCompareOnStop = false;
