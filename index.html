@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.103｜每日累計接續排程版</title>
+  <title>歡喜背書V999.104｜跟讀句界精準播放版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1407,6 +1407,9 @@
     let currentDayPlan = null; 
     let currentCycleCount = 0; 
     let videoPausedAt = -1;
+    // V999.104：跟讀專用；與自讀／比對錄音／前行影片完全分離。
+    let mp4RangeSession = null;
+    let mp4RepeatTimer = null;
 
     let isSelectingMarkA = false;
     let isSelectingMarkB = false;
@@ -1487,7 +1490,7 @@
       const info = OF02_STAGE_INFO[practicePhase];
       if (!info || practicePhase === 'completed') return false;
       // 防止上一階段仍在播放／計次，顯示確認卡後不能自行前進。
-      try { video.pause(); } catch(e) {}
+      stopMp4RangePlayback();
       haltGuideRunnerImmediately();
       if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
       of02AwaitingStageConfirmation = true;
@@ -1616,8 +1619,7 @@
           setupStageRange();
           of02ShowStageConfirmation();
         } else if (currentCoreMode === 'mode2') {
-          setCoreMode('mode2');
-          if (state.videoCurrentTime > 0) video.currentTime = state.videoCurrentTime;
+          setCoreMode('mode2', state.videoCurrentTime);
         } else if (currentCoreMode === 'mode3') {
           setCoreMode('mode3');
         } else if (currentCoreMode === 'mode4') {
@@ -1640,10 +1642,12 @@
     }
 
     window.addEventListener('beforeunload', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
-    window.addEventListener('pagehide', () => { saveCurrentAppState(); releaseMicrophoneResources(); });
+    window.addEventListener('pagehide', () => { saveCurrentAppState(); stopMp4RangePlayback(); releaseMicrophoneResources(); });
     
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
+        if (mp4RangeSession && !mp4RangeSession.starting) videoPausedAt = video.currentTime;
+        stopMp4RangePlayback();
         saveCurrentAppState();
         // 被 LINE／系統切至背景時，不能讓已停止的麥克風仍顯示錄音中。
         if (isUserRecording && mediaRecorder && mediaRecorder.state === 'recording') {
@@ -1720,8 +1724,8 @@
       if (recordAudioElement) recordAudioElement.pause();
       releaseMicrophoneResources();
       
+      stopMp4RangePlayback();
       try { 
-        video.pause(); 
         video.currentTime = 0;
         video.removeAttribute('src');
         video.load(); 
@@ -1871,7 +1875,7 @@
     async function playStandaloneVideo(modeType, startSeekSec = 0, onEndedCallback) {
       currentCoreMode = modeType; 
       haltGuideRunnerImmediately();
-      if (video && !video.paused) video.pause();
+      stopMp4RangePlayback();
       if (isUserRecording && mediaRecorder) mediaRecorder.stop();
       isUserRecording = false;
 
@@ -2520,6 +2524,7 @@
         await renderPdfOnValidDimensions();
       }
 
+      stopMp4RangePlayback();
       video.src = CLASSIC_ASSETS.video;
       video.load();
 
@@ -2847,7 +2852,7 @@
       const startObj = scriptureData[aIdx];
       const endObj = scriptureData[bIdx];
 
-      if (!startObj || typeof startObj.start !== 'number' || !endObj || typeof endObj.end !== 'number') {
+      if (!startObj || !endObj || !Number.isFinite(startObj.start) || !Number.isFinite(endObj.end) || startObj.start < 0 || endObj.end <= startObj.start) {
         return { start: 0, end: 0, sentenceA: 0, sentenceB: 0, valid: false };
       }
 
@@ -2856,6 +2861,9 @@
         end: endObj.end,
         sentenceA: aIdx + 1,
         sentenceB: bIdx + 1,
+        // V335.x 已輸出實際發聲起訖。舊教材沒有這兩欄時，不擅自縮短。
+        voiceStart: Number.isFinite(startObj.voice_start) && startObj.voice_start >= startObj.start && startObj.voice_start < endObj.end ? startObj.voice_start : null,
+        voiceEnd: Number.isFinite(endObj.voice_end) && endObj.voice_end > startObj.start && endObj.voice_end <= endObj.end ? endObj.voice_end : null,
         valid: true
       };
     }
@@ -2882,7 +2890,8 @@
 
     function preWarmMediaRecorder() {}
 
-    function setCoreMode(mode) {
+    function setCoreMode(mode, resumeAt = null) {
+      stopMp4RangePlayback();
       stopCompareVoiceMeter();
       haltGuideRunnerImmediately();
 
@@ -2905,16 +2914,10 @@
         const range = getActiveVideoRange();
         videoPausedAt = -1;
         if (range.valid) {
-          try { 
-            video.currentTime = range.start;
-            video.play().then(() => {
-              updateModeButtonsStyle();
-              startMp4PrecisionCheck();
-            }).catch(e => {});
-          } catch (e) {}
+          const target = Number.isFinite(resumeAt) && resumeAt >= range.start && resumeAt < range.end ? resumeAt : range.start;
+          playMp4Range(range, target);
         }
       } else if (mode === 'mode3' || mode === 'mode4') {
-        video.pause();
         videoWrap.style.display = 'none';
         pdfContainerWrap.style.display = 'flex';
         guideStage.style.display = 'block';
@@ -3040,7 +3043,7 @@
       const isMode3 = (currentCoreMode === 'mode3');
       const isMode4 = (currentCoreMode === 'mode4');
 
-      const isGenduPlaying = isMode2 && (video && !video.paused);
+      const isGenduPlaying = isMode2 && !!mp4RangeSession;
       const isZiduRunning = isMode3 && isGuideActive;
       const isRecordRunning = isMode4 && isUserRecording;
 
@@ -3134,37 +3137,19 @@
           return;
       }
       
-      if (video.paused) {
-          const range = getActiveVideoRange();
-          if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 3000); return; }
-          
-          if (videoPausedAt >= range.start && videoPausedAt < range.end) {
-              video.currentTime = videoPausedAt;
-          } else if (video.currentTime < range.start || video.currentTime >= range.end) {
-              video.currentTime = range.start;
-          }
-
-          video.play().then(() => {
-              updateModeButtonsStyle();
-              startMp4PrecisionCheck();
-              saveCurrentAppState();
-          }).catch((err) => {
-              video.currentTime = range.start;
-              video.play().then(() => {
-                  updateModeButtonsStyle();
-                  startMp4PrecisionCheck();
-              }).catch((retryErr) => {
-                  updateModeButtonsStyle();
-                  showToast('⚠️ 跟讀影片無法播放', 6000);
-              });
-          });
-      } else {
-          video.pause();
-          videoPausedAt = video.currentTime;
-          updateModeButtonsStyle();
-          showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
-          saveCurrentAppState();
+      if (mp4RangeSession) {
+        const session = mp4RangeSession;
+        videoPausedAt = session.starting ? session.target : video.currentTime;
+        stopMp4RangePlayback();
+        updateModeButtonsStyle();
+        showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
+        saveCurrentAppState();
+        return;
       }
+      const range = getActiveVideoRange();
+      if (!range.valid) { showToast('⚠️ 秒數資料不完整，無法播放', 3000); return; }
+      const target = videoPausedAt >= range.start && videoPausedAt < range.end ? videoPausedAt : range.start;
+      playMp4Range(range, target);
     }
 
     async function handleZiduClick() {
@@ -3256,6 +3241,10 @@
       if (!total) {
         showToast('經文尚未載入完成，請稍候', 2500);
         return;
+      }
+      if (mp4RangeSession || mp4RepeatTimer !== null) {
+        stopMp4RangePlayback();
+        updateModeButtonsStyle();
       }
       isManualSelected = true;
       isSelectingMarkA = false;
@@ -3451,22 +3440,113 @@
       }, 1000);
     });
 
-    let mp4PrecisionCheckAnimId = null;
-    function startMp4PrecisionCheck() {
-      if (mp4PrecisionCheckAnimId) cancelAnimationFrame(mp4PrecisionCheckAnimId);
-      function check() {
-        if (currentCoreMode === 'mode2' && !video.paused && !video.ended) {
-          const range = getActiveVideoRange();
-          if (range.valid && video.currentTime >= range.end) {
-            video.pause();
-            video.currentTime = range.end;
-            handleMp4CycleEnd(range);
-            return;
-          }
-        }
-        mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+    // V999.104：單一播放工作，所有計時器和事件皆受同一 session 約束。
+    // 不改 JSON、不改音量增益；只有在已知句尾停頓足夠時才預留停止裕度。
+    function mp4SafeStopTime(range, rate, target = range.start) {
+      if (!Number.isFinite(range.voiceEnd) || range.voiceEnd > range.end) return range.end;
+      const gap = range.end - range.voiceEnd;
+      // 保留至少 40ms 尾音緩衝；較快速度需較多媒體時間以補償手機停止延遲。
+      const lead = Math.min(0.12 * Math.max(0.5, rate || 1), Math.max(0, gap - 0.04), gap * 0.65);
+      return Math.max(Math.min(range.end, target + 0.01), range.end - lead);
+    }
+
+    function stopMp4RangePlayback() {
+      const session = mp4RangeSession;
+      mp4RangeSession = null; // 先失效，避免 pause/seeked 或舊 play Promise 再啟動。
+      if (mp4RepeatTimer !== null) { clearTimeout(mp4RepeatTimer); mp4RepeatTimer = null; }
+      if (session) {
+        clearInterval(session.poll);
+        cancelAnimationFrame(session.raf);
+        clearTimeout(session.timeout);
+        for (const [event, fn] of session.listeners) video.removeEventListener(event, fn);
       }
-      mp4PrecisionCheckAnimId = requestAnimationFrame(check);
+      video.muted = true;
+      try { video.pause(); } catch(e) {}
+      video.style.visibility = '';
+    }
+
+    function playMp4Range(range, target = range.start) {
+      stopMp4RangePlayback();
+      if (!range.valid || currentCoreMode !== 'mode2' || of02AwaitingStageConfirmation) return;
+      const session = { range: {...range}, target, starting: true, listeners: [], poll: null, raf: null, timeout: null };
+      mp4RangeSession = session;
+      video.playbackRate = mp4Speed;
+      video.style.visibility = 'hidden'; // 定位時不顯示上一句殘留畫面。
+      const live = () => mp4RangeSession === session && currentCoreMode === 'mode2' && !of02AwaitingStageConfirmation;
+      const fail = (message) => {
+        if (mp4RangeSession !== session) return;
+        stopMp4RangePlayback();
+        videoPausedAt = target;
+        updateModeButtonsStyle();
+        showToast(message, 5000);
+      };
+      const finish = () => {
+        if (!live()) return;
+        stopMp4RangePlayback(); // 先靜音停止，再計次；不跳到 End 或下一句。
+        videoPausedAt = -1;
+        updateModeButtonsStyle();
+        handleMp4CycleEnd(range);
+      };
+      const check = () => {
+        if (!live()) return;
+        const t = video.currentTime;
+        if (session.starting) {
+          if (video.seeking || video.readyState < 2) return;
+          if (t < target - 0.015) return; // 不讓定位之前的前句發聲。
+          const latest = Math.max(target, Number.isFinite(range.voiceStart) ? range.voiceStart : target) + 0.06;
+          if (t > latest || t >= range.end) { fail('⚠️ 影片定位未完成，請再按跟讀'); return; }
+          session.starting = false;
+          clearTimeout(session.timeout);
+          video.style.visibility = '';
+          video.muted = false;
+        }
+        if (video.seeking) { video.muted = true; video.style.visibility = 'hidden'; return; }
+        if (t < range.start - 0.015) { fail('⚠️ 影片定位偏離本句，請再按跟讀'); return; }
+        if (t >= mp4SafeStopTime(range, video.playbackRate, target) || video.ended) { finish(); return; }
+        if (!video.paused) {
+          video.style.visibility = '';
+          if (video.muted) video.muted = false;
+        }
+      };
+      const on = (event, fn) => { session.listeners.push([event, fn]); video.addEventListener(event, fn); };
+      for (const event of ['seeked','loadeddata','canplay','playing','timeupdate','ratechange']) on(event, check);
+      on('seeking', () => { if (live()) { video.muted = true; video.style.visibility = 'hidden'; } });
+      on('ended', () => { if (live() && !session.starting) finish(); });
+      on('error', () => fail('⚠️ 跟讀影片讀取失敗'));
+      on('pause', () => {
+        if (live() && video.paused && !video.ended && !session.starting) {
+          // Safari 可能拒絕異步解除靜音；保留原句，讓學員再按一次即可。
+          fail('⚠️ 跟讀已暫停，請再按跟讀');
+        }
+      });
+      session.timeout = setTimeout(() => fail('⚠️ 影片定位逾時，請再按跟讀'), 15000);
+      session.poll = setInterval(check, 15);
+      const frame = () => { if (!live()) return; check(); if (live()) session.raf = requestAnimationFrame(frame); };
+      session.raf = requestAnimationFrame(frame);
+      try {
+        // 必須用精確 currentTime，而不是 fastSeek（後者可能落在較早影格）。
+        // 等 seeked/readyState 才解除靜音，play 仍在原使用者手勢中呼叫，以相容手機。
+        if (video.seeking || Math.abs(video.currentTime - target) > 0.001) video.currentTime = target;
+        check(); // 若已在正確位置，可在手勢內直接解除靜音。
+        if (!live()) return;
+        Promise.resolve(video.play()).then(() => {
+          if (!live()) return;
+          check();
+          updateModeButtonsStyle();
+          saveCurrentAppState();
+        }).catch(() => fail('⚠️ 跟讀影片無法播放，請再按跟讀'));
+        updateModeButtonsStyle();
+      } catch(e) { fail('⚠️ 跟讀影片無法定位，請再按跟讀'); }
+    }
+
+    function scheduleMp4Repeat() {
+      if (mp4RepeatTimer !== null) clearTimeout(mp4RepeatTimer);
+      const phase = practicePhase;
+      mp4RepeatTimer = setTimeout(() => {
+        mp4RepeatTimer = null;
+        if (currentCoreMode !== 'mode2' || practicePhase !== phase || of02AwaitingStageConfirmation || mp4RangeSession || document.visibilityState === 'hidden') return;
+        handleGenduClick();
+      }, 500);
     }
 
     function handleCycleCompletion() {
@@ -3490,9 +3570,7 @@
         if (currentCycleCount < newRepeat) {
           showToast(`第 ${currentCycleCount} 遍`, 2500);
           setupStageRange();
-          const range = getActiveVideoRange();
-          if (range.valid) { video.currentTime = range.start; }
-          setTimeout(() => { handleGenduClick(); }, 500);
+          scheduleMp4Repeat();
         } else {
           of02AdvanceToStage('new_zidu');
         }
@@ -3512,9 +3590,7 @@
         if (currentCycleCount < cRepeat) {
           showToast(`第 ${currentCycleCount} 遍`, 2500);
           setupStageRange();
-          const range = getActiveVideoRange();
-          if (range.valid) { video.currentTime = range.start; }
-          setTimeout(() => { handleGenduClick(); }, 500);
+          scheduleMp4Repeat();
         } else {
           of02AdvanceToStage('cumulative_zidu');
         }
@@ -3569,7 +3645,7 @@
 
     function handleMp4CycleEnd(range) {
       videoPausedAt = -1;
-      video.currentTime = range.start;
+      // 保留本句最後畫面；下一遍由 playMp4Range 靜音定位，不再雙重 seek。
       handleCycleCompletion();
     }
 
