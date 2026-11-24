@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.104｜跟讀句界精準播放版</title>
+  <title>歡喜背書V999.106｜跟讀穩定循環版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1558,7 +1558,7 @@
         coreMode: currentCoreMode,
         practicePhase: practicePhase,
         currentCycleCount: currentCycleCount,
-        videoCurrentTime: (currentCoreMode === 'mode2' ? video.currentTime : 0),
+        videoCurrentTime: (currentCoreMode === 'mode2' ? (mp4RangeSession ? (mp4RangeSession.waitingRepeat ? mp4RangeSession.range.start : (mp4RangeSession.starting ? mp4RangeSession.target : video.currentTime)) : (videoPausedAt >= 0 ? videoPausedAt : video.currentTime)) : 0),
         currentLineIndex: currentLineIndex,
         markA_Index: markA_Index,
         markB_Index: markB_Index,
@@ -1646,7 +1646,7 @@
     
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
-        if (mp4RangeSession && !mp4RangeSession.starting) videoPausedAt = video.currentTime;
+        if (mp4RangeSession) videoPausedAt = mp4RangeSession.waitingRepeat ? mp4RangeSession.range.start : (mp4RangeSession.starting ? mp4RangeSession.target : video.currentTime);
         stopMp4RangePlayback();
         saveCurrentAppState();
         // 被 LINE／系統切至背景時，不能讓已停止的麥克風仍顯示錄音中。
@@ -3139,7 +3139,7 @@
       
       if (mp4RangeSession) {
         const session = mp4RangeSession;
-        videoPausedAt = session.starting ? session.target : video.currentTime;
+        videoPausedAt = session.waitingRepeat ? session.range.start : (session.starting ? session.target : video.currentTime);
         stopMp4RangePlayback();
         updateModeButtonsStyle();
         showToast('❚❚ 已暫停在 ' + videoPausedAt.toFixed(1) + ' 秒', 3000);
@@ -3465,91 +3465,145 @@
       video.style.visibility = '';
     }
 
+    // V999.106：相同範圍連續跟讀共用一個 session、播放器和監測器。
+    // 第一遍保留 V999.104 的定位遮蔽，後續重播只暫停、靜音及精確 seek；不隱藏影片。
     function playMp4Range(range, target = range.start) {
       stopMp4RangePlayback();
       if (!range.valid || currentCoreMode !== 'mode2' || of02AwaitingStageConfirmation) return;
-      const session = { range: {...range}, target, starting: true, listeners: [], poll: null, raf: null, timeout: null };
+      const session = { range: {...range}, target, starting: true, waitingRepeat: false,
+        keepVisible: false, preparingSeek: false, generation: 0, listeners: [], poll: null, raf: null, timeout: null, restart: null };
       mp4RangeSession = session;
-      video.playbackRate = mp4Speed;
-      video.style.visibility = 'hidden'; // 定位時不顯示上一句殘留畫面。
       const live = () => mp4RangeSession === session && currentCoreMode === 'mode2' && !of02AwaitingStageConfirmation;
       const fail = (message) => {
         if (mp4RangeSession !== session) return;
+        const resume = session.waitingRepeat ? range.start : session.target;
         stopMp4RangePlayback();
-        videoPausedAt = target;
+        videoPausedAt = resume;
         updateModeButtonsStyle();
         showToast(message, 5000);
       };
       const finish = () => {
-        if (!live()) return;
-        stopMp4RangePlayback(); // 先靜音停止，再計次；不跳到 End 或下一句。
+        if (!live() || session.starting || session.waitingRepeat) return;
+        // 先關閉本遍，防止 timeupdate / ended / RAF 重複計次。
+        session.waitingRepeat = true;
+        clearTimeout(session.timeout);
+        session.generation++;
+        video.muted = true;
+        video.pause();
         videoPausedAt = -1;
+        // 保持最後影格與按鈕狀態；由既有計次邏輯決定是否進入下一遍。
+        handleMp4CycleEnd(range, session);
+        if (mp4RangeSession === session && mp4RepeatTimer === null) stopMp4RangePlayback();
         updateModeButtonsStyle();
-        handleMp4CycleEnd(range);
       };
       const check = () => {
-        if (!live()) return;
+        if (!live() || session.waitingRepeat || session.preparingSeek) return;
         const t = video.currentTime;
+        const target = session.target;
         if (session.starting) {
           if (video.seeking || video.readyState < 2) return;
-          if (t < target - 0.015) return; // 不讓定位之前的前句發聲。
+          if (t < target - 0.015) return;
           const latest = Math.max(target, Number.isFinite(range.voiceStart) ? range.voiceStart : target) + 0.06;
           if (t > latest || t >= range.end) { fail('⚠️ 影片定位未完成，請再按跟讀'); return; }
           session.starting = false;
           clearTimeout(session.timeout);
-          video.style.visibility = '';
+          if (video.style.visibility === 'hidden') video.style.visibility = '';
           video.muted = false;
         }
-        if (video.seeking) { video.muted = true; video.style.visibility = 'hidden'; return; }
+        if (video.seeking) {
+          video.muted = true;
+          if (!session.keepVisible) video.style.visibility = 'hidden';
+          return;
+        }
         if (t < range.start - 0.015) { fail('⚠️ 影片定位偏離本句，請再按跟讀'); return; }
         if (t >= mp4SafeStopTime(range, video.playbackRate, target) || video.ended) { finish(); return; }
         if (!video.paused) {
-          video.style.visibility = '';
+          if (video.style.visibility === 'hidden') video.style.visibility = '';
           if (video.muted) video.muted = false;
         }
       };
       const on = (event, fn) => { session.listeners.push([event, fn]); video.addEventListener(event, fn); };
       for (const event of ['seeked','loadeddata','canplay','playing','timeupdate','ratechange']) on(event, check);
-      on('seeking', () => { if (live()) { video.muted = true; video.style.visibility = 'hidden'; } });
-      on('ended', () => { if (live() && !session.starting) finish(); });
+      on('seeking', () => {
+        if (live() && !session.waitingRepeat) {
+          video.muted = true;
+          if (!session.keepVisible) video.style.visibility = 'hidden';
+        }
+      });
+      on('ended', () => { if (live() && !session.starting && !session.waitingRepeat) finish(); });
       on('error', () => fail('⚠️ 跟讀影片讀取失敗'));
       on('pause', () => {
-        if (live() && video.paused && !video.ended && !session.starting) {
-          // Safari 可能拒絕異步解除靜音；保留原句，讓學員再按一次即可。
+        if (live() && video.paused && !video.ended && !session.starting && !session.waitingRepeat) {
           fail('⚠️ 跟讀已暫停，請再按跟讀');
         }
       });
-      session.timeout = setTimeout(() => fail('⚠️ 影片定位逾時，請再按跟讀'), 15000);
+      const begin = (nextTarget, isRepeat) => {
+        if (!live()) return;
+        const generation = ++session.generation;
+        session.target = nextTarget;
+        session.starting = true;
+        session.keepVisible = isRepeat;
+        session.waitingRepeat = false;
+        video.muted = true;
+        if (!isRepeat) video.style.visibility = 'hidden';
+        clearTimeout(session.timeout);
+        session.timeout = setTimeout(() => {
+          if (live() && session.generation === generation && session.starting) fail('⚠️ 影片定位逾時，請再按跟讀');
+        }, 15000);
+        try {
+          session.preparingSeek = true;
+          video.playbackRate = mp4Speed;
+          if (video.seeking || Math.abs(video.currentTime - nextTarget) > 0.001) video.currentTime = nextTarget;
+          session.preparingSeek = false;
+          check();
+          if (!live() || session.generation !== generation) return;
+          Promise.resolve(video.play()).then(() => {
+            if (!live() || session.generation !== generation || session.waitingRepeat) return;
+            check();
+            if (!live() || session.generation !== generation) return;
+            updateModeButtonsStyle();
+            saveCurrentAppState();
+          }).catch(() => {
+            if (live() && session.generation === generation && !session.waitingRepeat) fail('⚠️ 跟讀影片無法播放，請再按跟讀');
+          });
+          updateModeButtonsStyle();
+        } catch(e) { if (live() && session.generation === generation) fail('⚠️ 跟讀影片無法定位，請再按跟讀'); }
+      };
+      session.restart = () => { if (live() && session.waitingRepeat) begin(range.start, true); };
       session.poll = setInterval(check, 15);
       const frame = () => { if (!live()) return; check(); if (live()) session.raf = requestAnimationFrame(frame); };
       session.raf = requestAnimationFrame(frame);
-      try {
-        // 必須用精確 currentTime，而不是 fastSeek（後者可能落在較早影格）。
-        // 等 seeked/readyState 才解除靜音，play 仍在原使用者手勢中呼叫，以相容手機。
-        if (video.seeking || Math.abs(video.currentTime - target) > 0.001) video.currentTime = target;
-        check(); // 若已在正確位置，可在手勢內直接解除靜音。
-        if (!live()) return;
-        Promise.resolve(video.play()).then(() => {
-          if (!live()) return;
-          check();
-          updateModeButtonsStyle();
-          saveCurrentAppState();
-        }).catch(() => fail('⚠️ 跟讀影片無法播放，請再按跟讀'));
-        updateModeButtonsStyle();
-      } catch(e) { fail('⚠️ 跟讀影片無法定位，請再按跟讀'); }
+      begin(target, false);
     }
 
-    function scheduleMp4Repeat() {
+    function scheduleMp4Repeat(session = null) {
       if (mp4RepeatTimer !== null) clearTimeout(mp4RepeatTimer);
       const phase = practicePhase;
       mp4RepeatTimer = setTimeout(() => {
         mp4RepeatTimer = null;
-        if (currentCoreMode !== 'mode2' || practicePhase !== phase || of02AwaitingStageConfirmation || mp4RangeSession || document.visibilityState === 'hidden') return;
-        handleGenduClick();
+        if (currentCoreMode !== 'mode2' || practicePhase !== phase || of02AwaitingStageConfirmation || document.visibilityState === 'hidden') {
+          if (session && mp4RangeSession === session) { stopMp4RangePlayback(); updateModeButtonsStyle(); }
+          return;
+        }
+        if (session) {
+          if (mp4RangeSession !== session || !session.waitingRepeat) return;
+          const active = getActiveVideoRange();
+          const old = session.range;
+          if (active.valid && active.start === old.start && active.end === old.end && active.sentenceA === old.sentenceA && active.sentenceB === old.sentenceB) {
+            session.restart(); // 不經 handleGenduClick / 全螢幕 / 重設排程。
+          } else {
+            stopMp4RangePlayback();
+            if (active.valid) playMp4Range(active, active.start);
+            else updateModeButtonsStyle();
+          }
+        } else if (!mp4RangeSession) {
+          const active = getActiveVideoRange();
+          if (active.valid) playMp4Range(active, active.start);
+        }
       }, 500);
     }
 
-    function handleCycleCompletion() {
+    function handleCycleCompletion(mp4Session = null) {
       if (of02AwaitingStageConfirmation) return;
       if (currentCoreMode === 'mode2') {
         video.pause();
@@ -3569,8 +3623,8 @@
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < newRepeat) {
           showToast(`第 ${currentCycleCount} 遍`, 2500);
-          setupStageRange();
-          scheduleMp4Repeat();
+          if (!mp4Session) setupStageRange();
+          scheduleMp4Repeat(mp4Session);
         } else {
           of02AdvanceToStage('new_zidu');
         }
@@ -3589,8 +3643,8 @@
       } else if (practicePhase === 'cumulative_gendu') {
         if (currentCycleCount < cRepeat) {
           showToast(`第 ${currentCycleCount} 遍`, 2500);
-          setupStageRange();
-          scheduleMp4Repeat();
+          if (!mp4Session) setupStageRange();
+          scheduleMp4Repeat(mp4Session);
         } else {
           of02AdvanceToStage('cumulative_zidu');
         }
@@ -3643,10 +3697,9 @@
       restoreModalOverlay.style.display = 'flex';
     }
 
-    function handleMp4CycleEnd(range) {
+    function handleMp4CycleEnd(range, session = null) {
       videoPausedAt = -1;
-      // 保留本句最後畫面；下一遍由 playMp4Range 靜音定位，不再雙重 seek。
-      handleCycleCompletion();
+      handleCycleCompletion(session);
     }
 
     function triggerSevenColoredLotusFlowerRain() {
