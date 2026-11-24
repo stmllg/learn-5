@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.104｜跟讀句界精準播放版</title>
+  <title>歡喜背書V999.105T｜單句縮短診斷版</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1122,6 +1122,7 @@
 
       <div id="video-container-wrap">
         <video id="my-chant-video" playsinline webkit-playsinline x5-playsinline preload="auto"></video>
+        <div id="mp4-test-range-badge" style="display:none;position:absolute;top:4px;left:4px;z-index:2;background:rgba(0,0,0,.82);color:#fef08a;padding:4px 7px;border-radius:5px;font-size:12px;line-height:1.4;pointer-events:none;white-space:pre-line;"></div>
       </div>
     </div>
 
@@ -3465,9 +3466,28 @@
       video.style.visibility = '';
     }
 
+    // V999.105T：診斷用，不修改教材或正式分句資料。
+    function mp4DiagnosticRange(range, target) {
+      if (!range.valid || range.sentenceA !== range.sentenceB) return {range, target, trim:0};
+      const trim = Math.min(0.35, (range.end - range.start) * 0.20);
+      const start = range.start + trim, end = range.end - trim;
+      return {range: {...range, start, end, voiceStart:null, voiceEnd:null},
+        target: Number.isFinite(target) && target >= start && target < end ? target : start, trim};
+    }
     function playMp4Range(range, target = range.start) {
       stopMp4RangePlayback();
       if (!range.valid || currentCoreMode !== 'mode2' || of02AwaitingStageConfirmation) return;
+      const original = range;
+      const diagnostic = mp4DiagnosticRange(range, target);
+      range = diagnostic.range;
+      target = diagnostic.target;
+      const badge = document.getElementById('mp4-test-range-badge');
+      if (badge) {
+        badge.style.display = 'block';
+        badge.textContent = diagnostic.trim > 0
+          ? 'V999.105T 診斷｜第 ' + range.sentenceA + ' 句\n原 ' + original.start.toFixed(3) + '–' + original.end.toFixed(3) + ' 秒\n測 ' + target.toFixed(3) + '–' + range.end.toFixed(3) + ' 秒（兩端各縮 ' + diagnostic.trim.toFixed(3) + '）'
+          : 'V999.105T 診斷｜多句範圍不縮短';
+      }
       const session = { range: {...range}, target, starting: true, listeners: [], poll: null, raf: null, timeout: null };
       mp4RangeSession = session;
       video.playbackRate = mp4Speed;
