@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書長青 S02｜供養 V4.2</title>
+  <title>歡喜背書長青 S02｜供養 V4.3.1</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1070,7 +1070,7 @@
 @media(max-height:340px){.of-profile-panel,.of-entry-panel{gap:4px;}.of-profile-titlebar strong{font-size:clamp(20px,6.5dvh,32px);}.of-profile-tabs button,.of-profile-actions button{padding:5px 12px;}.of-profile-fields{gap:4px;}}
 
 
-/* V4.2 三欄：個人、本經群組今日、本經全球歷來。 */
+/* V4.3.1 三欄：個人、本經群組今日、本經全球歷來。 */
 #today-rank-list,#total-rank-list{display:grid;grid-template-rows:repeat(3,minmax(0,1fr));min-height:0;gap:0;}
 .of-stat-panel.of-scoped-rank{grid-template-rows:auto minmax(0,1fr);}
 .of-scoped-rank .of-panel-title,.of-person-title{white-space:normal;line-height:1.09;font-size:clamp(13px,2.7vw,5.5dvh);}
@@ -3615,11 +3615,12 @@
         step('正在合併及壓縮圖片…');
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
-        const footerFont = Math.max(12, Math.round(combinedCanvas.width * 0.012));
-        const footerHeight = Math.round(footerFont * 2.5);
+        const footerFont = Math.max(18, Math.round(combinedCanvas.width * 0.024));
+        const footerHeight = Math.round(footerFont * 2.95);
         const footerY = canvas1.height + canvas2.height + 8;
         combinedCanvas.height = footerY + footerHeight;
         const ctx = combinedCanvas.getContext('2d');
+        const footerText = `堅持背書第 ${String(targetDay).padStart(3,'0')} 天`;
         // JPEG 不支援透明，先鋪白底，避免透明區域變黑。
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
@@ -3630,12 +3631,79 @@
         // The day count belongs to the combined image, outside BOTH original cards.
         ctx.fillStyle = '#FAF5E9';
         ctx.fillRect(0, footerY, combinedCanvas.width, footerHeight);
+        ctx.fillStyle = '#D4B06A';
+        ctx.fillRect(0, footerY, combinedCanvas.width, Math.max(2, Math.round(combinedCanvas.width/900)));
         ctx.fillStyle = '#CBA25A';
-        ctx.fillRect(0, footerY, combinedCanvas.width, Math.max(1, Math.round(combinedCanvas.width/1000)));
-        ctx.fillStyle = '#047857';
+        ctx.fillRect(0, footerY + footerHeight - Math.max(2, Math.round(combinedCanvas.width/900)), combinedCanvas.width, Math.max(2, Math.round(combinedCanvas.width/900)));
         ctx.font = `bold ${footerFont}px "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(`堅持背書第 ${String(targetDay).padStart(3,'0')} 天`, combinedCanvas.width/2, footerY+footerHeight/2);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const textX = combinedCanvas.width / 2;
+        const textY = footerY + footerHeight / 2;
+        const metrics = ctx.measureText(footerText);
+        const textWidth = metrics.width;
+        const margin = Math.max(26, Math.round(combinedCanvas.width * 0.03));
+        const lineGap = Math.max(22, Math.round(combinedCanvas.width * 0.02));
+        const lotusGap = Math.max(40, Math.round(combinedCanvas.width * 0.035));
+        const lotusSize = Math.max(16, Math.round(footerFont * 0.62));
+        const lineStartLeft = margin;
+        const lineEndLeft = Math.max(lineStartLeft + 20, textX - textWidth / 2 - lotusGap);
+        const lineStartRight = Math.min(combinedCanvas.width - margin - 20, textX + textWidth / 2 + lotusGap);
+        const lineEndRight = combinedCanvas.width - margin;
+        const drawLotus = (cx, cy, size) => {
+          ctx.save();
+          ctx.translate(cx, cy);
+          const petalW = size * 0.72;
+          const petalH = size * 1.05;
+          const petals = [-0.9, -0.45, 0, 0.45, 0.9];
+          for (const dx of petals) {
+            ctx.save();
+            ctx.translate(dx * size * 0.42, 0);
+            ctx.beginPath();
+            ctx.moveTo(0, -petalH * 0.5);
+            ctx.quadraticCurveTo(petalW * 0.42, -petalH * 0.12, 0, petalH * 0.5);
+            ctx.quadraticCurveTo(-petalW * 0.42, -petalH * 0.12, 0, -petalH * 0.5);
+            ctx.closePath();
+            ctx.fillStyle = '#F6E6BC';
+            ctx.fill();
+            ctx.strokeStyle = '#CBA25A';
+            ctx.lineWidth = Math.max(1, size * 0.08);
+            ctx.stroke();
+            ctx.restore();
+          }
+          ctx.beginPath();
+          ctx.ellipse(0, size * 0.16, size * 0.6, size * 0.16, 0, 0, Math.PI * 2);
+          ctx.fillStyle = '#CBA25A';
+          ctx.fill();
+          ctx.restore();
+        };
+        const drawOrnamentLine = (x1, x2, y, reverse = false) => {
+          if (x2 <= x1) return;
+          ctx.save();
+          ctx.strokeStyle = '#CBA25A';
+          ctx.lineWidth = Math.max(2, footerFont * 0.06);
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(x1, y);
+          ctx.lineTo(x2, y);
+          ctx.stroke();
+          const dir = reverse ? -1 : 1;
+          const end = reverse ? x1 : x2;
+          const decoBase = reverse ? x1 + 5 : x2 - 5;
+          ctx.beginPath();
+          ctx.moveTo(end, y);
+          ctx.quadraticCurveTo(decoBase + dir * lotusSize * 0.38, y - lotusSize * 0.14, decoBase + dir * lotusSize * 0.66, y - lotusSize * 0.5);
+          ctx.moveTo(end, y);
+          ctx.quadraticCurveTo(decoBase + dir * lotusSize * 0.38, y + lotusSize * 0.14, decoBase + dir * lotusSize * 0.66, y + lotusSize * 0.5);
+          ctx.stroke();
+          ctx.restore();
+        };
+        drawOrnamentLine(lineStartLeft, lineEndLeft, textY, true);
+        drawOrnamentLine(lineStartRight, lineEndRight, textY, false);
+        drawLotus(textX - textWidth / 2 - lineGap, textY, lotusSize);
+        drawLotus(textX + textWidth / 2 + lineGap, textY, lotusSize);
+        ctx.fillStyle = '#047857';
+        ctx.fillText(footerText, textX, textY);
 
         const blob = await compressShareCanvas(combinedCanvas);
         step('正在準備分享檔案…');
@@ -4440,7 +4508,7 @@
       }
     }
 
-/* 歡喜背書共用正式供養核心 V4.2；由建置工具內嵌於兩個 HTML，避免新增離線素材依賴。 */
+/* 歡喜背書共用正式供養核心 V4.3.1；由建置工具內嵌於兩個 HTML，避免新增離線素材依賴。 */
 const OFFERING_STATE_KEY = 'joyful_formal_offering_v41_clean';
 const OFFERING_JOURNAL_PREFIX = 'joyful_formal_earned_v41_clean:';
 const OFFERING_SOURCE = document.title.includes('長青') ? 'green' : 'full';
@@ -4626,7 +4694,7 @@ function ofShowResult(kind,opts={}) {
     ofSetText('of-group-name',scoped?g.groupName:(OFFERING_SCOPE.group||'未指定群組'));ofEl('of-group-name').title=ofEl('of-group-name').textContent;
     ofSetText('of-classic-rank',classicName);ofEl('of-classic-rank').title=classicName;
     ofSetText('of-rank-time',g&&g.updated?new Date(g.updated).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour12:false,hour:'2-digit',minute:'2-digit'}):'');
-    ofEl('of-result-status').title=scoped&&g.updated?'排行榜更新：'+new Date(g.updated).toLocaleString('zh-TW',{timeZone:'Asia/Taipei'}):'排行榜暫時無法取得或雲端尚未更新 V4.2';
+    ofEl('of-result-status').title=scoped&&g.updated?'排行榜更新：'+new Date(g.updated).toLocaleString('zh-TW',{timeZone:'Asia/Taipei'}):'排行榜暫時無法取得或雲端尚未更新 V4.3.1';
     ofRenderRanks(scoped?(g.todayTop3||[]):[],'today-rank-list',false);
     ofRenderRanks(scoped?(g.totalTop3||[]):[],'total-rank-list',true);
     if(!scoped) ofSetText('of-result-status',opts.demoView?'示範・榜暫缺':'✓ 已上傳・榜暫缺');
