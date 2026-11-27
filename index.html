@@ -3547,66 +3547,27 @@
         const textY = footerY + footerHeight / 2;
         const metrics = ctx.measureText(footerText);
         const textWidth = metrics.width;
-        const margin = Math.max(26, Math.round(combinedCanvas.width * 0.03));
-        const lineGap = Math.max(22, Math.round(combinedCanvas.width * 0.02));
-        const lotusGap = Math.max(40, Math.round(combinedCanvas.width * 0.035));
-        const lotusSize = Math.max(16, Math.round(footerFont * 0.62));
-        const lineStartLeft = margin;
-        const lineEndLeft = Math.max(lineStartLeft + 20, textX - textWidth / 2 - lotusGap);
-        const lineStartRight = Math.min(combinedCanvas.width - margin - 20, textX + textWidth / 2 + lotusGap);
-        const lineEndRight = combinedCanvas.width - margin;
-        const drawLotus = (cx, cy, size) => {
+        // V4.3.2：直接沿用原始示意圖的蓮花與延伸曲線，左右鏡射。
+        const ornamentScale = Math.max(0, Math.min(combinedCanvas.width / 600, (textX - textWidth / 2 - combinedCanvas.width / 30 - footerFont * 0.45) / 136, footerHeight / 52));
+        const drawOriginalOrnament = (mirror) => {
+          if (ornamentScale <= 0) return;
           ctx.save();
-          ctx.translate(cx, cy);
-          const petalW = size * 0.72;
-          const petalH = size * 1.05;
-          const petals = [-0.9, -0.45, 0, 0.45, 0.9];
-          for (const dx of petals) {
-            ctx.save();
-            ctx.translate(dx * size * 0.42, 0);
-            ctx.beginPath();
-            ctx.moveTo(0, -petalH * 0.5);
-            ctx.quadraticCurveTo(petalW * 0.42, -petalH * 0.12, 0, petalH * 0.5);
-            ctx.quadraticCurveTo(-petalW * 0.42, -petalH * 0.12, 0, -petalH * 0.5);
-            ctx.closePath();
-            ctx.fillStyle = '#F6E6BC';
-            ctx.fill();
-            ctx.strokeStyle = '#CBA25A';
-            ctx.lineWidth = Math.max(1, size * 0.08);
-            ctx.stroke();
-            ctx.restore();
-          }
+          const inset = combinedCanvas.width / 30;
+          ctx.translate(mirror ? combinedCanvas.width - inset : inset, textY);
+          ctx.scale(mirror ? -ornamentScale : ornamentScale, ornamentScale);
+          ctx.strokeStyle = '#b99a50';
+          ctx.lineWidth = 1.5;
+          ctx.lineCap = 'round';
+          ctx.stroke(new Path2D('M25 8 Q4 3 10 -13 Q26 -8 25 8 M25 8 Q46 3 40 -13 Q24 -8 25 8 M25 5 Q10 -10 25 -24 Q40 -10 25 5 M25 8 Q8 17 0 2 Q18 -1 25 8 Q42 17 50 2 Q32 -1 25 8'));
+          ctx.stroke(new Path2D('M4 14 Q25 23 55 10 Q80 0 104 0 H128'));
           ctx.beginPath();
-          ctx.ellipse(0, size * 0.16, size * 0.6, size * 0.16, 0, 0, Math.PI * 2);
-          ctx.fillStyle = '#CBA25A';
+          ctx.arc(134, 0, 2, 0, Math.PI * 2);
+          ctx.fillStyle = '#b99a50';
           ctx.fill();
           ctx.restore();
         };
-        const drawOrnamentLine = (x1, x2, y, reverse = false) => {
-          if (x2 <= x1) return;
-          ctx.save();
-          ctx.strokeStyle = '#CBA25A';
-          ctx.lineWidth = Math.max(2, footerFont * 0.06);
-          ctx.lineCap = 'round';
-          ctx.beginPath();
-          ctx.moveTo(x1, y);
-          ctx.lineTo(x2, y);
-          ctx.stroke();
-          const dir = reverse ? -1 : 1;
-          const end = reverse ? x1 : x2;
-          const decoBase = reverse ? x1 + 5 : x2 - 5;
-          ctx.beginPath();
-          ctx.moveTo(end, y);
-          ctx.quadraticCurveTo(decoBase + dir * lotusSize * 0.38, y - lotusSize * 0.14, decoBase + dir * lotusSize * 0.66, y - lotusSize * 0.5);
-          ctx.moveTo(end, y);
-          ctx.quadraticCurveTo(decoBase + dir * lotusSize * 0.38, y + lotusSize * 0.14, decoBase + dir * lotusSize * 0.66, y + lotusSize * 0.5);
-          ctx.stroke();
-          ctx.restore();
-        };
-        drawOrnamentLine(lineStartLeft, lineEndLeft, textY, true);
-        drawOrnamentLine(lineStartRight, lineEndRight, textY, false);
-        drawLotus(textX - textWidth / 2 - lineGap, textY, lotusSize);
-        drawLotus(textX + textWidth / 2 + lineGap, textY, lotusSize);
+        drawOriginalOrnament(false);
+        drawOriginalOrnament(true);
         ctx.fillStyle = '#047857';
         ctx.fillText(footerText, textX, textY);
 
