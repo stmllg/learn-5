@@ -301,6 +301,13 @@
       background: transparent;
       padding: 8px;
     }
+    /* V4.3: keep the existing text frame; center the title/body vertically. */
+    #textContainerLongCard { justify-content: center; justify-content: safe center; padding-bottom: 32px; }
+    #textContainerLongCard > div:not(#longCardFooter), #textContainer > div { flex: 0 0 auto; min-height: 0; }
+    #longCardFooter { position: absolute; left: 8px; right: 8px; bottom: 5px; }
+    #cardStage.share-output #textContainerLongCard { padding-bottom: 8px; }
+    #cardStage.share-output #longCardFooter { display: none !important; }
+    #textContainer { flex-direction: column; justify-content: center; justify-content: safe center; }
     .card-title-long-card {
       font-family: "Noto Serif TC", "Songti TC", serif;
       font-size: 28px !important;
@@ -1111,7 +1118,7 @@
     <div class="companion-wrapper" id="cardStage">
       <div class="card-text-container-long-card" id="textContainerLongCard" style="display: none;">
         <div id="longCardHeader" style="text-align: left; font-weight: 900; color: #581C87; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-bottom: 2px;">師父法語</div>
-        <div id="longCardContent" style="text-align: left; font-weight: 800; color: #0F172A; white-space: pre-wrap; word-break: break-all; text-shadow: 0 1px 3px rgba(255,255,255,0.95); flex: 1; overflow: visible; line-height: 1.35;">載入中...</div>
+        <div id="longCardContent" style="text-align: left; font-weight: 800; color: #0F172A; white-space: pre-wrap; word-break: break-all; text-shadow: 0 1px 3px rgba(255,255,255,0.95); flex: 0 0 auto; overflow: visible; line-height: 1.35;">載入中...</div>
         <div id="longCardFooter" style="text-align: center; font-weight: 900; color: #047857; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(255,255,255,0.95); margin-top: 2px;">堅持背書第 22 天</div>
       </div>
 
@@ -3429,7 +3436,7 @@
         const lowest = await encode(low);
         if (lowest && lowest.type === 'image/jpeg' && lowest.size <= maxBytes) {
           best = lowest;
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < 3; i++) {
             const mid = (low + high) / 2;
             const blob = await encode(mid);
             if (blob && blob.type === 'image/jpeg' && blob.size <= maxBytes) {
@@ -3456,33 +3463,67 @@
       throw new Error('圖片無法壓縮至 400 KB 以內');
     }
 
+    let shareImageBusy = false;
+    let shareBackgroundConfigReady = false;
+    async function waitShareBackground(stage) {
+      const raw = stage.style.backgroundImage;
+      const match = raw.match(/^url\(["']?(.*?)["']?\)$/);
+      if (!match) return;
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('圖片載入逾時')), 12000);
+        img.onload = () => { clearTimeout(timer); resolve(); };
+        img.onerror = () => { clearTimeout(timer); reject(new Error('背景圖片載入失敗')); };
+        img.src = match[1];
+        if (img.complete && img.naturalWidth) { clearTimeout(timer); resolve(); }
+      });
+      if (img.decode) await img.decode().catch(() => {});
+    }
     async function shareScreenshotToLine() {
+      if (shareImageBusy) return;
       requestFullscreenMode();
       const actionsRow = document.getElementById('companionActionsRow');
       const sideRightGroup = document.getElementById('side-right-group');
       const cardStage = document.getElementById('cardStage');
       if (!cardStage) return;
+      shareImageBusy = true;
       const previousActionsDisplay = actionsRow ? actionsRow.style.display : '';
       const previousSideDisplay = sideRightGroup ? sideRightGroup.style.display : '';
       if (actionsRow) actionsRow.style.display = 'none';
       if (sideRightGroup) sideRightGroup.style.display = 'none';
-      showToast('📸 正在產生上下並列精美截圖...', 2500);
+      cardStage.classList.add('share-output');
+      const progress = document.createElement('div');
+      progress.setAttribute('role', 'status');
+      progress.style.cssText = 'position:fixed;left:50%;bottom:8%;transform:translateX(-50%);z-index:2147483647;background:#173e2d;color:white;border:2px solid #d6b45e;border-radius:12px;padding:10px 20px;font-size:clamp(16px,4.5vh,24px);font-weight:bold;white-space:nowrap;pointer-events:none;';
+      document.body.appendChild(progress);
+      const timings = {};
+      let stamp = performance.now();
+      const step = (label) => { timings[progress.textContent || '開始'] = Math.round(performance.now()-stamp); stamp=performance.now(); progress.textContent=label; };
+      step('正在準備第一張法語…');
       const targetDay = window.CURRENT_TARGET_DAY || getRealTargetDay() || 22;
       try {
         await initCompanionCard(targetDay);
-        await new Promise(r => setTimeout(r, 200));
-        const canvas1 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
+        await waitShareBackground(cardStage);
+        const captureOptions = { scale: Math.min(2, 1600 / Math.max(1,cardStage.clientWidth)), useCORS: true, backgroundColor: null, logging: false, imageTimeout: 12000 };
+        step('正在產生第一張圖片…');
+        const canvas1 = await html2canvas(cardStage, captureOptions);
+        step('正在準備第二張法語…');
 
         if (!currentRefugeTextKey || !cardTexts[currentRefugeTextKey]) {
           await loadRandomCardData();
         } else {
           await renderSpecificRefugeCard(currentRefugeTextKey, currentRefugeBgNum);
         }
-        await new Promise(r => setTimeout(r, 200));
-        const canvas2 = await html2canvas(cardStage, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
+        await waitShareBackground(cardStage);
+        step('正在產生第二張圖片…');
+        const canvas2 = await html2canvas(cardStage, captureOptions);
+        step('正在合併及壓縮圖片…');
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
-        combinedCanvas.height = canvas1.height + canvas2.height + 8;
+        const footerFont = Math.max(12, Math.round(combinedCanvas.width * 0.012));
+        const footerHeight = Math.round(footerFont * 2.5);
+        const footerY = canvas1.height + canvas2.height + 8;
+        combinedCanvas.height = footerY + footerHeight;
         const ctx = combinedCanvas.getContext('2d');
         // JPEG 不支援透明，先鋪白底，避免透明區域變黑。
         ctx.fillStyle = '#FFFFFF';
@@ -3491,19 +3532,34 @@
         ctx.fillStyle = '#F59E0B';
         ctx.fillRect(0, canvas1.height, combinedCanvas.width, 8);
         ctx.drawImage(canvas2, 0, canvas1.height + 8);
+        // The day count belongs to the combined image, outside BOTH original cards.
+        ctx.fillStyle = '#FAF5E9';
+        ctx.fillRect(0, footerY, combinedCanvas.width, footerHeight);
+        ctx.fillStyle = '#CBA25A';
+        ctx.fillRect(0, footerY, combinedCanvas.width, Math.max(1, Math.round(combinedCanvas.width/1000)));
+        ctx.fillStyle = '#047857';
+        ctx.font = `bold ${footerFont}px "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(`堅持背書第 ${String(targetDay).padStart(3,'0')} 天`, combinedCanvas.width/2, footerY+footerHeight/2);
 
         const blob = await compressShareCanvas(combinedCanvas);
+        step('正在準備分享檔案…');
         let clipboardSuccess = false;
+        const writeClipboard = async item => {
+          let timer;
+          try { await Promise.race([navigator.clipboard.write([item]),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('剪貼簿等待逾時')),1800);})]); }
+          finally { clearTimeout(timer); }
+        };
         try {
           if (navigator.clipboard && window.ClipboardItem) {
             // 部分瀏覽器只接受 PNG 剪貼簿；不可讓未壓縮 PNG 破壞 400 KB 限制。
             if (ClipboardItem.supports && ClipboardItem.supports('image/jpeg')) {
-              await navigator.clipboard.write([new ClipboardItem({ 'image/jpeg': blob })]);
+              await writeClipboard(new ClipboardItem({ 'image/jpeg': blob }));
               clipboardSuccess = true;
             } else {
               const pngBlob = await new Promise(resolve => combinedCanvas.toBlob(resolve, 'image/png'));
               if (pngBlob && pngBlob.size <= 400 * 1024) {
-                await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+                await writeClipboard(new ClipboardItem({ 'image/png': pngBlob }));
                 clipboardSuccess = true;
               }
             }
@@ -3526,6 +3582,11 @@
         console.error('LINE 截圖輸出失敗：', err);
         showToast('⚠️ 截圖或壓縮失敗', 3000);
       } finally {
+        step('完成');
+        console.info('LINE 分享階段耗時（毫秒）', timings);
+        progress.remove();
+        cardStage.classList.remove('share-output');
+        shareImageBusy = false;
         if (actionsRow) actionsRow.style.display = previousActionsDisplay;
         if (sideRightGroup) sideRightGroup.style.display = previousSideDisplay;
       }
@@ -4901,6 +4962,7 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
 
     let backgroundConfig = { firstNum: 1, lastNum: 40 };
     async function loadBackgroundConfig() {
+      if (shareImageBusy && shareBackgroundConfigReady) return;
       try {
         const res = await fetch('images_config.json?t=' + Date.now());
         if (res.ok) {
@@ -4911,6 +4973,7 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
             if (mF && mL) {
               backgroundConfig.firstNum = parseInt(mF[0], 10);
               backgroundConfig.lastNum = parseInt(mL[0], 10);
+              shareBackgroundConfigReady = true;
             }
           }
         }
@@ -4959,7 +5022,7 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
         const cardContent = document.getElementById('cardContent');
         if (textContainerLong) textContainerLong.style.display = 'none';
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
-        if (textContainer) textContainer.style.display = 'block';
+        if (textContainer) textContainer.style.display = 'flex';
 
         const selectedData = cardTexts[textKey] || cardTexts[textKeys[0]];
         let titleText = selectedData.title;
@@ -5056,7 +5119,7 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
         const cardContent = document.getElementById('cardContent');
         if (textContainerLong) textContainerLong.style.display = 'none';
         if (bottomRightBadge) bottomRightBadge.style.display = 'block';
-        if (textContainer) textContainer.style.display = 'block';
+        if (textContainer) textContainer.style.display = 'flex';
 
         const totalImgs = backgroundConfig.lastNum - backgroundConfig.firstNum + 1;
         const randomImgNum = backgroundConfig.firstNum + Math.floor(Math.random() * Math.max(1, totalImgs));
@@ -5225,7 +5288,8 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
 
             requestAnimationFrame(() => {
               requestAnimationFrame(() => {
-                const maxH = (textContainerLong && textContainerLong.clientHeight > 50 ? textContainerLong.clientHeight : 380) - 12;
+                const longStyle = textContainerLong ? getComputedStyle(textContainerLong) : null;
+                const maxH = (textContainerLong && textContainerLong.clientHeight > 50 ? textContainerLong.clientHeight : 380) - (longStyle ? parseFloat(longStyle.paddingTop) + parseFloat(longStyle.paddingBottom) : 40) - 4;
                 let size = 34;
                 const minSize = 14;
 
@@ -5246,7 +5310,7 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
                   longFooter.style.fontFamily = targetFont;
                 }
 
-                let totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+                let totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + 2;
 
                 while (totalH > maxH && size > minSize) {
                   size--;
@@ -5267,7 +5331,7 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
                     longFooter.style.fontFamily = targetFont;
                   }
 
-                  totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + (longFooter ? longFooter.offsetHeight : 0);
+                  totalH = (longHeader ? longHeader.offsetHeight : 0) + (longContent ? longContent.scrollHeight : 0) + 2;
                 }
 
                 const paddedImgNum = String(currentTeacherBgNum).padStart(2, '0');
