@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.106｜跟讀穩定循環版</title>
+  <title>歡喜背書V999.106｜跟讀穩定循環版｜供養 V4.2</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1054,6 +1054,21 @@
 .of-entry-user span,#of-profile-open,#offering-modal-overlay .btn-dedication-long{font-size:clamp(17px,5dvh,32px);}
 @media(max-height:340px){.of-profile-panel,.of-entry-panel{gap:4px;}.of-profile-titlebar strong{font-size:clamp(20px,6.5dvh,32px);}.of-profile-tabs button,.of-profile-actions button{padding:5px 12px;}.of-profile-fields{gap:4px;}}
 
+
+/* V4.2 三欄：個人、本經群組今日、本經全球歷來。 */
+#today-rank-list,#total-rank-list{display:grid;grid-template-rows:repeat(3,minmax(0,1fr));min-height:0;gap:0;}
+.of-stat-panel.of-scoped-rank{grid-template-rows:auto minmax(0,1fr);}
+.of-scoped-rank .of-panel-title,.of-person-title{white-space:normal;line-height:1.09;font-size:clamp(13px,2.7vw,5.5dvh);}
+.of-scope-sub{display:block;font-weight:800;font-size:clamp(12px,2.35vw,4.1dvh);line-height:1.15;color:#896021;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
+.of-scoped-rank .of-rank-count{font-size:clamp(19px,7.3dvh,42px);}
+.of-scoped-rank .of-rank-name{font-size:clamp(13px,4.9dvh,25px);}
+.of-scoped-rank .of-rank-class{font-size:clamp(11px,3.6dvh,19px);}
+.of-scoped-rank.of-group-ranks .of-rank-name{color:#194f2c;}
+.of-scoped-rank.of-group-ranks .of-rank-count{color:#194f2c;}
+.of-stat-pair .of-life-label{font-size:clamp(12px,2.45vw,4.15dvh);color:#896021;}
+.of-rank-time{display:none;}
+@media(max-height:340px) and (orientation:landscape){.of-scoped-rank .of-rank-count{font-size:clamp(17px,7.1dvh,27px);}.of-scoped-rank .of-rank-name{font-size:clamp(12px,4.6dvh,16px);}.of-scoped-rank .of-rank-class{font-size:clamp(10px,3.3dvh,13px);}.of-scope-sub{font-size:clamp(10px,3.7dvh,13px);}}
+
 </style>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 <style>
@@ -1275,18 +1290,14 @@
         <strong id="of-simple-message"></strong><span id="of-simple-sub"></span>
       </div>
       <div id="of-result-grid" class="of-result-grid" hidden>
-        <section class="of-stat-panel"><h2 class="of-panel-title">個人精進</h2>
+        <section class="of-stat-panel"><h2 class="of-panel-title of-person-title">個人精進<span id="of-classic-person" class="of-scope-sub"></span></h2>
           <div class="of-stat-pair"><span>本次背誦</span><b id="of-stat-session">0</b></div>
           <div class="of-stat-pair"><span>今日累積</span><b id="of-stat-today">0</b></div>
-          <div class="of-stat-pair"><span>歷來累積</span><b id="of-stat-life">0</b></div>
+          <div class="of-stat-pair"><span class="of-life-label">福慧幣供養總數</span><b id="of-stat-life">0</b></div>
           <div id="of-hearts" class="of-hearts"></div>
         </section>
-        <section class="of-stat-panel global"><h2 class="of-panel-title">全球精進</h2>
-          <div class="of-stat-pair"><span>今日人數</span><b id="of-stat-people">0</b></div>
-          <div class="of-stat-pair"><span>今日共誦</span><b id="of-stat-global-today">0</b></div>
-          <div class="of-stat-pair"><span>歷來共誦</span><b id="of-stat-global-life">0</b></div>
-        </section>
-        <section class="of-stat-panel ranks"><h2 class="of-panel-title">今日前三名<span id="of-rank-time" class="of-rank-time"></span></h2><div id="today-rank-list"></div></section>
+        <section class="of-stat-panel of-scoped-rank of-group-ranks"><h2 class="of-panel-title">群組今日精進榜<span id="of-group-name" class="of-scope-sub"></span></h2><div id="today-rank-list"></div></section>
+        <section class="of-stat-panel ranks of-scoped-rank"><h2 class="of-panel-title">全球本經累積榜<span id="of-classic-rank" class="of-scope-sub"></span><span id="of-rank-time" class="of-rank-time"></span></h2><div id="total-rank-list"></div></section>
       </div>
       <div id="of-result-footer" class="of-result-footer"><span id="of-result-status" class="of-result-status"></span><span class="of-result-blessing">願以此功德・利益一切有情</span><button id="btn-rejoice-close" class="of-main-btn">繼續精進</button></div>
     </div>
@@ -4412,10 +4423,12 @@
       }
     }
 
-/* 歡喜背書共用正式供養核心 V1；由建置工具內嵌於兩個 HTML，避免新增離線素材依賴。 */
+/* 歡喜背書共用正式供養核心 V4.2；由建置工具內嵌於兩個 HTML，避免新增離線素材依賴。 */
 const OFFERING_STATE_KEY = 'joyful_formal_offering_v41_clean';
 const OFFERING_JOURNAL_PREFIX = 'joyful_formal_earned_v41_clean:';
 const OFFERING_SOURCE = document.title.includes('長青') ? 'green' : 'full';
+const OFFERING_SCOPE = {source:OFFERING_SOURCE,classic:CURRENT_CLASSIC_ID,group:urlParams.get('g')||urlParams.get('group')||''};
+function ofSessionKey(row){return JSON.stringify([row.source,row.classic||'']);}
 let offeringBusy = false;
 let offeringProfileMode = 'register';
 let offeringDraft = null;
@@ -4454,7 +4467,7 @@ function ofPending(s=ofRead()) { return ofTotal(s.pending)+s.frozen.reduce((a,b)
 function ofStateLock(fn){return navigator.locks?.request?navigator.locks.request(OFFERING_STATE_KEY,{mode:'exclusive'},fn):Promise.resolve().then(fn);}
 function ofMergeJournal(s){
   const rows=ofJournal(s);
-  for(const {id,row} of rows){ofUpdateEntry(s,row);s.session[row.source]=(s.session[row.source]||0)+row.coins;s.applied.push(id);}
+  for(const {id,row} of rows){ofUpdateEntry(s,row);const key=ofSessionKey(row);s.session[key]=(s.session[key]||0)+row.coins;s.applied.push(id);}
   if(rows.length)ofWrite(s); // 先永久保存合併結果及已合併 ID，才移除逐次入帳紀錄。
   if(s.applied.length){for(const id of s.applied)localStorage.removeItem(OFFERING_JOURNAL_PREFIX+id);s.applied=[];ofWrite(s);}
   return s;
@@ -4487,7 +4500,7 @@ async function ofRequest(payload) {
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),22000);
   try {
-    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(payload),credentials:'omit',redirect:'follow',signal:controller.signal,cache:'no-store'});
+    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({...payload,scope:OFFERING_SCOPE}),credentials:'omit',redirect:'follow',signal:controller.signal,cache:'no-store'});
     if(!res.ok) throw new Error('network');
     const data=await res.json();
     if(!data || data.api!=='formal-offering-v1') throw new Error('protocol');
@@ -4588,13 +4601,18 @@ function ofShowResult(kind,opts={}) {
   if(kind==='success') {
     const p=opts.personal||{},g=opts.ranking||null;
     const life=Number(p.total||0);
-    ofDisplayNumber('of-stat-session',opts.session||0);ofDisplayNumber('of-stat-today',Number(p.today||0));ofDisplayNumber('of-stat-life',life);
+    ofDisplayNumber('of-stat-session',opts.session||0);if(p.scope==='classic')ofDisplayNumber('of-stat-today',Number(p.today||0));else{ofSetText('of-stat-today','—');ofEl('of-stat-today').removeAttribute('title');}ofDisplayNumber('of-stat-life',life);
     ofRenderHearts(life);
-    for(const [id,key] of [['of-stat-people','people'],['of-stat-global-today','today'],['of-stat-global-life','total']]) {if(g)ofDisplayNumber(id,g[key]);else{ofSetText(id,'—');ofEl(id).removeAttribute('title');}}
+    const scoped=g&&g.scope==='classic';
+    const classicName=scoped?g.classicName:CURRENT_CLASSIC_ID;
+    ofSetText('of-classic-person',classicName);ofEl('of-classic-person').title=classicName;
+    ofSetText('of-group-name',scoped?g.groupName:(OFFERING_SCOPE.group||'未指定群組'));ofEl('of-group-name').title=ofEl('of-group-name').textContent;
+    ofSetText('of-classic-rank',classicName);ofEl('of-classic-rank').title=classicName;
     ofSetText('of-rank-time',g&&g.updated?new Date(g.updated).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour12:false,hour:'2-digit',minute:'2-digit'}):'');
-    ofEl('of-result-status').title=g&&g.updated?'排行榜更新：'+new Date(g.updated).toLocaleString('zh-TW',{timeZone:'Asia/Taipei'}):'排行榜暫時無法取得';
-    ofRenderRanks(g?.top3||[]);
-    if(!g) ofSetText('of-result-status',opts.demoView?'示範・榜暫缺':'✓ 已上傳・榜暫缺');
+    ofEl('of-result-status').title=scoped&&g.updated?'排行榜更新：'+new Date(g.updated).toLocaleString('zh-TW',{timeZone:'Asia/Taipei'}):'排行榜暫時無法取得或雲端尚未更新 V4.2';
+    ofRenderRanks(scoped?(g.todayTop3||[]):[],'today-rank-list',false);
+    ofRenderRanks(scoped?(g.totalTop3||[]):[],'total-rank-list',true);
+    if(!scoped) ofSetText('of-result-status',opts.demoView?'示範・榜暫缺':'✓ 已上傳・榜暫缺');
   }else {
     const n=ofPending(s),target=ofThreshold(ofCount(s));
     ofEl('of-progress-wrap').hidden=kind!=='below';
@@ -4621,14 +4639,14 @@ function ofRenderHearts(total) {
   if(!node.childElementCount){const t=document.createElement('span');t.className='of-next-heart';t.textContent='歡喜累積紅心';node.appendChild(t);}
   node.title='紅心 '+counts[0]+'・金心 '+counts[1]+'・金剛心 '+counts[2];
 }
-function ofRenderRanks(list) {
-  const wrap=ofEl('today-rank-list');wrap.replaceChildren();
+function ofRenderRanks(list,container='today-rank-list',showClass=true) {
+  const wrap=ofEl(container);wrap.replaceChildren();
   for(let i=0;i<3;i++){
     const item=list[i];const row=document.createElement('div');row.className='of-rank-item';
     const name=document.createElement('strong');name.className='of-rank-name';name.textContent=['🥇','🥈','🥉'][i]+' '+(item?item.nickname:'虛位以待');name.title=item?.nickname||'';
     const cls=document.createElement('span');cls.className='of-rank-class';cls.textContent=item?item.className:'—';cls.title=item?.className||'';
     const count=document.createElement('b');count.className='of-rank-count';count.textContent=item?ofCompact(item.coins):'—';count.title=item?ofFmt(item.coins):'';
-    row.append(name,cls,count);wrap.appendChild(row);
+    row.append(name);if(showClass)row.appendChild(cls);row.appendChild(count);wrap.appendChild(row);
   }
 }
 async function ofConfirm() {
@@ -4637,8 +4655,8 @@ async function ofConfirm() {
   try {
     attempt=await ofStateLock(()=>{
       let s=ofRead();if(!s.profile)return {kind:'profile'};
-      s=ofMergeJournal(s);const n=ofTotal(s.pending)+s.frozen.reduce((a,b)=>a+ofTotal(b.rows),0),session=Number(s.session[OFFERING_SOURCE]||0),target=ofThreshold(ofCount(s));
-      s.session[OFFERING_SOURCE]=0;ofWrite(s);
+      s=ofMergeJournal(s);const n=ofTotal(s.pending)+s.frozen.reduce((a,b)=>a+ofTotal(b.rows),0),session=Number(s.session[ofSessionKey(OFFERING_SCOPE)]||0),target=ofThreshold(ofCount(s));
+      s.session[ofSessionKey(OFFERING_SCOPE)]=0;ofWrite(s);
       if(!n&&!s.profile.demo)return{kind:'empty'};if(n<target&&!s.profile.demo)return{kind:'below'};
       if(s.pending.length){s.frozen.push({id:ofRandom(16),rows:s.pending});s.pending=[];ofWrite(s);}
       // 若另一頁剛好新增逐次日誌，會保留至下一次，不會被這次確認清除。
