@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.107｜整句自讀版｜供養 V4.3.1</title>
+  <title>歡喜背書V999.108｜整句自讀版｜供養 V4.3.1</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1225,7 +1225,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【V999.107 載入中】...</div>
+  <div id="schedule-toast">📦 【V999.108 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1238,7 +1238,7 @@
       <div class="slot" id="slot-l4"></div>
     </div>
 
-    <div id="z107-status" role="status" aria-live="polite" hidden></div>
+    <div id="z107-status" hidden><div id="z108-message" role="status" aria-live="polite"></div><div id="z108-debug" style="font-size:clamp(10px,2.8vh,15px);font-weight:700;color:#555;text-align:center"></div></div>
     <div id="center-core">
       <div id="guide-stage">
         <div id="mark-a-line"></div>
@@ -3297,7 +3297,8 @@
         showToast("⚠️ 請先跟著讀完遍數", 3000); return;
       }
       if (currentCoreMode !== 'mode3') { setCoreMode('mode3'); }
-      else if (isGuideActive && z107Timer !== null) { haltGuideRunnerImmediately(); saveCurrentAppState(); return; }
+      else if (isGuideActive && z108MicReady()) { haltGuideRunnerImmediately(); saveCurrentAppState(); return; }
+      else if(isGuideActive){await z108RecoverMic();return;}
       z107Starting = true;
       const token=++z107Generation;
       try {
@@ -3311,10 +3312,11 @@
           if(currentCoreMode==='mode2'||document.visibilityState==='hidden') releaseMicrophoneResources();
           return;
         }
+        z108PrepareRange();
         isGuideActive=true;
         currentLineIndex=Math.max(z107Bounds()[0],Math.min(z107Bounds()[1],currentLineIndex));
         startGuideRunner();
-        if(!micOk) z107Status('可按上一句／下一句','warn');
+        if(!micOk) z107Status('收音未啟動，可手動換句','warn');
         updateModeButtonsStyle(); saveCurrentAppState();
       } finally { z107Starting=false; }
     }
@@ -3406,42 +3408,25 @@
 
     // 僅供 LINE 分享使用：先維持清晰度，再視需要縮小尺寸。
     async function compressShareCanvas(sourceCanvas) {
-      const maxBytes = 400 * 1024;
-      const toJpeg = canvas => quality => new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
-      let canvas = sourceCanvas;
-      for (let round = 0; round < 9; round++) {
-        const encode = toJpeg(canvas);
-        let best = null;
-        let low = 0.42, high = 0.88;
-        // 先測試最高品質；不符合時用二分搜尋減少重複編碼。
-        const highest = await encode(high);
-        if (highest && highest.type === 'image/jpeg' && highest.size <= maxBytes) return highest;
-        const lowest = await encode(low);
-        if (lowest && lowest.type === 'image/jpeg' && lowest.size <= maxBytes) {
-          best = lowest;
-          for (let i = 0; i < 3; i++) {
-            const mid = (low + high) / 2;
-            const blob = await encode(mid);
-            if (blob && blob.type === 'image/jpeg' && blob.size <= maxBytes) {
-              best = blob;
-              low = mid;
-            } else {
-              high = mid;
-            }
-          }
-          return best;
-        }
-        const smaller = document.createElement('canvas');
-        smaller.width = Math.max(1, Math.round(canvas.width * 0.85));
-        smaller.height = Math.max(1, Math.round(canvas.height * 0.85));
-        const ctx = smaller.getContext('2d');
-        if (!ctx) throw new Error('無法建立圖片畫布');
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, smaller.width, smaller.height);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(canvas, 0, 0, smaller.width, smaller.height);
-        canvas = smaller;
+      const maxBytes=400*1024;
+      const encode=(canvas,q)=>new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>reject(new Error('JPEG 壓縮逾時')),12000);
+        try{canvas.toBlob(b=>{clearTimeout(timer);if(b&&b.type==='image/jpeg')resolve(b);else reject(new Error('JPEG 編碼失敗'));},'image/jpeg',q);}catch(e){clearTimeout(timer);reject(e);}
+      });
+      let canvas=sourceCanvas, quality=.80;
+      for(let attempt=0;attempt<7;attempt++){
+        const blob=await encode(canvas,quality);
+        if(blob.size<=maxBytes)return blob;
+        const ratio=maxBytes/blob.size;
+        if(attempt===0&&ratio>=.65){quality=Math.max(.48,Math.min(.73,.80*ratio*.94));continue;}
+        const scale=Math.min(.92,Math.max(.40,Math.sqrt(ratio)*.92));
+        const smaller=document.createElement('canvas');
+        smaller.width=Math.max(1,Math.floor(canvas.width*scale));smaller.height=Math.max(1,Math.floor(canvas.height*scale));
+        const ctx=smaller.getContext('2d');if(!ctx)throw new Error('無法建立圖片畫布');
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,smaller.width,smaller.height);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+        ctx.drawImage(sourceCanvas,0,0,smaller.width,smaller.height);
+        if(canvas!==sourceCanvas){canvas.width=1;canvas.height=1;}
+        canvas=smaller;quality=attempt>=4?.45:.76;
       }
       throw new Error('圖片無法壓縮至 400 KB 以內');
     }
@@ -3487,7 +3472,7 @@
       try {
         await initCompanionCard(targetDay);
         await waitShareBackground(cardStage);
-        const captureOptions = { scale: Math.min(2, 1600 / Math.max(1,cardStage.clientWidth)), useCORS: true, backgroundColor: null, logging: false, imageTimeout: 12000 };
+        const captureOptions = { scale: Math.min(2, 1200 / Math.max(1,cardStage.clientWidth)), useCORS: true, backgroundColor: null, logging: false, imageTimeout: 12000 };
         step('正在產生第一張圖片…');
         const canvas1 = await html2canvas(cardStage, captureOptions);
         step('正在準備第二張法語…');
@@ -3500,7 +3485,8 @@
         await waitShareBackground(cardStage);
         step('正在產生第二張圖片…');
         const canvas2 = await html2canvas(cardStage, captureOptions);
-        step('正在合併及壓縮圖片…');
+        step('正在合併圖片…');
+        await new Promise(resolve=>setTimeout(resolve,0));
         const combinedCanvas = document.createElement('canvas');
         combinedCanvas.width = canvas1.width;
         const footerFont = Math.max(18, Math.round(combinedCanvas.width * 0.024));
@@ -3554,6 +3540,9 @@
         ctx.fillStyle = '#047857';
         ctx.fillText(footerText, textX, textY);
 
+        canvas1.width=canvas1.height=1;canvas2.width=canvas2.height=1;
+        step('正在壓縮圖片…');
+        await new Promise(resolve=>setTimeout(resolve,0));
         const blob = await compressShareCanvas(combinedCanvas);
         step('正在準備分享檔案…');
         let clipboardSuccess = false;
@@ -3569,7 +3558,7 @@
               await writeClipboard(new ClipboardItem({ 'image/jpeg': blob }));
               clipboardSuccess = true;
             } else {
-              const pngBlob = await new Promise(resolve => combinedCanvas.toBlob(resolve, 'image/png'));
+              const pngBlob = await new Promise(resolve => {const timer=setTimeout(()=>resolve(null),1800);combinedCanvas.toBlob(b=>{clearTimeout(timer);resolve(b);},'image/png');});
               if (pngBlob && pngBlob.size <= 400 * 1024) {
                 await writeClipboard(new ClipboardItem({ 'image/png': pngBlob }));
                 clipboardSuccess = true;
@@ -4364,7 +4353,7 @@
 
           if (isCalibrating) calibrationSamples.push(rms);
 
-          // V999.107：自讀由獨立的 10ms 整句判定器處理；此處只保留底噪校準。
+          // V999.108：自讀由獨立的 10ms 整句判定器處理；此處只保留底噪校準。
           if(currentCoreMode==='mode4') {
             if(rms>dynamicThreshold) {lastVoiceTime=performance.now();silentFrameCount=0;}
             else silentFrameCount++;
@@ -4745,10 +4734,22 @@ ofEl('of-show-secret').addEventListener('click',()=>{const p=ofRead().profile;if
 ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().profile;if(!p)return;try{await navigator.clipboard.writeText('ID：'+p.id+'\n密碼：'+p.secret);ofSetText('of-profile-hint','已複製，請妥善保存');}catch(e){ofSetText('of-profile-hint','請手動記下 ID 與密碼');}});
 
 
-    // V999.107 整句自讀：音量/頻帶感應，非文字辨識。所有時間以毫秒計。
+    // V999.108 整句自讀：音量/頻帶感應，非文字辨識。所有時間以毫秒計。
     const Z107_PER_CHAR=225, Z107_TAIL=100, Z107_WARN=1000, Z107_RETRY=2000;
     let z107Timer=null, z107State=null, z107LastAudio=null, z107Samples=null, z107Spectrum=null;
-    let z107LastVoice=false;
+    let z107LastVoice=false, z108LastDebug=0;
+    function z108MicReady(){return !!(analyser&&audioContext?.state==='running'&&micStream?.getAudioTracks().some(t=>t.readyState==='live'&&t.enabled&&!t.muted));}
+    function z108Debug(force=false){
+      const el=document.getElementById('z108-debug');if(!el||!z107State)return;
+      const now=performance.now();if(!force&&now-z108LastDebug<100)return;z108LastDebug=now;
+      const st=z107State;el.textContent=`第 ${currentLineIndex+1} 句｜發音 ${(st.voiced/1000).toFixed(2)}/${(st.min/1000).toFixed(2)}秒｜經過 ${(st.elapsed/1000).toFixed(2)}/${(st.max/1000).toFixed(2)}秒｜${isCalibrating&&z108MicReady()?'校準中':z108MicReady()?'收音中':'收音未啟動'}`;
+    }
+    // 解鎖後未自行指定範圍時，不沿用定課的單句起終點。
+    function z108PrepareRange(){
+      if(isIndependentModeUnlocked()&&!isManualSelected&&parsedTextLines.length&&(markA_Index!==0||markB_Index!==parsedTextLines.length-1)){
+        markA_Index=0;markB_Index=parsedTextLines.length-1;updateVisualDisplay();
+      }
+    }
     function z107Bounds(){const last=Math.max(0,parsedTextLines.length-1),a=Math.min(last,Math.max(0,markA_Index));return [a,Math.max(a,markB_Index<0?last:Math.min(last,markB_Index))];}
     function z107Count(idx){
       const text=scriptureData[idx]?.text || (parsedTextLines[idx]?.charItems||[]).map(g=>g.char).join('');
@@ -4776,7 +4777,7 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
     function z107Status(text,kind='normal'){
       const el=document.getElementById('z107-status');if(!el)return;
       if(!text){el.hidden=true;return;}
-      if(el.textContent!==text)el.textContent=text;
+      const msg=document.getElementById('z108-message');if(msg&&msg.textContent!==text)msg.textContent=text;
       el.style.color=kind==='error'?'#B91C1C':kind==='warn'?'#9A570B':'#17643B';el.hidden=false;
     }
     function z107DrawLine(){
@@ -4791,29 +4792,45 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
     function z107Reset(waitQuiet=false,message='請清楚念出聲'){
       z107State=z107NewState(z107Count(currentLineIndex),waitQuiet);
       z107LastAudio=null; z107LastVoice=false;
-      z107Status(message,message==='請從頭再念一遍'?'error':'normal');
+      z107Status(message,message==='請從頭再念一遍'?'error':'normal');z108Debug(true);
     }
     function z107Move(dir,manual=false){
       if(currentCoreMode!=='mode3'||!isGuideActive||of02AwaitingStageConfirmation||!parsedTextLines.length)return;
       const [a,b]=z107Bounds();
-      if(dir<0&&currentLineIndex<=a){z107Reset(manual&&z107LastVoice);return;}
-      if(dir>0&&currentLineIndex>=b){handleCycleCompletion();return;}
       const wait=manual&&z107LastVoice;
-      currentLineIndex=Math.max(a,Math.min(b,currentLineIndex+dir));
-      currentCharIndexFloat=0; isUserManualScrolling=false;
-      z107Reset(wait);if(z107Timer===null)z107Status('可按上一句／下一句','warn');z107DrawLine();scrollToAlignTop(currentLineIndex);saveCurrentAppState();
+      if(dir>0&&currentLineIndex>=b){
+        if(isIndependentModeUnlocked()){
+          // 自主範圍完成：沿用一遍供養計數，但不進入定課階段完成程序。
+          currentCycleCount++;addCoins(b-a+1);currentLineIndex=a;
+        }else{handleCycleCompletion();return;}
+      }else currentLineIndex=Math.max(a,Math.min(b,currentLineIndex+dir));
+      currentCharIndexFloat=0;isUserManualScrolling=false;
+      z107Reset(wait);if(!z108MicReady())z107Status('收音未啟動，可手動換句','warn');
+      z107DrawLine();scrollToAlignTop(currentLineIndex);updateModeButtonsStyle();saveCurrentAppState();
+    }
+    async function z108RecoverMic(){
+      if(z107Starting||z108MicReady())return;
+      z107Starting=true;const token=++z107Generation;
+      try{
+        const ok=await ensureMicrophoneActive();
+        if(token!==z107Generation||currentCoreMode!=='mode3'||!isGuideActive||document.hidden)return;
+        if(ok){z107Reset();z107StartTimer();}else z107Status('收音未啟動，可手動換句','warn');
+        z108Debug(true);
+      }finally{z107Starting=false;}
     }
     function z107Manual(dir){
-      if(currentCoreMode!=='mode3'||of02AwaitingStageConfirmation||z107Starting||isSelectingMarkA||isSelectingMarkB||!parsedTextLines.length)return;
+      if(currentCoreMode!=='mode3'||of02AwaitingStageConfirmation||isSelectingMarkA||isSelectingMarkB||!parsedTextLines.length)return;
+      z108PrepareRange();
       if(!isGuideActive){isGuideActive=true;const [a,b]=z107Bounds();currentLineIndex=Math.max(a,Math.min(b,currentLineIndex));startGuideRunner();updateModeButtonsStyle();}
       z107Move(dir,true);
+      if(!z108MicReady())void z108RecoverMic();
     }
     function z107Tick(){
-      if(!isGuideActive||currentCoreMode!=='mode3'||!analyser||!audioContext||audioContext.state!=='running'||document.hidden)return;
-      if(!micStream?.getAudioTracks().some(t=>t.readyState==='live'&&t.enabled&&!t.muted)){z107LastAudio=null;return;}
+      if(!isGuideActive||currentCoreMode!=='mode3'||!z107State||document.hidden)return;
+      if(!z108MicReady()){z107LastAudio=null;z107Status('收音未啟動，可按自讀重試','warn');z108Debug();return;}
       const now=audioContext.currentTime*1000;
       const delta=z107LastAudio===null?0:now-z107LastAudio;z107LastAudio=now;
-      if(isCalibrating||delta<=0)return;
+      if(isCalibrating||delta<=0){z108Debug();return;}
       if(!z107Samples||z107Samples.length!==analyser.fftSize){z107Samples=new Float32Array(analyser.fftSize);z107Spectrum=new Float32Array(analyser.frequencyBinCount);}
       analyser.getFloatTimeDomainData(z107Samples);
       let sum=0,mean=0;for(const v of z107Samples)mean+=v;mean/=z107Samples.length;for(const v of z107Samples)sum+=(v-mean)**2;
@@ -4826,7 +4843,7 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
       z107LastVoice=voice;
       // 掉幀時不能把未觀測的音訊當成發音或靜音；但最終截止仍計真實經過時間。
       if(delta>30&&z107State.started&&!z107State.waitQuiet){z107State.elapsed+=delta- Math.min(20,delta);z107State.quiet=0;}
-      const result=z107AdvanceState(z107State,voice,Math.min(delta,20));
+      const result=z107AdvanceState(z107State,voice,Math.min(delta,20));z108Debug();
       if(result==='pass'){z107Move(1);return;}
       if(result==='retry'){z107Reset(voice,'請從頭再念一遍');return;}
       if(result==='warn')z107Status('請繼續清楚念誦','warn');
@@ -4843,9 +4860,9 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
     function startGuideRunner(){
       if(!parsedTextLines.length)return;
       z107Reset();z107DrawLine();isUserManualScrolling=false;scrollToAlignTop(currentLineIndex);
-      if(z107Timer!==null)clearInterval(z107Timer);
-      z107Timer=analyser&&audioContext?.state==='running'?setInterval(z107Tick,10):null;
+      z107StartTimer();
     }
+    function z107StartTimer(){if(z107Timer===null)z107Timer=setInterval(z107Tick,10);}
     function z107RestartCycle(){isGuideActive=true;startGuideRunner();updateModeButtonsStyle();}
 
     function scrollToAlignTop(idx) {
