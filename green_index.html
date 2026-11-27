@@ -4460,7 +4460,7 @@ function ofSetBusy(busy) {
 function ofRefreshEntry() {
   const s=ofRead();
   ofSetText('of-entry-id',s.profile?'ID：'+s.profile.id:'尚未建立個人 ID');ofEl('of-entry-id').title=s.profile?.id||'';
-  ofSetText('of-entry-name',s.profile?s.profile.nickname+'・'+s.profile.className:'第一次使用請建立或登入帳號');
+  ofSetText('of-entry-name',s.profile?s.profile.nickname+'・'+s.profile.className+(s.profile.demo===true?'・推廣示範':''):'第一次使用請建立或登入帳號');
   ofSetText('display-coins-count',ofFmt(ofPending(s))+' 枚');
   ofEl('of-profile-open').textContent=s.profile?'帳號設定':'建立／登入帳號';
   ofSetText('of-entry-hint','');
@@ -4539,7 +4539,7 @@ function ofShowResult(kind,opts={}) {
   ofSetText('of-result-id',s.profile?'ID：'+s.profile.id:'ID：尚未建立');ofEl('of-result-id').title=s.profile?.id||'';
   ofEl('of-result-simple').hidden=kind==='success';
   ofEl('of-result-grid').hidden=kind!=='success';
-  ofEl('of-result-status').textContent=kind==='success'?'✓ 上傳圓滿':'';
+  ofEl('of-result-status').textContent=kind==='success'?(opts.demoView?'推廣示範・查看':'✓ 上傳圓滿'):'';
   ofEl('of-result-footer').hidden=false;
   if(kind==='success') {
     const p=opts.personal||{},g=opts.ranking||null;
@@ -4550,7 +4550,7 @@ function ofShowResult(kind,opts={}) {
     ofSetText('of-rank-time',g&&g.updated?new Date(g.updated).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour12:false,hour:'2-digit',minute:'2-digit'}):'');
     ofEl('of-result-status').title=g&&g.updated?'排行榜更新：'+new Date(g.updated).toLocaleString('zh-TW',{timeZone:'Asia/Taipei'}):'排行榜暫時無法取得';
     ofRenderRanks(g?.top3||[]);
-    if(!g) ofSetText('of-result-status','✓ 已上傳・榜暫缺');
+    if(!g) ofSetText('of-result-status',opts.demoView?'示範・榜暫缺':'✓ 已上傳・榜暫缺');
   }else {
     const n=ofPending(s),target=ofThreshold(ofCount(s));
     ofEl('of-progress-wrap').hidden=kind!=='below';
@@ -4595,10 +4595,10 @@ async function ofConfirm() {
       let s=ofRead();if(!s.profile)return {kind:'profile'};
       s=ofMergeJournal(s);const n=ofTotal(s.pending)+s.frozen.reduce((a,b)=>a+ofTotal(b.rows),0),session=Number(s.session[OFFERING_SOURCE]||0),target=ofThreshold(ofCount(s));
       s.session[OFFERING_SOURCE]=0;ofWrite(s);
-      if(!n)return{kind:'empty'};if(n<target)return{kind:'below'};
+      if(!n&&!s.profile.demo)return{kind:'empty'};if(n<target&&!s.profile.demo)return{kind:'below'};
       if(s.pending.length){s.frozen.push({id:ofRandom(16),rows:s.pending});s.pending=[];ofWrite(s);}
       // 若另一頁剛好新增逐次日誌，會保留至下一次，不會被這次確認清除。
-      if(!s.frozen.length)return{kind:'below'};
+      if(!s.frozen.length&&!s.profile.demo)return{kind:'below'};
       return {kind:'upload',batches:s.frozen,ids:s.frozen.map(b=>b.id),profile:s.profile,session};
     });
   }catch(e){ofSetText('of-entry-hint','手機儲存異常，未能完成本次供養；請勿清除網站資料');ofSetBusy(false);return;}
@@ -4616,7 +4616,7 @@ async function ofConfirm() {
     catch(e){ofSetText('of-entry-hint','手機儲存異常，待傳紀錄未清除；下次仍可安全確認');return;}
     if(data.status==='below'){ofShowResult('below');return;}
     if(data.status!=='ok'||accepted.size!==ids.length)throw new Error('unconfirmed');
-    ofShowResult('success',{session,personal:data.personal,ranking:data.ranking});
+    ofShowResult('success',{session,personal:data.personal,ranking:data.ranking,demoView:data.demoView===true});
     try{triggerOfferingCoinRain(ofEl('of-rain'));}catch(e){}
   }catch(e){
     if(ackSaved){ofSetText('of-entry-hint','供養資料已確認，顯示暫時無法完成');}
