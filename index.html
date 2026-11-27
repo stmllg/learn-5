@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.106｜跟讀穩定循環版｜供養 V4.3.1</title>
+  <title>歡喜背書V999.107｜整句自讀版｜供養 V4.3.1</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -804,13 +804,18 @@
       touch-action: pan-y;
     }
 
-    /* Apple Safari：經文區長按不彈出選取/分享選單；保留上下滑動與自讀觸控。 */
+    /* Apple Safari：經文區長按不彈出選取/分享選單；保留上下滑動及起終句選取。 */
     #center-core, #center-core * {
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
     }
 
+    #z107-status {position:absolute; bottom:3px; left:50%; transform:translateX(-50%); z-index:80; pointer-events:none; padding:3px 10px; border-radius:8px; background:rgba(255,250,235,.96); color:#17643B; font-weight:900; font-size:clamp(15px,4.8vh,24px); white-space:nowrap; box-shadow:0 1px 5px #0003;}
+    #z107-status[hidden] {display:none;}
+    .circle-btn.z107-nav {background:#FFE5BF!important;border-color:#E5B77D!important;font-size:clamp(15px,4.8vh,22px)!important;letter-spacing:0!important;text-shadow:none!important;}
+    .circle-btn.z107-prev {color:#933C21!important;}
+    .circle-btn.z107-next {color:#17643B!important;}
     #guide-stage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: block; }
     #guide-line { position: absolute; height: 6px; background-color: #00E676; border-radius: 3px; box-shadow: 0 0 10px rgba(0, 230, 118, 0.9); display: none; }
     #red-dot { position: absolute; width: min(22px, 6vh); height: min(22px, 6vh); background: radial-gradient(circle, #FF5252 20%, #FF1744 100%); border: 2.5px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 12px rgba(255, 23, 68, 0.8); transform: translate(-50%, -50%); display: none; }
@@ -1220,7 +1225,7 @@
     </div>
   </div>
 
-  <div id="schedule-toast">📦 【v999.78 載入中】...</div>
+  <div id="schedule-toast">📦 【V999.107 載入中】...</div>
   <div id="speed-toast-badge">【快轉 1.0x】</div>
 
   <canvas id="flowerCanvas"></canvas>
@@ -1233,6 +1238,7 @@
       <div class="slot" id="slot-l4"></div>
     </div>
 
+    <div id="z107-status" role="status" aria-live="polite" hidden></div>
     <div id="center-core">
       <div id="guide-stage">
         <div id="mark-a-line"></div>
@@ -1615,13 +1621,13 @@
         desc:'', detail:'',
         button:'確定開始', color:'#2563EB', mode:'mode2' },
       new_zidu: { group:'今天新進度', title:'自己念',
-        desc:'念出聲，小紅點會向前。\n不方便出聲，手指放在螢幕上也可以。', detail:'',
+        desc:'清楚念出聲，念完一句自動換句。\n也可按左4上一句、右4下一句。', detail:'',
         button:'確定開始', color:'#059669', mode:'mode3' },
       cumulative_gendu: { group:'從第一句串習', title:'跟著念',
         desc:'', detail:'',
         button:'確定開始', color:'#EA580C', mode:'mode2' },
       cumulative_zidu: { group:'從第一句串習', title:'自己念',
-        desc:'念出聲，小紅點會向前。\n不方便出聲，手指放在螢幕上也可以。', detail:'',
+        desc:'清楚念出聲，念完一句自動換句。\n也可按左4上一句、右4下一句。', detail:'',
         button:'確定開始', color:'#9333EA', mode:'mode3' }
     };
     let of02AwaitingStageConfirmation = false;
@@ -1898,24 +1904,6 @@
     centerCore.addEventListener('contextmenu', (e) => {
       e.preventDefault();
     });
-
-    centerCore.addEventListener('touchstart', (e) => {
-      if (currentCoreMode === 'mode3' && isGuideActive) {
-        isTouchingDisplay = true;
-      }
-    }, { passive: true });
-
-    centerCore.addEventListener('touchend', (e) => {
-      if (currentCoreMode === 'mode3' && isGuideActive) {
-        isTouchingDisplay = false;
-      }
-    }, { passive: true });
-
-    centerCore.addEventListener('touchcancel', (e) => {
-      if (currentCoreMode === 'mode3' && isGuideActive) {
-        isTouchingDisplay = false;
-      }
-    }, { passive: true });
 
     // V999.102：錄音自然播放結束才詢問是否重播，沒有自動循環。
     const compareReplayOverlay = document.getElementById('compare-replay-overlay');
@@ -2844,7 +2832,7 @@
           parsedTextLines = buildUnifiedPdfLines(viewport, page);
           guideStage.style.height = viewport.height + 'px';
           updateVisualDisplay();
-          scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+          scrollToAlignTop(currentCoreMode==='mode3'&&isGuideActive?currentLineIndex:(markA_Index !== -1 ? markA_Index : 0));
           return;
 
 
@@ -3009,7 +2997,8 @@
       };
     }
 
-    function releaseMicrophoneResources() {
+    function releaseMicrophoneResources(keepSelfStart=false) {
+      if(currentCoreMode==='mode3'&&!keepSelfStart) haltGuideRunnerImmediately();
       stopCompareVoiceMeter();
       // OF04：麥克風釋放時同步停止舊的收音監測，不沿用無效分析器。
       if (vadCheckTimer !== null) {
@@ -3084,7 +3073,7 @@
             if (!pdfCanvas.width || !pdfCanvas.height || parsedTextLines.length === 0) {
               await renderPdfOnValidDimensions();
             } else {
-              scrollToAlignTop(markA_Index !== -1 ? markA_Index : 0);
+              scrollToAlignTop(currentCoreMode==='mode3'&&isGuideActive?currentLineIndex:(markA_Index !== -1 ? markA_Index : 0));
             }
           } catch (err) {
             console.error('[PDF統一定位]', err);
@@ -3143,6 +3132,7 @@
             e.stopPropagation();
             if (currentCoreMode === 'mode2') triggerMp4SpeedChange(-0.1); 
             else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(-0.1);
+            else if (currentCoreMode === 'mode3') z107Manual(-1);
             else triggerPdfSpeedChange(-0.1);
           });
         }
@@ -3162,6 +3152,7 @@
             e.stopPropagation();
             if (currentCoreMode === 'mode2') triggerMp4SpeedChange(+0.1); 
             else if (currentCoreMode === 'mode4') triggerCompareSpeedChange(+0.1);
+            else if (currentCoreMode === 'mode3') z107Manual(1);
             else triggerPdfSpeedChange(+0.1);
           });
         }
@@ -3187,6 +3178,11 @@
       const isGenduPlaying = isMode2 && !!mp4RangeSession;
       const isZiduRunning = isMode3 && isGuideActive;
       const isRecordRunning = isMode4 && isUserRecording;
+      for (const [id,cls,label,normal] of [['btn-speed-down','z107-prev','上一句','慢-'],['btn-speed-up','z107-next','下一句','快+']]) {
+        const b=document.getElementById(id); if(!b) continue;
+        b.classList.toggle('z107-nav',isMode3); b.classList.toggle(cls,isMode3);
+        b.textContent=isMode3?label:normal;
+      }
 
       if (btnGendu) {
           btnGendu.textContent = isGenduPlaying ? '跟著唸' : '跟讀';
@@ -3293,50 +3289,34 @@
       playMp4Range(range, target);
     }
 
+    let z107Starting = false, z107Generation = 0;
     async function handleZiduClick() {
-      if (of02AwaitingStageConfirmation) return;
+      if (of02AwaitingStageConfirmation || z107Starting) return;
       requestFullscreenMode();
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_zidu' && practicePhase !== 'cumulative_zidu') {
-        showToast("⚠️ 請先跟著讀完遍數", 3000);
-        return;
+        showToast("⚠️ 請先跟著讀完遍數", 3000); return;
       }
-
-      if (currentCoreMode !== 'mode3') {
-          setCoreMode('mode3');
+      if (currentCoreMode !== 'mode3') { setCoreMode('mode3'); }
+      else if (isGuideActive && z107Timer !== null) { haltGuideRunnerImmediately(); saveCurrentAppState(); return; }
+      z107Starting = true;
+      const token=++z107Generation;
+      try {
+        if (!parsedTextLines.length || !pdfCanvas.width || !pdfCanvas.height) {
+          if (cachedPdfBuffer) await renderPdfOnValidDimensions();
+        }
+        if(token!==z107Generation || currentCoreMode!=='mode3') return;
+        if (!parsedTextLines.length) { showToast('經文處理中，請稍候再按自讀',2500); return; }
+        const micOk=await ensureMicrophoneActive();
+        if(token!==z107Generation || currentCoreMode!=='mode3' || document.visibilityState==='hidden') {
+          if(currentCoreMode==='mode2'||document.visibilityState==='hidden') releaseMicrophoneResources();
           return;
-      }
-
-      // OF04：統一交由 ensureMicrophoneActive() 先要求麥克風，再啟動音訊處理。
-      const micOk = await ensureMicrophoneActive();
-      if (!micOk) {
-        return;
-      }
-
-      if (isGuideActive) {
-          haltGuideRunnerImmediately();
-          saveCurrentAppState();
-      } else {
-          if (parsedTextLines.length === 0) {
-              showToast("經文處理中，請稍候", 2000);
-              return;
-          }
-
-          isGuideActive = true;
-          if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-
-          isVoiceActive = false;
-          isTouchingDisplay = false;
-          isTransitioningLine = false;
-          hasPageFlipped = false;
-          isLineHeadLocked = true;
-          currentLineIndex = markA_Index !== -1 ? markA_Index : 0;
-          currentCharIndexFloat = 0.0;
-          lastVoiceTime = performance.now();
-
-          startGuideRunner();
-          updateModeButtonsStyle();
-          saveCurrentAppState();
-      }
+        }
+        isGuideActive=true;
+        currentLineIndex=Math.max(z107Bounds()[0],Math.min(z107Bounds()[1],currentLineIndex));
+        startGuideRunner();
+        if(!micOk) z107Status('可按上一句／下一句','warn');
+        updateModeButtonsStyle(); saveCurrentAppState();
+      } finally { z107Starting=false; }
     }
 
     async function handleRecordModeClick() {
@@ -3387,6 +3367,7 @@
         stopMp4RangePlayback();
         updateModeButtonsStyle();
       }
+      if(currentCoreMode==='mode3') haltGuideRunnerImmediately();
       isManualSelected = true;
       isSelectingMarkA = false;
       isSelectingMarkB = false;
@@ -3406,6 +3387,7 @@
     function handleMarkAClck() {
       if (!isIndependentModeUnlocked()) return;
       if (currentCoreMode !== 'mode3') setCoreMode('mode3');
+      else haltGuideRunnerImmediately();
       isSelectingMarkA = true;
       isSelectingMarkB = false;
       showToast("👆 請直接在畫面上點擊想要的句子設定起點", 4000);
@@ -3415,6 +3397,7 @@
     function handleMarkBClick() {
       if (!isIndependentModeUnlocked()) return;
       if (currentCoreMode !== 'mode3') setCoreMode('mode3');
+      else haltGuideRunnerImmediately();
       isSelectingMarkB = true;
       isSelectingMarkA = false;
       showToast("👆 請直接在畫面上點擊想要的句子設定終點", 4000);
@@ -3640,6 +3623,7 @@
             if (isSelectingMarkA) {
               isManualSelected = true;
               markA_Index = targetIdx;
+              currentLineIndex = targetIdx;
               if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
               isSelectingMarkA = false;
               updateVisualDisplay();
@@ -3856,7 +3840,7 @@
         if (currentCycleCount < newRepeat) {
           showToast(`第 ${currentCycleCount} 遍`, 2500);
           setupStageRange();
-          handleZiduClick();
+          z107RestartCycle();
         } else {
           if (hasCumulative) {
             of02AdvanceToStage('cumulative_gendu');
@@ -3876,7 +3860,7 @@
         if (currentCycleCount < cRepeat) {
           showToast(`第 ${currentCycleCount} 遍`, 2500);
           setupStageRange();
-          handleZiduClick();
+          z107RestartCycle();
         } else {
           finishAllPractice();
         }
@@ -4255,6 +4239,7 @@
         }
       }
 
+      if (isGuideActive && currentCoreMode === 'mode3') z107DrawLine();
       if (!isGuideActive && currentCoreMode === 'mode3') {
         guideLine.style.display = 'none';
         redDot.style.display = 'none';
@@ -4352,7 +4337,7 @@
         }
         console.warn('[OF04 microphone]', name, message);
         showToast(hint, 5000);
-        releaseMicrophoneResources();
+        releaseMicrophoneResources(currentCoreMode==='mode3'&&z107Starting&&!document.hidden);
         return false;
       }
     }
@@ -4379,46 +4364,11 @@
 
           if (isCalibrating) calibrationSamples.push(rms);
 
-          const deltaRms = rms - prevRms;
-          const hasVoiceEnergy = (rms > dynamicThreshold) || isTouchingDisplay;
-
-          if (hasVoiceEnergy) {
-            lastVoiceTime = performance.now();
-            silentFrameCount = 0;
-            if (!isVoiceActive && isGuideActive) {
-              isVoiceActive = true;
-              updateModeButtonsStyle();
-            }
-          } else {
-            silentFrameCount++;
-            if (silentFrameCount >= 24) {
-              if (isVoiceActive) {
-                isVoiceActive = false;
-                updateModeButtonsStyle();
-              }
-            }
+          // V999.107：自讀由獨立的 10ms 整句判定器處理；此處只保留底噪校準。
+          if(currentCoreMode==='mode4') {
+            if(rms>dynamicThreshold) {lastVoiceTime=performance.now();silentFrameCount=0;}
+            else silentFrameCount++;
           }
-
-          if (isGuideActive) {
-            const timeSinceLineStart = performance.now() - lineActivationTimestamp;
-            const isInsideCooldown = (timeSinceLineStart < 120);
-
-            if (isLineHeadLocked && !isInsideCooldown && (deltaRms > (dynamicThreshold * 0.25) || isTouchingDisplay)) {
-              isLineHeadLocked = false;
-            }
-
-            if (isTransitioningLine) {
-              const elapsed = performance.now() - lineEndTime;
-              if (elapsed > 40 && (deltaRms > (dynamicThreshold * 0.40) || isTouchingDisplay)) {
-                proceedToNextLineImmediately();
-              } else if (elapsed >= 80 && peakRmsAtLineEnd > dynamicThreshold && rms < (peakRmsAtLineEnd * 0.70) && !isTouchingDisplay) {
-                proceedToNextLineImmediately();
-              } else if (elapsed >= 200) {
-                proceedToNextLineImmediately();
-              }
-            }
-          }
-
           prevRms = rms;
         }
         vadCheckTimer = requestAnimationFrame(loop);
@@ -4795,24 +4745,108 @@ ofEl('of-show-secret').addEventListener('click',()=>{const p=ofRead().profile;if
 ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().profile;if(!p)return;try{await navigator.clipboard.writeText('ID：'+p.id+'\n密碼：'+p.secret);ofSetText('of-profile-hint','已複製，請妥善保存');}catch(e){ofSetText('of-profile-hint','請手動記下 ID 與密碼');}});
 
 
+    // V999.107 整句自讀：音量/頻帶感應，非文字辨識。所有時間以毫秒計。
+    const Z107_PER_CHAR=225, Z107_TAIL=100, Z107_WARN=1000, Z107_RETRY=2000;
+    let z107Timer=null, z107State=null, z107LastAudio=null, z107Samples=null, z107Spectrum=null;
+    let z107LastVoice=false;
+    function z107Bounds(){const last=Math.max(0,parsedTextLines.length-1),a=Math.min(last,Math.max(0,markA_Index));return [a,Math.max(a,markB_Index<0?last:Math.min(last,markB_Index))];}
+    function z107Count(idx){
+      const text=scriptureData[idx]?.text || (parsedTextLines[idx]?.charItems||[]).map(g=>g.char).join('');
+      return Math.max(1,Array.from(text).filter(c=>/[\p{L}\p{N}]/u.test(c)).length);
+    }
+    function z107NewState(chars,waitQuiet=false){return {min:chars*Z107_PER_CHAR,max:chars*Z107_PER_CHAR*3,started:false,elapsed:0,voiced:0,quiet:0,onset:0,warned:false,waitQuiet,rearm:0};}
+    // 純狀態機：沒有 DOM 或麥克風依賴，可獨立模擬測試。
+    function z107AdvanceState(st,voice,dt){
+      if(st.waitQuiet){st.rearm=voice?0:st.rearm+dt;if(st.rearm>=Z107_TAIL){st.waitQuiet=false;st.rearm=0;}return 'wait';}
+      if(!st.started){
+        st.onset=voice?st.onset+dt:0;
+        // 60ms 確認有效起音，並補計這段起音，排除單一瞬間脈衝。
+        if(st.onset<60)return 'wait';
+        st.started=true;st.voiced=st.onset;st.elapsed=st.onset;st.quiet=0;
+        return 'reading';
+      }
+      st.elapsed+=dt;
+      if(voice){st.voiced+=dt;st.quiet=0;}else st.quiet+=dt;
+      if(st.elapsed>=st.max)return 'retry';
+      if(st.voiced>=st.min && st.quiet>=Z107_TAIL)return 'pass';
+      if(st.voiced<st.min && st.quiet>=Z107_RETRY)return 'retry';
+      if(st.voiced<st.min && st.quiet>=Z107_WARN && !st.warned){st.warned=true;return 'warn';}
+      return voice?'reading':'hold';
+    }
+    function z107Status(text,kind='normal'){
+      const el=document.getElementById('z107-status');if(!el)return;
+      if(!text){el.hidden=true;return;}
+      if(el.textContent!==text)el.textContent=text;
+      el.style.color=kind==='error'?'#B91C1C':kind==='warn'?'#9A570B':'#17643B';el.hidden=false;
+    }
+    function z107DrawLine(){
+      redDot.style.display='none';
+      if(!isGuideActive||currentCoreMode!=='mode3'||!parsedTextLines[currentLineIndex]||!pdfCanvas.width||!pdfCanvas.height)return;
+      const line=parsedTextLines[currentLineIndex],rect=pdfCanvas.getBoundingClientRect();
+      if(!rect.width||!rect.height)return;
+      const sx=rect.width/pdfCanvas.width,sy=rect.height/pdfCanvas.height;
+      guideLine.style.top=(line.underLineY*sy)+'px';guideLine.style.left=(line.x0*sx)+'px';
+      guideLine.style.width=((line.x1-line.x0)*sx)+'px';guideLine.style.display='block';
+    }
+    function z107Reset(waitQuiet=false,message='請清楚念出聲'){
+      z107State=z107NewState(z107Count(currentLineIndex),waitQuiet);
+      z107LastAudio=null; z107LastVoice=false;
+      z107Status(message,message==='請從頭再念一遍'?'error':'normal');
+    }
+    function z107Move(dir,manual=false){
+      if(currentCoreMode!=='mode3'||!isGuideActive||of02AwaitingStageConfirmation||!parsedTextLines.length)return;
+      const [a,b]=z107Bounds();
+      if(dir<0&&currentLineIndex<=a){z107Reset(manual&&z107LastVoice);return;}
+      if(dir>0&&currentLineIndex>=b){handleCycleCompletion();return;}
+      const wait=manual&&z107LastVoice;
+      currentLineIndex=Math.max(a,Math.min(b,currentLineIndex+dir));
+      currentCharIndexFloat=0; isUserManualScrolling=false;
+      z107Reset(wait);if(z107Timer===null)z107Status('可按上一句／下一句','warn');z107DrawLine();scrollToAlignTop(currentLineIndex);saveCurrentAppState();
+    }
+    function z107Manual(dir){
+      if(currentCoreMode!=='mode3'||of02AwaitingStageConfirmation||z107Starting||isSelectingMarkA||isSelectingMarkB||!parsedTextLines.length)return;
+      if(!isGuideActive){isGuideActive=true;const [a,b]=z107Bounds();currentLineIndex=Math.max(a,Math.min(b,currentLineIndex));startGuideRunner();updateModeButtonsStyle();}
+      z107Move(dir,true);
+    }
+    function z107Tick(){
+      if(!isGuideActive||currentCoreMode!=='mode3'||!analyser||!audioContext||audioContext.state!=='running'||document.hidden)return;
+      if(!micStream?.getAudioTracks().some(t=>t.readyState==='live'&&t.enabled&&!t.muted)){z107LastAudio=null;return;}
+      const now=audioContext.currentTime*1000;
+      const delta=z107LastAudio===null?0:now-z107LastAudio;z107LastAudio=now;
+      if(isCalibrating||delta<=0)return;
+      if(!z107Samples||z107Samples.length!==analyser.fftSize){z107Samples=new Float32Array(analyser.fftSize);z107Spectrum=new Float32Array(analyser.frequencyBinCount);}
+      analyser.getFloatTimeDomainData(z107Samples);
+      let sum=0,mean=0;for(const v of z107Samples)mean+=v;mean/=z107Samples.length;for(const v of z107Samples)sum+=(v-mean)**2;
+      const rms=Math.sqrt(sum/z107Samples.length);
+      // 輕量語音頻帶篩選：降低低頻風聲和高頻噪音，不保證區別旁人說話。
+      analyser.getFloatFrequencyData(z107Spectrum);
+      let band=0,total=0;const hz=audioContext.sampleRate/analyser.fftSize;
+      for(let i=1;i<z107Spectrum.length;i++){const p=10**(z107Spectrum[i]/10);total+=p;if(i*hz>=150&&i*hz<=4500)band+=p;}
+      const voice=rms>Math.max(dynamicThreshold,baseNoiseLevel*1.6+0.0002)&&total>0&&band/total>=0.45;
+      z107LastVoice=voice;
+      // 掉幀時不能把未觀測的音訊當成發音或靜音；但最終截止仍計真實經過時間。
+      if(delta>30&&z107State.started&&!z107State.waitQuiet){z107State.elapsed+=delta- Math.min(20,delta);z107State.quiet=0;}
+      const result=z107AdvanceState(z107State,voice,Math.min(delta,20));
+      if(result==='pass'){z107Move(1);return;}
+      if(result==='retry'){z107Reset(voice,'請從頭再念一遍');return;}
+      if(result==='warn')z107Status('請繼續清楚念誦','warn');
+      else if(result==='reading')z107Status('念誦中');
+    }
     function haltGuideRunnerImmediately() {
-      isGuideActive = false;
-      if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-      if (cycleWaitTimer) { clearTimeout(cycleWaitTimer); cycleWaitTimer = null; }
-      guideLine.style.display = 'none';
-      redDot.style.display = 'none';
-      updateModeButtonsStyle();
+      isGuideActive=false; z107Generation++;
+      if(z107Timer!==null){clearInterval(z107Timer);z107Timer=null;}
+      z107State=null;z107LastAudio=null;z107LastVoice=false;z107Status('');
+      if(guideAnimId){cancelAnimationFrame(guideAnimId);guideAnimId=null;}
+      if(cycleWaitTimer){clearTimeout(cycleWaitTimer);cycleWaitTimer=null;}
+      guideLine.style.display='none';redDot.style.display='none';updateModeButtonsStyle();
     }
-
-    function startGuideRunner() {
-      if (parsedTextLines.length === 0) return;
-      guideStage.style.height = Math.max(centerCore.scrollHeight, 2500) + 'px';
-      scrollToAlignTop(currentLineIndex);
-      setupActiveLine(currentLineIndex, currentCharIndexFloat);
-      lastAnimTimestamp = performance.now();
-      if (guideAnimId) cancelAnimationFrame(guideAnimId);
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
+    function startGuideRunner(){
+      if(!parsedTextLines.length)return;
+      z107Reset();z107DrawLine();isUserManualScrolling=false;scrollToAlignTop(currentLineIndex);
+      if(z107Timer!==null)clearInterval(z107Timer);
+      z107Timer=analyser&&audioContext?.state==='running'?setInterval(z107Tick,10):null;
     }
+    function z107RestartCycle(){isGuideActive=true;startGuideRunner();updateModeButtonsStyle();}
 
     function scrollToAlignTop(idx) {
       if (isUserManualScrolling) return; 
@@ -4873,117 +4907,6 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
       const intraCharFraction = charProgressFloat - charIdx;
       const item = items[charIdx];
       return item.x0 + (item.x1 - item.x0) * intraCharFraction;
-    }
-
-    function setupActiveLine(idx, initCurrent = 0.0) {
-      if (markB_Index !== -1 && idx > markB_Index) { handleCycleCompletion(); return; }
-      if (idx >= parsedTextLines.length) { handleCycleCompletion(); return; }
-
-      const line = parsedTextLines[idx];
-      currentCharIndexFloat = 0.0;
-      isLineHeadLocked = true;
-      lineActivationTimestamp = performance.now();
-
-      if (isGuideActive) {
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const scaleX = canvasRect.width / pdfCanvas.width;
-
-        guideLine.style.top = (line.underLineY * scaleY) + 'px';
-        guideLine.style.left = (line.x0 * scaleX) + 'px';
-        guideLine.style.width = ((line.x1 - line.x0) * scaleX) + 'px';
-        
-        const dot = getGlyphDotPosition(line, currentCharIndexFloat);
-        redDot.style.top = (dot.y * scaleY) + 'px';
-        redDot.style.left = (dot.x * scaleX) + 'px';
-
-        guideLine.style.display = 'block';
-        redDot.style.display = 'block';
-      }
-      isTransitioningLine = false;
-    }
-
-    function stepGuideMovement(now) {
-      if (!isGuideActive || isTransitioningLine) return;
-      let delta = now - lastAnimTimestamp;
-      if (delta <= 0 || delta > 120) delta = 16.6;
-      lastAnimTimestamp = now;
-
-      const curLine = parsedTextLines[currentLineIndex];
-      const totalChars = (curLine && curLine.charItems) ? curLine.charItems.length : 10;
-      const inertiaStartIndex = Math.max(1, totalChars - 2);
-      const isInTailZone = (currentCharIndexFloat >= inertiaStartIndex);
-
-      if (isVoiceActive || isTouchingDisplay || isInTailZone) {
-        const charPerMs = (2.8 * pdfSpeed) / 1000;
-        if (isLineHeadLocked) {
-          if (currentCharIndexFloat < 0.5) {
-            currentCharIndexFloat = Math.min(0.5, currentCharIndexFloat + charPerMs * delta);
-          }
-        } else {
-          currentCharIndexFloat += charPerMs * delta;
-        }
-        if (currentCharIndexFloat > totalChars) currentCharIndexFloat = totalChars;
-      }
-
-      if (currentCharIndexFloat >= (totalChars - 0.5) && !hasPageFlipped) {
-        const isCurrentLineAtTargetEnd = (markB_Index !== -1 && currentLineIndex >= markB_Index);
-        if (!isCurrentLineAtTargetEnd) {
-          const visibleBottomIdx = getVisibleBottomLineIndex();
-          if (currentLineIndex === visibleBottomIdx) {
-            checkAndTriggerPageFlip();
-            hasPageFlipped = true;
-          }
-        }
-      }
-
-      if (currentCharIndexFloat >= totalChars) {
-        currentCharIndexFloat = totalChars;
-        if (curLine) {
-          const canvasRect = pdfCanvas.getBoundingClientRect();
-          const scaleY = canvasRect.height / pdfCanvas.height;
-          const scaleX = canvasRect.width / pdfCanvas.width;
-          const dot = getGlyphDotPosition(curLine, currentCharIndexFloat);
-          redDot.style.left = (dot.x * scaleX) + 'px';
-          redDot.style.top = (dot.y * scaleY) + 'px';
-        }
-
-        if (guideAnimId) { cancelAnimationFrame(guideAnimId); guideAnimId = null; }
-        if (markB_Index !== -1 && currentLineIndex >= markB_Index) { handleCycleCompletion(); return; }
-        const nextIndex = currentLineIndex + 1;
-        if (markB_Index !== -1 && nextIndex > markB_Index) { handleCycleCompletion(); return; }
-        if (nextIndex >= parsedTextLines.length) { handleCycleCompletion(); return; }
-
-        isTransitioningLine = true;
-        lineEndTime = performance.now();
-        peakRmsAtLineEnd = prevRms;
-        guideLine.style.display = 'none';
-        return;
-      }
-
-      if (curLine) {
-        const canvasRect = pdfCanvas.getBoundingClientRect();
-        const scaleY = canvasRect.height / pdfCanvas.height;
-        const scaleX = canvasRect.width / pdfCanvas.width;
-        const dot = getGlyphDotPosition(curLine, currentCharIndexFloat);
-        redDot.style.left = (dot.x * scaleX) + 'px';
-        redDot.style.top = (dot.y * scaleY) + 'px';
-      }
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
-    }
-
-    function proceedToNextLineImmediately() {
-      if (!isTransitioningLine || !isGuideActive) return;
-      const nextIndex = currentLineIndex + 1;
-      if (markB_Index !== -1 && nextIndex > markB_Index) {
-        handleCycleCompletion();
-        return;
-      }
-      hasPageFlipped = false;
-      currentLineIndex = nextIndex;
-      setupActiveLine(currentLineIndex, 0.0);
-      lastAnimTimestamp = performance.now();
-      guideAnimId = requestAnimationFrame(stepGuideMovement);
     }
 
     let cardTexts = {};
