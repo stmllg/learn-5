@@ -1,0 +1,1 @@
+Extract both scripts into speech_models. Run download_engine.cmd. Existing ONNX models are not changed. Internet required. This package downloads the original WEB01 engine; it does not contain the engine binaries.
