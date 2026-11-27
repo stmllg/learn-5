@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>歡喜背書V999.108｜整句自讀版｜供養 V4.3.1</title>
+  <title>歡喜背書V999.109｜小模型整句自讀版｜供養 V4.3.1</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1601,6 +1601,7 @@
 
     function isIndependentModeUnlocked() {
       if (practicePhase === 'completed') return true;
+      joy109RecoverCredit();
       const savedStr = classicStorage.getItem('APP_SAVED_STATE_V971');
       if (!savedStr) return false;
       try {
@@ -1690,6 +1691,7 @@
       setupStageRange();
       saveCurrentAppState();
       of02ShowStageConfirmation();
+      if(!document.hidden)setTimeout(()=>{if(of02AwaitingStageConfirmation&&practicePhase===nextPhase&&!document.hidden)void of02ConfirmStage();},0);
     }
 
     document.getElementById('of02-stage-confirm').addEventListener('click', of02ConfirmStage);
@@ -1707,6 +1709,7 @@
         currentCycleCount: currentCycleCount,
         videoCurrentTime: (currentCoreMode === 'mode2' ? (mp4RangeSession ? (mp4RangeSession.waitingRepeat ? mp4RangeSession.range.start : (mp4RangeSession.starting ? mp4RangeSession.target : video.currentTime)) : (videoPausedAt >= 0 ? videoPausedAt : video.currentTime)) : 0),
         currentLineIndex: currentLineIndex,
+        joy109Credit: joy109Credit,
         markA_Index: markA_Index,
         markB_Index: markB_Index,
         isManualSelected: isManualSelected,
@@ -1749,7 +1752,9 @@
         return;
       }
 
-      const state = pendingRestoredState;
+      joy109RecoverCredit();
+      const state = JSON.parse(classicStorage.getItem('APP_SAVED_STATE_V971')||'null') || pendingRestoredState;
+      joy109Credit=state.joy109Credit||{key:'',lines:[]};
       currentCoreMode = state.coreMode || 'mode2';
       practicePhase = state.practicePhase || 'new_gendu';
       currentCycleCount = state.currentCycleCount || 0;
@@ -1764,10 +1769,12 @@
         if (practicePhase !== 'completed') {
           // 恢復進度也不能自動播放；必須重新確認目前階段。
           setupStageRange();
+          if(practicePhase==='new_zidu'||practicePhase==='cumulative_zidu'){currentCycleCount=state.currentCycleCount||0;currentLineIndex=Math.max(markA_Index,Math.min(markB_Index,state.currentLineIndex||0));}
           of02ShowStageConfirmation();
         } else if (currentCoreMode === 'mode2') {
           setCoreMode('mode2', state.videoCurrentTime);
         } else if (currentCoreMode === 'mode3') {
+          markA_Index=state.markA_Index;markB_Index=state.markB_Index;currentLineIndex=state.currentLineIndex||0;currentCycleCount=state.currentCycleCount||0;isManualSelected=!!state.isManualSelected;
           setCoreMode('mode3');
         } else if (currentCoreMode === 'mode4') {
           setCoreMode('mode4');
@@ -1794,6 +1801,7 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         if (mp4RangeSession) videoPausedAt = mp4RangeSession.waitingRepeat ? mp4RangeSession.range.start : (mp4RangeSession.starting ? mp4RangeSession.target : video.currentTime);
+        joy109ResumeOnVisible=currentCoreMode==='mode3'&&isGuideActive;
         stopMp4RangePlayback();
         saveCurrentAppState();
         // 被 LINE／系統切至背景時，不能讓已停止的麥克風仍顯示錄音中。
@@ -1810,6 +1818,7 @@
             practicePhase = 'completed';
           }
           renderUI();
+          if(joy109ResumeOnVisible&&currentCoreMode==='mode3'){joy109ResumeOnVisible=false;void handleZiduClick();}
           if (currentCoreMode === 'mode3' || currentCoreMode === 'mode4') {
             setTimeout(() => {
               renderPdfOnValidDimensions();
@@ -3033,6 +3042,7 @@
       standaloneOverlay.style.display = 'none';
 
       if (mode === 'mode2') {
+        void joy109Prepare();
         releaseMicrophoneResources();
         pdfContainerWrap.style.display = 'none';
         guideStage.style.display = 'none';
@@ -3264,6 +3274,7 @@
     function handleGenduClick() {
       if (of02AwaitingStageConfirmation) return;
       requestFullscreenMode();
+      if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});
       if (!isIndependentModeUnlocked() && practicePhase !== 'new_gendu' && practicePhase !== 'cumulative_gendu') {
         showToast("⚠️ 請先跟著讀完遍數", 3000);
         return;
@@ -3297,7 +3308,7 @@
         showToast("⚠️ 請先跟著讀完遍數", 3000); return;
       }
       if (currentCoreMode !== 'mode3') { setCoreMode('mode3'); }
-      else if (isGuideActive && z108MicReady()) { haltGuideRunnerImmediately(); saveCurrentAppState(); return; }
+      else if (isGuideActive && z108MicReady() && joy109Node) { haltGuideRunnerImmediately(); saveCurrentAppState(); return; }
       else if(isGuideActive){await z108RecoverMic();return;}
       z107Starting = true;
       const token=++z107Generation;
@@ -3615,6 +3626,7 @@
               currentLineIndex = targetIdx;
               if (markB_Index !== -1 && markA_Index > markB_Index) markB_Index = -1;
               isSelectingMarkA = false;
+              if(isGuideActive&&currentCoreMode==='mode3')z107Reset();
               updateVisualDisplay();
               renderUI();
               saveCurrentAppState();
@@ -3627,6 +3639,7 @@
               isManualSelected = true;
               markB_Index = targetIdx;
               isSelectingMarkB = false;
+              if(isGuideActive&&currentCoreMode==='mode3'){currentLineIndex=Math.max(markA_Index,Math.min(markB_Index,currentLineIndex));z107Reset();}
               updateVisualDisplay();
               renderUI();
               saveCurrentAppState();
@@ -3815,7 +3828,7 @@
 
       currentCycleCount++;
       const earned = calculateSentenceCount();
-      addCoins(earned);
+      if(currentCoreMode!=='mode3')addCoins(earned);
 
       if (practicePhase === 'new_gendu') {
         if (currentCycleCount < newRepeat) {
@@ -4495,6 +4508,7 @@ function ofJournal(s=ofRead()) {
 function ofPending(s=ofRead()) { return ofTotal(s.pending)+s.frozen.reduce((a,b)=>a+ofTotal(b.rows),0)+ofTotal(ofJournal(s).map(x=>x.row)); }
 function ofStateLock(fn){return navigator.locks?.request?navigator.locks.request(OFFERING_STATE_KEY,{mode:'exclusive'},fn):Promise.resolve().then(fn);}
 function ofMergeJournal(s){
+  joy109RecoverCredit();
   const rows=ofJournal(s);
   for(const {id,row} of rows){ofUpdateEntry(s,row);const key=ofSessionKey(row);s.session[key]=(s.session[key]||0)+row.coins;s.applied.push(id);}
   if(rows.length)ofWrite(s); // 先永久保存合併結果及已合併 ID，才移除逐次入帳紀錄。
@@ -4734,16 +4748,28 @@ ofEl('of-show-secret').addEventListener('click',()=>{const p=ofRead().profile;if
 ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().profile;if(!p)return;try{await navigator.clipboard.writeText('ID：'+p.id+'\n密碼：'+p.secret);ofSetText('of-profile-hint','已複製，請妥善保存');}catch(e){ofSetText('of-profile-hint','請手動記下 ID 與密碼');}});
 
 
-    // V999.108 整句自讀：音量/頻帶感應，非文字辨識。所有時間以毫秒計。
-    const Z107_PER_CHAR=225, Z107_TAIL=100, Z107_WARN=1000, Z107_RETRY=2000;
-    let z107Timer=null, z107State=null, z107LastAudio=null, z107Samples=null, z107Spectrum=null;
-    let z107LastVoice=false, z108LastDebug=0;
-    function z108MicReady(){return !!(analyser&&audioContext?.state==='running'&&micStream?.getAudioTracks().some(t=>t.readyState==='live'&&t.enabled&&!t.muted));}
-    function z108Debug(force=false){
-      const el=document.getElementById('z108-debug');if(!el||!z107State)return;
-      const now=performance.now();if(!force&&now-z108LastDebug<100)return;z108LastDebug=now;
-      const st=z107State;el.textContent=`第 ${currentLineIndex+1} 句｜發音 ${(st.voiced/1000).toFixed(2)}/${(st.min/1000).toFixed(2)}秒｜經過 ${(st.elapsed/1000).toFixed(2)}/${(st.max/1000).toFixed(2)}秒｜${isCalibrating&&z108MicReady()?'校準中':z108MicReady()?'收音中':'收音未啟動'}`;
-    }
+    // V999.109：獨立模型資料庫；不列舉或刪除任何其他資料庫／快取。
+    const joy109Names=['encoder-epoch-99-avg-1.onnx','decoder-epoch-99-avg-1.onnx','joiner-epoch-99-avg-1.onnx','tokens.txt','sherpa-onnx-asr.js','sherpa-onnx-wasm-main-asr.js','sherpa-onnx-wasm-main-asr.wasm'];
+    const joy109WorkerSource="let r,stream,epoch=0,target=1,active=false,count=0,quiet=0,heard=false;\nconst send=(type,x={})=>postMessage({type,...x});\nasync function init(m){const names=m.names;const files=names.slice(0,4).map((n,i)=>new File([m.blobs[i]],n));const urls=m.blobs.slice(4,6).map(b=>URL.createObjectURL(new Blob([b],{type:'text/javascript'})));const wasmBinary=await m.blobs[6].arrayBuffer();try{await new Promise((resolve,reject)=>{self.Module={wasmBinary,onRuntimeInitialized:resolve,onAbort:reject,printErr:t=>console.warn(t)};importScripts(...urls);});}finally{urls.forEach(u=>URL.revokeObjectURL(u));}const M=self.Module;M.FS.mkdir('/models');M.FS.mount(M.WORKERFS,{files},'/models');const p=n=>'/models/'+n;r=createOnlineRecognizer(M,{featConfig:{sampleRate:16000,featureDim:80},modelConfig:{transducer:{encoder:p(names[0]),decoder:p(names[1]),joiner:p(names[2])},tokens:p(names[3]),numThreads:1,provider:'cpu',modelType:'zipformer',debug:0},decodingMethod:'greedy_search',maxActivePaths:4,enableEndpoint:0});if(!r.handle)throw Error('初始化失敗');send('ready');}\nonmessage=async({data:m})=>{try{if(m.type==='init'){await init(m);return;}if(m.type==='stop'){active=false;return;}if(m.type==='reset'&&r){if(stream)stream.free();stream=r.createStream();epoch=m.epoch;target=m.target;active=true;count=0;quiet=0;heard=false;return;}if(m.type!=='pcm'||!active||m.epoch!==epoch)return;const a=m.samples;let sum=0;for(const x of a)sum+=x*x;const voice=Math.sqrt(sum/a.length)>m.threshold;if(voice){heard=true;quiet=0;}else quiet+=a.length/16;stream.acceptWaveform(16000,a);while(r.isReady(stream))r.decode(stream);const n=(r.getResult(stream).text.match(/\\p{Script=Han}/gu)||[]).length;if(n!==count){count=n;heard=true;send('count',{epoch,count});}if(count>=target){active=false;send('pass',{epoch});}else if(heard&&quiet>=2500){active=false;send('retry',{epoch});}}catch(e){active=false;send('error',{text:String(e.message||e)});}};";
+    const joy109PCMSource="class TestPCM extends AudioWorkletProcessor{constructor(){super();this.phase=0;this.sum=0;this.n=0;this.buf=new Float32Array(800);this.i=0;}process(inputs){const a=inputs[0]?.[0];if(a)for(const x of a){this.sum+=x;this.n++;this.phase+=16000;if(this.phase>=sampleRate){this.phase-=sampleRate;this.buf[this.i++]=this.sum/this.n;this.sum=0;this.n=0;if(this.i===800){this.port.postMessage(this.buf,[this.buf.buffer]);this.buf=new Float32Array(800);this.i=0;}}}return true;}}registerProcessor('joy109-pcm',TestPCM);\n";
+    let joy109Worker=null,joy109Load=null,joy109Ready=false,joy109Epoch=0,joy109Node=null,joy109Source=null,joy109Mute=null,joy109Connecting=null,joy109Count=0,joy109WorkletContext=null;
+    let z107State=null,z107LastVoice=false;
+    function z108MicReady(){return !!(audioContext?.state==='running'&&micStream?.getAudioTracks().some(t=>t.readyState==='live'&&t.enabled&&!t.muted));}
+    function joy109DB(){return new Promise((resolve,reject)=>{const q=indexedDB.open('JoyRecite_SmallModel',1);q.onupgradeneeded=()=>q.result.createObjectStore('files');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});}
+    function joy109Get(db,key){return new Promise((resolve,reject)=>{const q=db.transaction('files').objectStore('files').get(key);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});}
+    function joy109Put(db,key,value){return new Promise((resolve,reject)=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').put(value,key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});}
+    async function joy109Files(){const db=await joy109DB();try{const out=[];for(const n of joy109Names){const key='zipformer-zh-14M-2023-02-23-fp32-engine-v1/'+n;let b=await joy109Get(db,key);if(!(b instanceof Blob)||b.size<10){if(currentCoreMode==='mode3')z107Status('首次下載語音模型：'+(out.length+1)+' / 7');const res=await fetch('./speech_models/'+n,{cache:'no-store'});if(!res.ok||res.status!==200)throw Error(n+' HTTP '+res.status);b=await res.blob();if(b.size<10||b.type.includes('text/html'))throw Error(n+' 檔案異常');if(n.endsWith('.wasm')){const h=new Uint8Array(await b.slice(0,4).arrayBuffer());if(h.join(',')!=='0,97,115,109')throw Error('WASM 檔案異常');}await joy109Put(db,key,b);}out.push(b);}return out;}finally{db.close();}}
+    function joy109Prepare(){if(joy109Load)return joy109Load;joy109Load=(async()=>{try{const blobs=await joy109Files();const u=URL.createObjectURL(new Blob([joy109WorkerSource],{type:'text/javascript'}));joy109Worker=new Worker(u);URL.revokeObjectURL(u);await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('模型載入逾時')),120000);joy109Worker.onerror=e=>{clearTimeout(timer);reject(Error(e.message));};joy109Worker.onmessage=({data:m})=>{if(m.type==='ready'){clearTimeout(timer);resolve();}else if(m.type==='error'){clearTimeout(timer);reject(Error(m.text));}};joy109Worker.postMessage({type:'init',names:joy109Names,blobs});});joy109Ready=true;joy109Worker.onmessage=joy109Message;joy109Worker.onerror=e=>joy109Failure(e.message);return true;}catch(e){joy109Worker?.terminate();joy109Worker=null;joy109Ready=false;joy109Load=null;console.warn('[Joy109]',e);if(currentCoreMode==='mode3')z107Status('模型載入失敗，可按自讀重試','warn');return false;}})();return joy109Load;}
+    function joy109Failure(t){console.warn('[Joy109]',t);joy109Disconnect();joy109Worker?.terminate();joy109Worker=null;joy109Load=null;joy109Ready=false;z107Status('辨識中斷，可按自讀重試','warn');}
+    function joy109Message({data:m}){if(m.type==='error'){joy109Failure(m.text);return;}if(m.epoch!==joy109Epoch||!isGuideActive||currentCoreMode!=='mode3'||document.hidden)return;if(m.type==='count'){joy109Count=m.count;z108Debug();}else if(m.type==='pass'){z107Move(1);}else if(m.type==='retry'){z107Reset(false,'請字字清楚，再念一遍');}}
+    function joy109Disconnect(){joy109Epoch++;joy109Worker?.postMessage({type:'stop'});if(joy109Node){joy109Node.port.onmessage=null;try{joy109Node.disconnect();}catch(e){}}try{joy109Source?.disconnect();joy109Mute?.disconnect();}catch(e){}joy109Node=joy109Source=joy109Mute=null;}
+    async function joy109Connect(){if(joy109Node)return;if(joy109Connecting)return joy109Connecting;const ctx=audioContext,stream=micStream;joy109Connecting=(async()=>{try{if(!z108MicReady())return;if(!joy109Ready)z107Status('語音模型準備中…');if(!await joy109Prepare())return;if(!isGuideActive||currentCoreMode!=='mode3'||document.hidden||ctx!==audioContext||stream!==micStream||!z108MicReady())return;if(joy109WorkletContext!==ctx){const u=URL.createObjectURL(new Blob([joy109PCMSource],{type:'text/javascript'}));try{await ctx.audioWorklet.addModule(u);joy109WorkletContext=ctx;}finally{URL.revokeObjectURL(u);}}if(!isGuideActive||currentCoreMode!=='mode3'||document.hidden||stream!==micStream)return;joy109Source=ctx.createMediaStreamSource(stream);joy109Node=new AudioWorkletNode(ctx,'joy109-pcm');joy109Mute=ctx.createGain();joy109Mute.gain.value=0;joy109Source.connect(joy109Node).connect(joy109Mute).connect(ctx.destination);joy109Node.port.onmessage=({data:a})=>{if(isGuideActive&&currentCoreMode==='mode3'&&!document.hidden&&joy109Ready)joy109Worker.postMessage({type:'pcm',epoch:joy109Epoch,samples:a,threshold:Math.max(0.003,Math.min(0.025,Number(dynamicThreshold)||0.003))},[a.buffer]);};z107Reset();}catch(e){joy109Failure(e.message);}finally{joy109Connecting=null;}})();return joy109Connecting;}
+    function z108Debug(){const el=document.getElementById('z108-debug');if(el)el.textContent=`第 ${currentLineIndex+1} 句｜${joy109Count} / ${Math.max(1,z107Count(currentLineIndex)-1)} 字`;}
+    function joy109CycleKey(){return [getNormalizedDateStr(),practicePhase,markA_Index,markB_Index,currentCycleCount].join('|');}
+    let joy109ResumeOnVisible=false;
+    let joy109Credit={key:'',lines:[]};
+    function joy109CreditLine(){const key=joy109CycleKey();if(joy109Credit.key!==key)joy109Credit={key,lines:[]};if(joy109Credit.lines.includes(currentLineIndex))return true;const id=ofRandom(16),row={date:ofDay(),classic:CURRENT_CLASSIC_ID,group:urlParams.get('g')||urlParams.get('group')||'',start:START_PARAM||'',source:OFFERING_SOURCE,coins:1};const next={key,lines:[...joy109Credit.lines,currentLineIndex]};try{classicStorage.setItem('JOY109_PENDING',JSON.stringify({id,row,credit:next}));localStorage.setItem(OFFERING_JOURNAL_PREFIX+id,JSON.stringify(row));joy109Credit=next;saveCurrentAppState();classicStorage.removeItem('JOY109_PENDING');return true;}catch(e){z107Status('儲存異常，請檢查手機空間','warn');return false;}}
+    function joy109RecoverCredit(){try{const raw=classicStorage.getItem('JOY109_PENDING');if(!raw)return;const p=JSON.parse(raw);const st=JSON.parse(classicStorage.getItem('APP_SAVED_STATE_V971')||'{}');if(!st.joy109Credit||st.joy109Credit.key!==p.credit.key||!p.credit.lines.every(i=>st.joy109Credit.lines.includes(i))){localStorage.setItem(OFFERING_JOURNAL_PREFIX+p.id,JSON.stringify(p.row));st.joy109Credit=p.credit;classicStorage.setItem('APP_SAVED_STATE_V971',JSON.stringify(st));}classicStorage.removeItem('JOY109_PENDING');}catch(e){console.warn('[Joy109 recovery]',e);}}
     // 解鎖後未自行指定範圍時，不沿用定課的單句起終點。
     function z108PrepareRange(){
       if(isIndependentModeUnlocked()&&!isManualSelected&&parsedTextLines.length&&(markA_Index!==0||markB_Index!==parsedTextLines.length-1)){
@@ -4753,26 +4779,7 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
     function z107Bounds(){const last=Math.max(0,parsedTextLines.length-1),a=Math.min(last,Math.max(0,markA_Index));return [a,Math.max(a,markB_Index<0?last:Math.min(last,markB_Index))];}
     function z107Count(idx){
       const text=scriptureData[idx]?.text || (parsedTextLines[idx]?.charItems||[]).map(g=>g.char).join('');
-      return Math.max(1,Array.from(text).filter(c=>/[\p{L}\p{N}]/u.test(c)).length);
-    }
-    function z107NewState(chars,waitQuiet=false){return {min:chars*Z107_PER_CHAR,max:chars*Z107_PER_CHAR*3,started:false,elapsed:0,voiced:0,quiet:0,onset:0,warned:false,waitQuiet,rearm:0};}
-    // 純狀態機：沒有 DOM 或麥克風依賴，可獨立模擬測試。
-    function z107AdvanceState(st,voice,dt){
-      if(st.waitQuiet){st.rearm=voice?0:st.rearm+dt;if(st.rearm>=Z107_TAIL){st.waitQuiet=false;st.rearm=0;}return 'wait';}
-      if(!st.started){
-        st.onset=voice?st.onset+dt:0;
-        // 60ms 確認有效起音，並補計這段起音，排除單一瞬間脈衝。
-        if(st.onset<60)return 'wait';
-        st.started=true;st.voiced=st.onset;st.elapsed=st.onset;st.quiet=0;
-        return 'reading';
-      }
-      st.elapsed+=dt;
-      if(voice){st.voiced+=dt;st.quiet=0;}else st.quiet+=dt;
-      if(st.elapsed>=st.max)return 'retry';
-      if(st.voiced>=st.min && st.quiet>=Z107_TAIL)return 'pass';
-      if(st.voiced<st.min && st.quiet>=Z107_RETRY)return 'retry';
-      if(st.voiced<st.min && st.quiet>=Z107_WARN && !st.warned){st.warned=true;return 'warn';}
-      return voice?'reading':'hold';
+      return Math.max(1,Array.from(text).filter(c=>/\p{Script=Han}/u.test(c)).length);
     }
     function z107Status(text,kind='normal'){
       const el=document.getElementById('z107-status');if(!el)return;
@@ -4790,18 +4797,17 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
       guideLine.style.width=((line.x1-line.x0)*sx)+'px';guideLine.style.display='block';
     }
     function z107Reset(waitQuiet=false,message='請清楚念出聲'){
-      z107State=z107NewState(z107Count(currentLineIndex),waitQuiet);
-      z107LastAudio=null; z107LastVoice=false;
-      z107Status(message,message==='請從頭再念一遍'?'error':'normal');z108Debug(true);
+      z107State={};joy109Count=0;joy109Epoch++;if(joy109Ready)joy109Worker.postMessage({type:'reset',epoch:joy109Epoch,target:Math.max(1,z107Count(currentLineIndex)-1)});z107Status(message,message.includes('再念')?'error':'normal');z108Debug();
     }
     function z107Move(dir,manual=false){
       if(currentCoreMode!=='mode3'||!isGuideActive||of02AwaitingStageConfirmation||!parsedTextLines.length)return;
       const [a,b]=z107Bounds();
-      const wait=manual&&z107LastVoice;
+      const wait=false;
+      if(dir>0&&!joy109CreditLine())return;
       if(dir>0&&currentLineIndex>=b){
         if(isIndependentModeUnlocked()){
           // 自主範圍完成：沿用一遍供養計數，但不進入定課階段完成程序。
-          currentCycleCount++;addCoins(b-a+1);currentLineIndex=a;
+          currentCycleCount++;currentLineIndex=a;
         }else{handleCycleCompletion();return;}
       }else currentLineIndex=Math.max(a,Math.min(b,currentLineIndex+dir));
       currentCharIndexFloat=0;isUserManualScrolling=false;
@@ -4809,7 +4815,8 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
       z107DrawLine();scrollToAlignTop(currentLineIndex);updateModeButtonsStyle();saveCurrentAppState();
     }
     async function z108RecoverMic(){
-      if(z107Starting||z108MicReady())return;
+      if(z107Starting)return;
+      if(z108MicReady()){await joy109Connect();return;}
       z107Starting=true;const token=++z107Generation;
       try{
         const ok=await ensureMicrophoneActive();
@@ -4825,34 +4832,10 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
       z107Move(dir,true);
       if(!z108MicReady())void z108RecoverMic();
     }
-    function z107Tick(){
-      if(!isGuideActive||currentCoreMode!=='mode3'||!z107State||document.hidden)return;
-      if(!z108MicReady()){z107LastAudio=null;z107Status('收音未啟動，可按自讀重試','warn');z108Debug();return;}
-      const now=audioContext.currentTime*1000;
-      const delta=z107LastAudio===null?0:now-z107LastAudio;z107LastAudio=now;
-      if(isCalibrating||delta<=0){z108Debug();return;}
-      if(!z107Samples||z107Samples.length!==analyser.fftSize){z107Samples=new Float32Array(analyser.fftSize);z107Spectrum=new Float32Array(analyser.frequencyBinCount);}
-      analyser.getFloatTimeDomainData(z107Samples);
-      let sum=0,mean=0;for(const v of z107Samples)mean+=v;mean/=z107Samples.length;for(const v of z107Samples)sum+=(v-mean)**2;
-      const rms=Math.sqrt(sum/z107Samples.length);
-      // 輕量語音頻帶篩選：降低低頻風聲和高頻噪音，不保證區別旁人說話。
-      analyser.getFloatFrequencyData(z107Spectrum);
-      let band=0,total=0;const hz=audioContext.sampleRate/analyser.fftSize;
-      for(let i=1;i<z107Spectrum.length;i++){const p=10**(z107Spectrum[i]/10);total+=p;if(i*hz>=150&&i*hz<=4500)band+=p;}
-      const voice=rms>Math.max(dynamicThreshold,baseNoiseLevel*1.6+0.0002)&&total>0&&band/total>=0.45;
-      z107LastVoice=voice;
-      // 掉幀時不能把未觀測的音訊當成發音或靜音；但最終截止仍計真實經過時間。
-      if(delta>30&&z107State.started&&!z107State.waitQuiet){z107State.elapsed+=delta- Math.min(20,delta);z107State.quiet=0;}
-      const result=z107AdvanceState(z107State,voice,Math.min(delta,20));z108Debug();
-      if(result==='pass'){z107Move(1);return;}
-      if(result==='retry'){z107Reset(voice,'請從頭再念一遍');return;}
-      if(result==='warn')z107Status('請繼續清楚念誦','warn');
-      else if(result==='reading')z107Status('念誦中');
-    }
     function haltGuideRunnerImmediately() {
       isGuideActive=false; z107Generation++;
-      if(z107Timer!==null){clearInterval(z107Timer);z107Timer=null;}
-      z107State=null;z107LastAudio=null;z107LastVoice=false;z107Status('');
+      joy109Disconnect();
+      z107State=null;z107LastVoice=false;z107Status('');
       if(guideAnimId){cancelAnimationFrame(guideAnimId);guideAnimId=null;}
       if(cycleWaitTimer){clearTimeout(cycleWaitTimer);cycleWaitTimer=null;}
       guideLine.style.display='none';redDot.style.display='none';updateModeButtonsStyle();
@@ -4862,7 +4845,7 @@ ofEl('of-copy-recovery').addEventListener('click',async()=>{const p=ofRead().pro
       z107Reset();z107DrawLine();isUserManualScrolling=false;scrollToAlignTop(currentLineIndex);
       z107StartTimer();
     }
-    function z107StartTimer(){if(z107Timer===null)z107Timer=setInterval(z107Tick,10);}
+    function z107StartTimer(){void joy109Connect();}
     function z107RestartCycle(){isGuideActive=true;startGuideRunner();updateModeButtonsStyle();}
 
     function scrollToAlignTop(idx) {
